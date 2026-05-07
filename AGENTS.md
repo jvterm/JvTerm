@@ -155,6 +155,7 @@ A change is not done until:
 - Render cache tests: `./gradlew :terminal-render-cache:test`
 - Swing UI tests: `./gradlew :terminal-ui-swing:test`
 - Swing UI demo: `./gradlew :terminal-ui-swing-demo:run`
+  - Custom shell: `./gradlew :terminal-ui-swing-demo:run --args="cmd.exe"`
 - PTY tests: `./gradlew :terminal-pty:test`
 - Benchmarks: `./gradlew :terminal-benchmarks:jmh`
 

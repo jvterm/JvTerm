@@ -91,4 +91,6 @@ playbooks in [`docs/agent-skills.md`](docs/agent-skills.md).
 
 - JDK 21
 - Run tests with `./gradlew test`
-- Launch the Swing PTY demo with `./gradlew :terminal-ui-swing-demo:run`
+- Launch the Swing PTY demo with `./gradlew :terminal-ui-swing-demo:run`. On
+  Windows the demo uses PowerShell so commands like `ls` and `cat` work; pass a
+  custom shell with `./gradlew :terminal-ui-swing-demo:run --args="cmd.exe"`.
