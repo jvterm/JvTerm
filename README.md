@@ -25,6 +25,8 @@ without touching grid internals or transport-specific code.
 - **terminal-ui-swing** owns the reusable Swing terminal component, painting,
   cursor presentation, selection, input event handling, clipboard/font/settings
   abstractions, and viewport/scrollbar model.
+- **terminal-ui-swing-demo** is a standalone manual-test host that opens the
+  Swing component on a local PTY-backed session.
 - **terminal-pty** exposes PTY4J-backed local processes as transport connectors.
 - **terminal-testkit** provides connector fakes for cross-module tests.
 - **terminal-benchmarks** contains JMH benchmarks for performance-sensitive
@@ -88,3 +90,4 @@ playbooks in [`docs/agent-skills.md`](docs/agent-skills.md).
 
 - JDK 21
 - Run tests with `./gradlew test`
+- Launch the Swing PTY demo with `./gradlew :terminal-ui-swing-demo:run`

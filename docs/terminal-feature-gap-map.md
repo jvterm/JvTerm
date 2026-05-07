@@ -441,6 +441,8 @@ professional emulator needs explicit contracts for it.
   Swing terminal component, immutable settings/metrics snapshots, packed ARGB
   palette resolution, and a basic Java2D painter backed by
   `TerminalRenderPublisher`.
+- `DONE(host/ui)`: standalone `:terminal-ui-swing-demo` application wires the
+  reusable Swing component to a local PTY-backed session for manual testing.
 - `TODO(host)`: selection, richer font shaping/measurement, palette/default-color
   policy, and backend painter integrations.
 - `TODO(host)`: font measurement policy and fallback fonts.
