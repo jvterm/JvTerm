@@ -14,6 +14,7 @@ include(
     ":terminal-transport-api",
     ":terminal-session",
     ":terminal-testkit",
+    ":terminal-ui-swing",
     ":terminal-benchmarks",
     ":terminal-render-cache",
 )

@@ -437,6 +437,9 @@ professional emulator needs explicit contracts for it.
 - `DONE(host)`: dependency-free primitive `TerminalRenderCache` consumer model
   that copies frame rows, clusters, attrs, hyperlinks, wrap flags, cursor state,
   and dirty-row metadata from `TerminalRenderFrameReader`.
+- `DONE(host/ui)`: empty reusable `:terminal-ui-swing` module scaffold exists
+  with dependency direction limited to `:terminal-session`,
+  `:terminal-render-api`, and `:terminal-render-cache`.
 - `TODO(host)`: selection, font shaping/measurement, palette/default-color
   policy, and backend painter integrations.
 - `TODO(host)`: font measurement policy and fallback fonts.

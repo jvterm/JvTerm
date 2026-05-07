@@ -1,9 +1,9 @@
 # Terminal Buffer
 
 A high-performance terminal pipeline in Kotlin. The core remains a headless
-screen-state engine, while parser, integration, input, session, transport, and
-PTY modules are split so rendering and UI can sit on top without touching grid
-internals.
+screen-state engine, while parser, integration, input, session, render,
+transport, PTY, and Swing UI modules are split so user interfaces can sit on top
+without touching grid internals or transport-specific code.
 
 ## Architecture
 
@@ -15,9 +15,16 @@ internals.
   host metadata callbacks.
 - **terminal-input** encodes keyboard, paste, focus, and mouse events to
   host-bound bytes.
+- **terminal-render-api** defines dependency-free primitive render frame,
+  cursor, cell, cluster, and attribute contracts.
+- **terminal-render-cache** copies render frame data into a renderer-side cache
+  for UI consumers.
 - **terminal-transport-api** defines the connector contract for PTY/SSH/test
   transports.
 - **terminal-session** serializes parser/core mutation and host-bound writes.
+- **terminal-ui-swing** owns the reusable Swing terminal component, painting,
+  cursor presentation, selection, input event handling, clipboard/font/settings
+  abstractions, and viewport/scrollbar model.
 - **terminal-pty** exposes PTY4J-backed local processes as transport connectors.
 - **terminal-testkit** provides connector fakes for cross-module tests.
 - **TerminalBuffer** is the facade that coordinates the state, mutation, cursor,
@@ -63,6 +70,9 @@ playbooks in [`docs/agent-skills.md`](docs/agent-skills.md).
 - Transport connectors own byte-stream I/O threads. `TerminalSession` owns
   parser/core synchronization, response draining, and ordering between UI input
   bytes and terminal response bytes.
+- Swing UI consumes `TerminalSession`, `terminal-render-api`, and
+  `terminal-render-cache`. It must stay independent of IntelliJ APIs and PTY
+  specifics; host applications choose and wire transports outside the UI module.
 
 ## Behavioral notes
 

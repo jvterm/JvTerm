@@ -1,0 +1,200 @@
+# Terminal UI Swing Agent Guide
+
+`terminal-ui-swing` owns the reusable Swing terminal UI. It converts terminal
+render frames and user input into a desktop component without knowing which
+transport produced the byte stream.
+
+This module is the shared UI foundation for both standalone desktop usage and
+IntelliJ integration.
+
+## Responsibilities
+
+`terminal-ui-swing` owns:
+
+- the public Swing terminal component.
+- internal Swing component layering.
+- terminal content painting.
+- cursor presentation.
+- selection and mouse handling.
+- keyboard event handling.
+- clipboard abstraction.
+- font resolving abstraction.
+- immutable settings snapshot abstraction.
+- viewport and scrollbar model.
+- Swing-side render-frame consumption.
+
+The public component is `TerminalPanel`.
+
+Internal structure:
+
+    TerminalPanel : JLayeredPane
+      ├── TerminalSurface : JComponent
+      └── CursorOverlay   : JComponent
+
+`TerminalPanel` owns its internal layers. Host modules must not manually assemble
+`TerminalSurface` and `CursorOverlay`.
+
+## Allowed Dependencies
+
+`terminal-ui-swing` may depend on:
+
+- `terminal-session`
+- `terminal-render-api`
+- `terminal-render-cache`
+
+It may also use standard JDK/Swing/AWT APIs.
+
+## Forbidden Dependencies
+
+`terminal-ui-swing` must not depend on:
+
+- IntelliJ Platform APIs.
+- `terminal-pty`.
+- SSH, WebSocket, or other transport implementations.
+- standalone application modules.
+- plugin modules.
+
+Transport selection belongs outside this module.
+
+## Boundary Rules
+
+`terminal-ui-swing` must not:
+
+- parse ANSI, VT, OSC, DCS, or terminal output protocols.
+- implement terminal grid mutation rules.
+- mutate terminal core internals directly.
+- duplicate render cache responsibilities.
+- know whether bytes come from PTY, SSH, WebSocket, mock connectors, or tests.
+- own process/session creation policy.
+- own IDE lifecycle policy.
+- own standalone app configuration policy.
+
+It consumes render-frame state and sends user intent through session/input
+boundaries.
+
+## Rendering Contract
+
+Rendering must be terminal-native and run-based, not cell-based.
+
+The renderer should operate in terms of:
+
+- background runs.
+- text runs.
+- decoration runs.
+- selection ranges.
+- cursor overlay.
+- complex cluster fallback.
+
+Avoid `drawString` once per cell.
+
+Avoid per-cell allocation of:
+
+- `Color`
+- `String`
+- `Font`
+- coordinate objects
+- temporary cell wrappers
+
+Renderer hot paths should use primitive packed values where practical.
+
+Rendering must consume immutable frame/settings state. It must not observe
+half-applied theme, font, metric, scale, or palette changes while painting.
+
+## Settings Contract
+
+Rendering uses an immutable settings snapshot.
+
+The snapshot should contain:
+
+- terminal fonts.
+- cell metrics.
+- resolved color palette.
+- text rendering hints.
+- HiDPI scale.
+- cursor settings.
+- selection colors.
+
+Cell metrics must include:
+
+- cell width.
+- cell height.
+- baseline.
+- underline position.
+- strikethrough position.
+- overline position.
+- cursor stroke width.
+
+Do not compute font metrics ad hoc during row painting.
+
+## Color Contract
+
+Use a resolved palette with packed ARGB values in hot paths.
+
+The color model must explicitly define:
+
+- default foreground/background.
+- ANSI 16 colors.
+- indexed 256-color palette.
+- truecolor RGB.
+- bold-as-bright behavior.
+- faint/dim behavior.
+- inverse.
+- conceal.
+- selection foreground/background.
+- cursor foreground/background.
+
+## Font and Text Contract
+
+ASCII must have a fast path.
+
+Font fallback must be cached and resolved by runs where possible.
+
+Simple text should render as contiguous runs grouped by compatible font,
+foreground color, and style.
+
+Complex clusters may use a slower fallback path, but that path must not pollute
+the ASCII/simple-text hot path.
+
+## Threading Contract
+
+Swing component state belongs to the EDT.
+
+Any off-EDT rendering must:
+
+- publish immutable frame or strip snapshots.
+- never mutate images or buffers currently visible to the EDT.
+- use double buffering or equivalent ownership transfer.
+- avoid touching Swing component state off the EDT.
+- snapshot settings before rendering work begins.
+
+## Host Integration Contract
+
+Host modules provide environment-specific adapters.
+
+Examples:
+
+- IntelliJ module provides IDE settings, IDE clipboard, IDE font fallback,
+  tool-window lifecycle, and IntelliJ actions.
+- Standalone module provides JFrame assembly, system clipboard, system font
+  fallback, local config, and PTY startup.
+
+Those host concepts must enter `terminal-ui-swing` only through small
+interfaces.
+
+## Testing
+
+Prefer deterministic Swing model and render-frame replay tests.
+
+Tests should cover:
+
+- viewport math.
+- selection ranges.
+- keyboard and mouse translation.
+- cursor visibility and repaint bounds.
+- color resolution.
+- resize-to-columns/rows calculation.
+- dirty-row repaint behavior.
+- render cache consumption.
+- and much more
+
+Avoid tests that require a real PTY or IntelliJ runtime.
