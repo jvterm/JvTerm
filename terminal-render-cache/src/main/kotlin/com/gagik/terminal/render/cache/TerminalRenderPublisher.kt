@@ -2,6 +2,8 @@ package com.gagik.terminal.render.cache
 
 import com.gagik.terminal.render.api.TerminalRenderFrameReader
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 /**
  * Triple-buffered render cache publisher.
@@ -18,13 +20,13 @@ class TerminalRenderPublisher(
     rows: Int,
 ) {
     private val buffers = Array(3) { TerminalRenderCache(columns, rows) }
+    private val readerCounts = IntArray(BUFFER_COUNT)
 
-    // Indices - only mutated under publishLock.
-    private var frontIndex = 0
-    private var backIndex = 1
-    private var spareIndex = 2
-
-    private val publishLock = Any()
+    // Indices and reader counts are only mutated under publishLock.
+    private var frontIndex = NO_FRONT
+    private var nextWriteIndex = 0
+    private val publishLock = ReentrantLock()
+    private val bufferAvailable = publishLock.newCondition()
 
     // AtomicReference for lock-free front reads.
     private val frontRef = AtomicReference<TerminalRenderCache?>(null)
@@ -44,7 +46,8 @@ class TerminalRenderPublisher(
      * bottom viewport. The source reader clamps it before rows are copied.
      */
     fun updateAndPublish(reader: TerminalRenderFrameReader, scrollbackOffset: Int) {
-        val back = synchronized(publishLock) { buffers[backIndex] }
+        val writeIndex = acquireWritableIndex()
+        val back = buffers[writeIndex]
 
         // The selected back buffer is render-worker-exclusive here because the
         // session coalesces dirty notifications to at most one queued render
@@ -52,12 +55,10 @@ class TerminalRenderPublisher(
         // by the render frame reader.
         back.updateFrom(reader, scrollbackOffset)
 
-        synchronized(publishLock) {
-            val oldFront = frontIndex
-            frontIndex = backIndex
-            backIndex = spareIndex
-            spareIndex = oldFront
+        publishLock.withLock {
+            frontIndex = writeIndex
             frontRef.set(buffers[frontIndex])
+            bufferAvailable.signalAll()
         }
     }
 
@@ -83,9 +84,11 @@ class TerminalRenderPublisher(
      * @return [block]'s result, or `null` when no frame is available.
      */
     fun <T> readCurrent(block: (TerminalRenderCache) -> T): T? {
-        return synchronized(publishLock) {
-            val current = frontRef.get() ?: return@synchronized null
-            block(current)
+        val lease = acquireFrontLease() ?: return null
+        try {
+            return block(lease.cache)
+        } finally {
+            releaseFrontLease(lease.index)
         }
     }
 
@@ -98,11 +101,58 @@ class TerminalRenderPublisher(
      * thread.
      */
     fun resize(columns: Int, rows: Int) {
-        synchronized(publishLock) {
+        publishLock.withLock {
             buffers.forEach {
                 it.resize(columns, rows)
                 it.resetOwnership()
             }
         }
+    }
+
+    private fun acquireWritableIndex(): Int {
+        publishLock.withLock {
+            while (true) {
+                var offset = 0
+                while (offset < BUFFER_COUNT) {
+                    val index = (nextWriteIndex + offset) % BUFFER_COUNT
+                    if (index != frontIndex && readerCounts[index] == 0) {
+                        nextWriteIndex = (index + 1) % BUFFER_COUNT
+                        return index
+                    }
+                    offset++
+                }
+                bufferAvailable.await()
+            }
+        }
+    }
+
+    private fun acquireFrontLease(): FrontLease? {
+        publishLock.withLock {
+            val index = frontIndex
+            if (index == NO_FRONT) return null
+
+            readerCounts[index]++
+            return FrontLease(index, buffers[index])
+        }
+    }
+
+    private fun releaseFrontLease(index: Int) {
+        publishLock.withLock {
+            readerCounts[index]--
+            check(readerCounts[index] >= 0) {
+                "TerminalRenderPublisher reader count underflow for buffer $index"
+            }
+            bufferAvailable.signalAll()
+        }
+    }
+
+    private data class FrontLease(
+        val index: Int,
+        val cache: TerminalRenderCache,
+    )
+
+    private companion object {
+        private const val BUFFER_COUNT = 3
+        private const val NO_FRONT = -1
     }
 }

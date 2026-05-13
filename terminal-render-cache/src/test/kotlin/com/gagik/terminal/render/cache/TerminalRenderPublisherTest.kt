@@ -104,7 +104,7 @@ class TerminalRenderPublisherTest {
     }
 
     @Test
-    fun `readCurrent pins front buffer while reader is active`() {
+    fun `readCurrent does not block publishing while reader is active`() {
         val publisher = TerminalRenderPublisher(3, 1)
         publisher.updateAndPublish(MockFrame(3, 1, "abc"))
 
@@ -128,14 +128,41 @@ class TerminalRenderPublisherTest {
             writerFinished.set(true)
         }
 
-        Thread.sleep(50)
-        assertFalse(writerFinished.get(), "writer recycled a buffer while readCurrent was active")
+        writer.join(1_000)
+        assertTrue(writerFinished.get(), "writer was blocked by an active readCurrent callback")
 
         releaseReader.countDown()
         reader.join()
-        writer.join()
 
         assertEquals("def", publisher.current()?.rowText(0))
+    }
+
+    @Test
+    fun `readCurrent keeps pinned snapshot stable across multiple publishes`() {
+        val publisher = TerminalRenderPublisher(3, 1)
+        publisher.updateAndPublish(MockFrame(3, 1, "abc"))
+
+        val readerEntered = CountDownLatch(1)
+        val releaseReader = CountDownLatch(1)
+
+        val reader = thread(start = true) {
+            publisher.readCurrent { front ->
+                readerEntered.countDown()
+                assertEquals("abc", front.rowText(0))
+                assertTrue(releaseReader.await(1, TimeUnit.SECONDS))
+                assertEquals("abc", front.rowText(0))
+            }
+        }
+
+        assertTrue(readerEntered.await(1, TimeUnit.SECONDS))
+
+        publisher.updateAndPublish(MockFrame(3, 1, "def"))
+        publisher.updateAndPublish(MockFrame(3, 1, "ghi"))
+
+        releaseReader.countDown()
+        reader.join()
+
+        assertEquals("ghi", publisher.current()?.rowText(0))
     }
 
     private fun TerminalRenderCache.rowText(row: Int): String =
