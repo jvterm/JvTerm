@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.awt.Font
 import java.awt.RenderingHints
+import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -27,7 +28,7 @@ class TerminalTextPainterTest {
         }
 
         @Test
-        fun `glyph vector fallback preserves grid cells when measured width differs`() {
+        fun `ascii mismatch path keeps absolute run origin`() {
             val image = BufferedImage(120, 40, BufferedImage.TYPE_INT_ARGB)
             val settings = TerminalSwingSettings(
                 font = Font(Font.SERIF, Font.PLAIN, 18),
@@ -57,6 +58,67 @@ class TerminalTextPainterTest {
 
             assertTrue(image.containsColorInRange(TEST_RED, 0, metrics.cellWidth))
             assertTrue(image.containsColorInRange(TEST_RED, metrics.cellWidth, metrics.cellWidth * 2))
+        }
+
+        @Test
+        fun `ascii mismatch path leaves graphics transform unchanged`() {
+            val image = BufferedImage(120, 40, BufferedImage.TYPE_INT_ARGB)
+            val settings = TerminalSwingSettings(
+                font = Font(Font.SERIF, Font.PLAIN, 18),
+                palette = defaultTestSettings(foreground = TEST_RED, background = TEST_BLACK).palette,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                fractionalMetrics = RenderingHints.VALUE_FRACTIONALMETRICS_ON,
+            )
+            val g = image.createGraphics()
+            val initialTransform = AffineTransform.getTranslateInstance(3.0, 5.0)
+            g.transform = initialTransform
+            val metrics = testMetrics(image, settings)
+            val painter = TerminalTextPainter(AwtColorCache(), TerminalDecorationPainter(AwtColorCache()))
+            painter.updateSettings(settings)
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
+            g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, settings.fractionalMetrics)
+            val cache = renderCache(TestRenderFrame.text("ii"))
+
+            painter.paintRow(g, cache, settings.palette, metrics, row = 0, fontRenderContext = g.fontRenderContext)
+
+            assertEquals(initialTransform, g.transform)
+            g.dispose()
+        }
+
+        @Test
+        fun `ascii mismatch path does not rescale prefix when run grows`() {
+            val settings = TerminalSwingSettings(
+                font = Font(Font.SERIF, Font.PLAIN, 18),
+                palette = defaultTestSettings(foreground = TEST_RED, background = TEST_BLACK).palette,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                fractionalMetrics = RenderingHints.VALUE_FRACTIONALMETRICS_ON,
+            )
+            val shortImage = paintSerifAscii(settings, "Wi")
+            val longImage = paintSerifAscii(settings, "Wii")
+            val metrics = testMetrics(shortImage, settings)
+
+            assertEquals(
+                shortImage.countColorInRange(TEST_RED, 0, metrics.cellWidth, 0, metrics.cellHeight),
+                longImage.countColorInRange(TEST_RED, 0, metrics.cellWidth, 0, metrics.cellHeight),
+            )
+        }
+
+        @Test
+        fun `ascii mismatch path does not also paint compact unpositioned run`() {
+            val settings = TerminalSwingSettings(
+                font = Font(Font.SERIF, Font.PLAIN, 18),
+                palette = defaultTestSettings(foreground = TEST_RED, background = TEST_BLACK).palette,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                fractionalMetrics = RenderingHints.VALUE_FRACTIONALMETRICS_ON,
+            )
+            val singleCell = paintSerifAscii(settings, "i")
+            val twoCells = paintSerifAscii(settings, "ii")
+            val metrics = testMetrics(singleCell, settings)
+
+            assertEquals(
+                singleCell.countColorInRange(TEST_RED, 0, metrics.cellWidth, 0, metrics.cellHeight),
+                twoCells.countColorInRange(TEST_RED, 0, metrics.cellWidth, 0, metrics.cellHeight),
+            )
         }
 
         @Test
@@ -222,5 +284,24 @@ class TerminalTextPainterTest {
             metrics = testMetrics(image, settings),
             painter = painter,
         )
+    }
+
+    private fun paintSerifAscii(settings: TerminalSwingSettings, text: String): BufferedImage {
+        val image = BufferedImage(140, 40, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val painter = TerminalTextPainter(AwtColorCache(), TerminalDecorationPainter(AwtColorCache()))
+        painter.updateSettings(settings)
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
+        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, settings.fractionalMetrics)
+        painter.paintRow(
+            g,
+            renderCache(TestRenderFrame.text(text)),
+            settings.palette,
+            testMetrics(image, settings),
+            row = 0,
+            fontRenderContext = g.fontRenderContext,
+        )
+        g.dispose()
+        return image
     }
 }

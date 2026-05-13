@@ -9,7 +9,6 @@ import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.font.FontRenderContext
-import java.awt.geom.Point2D
 
 /**
  * Paints terminal cell text runs and text-only cursor foreground.
@@ -20,8 +19,8 @@ internal class TerminalTextPainter(
 ) {
     private val fontCache = TerminalFontCache()
     private val complexTextLayouts = TerminalComplexTextLayoutCache()
+    private val asciiGlyphVectors = TerminalAsciiGlyphVectorCache()
     private val textRun = TerminalTextRunBuffer(INITIAL_TEXT_RUN_CAPACITY)
-    private val glyphPosition = Point2D.Float()
 
     /**
      * Updates font-dependent caches for a settings snapshot.
@@ -29,6 +28,7 @@ internal class TerminalTextPainter(
     fun updateSettings(settings: TerminalSwingSettings) {
         if (fontCache.update(settings.font, settings.fallbackFonts, settings.useSystemFallbackFonts)) {
             complexTextLayouts.clear()
+            asciiGlyphVectors.clear()
         }
     }
 
@@ -180,7 +180,7 @@ internal class TerminalTextPainter(
 
         g.font = fontCache.font(fontStyle)
         g.color = colorCache.color(foreground)
-        drawAsciiRun(g, metrics, startColumn, baselineY, fontRenderContext)
+        drawAsciiRun(g, metrics, startColumn, baselineY, fontStyle, fontRenderContext)
         decorationPainter.paint(g, palette, attr, extraAttr, foreground, startColumn, column, row, metrics)
         return column
     }
@@ -230,6 +230,7 @@ internal class TerminalTextPainter(
         metrics: TerminalSwingMetrics,
         startColumn: Int,
         baselineY: Int,
+        fontStyle: Int,
         fontRenderContext: FontRenderContext,
     ) {
         val expectedWidth = textRun.length * metrics.cellWidth
@@ -239,21 +240,14 @@ internal class TerminalTextPainter(
             return
         }
 
-        val glyphVector = g.font.layoutGlyphVector(
-            fontRenderContext,
-            textRun.chars,
-            0,
-            textRun.length,
-            Font.LAYOUT_LEFT_TO_RIGHT,
+        val text = String(textRun.chars, 0, textRun.length)
+        val glyphVector = asciiGlyphVectors.glyphVector(
+            text = text,
+            font = g.font,
+            style = fontStyle,
+            cellWidth = metrics.cellWidth,
+            fontRenderContext = fontRenderContext,
         )
-        val glyphCount = glyphVector.numGlyphs
-        var glyph = 0
-        while (glyph <= glyphCount) {
-            glyphPosition.x = glyph * metrics.cellWidth.toFloat()
-            glyphPosition.y = 0f
-            glyphVector.setGlyphPosition(glyph, glyphPosition)
-            glyph++
-        }
         g.drawGlyphVector(glyphVector, (startColumn * metrics.cellWidth).toFloat(), baselineY.toFloat())
     }
 
