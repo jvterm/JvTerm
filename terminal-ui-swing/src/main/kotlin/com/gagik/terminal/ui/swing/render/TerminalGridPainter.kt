@@ -11,18 +11,21 @@ import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.RenderingHints
+import java.awt.font.FontRenderContext
+import java.awt.geom.Point2D
 
 /**
  * Java2D renderer for cached primitive terminal frames.
  *
  * The painter is component-owned and reuses its color, font, and text buffers
- * across paint calls. The ASCII path groups contiguous compatible cells and
- * draws directly from a reusable `CharArray`.
+ * across paint calls. The ASCII path groups contiguous compatible cells into a
+ * glyph run, then pins every glyph to terminal cell coordinates.
  */
 internal class TerminalGridPainter {
     private val colorCache = AwtColorCache()
     private val fontCache = TerminalFontCache()
     private val textRun = TerminalTextRunBuffer(INITIAL_TEXT_RUN_CAPACITY)
+    private val glyphPoint = Point2D.Float()
 
     /**
      * Clears [width] x [height] with the terminal default background.
@@ -180,7 +183,15 @@ internal class TerminalGridPainter {
 
         g.font = fontCache.font(fontStyle)
         g.color = colorCache.color(foreground)
-        g.drawChars(textRun.chars, 0, textRun.length, startColumn * metrics.cellWidth, baselineY)
+        drawFixedCellGlyphRun(
+            g = g,
+            font = g.font,
+            fontRenderContext = g.fontRenderContext,
+            metrics = metrics,
+            startColumn = startColumn,
+            baselineY = baselineY,
+            charCount = textRun.length,
+        )
         paintDecorations(g, attr, foreground, startColumn, column, row, metrics)
         return column
     }
@@ -203,15 +214,27 @@ internal class TerminalGridPainter {
         g.font = fontCache.font(fontStyle)
         g.color = colorCache.color(foreground)
 
-        if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
-            val cluster = cache.clusters[row][column]
-            if (cluster != null) {
-                g.drawString(cluster, column * metrics.cellWidth, baselineY)
+        val oldClip = g.clip
+        try {
+            g.clipRect(
+                column * metrics.cellWidth,
+                row * metrics.cellHeight,
+                (endColumn - column) * metrics.cellWidth,
+                metrics.cellHeight,
+            )
+
+            if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
+                val cluster = cache.clusters[row][column]
+                if (cluster != null) {
+                    g.drawString(cluster, column * metrics.cellWidth, baselineY)
+                }
+            } else {
+                textRun.clear()
+                textRun.appendCodePoint(cache.codeWords[row][column])
+                g.drawChars(textRun.chars, 0, textRun.length, column * metrics.cellWidth, baselineY)
             }
-        } else {
-            textRun.clear()
-            textRun.appendCodePoint(cache.codeWords[row][column])
-            g.drawChars(textRun.chars, 0, textRun.length, column * metrics.cellWidth, baselineY)
+        } finally {
+            g.clip = oldClip
         }
 
         paintDecorations(g, attr, foreground, column, endColumn, row, metrics)
@@ -318,6 +341,32 @@ internal class TerminalGridPainter {
         } finally {
             g.clip = oldClip
         }
+    }
+
+    private fun drawFixedCellGlyphRun(
+        g: Graphics2D,
+        font: Font,
+        fontRenderContext: FontRenderContext,
+        metrics: TerminalSwingMetrics,
+        startColumn: Int,
+        baselineY: Int,
+        charCount: Int,
+    ) {
+        val glyphVector = font.layoutGlyphVector(
+            fontRenderContext,
+            textRun.chars,
+            0,
+            charCount,
+            Font.LAYOUT_LEFT_TO_RIGHT,
+        )
+        var glyph = 0
+        while (glyph < glyphVector.numGlyphs) {
+            glyphPoint.x = glyph * metrics.cellWidth.toFloat()
+            glyphPoint.y = 0f
+            glyphVector.setGlyphPosition(glyph, glyphPoint)
+            glyph++
+        }
+        g.drawGlyphVector(glyphVector, startColumn * metrics.cellWidth.toFloat(), baselineY.toFloat())
     }
 
     private fun hasDrawableText(flags: Int): Boolean {

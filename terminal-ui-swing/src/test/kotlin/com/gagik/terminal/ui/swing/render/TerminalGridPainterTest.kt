@@ -14,6 +14,47 @@ import java.awt.image.BufferedImage
 
 class TerminalGridPainterTest {
     @Test
+    fun `ascii runs advance by terminal cell width`() {
+        val image = BufferedImage(80, 30, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings = TerminalSwingSettings(
+            font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+            palette = TerminalColorPalette(
+                defaultForeground = RED,
+                defaultBackground = BLACK,
+            ),
+            textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+        )
+        val metrics = TerminalSwingMetrics(
+            cellWidth = 20,
+            cellHeight = 24,
+            baseline = 18,
+            underlineY = 20,
+            strikethroughY = 12,
+            overlineY = 0,
+            cursorStrokeWidth = 2,
+        )
+        val cache = TerminalRenderCache(columns = 2, rows = 1)
+        cache.updateFrom(TextFrame(text = "ii", cursorVisible = false))
+
+        TerminalGridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+        )
+        g.dispose()
+
+        assertTrue(
+            image.containsColorInRange(RED, xStart = metrics.cellWidth, xEnd = metrics.cellWidth * 2),
+            "second glyph was not painted in the second terminal cell",
+        )
+    }
+
+    @Test
     fun `block cursor redraws covered glyph with cursor foreground`() {
         val image = BufferedImage(40, 30, BufferedImage.TYPE_INT_ARGB)
         val g = image.createGraphics()
@@ -29,7 +70,7 @@ class TerminalGridPainterTest {
         )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 1, rows = 1)
-        cache.updateFrom(SingleCellFrame)
+        cache.updateFrom(TextFrame(text = "A", cursorVisible = true))
 
         TerminalGridPainter().paint(
             g = g,
@@ -49,6 +90,19 @@ class TerminalGridPainterTest {
         )
     }
 
+    private fun BufferedImage.containsColorInRange(argb: Int, xStart: Int, xEnd: Int): Boolean {
+        var y = 0
+        while (y < height) {
+            var x = xStart
+            while (x < xEnd) {
+                if (getRGB(x, y) == argb) return true
+                x++
+            }
+            y++
+        }
+        return false
+    }
+
     private fun BufferedImage.containsColor(argb: Int, width: Int, height: Int): Boolean {
         var y = 0
         while (y < height) {
@@ -62,8 +116,11 @@ class TerminalGridPainterTest {
         return false
     }
 
-    private object SingleCellFrame : TerminalRenderFrameReader, TerminalRenderFrame {
-        override val columns: Int = 1
+    private class TextFrame(
+        private val text: String,
+        private val cursorVisible: Boolean,
+    ) : TerminalRenderFrameReader, TerminalRenderFrame {
+        override val columns: Int = text.length
         override val rows: Int = 1
         override val frameGeneration: Long = 1
         override val structureGeneration: Long = 1
@@ -71,7 +128,7 @@ class TerminalGridPainterTest {
         override val cursor: TerminalRenderCursor = TerminalRenderCursor(
             column = 0,
             row = 0,
-            visible = true,
+            visible = cursorVisible,
             blinking = false,
             shape = TerminalRenderCursorShape.BLOCK,
             generation = 1,
@@ -99,11 +156,15 @@ class TerminalGridPainterTest {
             hyperlinkOffset: Int,
             clusterSink: TerminalRenderClusterSink?,
         ) {
-            codeWords[codeOffset] = 'A'.code
-            attrWords[attrOffset] = TerminalRenderAttrs.DEFAULT
-            flags[flagOffset] = TerminalRenderCellFlags.CODEPOINT
-            extraAttrWords?.set(extraAttrOffset, TerminalRenderExtraAttrs.DEFAULT)
-            hyperlinkIds?.set(hyperlinkOffset, 0)
+            var column = 0
+            while (column < columns) {
+                codeWords[codeOffset + column] = text[column].code
+                attrWords[attrOffset + column] = TerminalRenderAttrs.DEFAULT
+                flags[flagOffset + column] = TerminalRenderCellFlags.CODEPOINT
+                extraAttrWords?.set(extraAttrOffset + column, TerminalRenderExtraAttrs.DEFAULT)
+                hyperlinkIds?.set(hyperlinkOffset + column, 0)
+                column++
+            }
         }
     }
 
