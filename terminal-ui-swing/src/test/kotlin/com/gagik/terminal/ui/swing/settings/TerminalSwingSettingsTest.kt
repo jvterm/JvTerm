@@ -3,6 +3,7 @@ package com.gagik.terminal.ui.swing.settings
 import com.gagik.terminal.ui.swing.api.TerminalSwingTerminal
 import java.awt.Canvas
 import java.awt.Font
+import java.awt.RenderingHints
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -29,6 +30,14 @@ class TerminalSwingSettingsTest {
         assertTrue(metrics.cellHeight > 0)
         assertTrue(metrics.baseline in 0..metrics.cellHeight)
         assertTrue(metrics.cursorStrokeWidth > 0)
+    }
+
+    @Test
+    fun settingsDefaultToHighQualityGridSafeTextHints() {
+        val settings = TerminalSwingSettings()
+
+        assertEquals(RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB, settings.textAntialiasing)
+        assertEquals(RenderingHints.VALUE_FRACTIONALMETRICS_OFF, settings.fractionalMetrics)
     }
 
     @Test

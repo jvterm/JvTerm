@@ -16,6 +16,7 @@ import java.awt.RenderingHints
  * @property rows initial preferred row count.
  * @property cursorBlinkMillis cursor blink period in milliseconds.
  * @property textAntialiasing text antialiasing hint used during painting.
+ * @property fractionalMetrics fractional font metrics hint used during painting.
  */
 data class TerminalSwingSettings(
     val font: Font = Font(Font.MONOSPACED, Font.PLAIN, 14),
@@ -23,7 +24,8 @@ data class TerminalSwingSettings(
     val columns: Int = 80,
     val rows: Int = 24,
     val cursorBlinkMillis: Int = 600,
-    val textAntialiasing: Any = RenderingHints.VALUE_TEXT_ANTIALIAS_ON,
+    val textAntialiasing: Any = RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB,
+    val fractionalMetrics: Any = RenderingHints.VALUE_FRACTIONALMETRICS_OFF,
 ) {
     init {
         require(columns > 0) { "columns must be > 0, was $columns" }

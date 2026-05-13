@@ -51,7 +51,7 @@ internal class TerminalGridPainter {
         val palette = settings.palette
         fontCache.update(settings.font)
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
-        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF)
+        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, settings.fractionalMetrics)
         g.font = fontCache.font(Font.PLAIN)
 
         val rows = minOf(cache.rows, height / metrics.cellHeight + 1)
