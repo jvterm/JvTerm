@@ -11,6 +11,7 @@ import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 import java.awt.event.MouseWheelEvent
 import java.awt.event.MouseWheelListener
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 import javax.swing.Timer
@@ -34,6 +35,7 @@ class TerminalSwingTerminal(
     private var metrics: TerminalSwingMetrics = buildMetrics(settings)
     private var cursorBlinkVisible: Boolean = true
     private var scrollbackOffset: Int = 0
+    private val renderPending = AtomicBoolean(false)
 
     private val painter = TerminalGridPainter()
     private val cursorTimer = Timer(settings.cursorBlinkMillis) {
@@ -83,11 +85,10 @@ class TerminalSwingTerminal(
         this.session?.onDirty = null
         this.session = session
         session.onDirty = {
-            SwingUtilities.invokeLater {
-                handlePublishedFrame()
-            }
+            schedulePublishedFrame()
         }
         scrollbackOffset = 0
+        renderPending.set(false)
         repaint()
     }
 
@@ -98,6 +99,7 @@ class TerminalSwingTerminal(
         session?.onDirty = null
         session = null
         scrollbackOffset = 0
+        renderPending.set(false)
         repaint()
     }
 
@@ -183,6 +185,15 @@ class TerminalSwingTerminal(
         scrollbackOffset = nextOffset
         boundSession.requestRender(scrollbackOffset)
         event.consume()
+    }
+
+    private fun schedulePublishedFrame() {
+        if (!renderPending.compareAndSet(false, true)) return
+
+        SwingUtilities.invokeLater {
+            renderPending.set(false)
+            handlePublishedFrame()
+        }
     }
 
     private fun handlePublishedFrame() {

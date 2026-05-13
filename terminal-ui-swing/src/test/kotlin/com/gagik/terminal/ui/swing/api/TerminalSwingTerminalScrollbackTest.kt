@@ -16,9 +16,61 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.awt.event.MouseWheelEvent
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import javax.swing.JComponent
+import javax.swing.RepaintManager
 import javax.swing.SwingUtilities
 
 class TerminalSwingTerminalScrollbackTest {
+    @Test
+    fun `dirty notifications are coalesced into one pending EDT repaint`() {
+        val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
+        val session = TerminalSession(
+            terminal = terminal,
+            publisher = TerminalRenderPublisher(3, 1),
+            renderReader = ScrollbackFrameReader(),
+            responseReader = terminal,
+            connector = NoOpConnector,
+            parser = NoOpParser,
+            inputEncoder = NoOpInputEncoder,
+        )
+        val component = TerminalSwingTerminal()
+        val oldManager = RepaintManager.currentManager(component)
+        val repaintManager = CountingRepaintManager(component)
+
+        try {
+            RepaintManager.setCurrentManager(repaintManager)
+            SwingUtilities.invokeAndWait {
+                component.bind(session)
+            }
+            repaintManager.reset()
+
+            val edtBlocked = CountDownLatch(1)
+            val releaseEdt = CountDownLatch(1)
+            SwingUtilities.invokeLater {
+                edtBlocked.countDown()
+                assertTrue(releaseEdt.await(1, TimeUnit.SECONDS), "EDT block was not released")
+            }
+            assertTrue(edtBlocked.await(1, TimeUnit.SECONDS), "EDT block did not start")
+
+            repeat(1_000) {
+                session.onDirty?.invoke()
+            }
+            assertEquals(0, repaintManager.count)
+
+            releaseEdt.countDown()
+            SwingUtilities.invokeAndWait {
+                // Drain pending dirty notification runnable.
+            }
+
+            assertEquals(1, repaintManager.count)
+        } finally {
+            RepaintManager.setCurrentManager(oldManager)
+            session.close()
+        }
+    }
 
     @Test
     fun `mouse wheel requests scrolled render snapshot through session`() {
@@ -63,6 +115,26 @@ class TerminalSwingTerminalScrollbackTest {
         assertTrue(awaitOffset(session, 3), "scrolled render was not published")
         assertEquals(3, renderReader.lastRequestedOffset)
         session.close()
+    }
+
+    private class CountingRepaintManager(
+        private val target: JComponent,
+    ) : RepaintManager() {
+        private val repaintCount = AtomicInteger()
+
+        val count: Int
+            get() = repaintCount.get()
+
+        fun reset() {
+            repaintCount.set(0)
+        }
+
+        override fun addDirtyRegion(component: JComponent, x: Int, y: Int, w: Int, h: Int) {
+            if (component === target) {
+                repaintCount.incrementAndGet()
+            }
+            super.addDirtyRegion(component, x, y, w, h)
+        }
     }
 
     private fun awaitOffset(session: TerminalSession, offset: Int): Boolean {
