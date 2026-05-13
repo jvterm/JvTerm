@@ -14,7 +14,7 @@ import java.awt.image.BufferedImage
 
 class TerminalGridPainterTest {
     @Test
-    fun `ascii runs advance by terminal cell width`() {
+    fun `ascii runs paint contiguous measured cells`() {
         val image = BufferedImage(80, 30, BufferedImage.TYPE_INT_ARGB)
         val g = image.createGraphics()
         val settings = TerminalSwingSettings(
@@ -25,15 +25,7 @@ class TerminalGridPainterTest {
             ),
             textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
         )
-        val metrics = TerminalSwingMetrics(
-            cellWidth = 20,
-            cellHeight = 24,
-            baseline = 18,
-            underlineY = 20,
-            strikethroughY = 12,
-            overlineY = 0,
-            cursorStrokeWidth = 2,
-        )
+        val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 2, rows = 1)
         cache.updateFrom(TextFrame(text = "ii", cursorVisible = false))
 

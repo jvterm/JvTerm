@@ -11,21 +11,18 @@ import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import java.awt.Font
 import java.awt.Graphics2D
 import java.awt.RenderingHints
-import java.awt.font.FontRenderContext
-import java.awt.geom.Point2D
 
 /**
  * Java2D renderer for cached primitive terminal frames.
  *
  * The painter is component-owned and reuses its color, font, and text buffers
- * across paint calls. The ASCII path groups contiguous compatible cells into a
- * glyph run, then pins every glyph to terminal cell coordinates.
+ * across paint calls. The ASCII path groups contiguous compatible cells and
+ * draws directly from a reusable `CharArray`.
  */
 internal class TerminalGridPainter {
     private val colorCache = AwtColorCache()
     private val fontCache = TerminalFontCache()
     private val textRun = TerminalTextRunBuffer(INITIAL_TEXT_RUN_CAPACITY)
-    private val glyphPoint = Point2D.Float()
 
     /**
      * Clears [width] x [height] with the terminal default background.
@@ -54,6 +51,7 @@ internal class TerminalGridPainter {
         val palette = settings.palette
         fontCache.update(settings.font)
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
+        g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_OFF)
         g.font = fontCache.font(Font.PLAIN)
 
         val rows = minOf(cache.rows, height / metrics.cellHeight + 1)
@@ -183,15 +181,7 @@ internal class TerminalGridPainter {
 
         g.font = fontCache.font(fontStyle)
         g.color = colorCache.color(foreground)
-        drawFixedCellGlyphRun(
-            g = g,
-            font = g.font,
-            fontRenderContext = g.fontRenderContext,
-            metrics = metrics,
-            startColumn = startColumn,
-            baselineY = baselineY,
-            charCount = textRun.length,
-        )
+        drawAsciiRun(g, metrics, startColumn, baselineY)
         paintDecorations(g, attr, foreground, startColumn, column, row, metrics)
         return column
     }
@@ -214,27 +204,15 @@ internal class TerminalGridPainter {
         g.font = fontCache.font(fontStyle)
         g.color = colorCache.color(foreground)
 
-        val oldClip = g.clip
-        try {
-            g.clipRect(
-                column * metrics.cellWidth,
-                row * metrics.cellHeight,
-                (endColumn - column) * metrics.cellWidth,
-                metrics.cellHeight,
-            )
-
-            if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
-                val cluster = cache.clusters[row][column]
-                if (cluster != null) {
-                    g.drawString(cluster, column * metrics.cellWidth, baselineY)
-                }
-            } else {
-                textRun.clear()
-                textRun.appendCodePoint(cache.codeWords[row][column])
-                g.drawChars(textRun.chars, 0, textRun.length, column * metrics.cellWidth, baselineY)
+        if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
+            val cluster = cache.clusters[row][column]
+            if (cluster != null) {
+                g.drawString(cluster, column * metrics.cellWidth, baselineY)
             }
-        } finally {
-            g.clip = oldClip
+        } else {
+            textRun.clear()
+            textRun.appendCodePoint(cache.codeWords[row][column])
+            g.drawChars(textRun.chars, 0, textRun.length, column * metrics.cellWidth, baselineY)
         }
 
         paintDecorations(g, attr, foreground, column, endColumn, row, metrics)
@@ -343,30 +321,30 @@ internal class TerminalGridPainter {
         }
     }
 
-    private fun drawFixedCellGlyphRun(
+    private fun drawAsciiRun(
         g: Graphics2D,
-        font: Font,
-        fontRenderContext: FontRenderContext,
         metrics: TerminalSwingMetrics,
         startColumn: Int,
         baselineY: Int,
-        charCount: Int,
     ) {
-        val glyphVector = font.layoutGlyphVector(
-            fontRenderContext,
-            textRun.chars,
-            0,
-            charCount,
-            Font.LAYOUT_LEFT_TO_RIGHT,
-        )
-        var glyph = 0
-        while (glyph < glyphVector.numGlyphs) {
-            glyphPoint.x = glyph * metrics.cellWidth.toFloat()
-            glyphPoint.y = 0f
-            glyphVector.setGlyphPosition(glyph, glyphPoint)
-            glyph++
+        val expectedWidth = textRun.length * metrics.cellWidth
+        val measuredWidth = g.fontMetrics.charsWidth(textRun.chars, 0, textRun.length)
+        if (measuredWidth == expectedWidth) {
+            g.drawChars(textRun.chars, 0, textRun.length, startColumn * metrics.cellWidth, baselineY)
+            return
         }
-        g.drawGlyphVector(glyphVector, startColumn * metrics.cellWidth.toFloat(), baselineY.toFloat())
+
+        var index = 0
+        while (index < textRun.length) {
+            g.drawChars(
+                textRun.chars,
+                index,
+                1,
+                (startColumn + index) * metrics.cellWidth,
+                baselineY,
+            )
+            index++
+        }
     }
 
     private fun hasDrawableText(flags: Int): Boolean {
