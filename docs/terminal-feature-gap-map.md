@@ -214,6 +214,9 @@ Missing:
   bytes, not only the current representative hostile cases.
 - `TODO(parser)`: configurable replacement policy if needed by host applications.
 - `TODO(parser)`: broader ISO 2022 charset mapping.
+- `DONE(parser/core)`: curated Thai and Lao combining marks are classified as
+  grapheme extenders in parser text segmentation and zero-width marks in core
+  width calculation. Full generated Unicode coverage remains a TODO above.
 
 ## Core Gaps
 
