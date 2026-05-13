@@ -1,6 +1,7 @@
 package com.gagik.benchmark
 
-import com.gagik.core.buffer.TerminalBuffer
+import com.gagik.core.TerminalBuffers
+import com.gagik.core.api.TerminalBufferApi
 import com.gagik.terminal.render.api.TerminalRenderClusterSink
 import com.gagik.terminal.render.api.TerminalRenderFrameReader
 import org.openjdk.jmh.annotations.*
@@ -20,7 +21,7 @@ open class TerminalBufferBenchmark {
     @Param("24", "40", "80")
     var height: Int = 0
 
-    private lateinit var buffer: TerminalBuffer
+    private lateinit var buffer: TerminalBufferApi
     private lateinit var reader: TerminalRenderFrameReader
     private lateinit var codeWords: IntArray
     private lateinit var attrWords: LongArray
@@ -28,12 +29,12 @@ open class TerminalBufferBenchmark {
 
     @Setup
     open fun setup() {
-        buffer = TerminalBuffer(width, height)
+        buffer = TerminalBuffers.create(width, height)
         reader = buffer as TerminalRenderFrameReader
         codeWords = IntArray(width)
         attrWords = LongArray(width)
         flags = IntArray(width)
-        
+
         // Fill with ASCII
         for (row in 0 until height) {
             buffer.positionCursor(0, row)
@@ -73,7 +74,7 @@ open class TerminalBufferClusterBenchmark {
 
     private val width = 80
     private val height = 24
-    private lateinit var buffer: TerminalBuffer
+    private lateinit var buffer: TerminalBufferApi
     private lateinit var reader: TerminalRenderFrameReader
     private lateinit var codeWords: IntArray
     private lateinit var attrWords: LongArray
@@ -82,12 +83,12 @@ open class TerminalBufferClusterBenchmark {
 
     @Setup
     open fun setup() {
-        buffer = TerminalBuffer(width, height)
+        buffer = TerminalBuffers.create(width, height)
         reader = buffer as TerminalRenderFrameReader
         codeWords = IntArray(width)
         attrWords = LongArray(width)
         flags = IntArray(width)
-        
+
         for (row in 0 until height) {
             buffer.positionCursor(0, row)
             for (col in 0 until width) {
