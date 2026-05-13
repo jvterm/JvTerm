@@ -1,0 +1,159 @@
+package com.gagik.terminal.ui.swing.render
+
+import com.gagik.terminal.render.api.TerminalRenderAttrs
+import com.gagik.terminal.render.api.TerminalRenderColorKind
+import com.gagik.terminal.render.api.TerminalRenderExtraAttrs
+import com.gagik.terminal.render.api.TerminalRenderUnderline
+import org.junit.jupiter.api.Nested
+import org.junit.jupiter.api.Test
+import java.awt.image.BufferedImage
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class TerminalDecorationPainterTest {
+    @Nested
+    inner class Underline {
+        @Test
+        fun `single underline uses foreground by default`() {
+            val fixture = fixture()
+
+            fixture.painter.paint(
+                fixture.g,
+                fixture.settings.palette,
+                TerminalRenderAttrs.pack(underlineStyle = TerminalRenderUnderline.SINGLE),
+                TerminalRenderExtraAttrs.DEFAULT,
+                TEST_RED,
+                startColumn = 0,
+                endColumn = 1,
+                row = 0,
+                metrics = fixture.metrics,
+            )
+
+            assertEquals(TEST_RED, fixture.image.getRGB(1, fixture.metrics.underlineY))
+        }
+
+        @Test
+        fun `underline color can come from extra attributes`() {
+            val fixture = fixture()
+
+            fixture.painter.paint(
+                fixture.g,
+                fixture.settings.palette,
+                TerminalRenderAttrs.pack(underlineStyle = TerminalRenderUnderline.SINGLE),
+                TerminalRenderExtraAttrs.pack(
+                    underlineColorKind = TerminalRenderColorKind.RGB,
+                    underlineColorValue = 0x00FF00,
+                ),
+                TEST_RED,
+                startColumn = 0,
+                endColumn = 1,
+                row = 0,
+                metrics = fixture.metrics,
+            )
+
+            assertEquals(TEST_GREEN, fixture.image.getRGB(1, fixture.metrics.underlineY))
+        }
+
+        @Test
+        fun `double underline paints two rows`() {
+            val fixture = fixture()
+
+            fixture.painter.paint(
+                fixture.g,
+                fixture.settings.palette,
+                TerminalRenderAttrs.pack(underlineStyle = TerminalRenderUnderline.DOUBLE),
+                TerminalRenderExtraAttrs.DEFAULT,
+                TEST_RED,
+                startColumn = 0,
+                endColumn = 1,
+                row = 0,
+                metrics = fixture.metrics,
+            )
+
+            assertEquals(TEST_RED, fixture.image.getRGB(1, fixture.metrics.underlineY))
+            assertEquals(TEST_RED, fixture.image.getRGB(1, minOf(fixture.metrics.cellHeight - 1, fixture.metrics.underlineY + 2)))
+        }
+    }
+
+    @Nested
+    inner class OtherDecorations {
+        @Test
+        fun `strikethrough paints at strikethrough metric`() {
+            val fixture = fixture()
+
+            fixture.painter.paint(
+                fixture.g,
+                fixture.settings.palette,
+                TerminalRenderAttrs.pack(strikethrough = true),
+                TerminalRenderExtraAttrs.DEFAULT,
+                TEST_RED,
+                startColumn = 0,
+                endColumn = 1,
+                row = 0,
+                metrics = fixture.metrics,
+            )
+
+            assertEquals(TEST_RED, fixture.image.getRGB(1, fixture.metrics.strikethroughY))
+        }
+
+        @Test
+        fun `overline paints at overline metric`() {
+            val fixture = fixture()
+
+            fixture.painter.paint(
+                fixture.g,
+                fixture.settings.palette,
+                TerminalRenderAttrs.DEFAULT,
+                TerminalRenderExtraAttrs.pack(overline = true),
+                TEST_RED,
+                startColumn = 0,
+                endColumn = 1,
+                row = 0,
+                metrics = fixture.metrics,
+            )
+
+            assertEquals(TEST_RED, fixture.image.getRGB(1, fixture.metrics.overlineY))
+        }
+
+        @Test
+        fun `wide spans paint through every covered cell`() {
+            val fixture = fixture(width = 80)
+
+            fixture.painter.paint(
+                fixture.g,
+                fixture.settings.palette,
+                TerminalRenderAttrs.pack(underlineStyle = TerminalRenderUnderline.SINGLE),
+                TerminalRenderExtraAttrs.DEFAULT,
+                TEST_RED,
+                startColumn = 0,
+                endColumn = 2,
+                row = 0,
+                metrics = fixture.metrics,
+            )
+
+            assertTrue(
+                fixture.image.containsColorInRange(TEST_RED, fixture.metrics.cellWidth, fixture.metrics.cellWidth * 2),
+            )
+        }
+    }
+
+    private data class Fixture(
+        val image: BufferedImage,
+        val g: java.awt.Graphics2D,
+        val settings: com.gagik.terminal.ui.swing.settings.TerminalSwingSettings,
+        val metrics: com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics,
+        val painter: TerminalDecorationPainter,
+    )
+
+    private fun fixture(width: Int = 40): Fixture {
+        val image = BufferedImage(width, 30, BufferedImage.TYPE_INT_ARGB)
+        val settings = defaultTestSettings()
+        return Fixture(
+            image = image,
+            g = image.createGraphics(),
+            settings = settings,
+            metrics = testMetrics(image, settings),
+            painter = TerminalDecorationPainter(AwtColorCache()),
+        )
+    }
+}

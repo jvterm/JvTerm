@@ -47,6 +47,53 @@ class TerminalGridPainterTest {
     }
 
     @Test
+    fun `ascii run fallback preserves grid cells when measured width differs`() {
+        val image = BufferedImage(120, 40, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings = TerminalSwingSettings(
+            font = Font(Font.SERIF, Font.PLAIN, 18),
+            palette = TerminalColorPalette(
+                defaultForeground = RED,
+                defaultBackground = BLACK,
+            ),
+            textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+            fractionalMetrics = RenderingHints.VALUE_FRACTIONALMETRICS_ON,
+        )
+        val fontMetrics = g.getFontMetrics(settings.font)
+        val metrics = TerminalSwingMetrics(
+            cellWidth = maxOf(1, fontMetrics.charWidth('W')),
+            cellHeight = fontMetrics.height,
+            baseline = fontMetrics.ascent,
+            underlineY = minOf(fontMetrics.height - 1, fontMetrics.ascent + 1),
+            strikethroughY = maxOf(0, fontMetrics.ascent - fontMetrics.ascent / 3),
+            overlineY = 0,
+            cursorStrokeWidth = 1,
+        )
+        val cache = TerminalRenderCache(columns = 2, rows = 1)
+        cache.updateFrom(TextFrame(text = "ii", cursorVisible = false))
+
+        TerminalGridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+        )
+        g.dispose()
+
+        assertTrue(
+            image.containsColorInRange(RED, xStart = 0, xEnd = metrics.cellWidth),
+            "first glyph was not painted in the first terminal cell",
+        )
+        assertTrue(
+            image.containsColorInRange(RED, xStart = metrics.cellWidth, xEnd = metrics.cellWidth * 2),
+            "fallback glyph vector did not paint the second glyph in the second terminal cell",
+        )
+    }
+
+    @Test
     fun `block cursor redraws covered glyph with cursor foreground`() {
         val image = BufferedImage(40, 30, BufferedImage.TYPE_INT_ARGB)
         val g = image.createGraphics()
@@ -79,6 +126,84 @@ class TerminalGridPainterTest {
         assertTrue(
             image.containsColor(RED, metrics.cellWidth, metrics.cellHeight),
             "cursor foreground glyph was not painted over the block cursor",
+        )
+    }
+
+    @Test
+    fun `complex code point paints with foreground color`() {
+        val image = BufferedImage(40, 30, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings = TerminalSwingSettings(
+            font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+            palette = TerminalColorPalette(
+                defaultForeground = RED,
+                defaultBackground = BLACK,
+            ),
+            textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+        )
+        val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 1, rows = 1)
+        cache.updateFrom(TextFrame(text = "\u03A9", cursorVisible = false))
+
+        TerminalGridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+        )
+        TerminalGridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+        )
+        g.dispose()
+
+        assertTrue(
+            image.containsColor(RED, metrics.cellWidth, metrics.cellHeight),
+            "complex code point was not painted with the foreground color",
+        )
+    }
+
+    @Test
+    fun `block cursor redraws covered complex code point with cursor foreground`() {
+        val image = BufferedImage(40, 30, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings = TerminalSwingSettings(
+            font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+            palette = TerminalColorPalette(
+                defaultForeground = WHITE,
+                defaultBackground = BLACK,
+                cursorForeground = GREEN,
+                cursorBackground = BLUE,
+            ),
+            textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+        )
+        val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 1, rows = 1)
+        cache.updateFrom(TextFrame(text = "\u03A9", cursorVisible = true))
+
+        TerminalGridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+        )
+        g.dispose()
+
+        assertEquals(BLUE, image.getRGB(1, 1))
+        assertTrue(
+            image.containsColor(GREEN, metrics.cellWidth, metrics.cellHeight),
+            "complex code point was not redrawn over the block cursor",
         )
     }
 
