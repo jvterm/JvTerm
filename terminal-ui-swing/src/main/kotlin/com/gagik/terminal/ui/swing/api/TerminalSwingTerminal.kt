@@ -6,6 +6,8 @@ import com.gagik.terminal.ui.swing.render.TerminalGridPainter
 import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettingsProvider
+import com.gagik.terminal.ui.swing.viewport.TerminalSwingRepaintPlanner
+import com.gagik.terminal.ui.swing.viewport.TerminalSwingScrollModel
 import java.awt.*
 import java.awt.event.*
 import java.lang.reflect.InvocationTargetException
@@ -32,13 +34,13 @@ class TerminalSwingTerminal(
     private var settings: TerminalSwingSettings = settingsProvider.currentSettings()
     private var metrics: TerminalSwingMetrics = buildMetrics(settings)
     private var cursorBlinkVisible: Boolean = true
-    private var scrollbackOffset: Int = 0
     private var lastResizedColumns: Int = NO_RESIZE_DIMENSION
     private var lastResizedRows: Int = NO_RESIZE_DIMENSION
     private val renderPending = AtomicBoolean(false)
 
     private val painter = TerminalGridPainter()
     private val repaintPlanner = TerminalSwingRepaintPlanner()
+    private val scrollModel = TerminalSwingScrollModel()
     private val keyMapper = TerminalSwingKeyMapper()
     private val cursorTimer = Timer(settings.cursorBlinkMillis) {
         cursorBlinkVisible = !cursorBlinkVisible
@@ -185,7 +187,7 @@ class TerminalSwingTerminal(
         session.onDirty = {
             schedulePublishedFrame()
         }
-        scrollbackOffset = 0
+        resetScrollbackState()
         lastResizedColumns = NO_RESIZE_DIMENSION
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
@@ -197,7 +199,7 @@ class TerminalSwingTerminal(
     private fun unbindOnEdt() {
         session?.onDirty = null
         session = null
-        scrollbackOffset = 0
+        resetScrollbackState()
         lastResizedColumns = NO_RESIZE_DIMENSION
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
@@ -225,14 +227,15 @@ class TerminalSwingTerminal(
         val historySize = cache.historySize
         if (historySize == 0) return
 
-        val delta = -event.unitsToScroll
-        if (delta == 0) return
+        val delta = wheelScrollLines(event)
+        if (delta == 0.0) return
 
-        val nextOffset = (scrollbackOffset + delta).coerceIn(0, historySize)
-        if (nextOffset == scrollbackOffset) return
+        val previousOffset = scrollModel.offset
+        if (!scrollModel.scrollBy(delta, historySize)) return
 
-        scrollbackOffset = nextOffset
-        boundSession.requestRender(scrollbackOffset)
+        if (scrollModel.offset != previousOffset) {
+            boundSession.requestRender(scrollModel.offset)
+        }
         event.consume()
     }
 
@@ -253,13 +256,13 @@ class TerminalSwingTerminal(
             return
         }
 
-        val clampedOffset = scrollbackOffset.coerceIn(0, cache.historySize)
-        if (clampedOffset != scrollbackOffset) {
-            scrollbackOffset = clampedOffset
+        if (scrollModel.clamp(cache.historySize)) {
+            boundSession.requestRender(scrollModel.offset)
+            return
         }
 
-        if (cache.scrollbackOffset != scrollbackOffset) {
-            boundSession.requestRender(scrollbackOffset)
+        if (cache.scrollbackOffset != scrollModel.offset) {
+            boundSession.requestRender(scrollModel.offset)
             return
         }
 
@@ -289,6 +292,10 @@ class TerminalSwingTerminal(
         }
     }
 
+    private fun resetScrollbackState() {
+        scrollModel.reset()
+    }
+
     private fun preferredGridSize(columns: Int, rows: Int): Dimension {
         return Dimension(columns * metrics.cellWidth, rows * metrics.cellHeight)
     }
@@ -304,6 +311,18 @@ class TerminalSwingTerminal(
         lastResizedColumns = columns
         lastResizedRows = rows
         boundSession.resize(columns, rows)
+    }
+
+    private fun wheelScrollLines(event: MouseWheelEvent): Double {
+        return when (event.scrollType) {
+            MouseWheelEvent.WHEEL_UNIT_SCROLL -> -event.preciseWheelRotation * event.scrollAmount
+            MouseWheelEvent.WHEEL_BLOCK_SCROLL -> -event.preciseWheelRotation * visibleGridRows()
+            else -> -event.preciseWheelRotation
+        }
+    }
+
+    private fun visibleGridRows(): Int {
+        return maxOf(1, height / metrics.cellHeight)
     }
 
     private fun buildMetrics(settings: TerminalSwingSettings): TerminalSwingMetrics {

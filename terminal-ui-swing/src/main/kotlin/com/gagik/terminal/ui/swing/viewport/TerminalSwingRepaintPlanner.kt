@@ -1,4 +1,4 @@
-package com.gagik.terminal.ui.swing.api
+package com.gagik.terminal.ui.swing.viewport
 
 import com.gagik.terminal.render.api.TerminalRenderCursor
 import com.gagik.terminal.render.cache.TerminalRenderCache

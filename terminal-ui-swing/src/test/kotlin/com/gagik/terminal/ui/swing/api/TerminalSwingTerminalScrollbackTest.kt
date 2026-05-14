@@ -117,6 +117,52 @@ class TerminalSwingTerminalScrollbackTest {
         session.close()
     }
 
+    @Test
+    fun `precise mouse wheel fractions update scrollback viewport`() {
+        val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
+        val session = TerminalSession(
+            terminal = terminal,
+            publisher = TerminalRenderPublisher(3, 1),
+            renderReader = ScrollbackFrameReader(),
+            responseReader = terminal,
+            connector = NoOpConnector,
+            parser = NoOpParser,
+            inputEncoder = NoOpInputEncoder,
+        )
+        val component = TerminalSwingTerminal()
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(30, 20)
+            component.bind(session)
+        }
+        session.requestRender(scrollbackOffset = 0)
+        assertTrue(awaitOffset(session, 0), "initial render was not published")
+
+        SwingUtilities.invokeAndWait {
+            component.dispatchEvent(
+                MouseWheelEvent(
+                    component,
+                    MouseWheelEvent.MOUSE_WHEEL,
+                    System.currentTimeMillis(),
+                    0,
+                    5,
+                    5,
+                    0,
+                    0,
+                    0,
+                    false,
+                    MouseWheelEvent.WHEEL_UNIT_SCROLL,
+                    3,
+                    0,
+                    -0.5,
+                )
+            )
+        }
+
+        assertTrue(awaitOffset(session, 1), "fractional scroll did not publish crossed line offset")
+        session.close()
+    }
+
     private class CountingRepaintManager(
         private val target: JComponent,
     ) : RepaintManager() {
