@@ -1,10 +1,6 @@
 package com.gagik.terminal.render.cache
 
-import com.gagik.terminal.render.api.TerminalRenderBufferKind
-import com.gagik.terminal.render.api.TerminalRenderClusterSink
-import com.gagik.terminal.render.api.TerminalRenderCursor
-import com.gagik.terminal.render.api.TerminalRenderFrameConsumer
-import com.gagik.terminal.render.api.TerminalRenderFrameReader
+import com.gagik.terminal.render.api.*
 
 /**
  * Caller-owned primitive cache for render frames.
@@ -21,7 +17,7 @@ import com.gagik.terminal.render.api.TerminalRenderFrameReader
 class TerminalRenderCache(
     columns: Int,
     rows: Int,
-) {
+) : TerminalRenderFrameConsumer {
     /**
      * Cached visible width in cells.
      */
@@ -216,17 +212,17 @@ class TerminalRenderCache(
      * @param viewportRows requested render rows, or zero for the reader default.
      */
     fun updateFrom(reader: TerminalRenderFrameReader, scrollbackOffset: Int, viewportRows: Int) {
-        val readFrame: (TerminalRenderFrameConsumer) -> Unit =
-            if (viewportRows > 0) {
-                { consumer -> reader.readRenderFrame(scrollbackOffset, viewportRows, consumer) }
-            } else {
-                { consumer -> reader.readRenderFrame(scrollbackOffset, consumer) }
-            }
+        if (viewportRows > 0) {
+            reader.readRenderFrame(scrollbackOffset, viewportRows, this)
+        } else {
+            reader.readRenderFrame(scrollbackOffset, this)
+        }
+    }
 
-        readFrame { frame ->
-            resizedOnLastUpdate = false
+    override fun accept(frame: TerminalRenderFrame) {
+        resizedOnLastUpdate = false
 
-            if (columns != frame.columns || rows != frame.rows) {
+        if (columns != frame.columns || rows != frame.rows) {
                 resizeStorage(frame.columns, frame.rows)
                 resizedOnLastUpdate = true
                 structureGeneration = UNINITIALIZED_GENERATION
@@ -286,12 +282,11 @@ class TerminalRenderCache(
                 cursorChangedOnLastUpdate = true
             }
 
-            cursor = newCursor
-            historySize = frame.historySize
-            this.scrollbackOffset = frame.scrollbackOffset
-            frameGeneration = frame.frameGeneration
-            structureGeneration = frame.structureGeneration
-        }
+        cursor = newCursor
+        historySize = frame.historySize
+        this.scrollbackOffset = frame.scrollbackOffset
+        frameGeneration = frame.frameGeneration
+        structureGeneration = frame.structureGeneration
     }
 
     private fun resizeStorage(newColumns: Int, newRows: Int) {
