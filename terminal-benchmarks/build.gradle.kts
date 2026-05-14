@@ -9,9 +9,14 @@ repositories {
 
 dependencies {
     implementation(project(":terminal-core"))
+    implementation(project(":terminal-integration"))
+    implementation(project(":terminal-parser"))
     implementation(project(":terminal-render-api"))
+    implementation(project(":terminal-render-cache"))
     implementation(project(":terminal-protocol"))
-    
+    implementation(project(":terminal-session"))
+    implementation(project(":terminal-ui-swing"))
+
     implementation("org.openjdk.jmh:jmh-core:1.37")
     annotationProcessor("org.openjdk.jmh:jmh-generator-annprocess:1.37")
 }
