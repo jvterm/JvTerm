@@ -37,4 +37,26 @@ interface TerminalRenderFrameReader {
     fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
         readRenderFrame(consumer)
     }
+
+    /**
+     * Invokes [consumer] with a render frame for a caller-owned scrollback
+     * viewport that may contain more rows than the live terminal grid.
+     *
+     * This is intended for UI overscan such as smooth pixel scrolling. The
+     * requested [viewportRows] is render-only state: it must not resize the
+     * terminal, mutate scrollback, or change host-visible dimensions.
+     * Implementations clamp the exposed row count to valid backing storage and
+     * may fall back to [readRenderFrame] when overscan is unsupported.
+     *
+     * @param scrollbackOffset requested lines above the live bottom viewport.
+     * @param viewportRows requested number of rows in the render viewport.
+     * @param consumer receiver that copies any render data it needs.
+     */
+    fun readRenderFrame(
+        scrollbackOffset: Int,
+        viewportRows: Int,
+        consumer: TerminalRenderFrameConsumer,
+    ) {
+        readRenderFrame(scrollbackOffset, consumer)
+    }
 }

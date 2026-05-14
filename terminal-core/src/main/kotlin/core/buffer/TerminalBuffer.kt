@@ -58,6 +58,16 @@ internal class TerminalBuffer private constructor(
         }
     }
 
+    override fun readRenderFrame(
+        scrollbackOffset: Int,
+        viewportRows: Int,
+        consumer: TerminalRenderFrameConsumer,
+    ) {
+        renderFrame.use(scrollbackOffset, viewportRows) {
+            consumer.accept(renderFrame)
+        }
+    }
+
     /**
      * Reflows the primary screen, recreates the alternate screen, updates global
      * dimensions and tab stops, then restores invariants that must hold even for

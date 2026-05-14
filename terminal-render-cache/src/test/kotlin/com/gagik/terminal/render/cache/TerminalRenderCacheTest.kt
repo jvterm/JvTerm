@@ -173,6 +173,21 @@ class TerminalRenderCacheTest {
         )
     }
 
+    @Test
+    fun `viewport row request resizes cache to resolved overscan rows`() {
+        val frame = OffsetFrame()
+        val cache = TerminalRenderCache(columns = 3, rows = 1)
+
+        cache.updateFrom(frame.reader, scrollbackOffset = 1, viewportRows = 2)
+
+        assertAll(
+            { assertEquals(1, frame.lastRequestedOffset) },
+            { assertEquals(2, frame.lastRequestedRows) },
+            { assertEquals(2, cache.rows) },
+            { assertTrue(cache.resizedOnLastUpdate) },
+        )
+    }
+
     private fun TerminalRenderCache.rowText(row: Int): String =
         codeWords[row].map { if (it == 0) ' ' else it.toChar() }.joinToString("")
 
@@ -271,12 +286,18 @@ class TerminalRenderCacheTest {
 
     private class OffsetFrame : TerminalRenderFrame {
         private var currentOffset: Int = 0
+        private var currentRows: Int = 1
 
         var copyCount: Int = 0
             private set
+        var lastRequestedOffset: Int = -1
+            private set
+        var lastRequestedRows: Int = -1
+            private set
 
         override val columns: Int = 3
-        override val rows: Int = 1
+        override val rows: Int
+            get() = currentRows
         override val historySize: Int = 2
         override val scrollbackOffset: Int
             get() = currentOffset
@@ -299,7 +320,22 @@ class TerminalRenderCacheTest {
             }
 
             override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
+                lastRequestedOffset = scrollbackOffset
+                lastRequestedRows = 0
                 currentOffset = scrollbackOffset.coerceIn(0, historySize)
+                currentRows = 1
+                consumer.accept(this@OffsetFrame)
+            }
+
+            override fun readRenderFrame(
+                scrollbackOffset: Int,
+                viewportRows: Int,
+                consumer: TerminalRenderFrameConsumer,
+            ) {
+                lastRequestedOffset = scrollbackOffset
+                lastRequestedRows = viewportRows
+                currentOffset = scrollbackOffset.coerceIn(0, historySize)
+                currentRows = viewportRows.coerceAtLeast(1)
                 consumer.accept(this@OffsetFrame)
             }
         }

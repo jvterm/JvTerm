@@ -21,8 +21,9 @@ class TerminalRenderPublisher(
 ) {
     private val buffers = Array(3) { TerminalRenderCache(columns, rows) }
     private val readerCounts = IntArray(BUFFER_COUNT)
+    private val writerOwned = BooleanArray(BUFFER_COUNT)
 
-    // Indices and reader counts are only mutated under publishLock.
+    // Buffer indices, reader counts, and writer leases are mutated under publishLock.
     private var frontIndex = NO_FRONT
     private var nextWriteIndex = 0
     private val publishLock = ReentrantLock()
@@ -46,29 +47,47 @@ class TerminalRenderPublisher(
      * bottom viewport. The source reader clamps it before rows are copied.
      */
     fun updateAndPublish(reader: TerminalRenderFrameReader, scrollbackOffset: Int) {
+        updateAndPublish(reader, scrollbackOffset, viewportRows = 0)
+    }
+
+    /**
+     * Called from render worker thread only.
+     *
+     * [viewportRows] requests render-only overscan rows for UI composition. It
+     * does not resize terminal state; the source reader clamps the resolved
+     * frame height before rows are copied.
+     */
+    fun updateAndPublish(reader: TerminalRenderFrameReader, scrollbackOffset: Int, viewportRows: Int) {
         val writeIndex = acquireWritableIndex()
         val back = buffers[writeIndex]
+        var published = false
 
-        // The selected back buffer is render-worker-exclusive here because the
-        // session coalesces dirty notifications to at most one queued render
-        // task, and session resize shares the same terminal mutation lock used
-        // by the render frame reader.
-        back.updateFrom(reader, scrollbackOffset)
+        try {
+            // The selected back buffer is writer-exclusive until publish or
+            // release. Resize and UI readers are blocked from mutating or
+            // leasing this specific buffer through publisher state.
+            back.updateFrom(reader, scrollbackOffset, viewportRows)
 
-        publishLock.withLock {
-            frontIndex = writeIndex
-            frontRef.set(buffers[frontIndex])
-            bufferAvailable.signalAll()
+            publishLock.withLock {
+                writerOwned[writeIndex] = false
+                frontIndex = writeIndex
+                frontRef.set(buffers[frontIndex])
+                published = true
+                bufferAvailable.signalAll()
+            }
+        } finally {
+            if (!published) {
+                releaseWritableIndex(writeIndex)
+            }
         }
     }
 
     /**
-     * Called from EDT only.
-     * Returns the latest published snapshot. Never null after first publish.
-     * The returned cache must not be retained across paint calls.
+     * Returns the latest published snapshot without acquiring a reader lease.
      *
-     * Prefer [readCurrent] for paint code that needs to keep the returned cache
-     * stable for the duration of a read.
+     * This is intended for short polling and tests that do not retain the
+     * returned cache or require multi-field snapshot stability. Paint and
+     * repaint-planning code should use [readCurrent].
      */
     fun current(): TerminalRenderCache? = frontRef.get()
 
@@ -93,18 +112,24 @@ class TerminalRenderPublisher(
     }
 
     /**
-     * Resizes all buffers atomically.
+     * Pre-sizes buffers that are not currently published, leased by a reader,
+     * or writer-owned.
      *
-     * Callers must ensure that neither the render worker nor the UI thread are
-     * actively using a specific buffer during this call, or that they can
-     * handle the dimension change. Typically called from the EDT or a control
-     * thread.
+     * The current front buffer is intentionally left untouched so an in-flight
+     * UI paint keeps a stable snapshot. Any buffer skipped here is resized
+     * lazily the next time it becomes the writer-owned back buffer.
      */
     fun resize(columns: Int, rows: Int) {
+        require(columns > 0) { "columns must be > 0, was $columns" }
+        require(rows > 0) { "rows must be > 0, was $rows" }
+
         publishLock.withLock {
-            buffers.forEach {
-                it.resize(columns, rows)
-                it.resetOwnership()
+            var index = 0
+            while (index < BUFFER_COUNT) {
+                if (index != frontIndex && readerCounts[index] == 0 && !writerOwned[index]) {
+                    buffers[index].resize(columns, rows)
+                }
+                index++
             }
         }
     }
@@ -115,7 +140,8 @@ class TerminalRenderPublisher(
                 var offset = 0
                 while (offset < BUFFER_COUNT) {
                     val index = (nextWriteIndex + offset) % BUFFER_COUNT
-                    if (index != frontIndex && readerCounts[index] == 0) {
+                    if (index != frontIndex && readerCounts[index] == 0 && !writerOwned[index]) {
+                        writerOwned[index] = true
                         nextWriteIndex = (index + 1) % BUFFER_COUNT
                         return index
                     }
@@ -142,6 +168,16 @@ class TerminalRenderPublisher(
             check(readerCounts[index] >= 0) {
                 "TerminalRenderPublisher reader count underflow for buffer $index"
             }
+            bufferAvailable.signalAll()
+        }
+    }
+
+    private fun releaseWritableIndex(index: Int) {
+        publishLock.withLock {
+            check(writerOwned[index]) {
+                "TerminalRenderPublisher writer lease underflow for buffer $index"
+            }
+            writerOwned[index] = false
             bufferAvailable.signalAll()
         }
     }

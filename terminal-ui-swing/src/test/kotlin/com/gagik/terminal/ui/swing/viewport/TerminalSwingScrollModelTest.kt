@@ -12,9 +12,12 @@ class TerminalSwingScrollModelTest {
 
         assertTrue(model.scrollBy(0.4, historySize = 10))
         assertEquals(0, model.offset)
+        assertEquals(1, model.requestedOffset)
+        assertTrue(model.needsOverscan)
 
         assertTrue(model.scrollBy(0.7, historySize = 10))
         assertEquals(1, model.offset)
+        assertEquals(2, model.requestedOffset)
     }
 
     @Test
@@ -24,6 +27,8 @@ class TerminalSwingScrollModelTest {
         assertTrue(model.scrollBy(12.0, historySize = 5))
 
         assertEquals(5, model.offset)
+        assertEquals(5, model.requestedOffset)
+        assertFalse(model.needsOverscan)
     }
 
     @Test
@@ -43,5 +48,16 @@ class TerminalSwingScrollModelTest {
         model.reset()
 
         assertEquals(0, model.offset)
+        assertEquals(0, model.requestedOffset)
+    }
+
+    @Test
+    fun `fractional scroll requests one overscan row and translated content`() {
+        val model = TerminalSwingScrollModel()
+
+        model.scrollBy(0.25, historySize = 10)
+
+        assertEquals(4, model.requestedRows(visibleRows = 3))
+        assertEquals(-12.0, model.contentYOffset(cellHeight = 16))
     }
 }

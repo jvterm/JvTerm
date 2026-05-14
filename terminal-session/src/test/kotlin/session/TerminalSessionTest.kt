@@ -15,6 +15,7 @@ import com.gagik.terminal.transport.TerminalConnectorListener
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -323,6 +324,43 @@ class TerminalSessionTest {
 
         assertEquals(2, dirtyCalls.get())
         assertEquals(2, renderReader.readCalls)
+        session.close()
+    }
+
+    @Test
+    fun `requestRender publishes latest viewport after in flight render`() {
+        val terminal = TerminalBuffers.create(width = 10, height = 3)
+        val connector = MockConnector()
+        val renderReader = BlockingFirstOffsetRenderReader()
+        val twoDirtyCalls = CountDownLatch(2)
+        val session = TerminalSession(
+            terminal = terminal,
+            publisher = TerminalRenderPublisher(terminal.width, terminal.height),
+            renderReader = renderReader,
+            responseReader = terminal,
+            connector = connector,
+            parser = RecordingParser(),
+            inputEncoder = NoOpInputEncoder,
+        )
+        session.onDirty = {
+            twoDirtyCalls.countDown()
+        }
+
+        session.requestRender(scrollbackOffset = 1)
+        assertTrue(renderReader.awaitFirstRead(), "first render did not start")
+
+        session.requestRender(scrollbackOffset = 2)
+        session.requestRender(scrollbackOffset = 5)
+        renderReader.releaseFirstRead()
+
+        assertTrue(twoDirtyCalls.await(1, TimeUnit.SECONDS), "latest render was not published")
+        Thread.sleep(100)
+
+        assertAll(
+            { assertEquals(2, renderReader.readCalls) },
+            { assertEquals(listOf(1, 5), renderReader.offsets.toList()) },
+            { assertEquals(5, session.publisher.current()?.scrollbackOffset) },
+        )
         session.close()
     }
 
@@ -658,6 +696,40 @@ class TerminalSessionTest {
                 }
             }
             consumer.accept(SimpleRenderFrame)
+        }
+
+        fun awaitFirstRead(): Boolean {
+            return firstReadEntered.await(1, TimeUnit.SECONDS)
+        }
+
+        fun releaseFirstRead() {
+            releaseFirstRead.countDown()
+        }
+    }
+
+    private class BlockingFirstOffsetRenderReader : TerminalRenderFrameReader {
+        private val firstReadEntered = CountDownLatch(1)
+        private val releaseFirstRead = CountDownLatch(1)
+        private val calls = AtomicInteger(0)
+
+        val offsets = CopyOnWriteArrayList<Int>()
+        val readCalls: Int
+            get() = calls.get()
+
+        override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
+            readRenderFrame(scrollbackOffset = 0, consumer = consumer)
+        }
+
+        override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
+            val call = calls.incrementAndGet()
+            offsets.add(scrollbackOffset)
+            if (call == 1) {
+                firstReadEntered.countDown()
+                check(releaseFirstRead.await(1, TimeUnit.SECONDS)) {
+                    "first render was not released"
+                }
+            }
+            consumer.accept(OffsetRenderFrame(scrollbackOffset))
         }
 
         fun awaitFirstRead(): Boolean {

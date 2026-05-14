@@ -3,6 +3,7 @@ package com.gagik.terminal.render.cache
 import com.gagik.terminal.render.api.TerminalRenderBufferKind
 import com.gagik.terminal.render.api.TerminalRenderClusterSink
 import com.gagik.terminal.render.api.TerminalRenderCursor
+import com.gagik.terminal.render.api.TerminalRenderFrameConsumer
 import com.gagik.terminal.render.api.TerminalRenderFrameReader
 
 /**
@@ -21,9 +22,6 @@ class TerminalRenderCache(
     columns: Int,
     rows: Int,
 ) {
-    @Volatile
-    private var ownerThread: Thread? = null
-
     /**
      * Cached visible width in cells.
      */
@@ -172,39 +170,10 @@ class TerminalRenderCache(
     }
 
     /**
-     * Asserts that this cache is owned by the current thread.
-     *
-     * The first thread to call this method becomes the owner. Subsequent calls
-     * from other threads will throw [IllegalStateException].
-     */
-    fun assertOwnership() {
-        val current = Thread.currentThread()
-        val owner = ownerThread
-        if (owner == null) {
-            ownerThread = current
-            return
-        }
-        check(owner == current) {
-            "TerminalRenderCache accessed from $current but owned by $owner"
-        }
-    }
-
-    /**
      * Resizes the primitive storage to [columns] x [rows].
      */
     fun resize(columns: Int, rows: Int) {
         resizeStorage(columns, rows)
-    }
-
-    /**
-     * Clears thread ownership after external lifecycle changes.
-     *
-     * Only [TerminalRenderPublisher] should call this after resizing all
-     * buffers under its publish lock. The render worker will acquire ownership
-     * again on the next [updateFrom].
-     */
-    internal fun resetOwnership() {
-        ownerThread = null
     }
 
     /**
@@ -233,8 +202,31 @@ class TerminalRenderCache(
      * @param scrollbackOffset requested lines above the live bottom viewport.
      */
     fun updateFrom(reader: TerminalRenderFrameReader, scrollbackOffset: Int) {
-        assertOwnership()
-        reader.readRenderFrame(scrollbackOffset) { frame ->
+        updateFrom(reader, scrollbackOffset, viewportRows = 0)
+    }
+
+    /**
+     * Copies changed rows and cursor state for a caller-owned scrollback
+     * viewport with optional render-only overscan rows.
+     *
+     * A [viewportRows] value greater than zero asks the reader for that many
+     * rows without resizing terminal state. Readers clamp the resolved count
+     * before exposing [TerminalRenderFrame.rows], and this cache resizes only to
+     * the resolved frame shape.
+     *
+     * @param reader source of the short-lived render frame.
+     * @param scrollbackOffset requested lines above the live bottom viewport.
+     * @param viewportRows requested render rows, or zero for the reader default.
+     */
+    fun updateFrom(reader: TerminalRenderFrameReader, scrollbackOffset: Int, viewportRows: Int) {
+        val readFrame: (TerminalRenderFrameConsumer) -> Unit =
+            if (viewportRows > 0) {
+                { consumer -> reader.readRenderFrame(scrollbackOffset, viewportRows, consumer) }
+            } else {
+                { consumer -> reader.readRenderFrame(scrollbackOffset, consumer) }
+            }
+
+        readFrame { frame ->
             resizedOnLastUpdate = false
 
             if (columns != frame.columns || rows != frame.rows) {

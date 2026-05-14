@@ -22,7 +22,7 @@ import com.gagik.terminal.transport.TerminalConnectorListener
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Runtime terminal session that binds core, parser, input encoding, and a
@@ -47,8 +47,9 @@ class TerminalSession(
     private val remoteClosed = AtomicBoolean(false)
     private val parserClosed = AtomicBoolean(false)
     private val started = AtomicBoolean(false)
-    private val renderPending = AtomicBoolean(false)
-    private val pendingRenderScrollbackOffset = AtomicInteger(0)
+    private val renderScheduled = AtomicBoolean(false)
+    private val pendingRenderRequest = AtomicLong(packRenderRequest(scrollbackOffset = 0, viewportRows = 0))
+    private val pendingRenderGeneration = AtomicLong(0)
 
     private val inboundLock = Any()
     private val mutationLock = Any()
@@ -111,6 +112,7 @@ class TerminalSession(
             publisher.resize(columns, rows)
         }
         connector.resize(columns, rows)
+        notifyRenderDirty()
     }
 
     /**
@@ -203,14 +205,55 @@ class TerminalSession(
      * publication they need.
      */
     fun requestRender(scrollbackOffset: Int) {
+        requestRender(scrollbackOffset, viewportRows = 0)
+    }
+
+    /**
+     * Requests a render-cache publication with optional render-only viewport
+     * overscan rows.
+     *
+     * [viewportRows] greater than zero asks the render reader to expose that
+     * many rows when possible. This is UI composition state and must not resize
+     * the terminal or connector.
+     */
+    fun requestRender(scrollbackOffset: Int, viewportRows: Int) {
         if (isClosed()) return
-        pendingRenderScrollbackOffset.set(scrollbackOffset.coerceAtLeast(0))
-        if (renderPending.compareAndSet(false, true)) {
+        pendingRenderRequest.set(
+            packRenderRequest(
+                scrollbackOffset = scrollbackOffset.coerceAtLeast(0),
+                viewportRows = viewportRows.coerceAtLeast(0),
+            )
+        )
+        pendingRenderGeneration.incrementAndGet()
+        scheduleRenderDrain()
+    }
+
+    private fun scheduleRenderDrain() {
+        if (renderScheduled.compareAndSet(false, true)) {
             renderWorker.execute {
-                val offset = pendingRenderScrollbackOffset.get()
-                renderPending.set(false)
-                publisher.updateAndPublish(this, offset)
+                drainRenderRequests()
+            }
+        }
+    }
+
+    private fun drainRenderRequests() {
+        var renderedGeneration = -1L
+        try {
+            while (!isClosed()) {
+                val generation = pendingRenderGeneration.get()
+                if (generation == renderedGeneration) return
+
+                val request = pendingRenderRequest.get()
+                val offset = unpackScrollbackOffset(request)
+                val rows = unpackViewportRows(request)
+                renderedGeneration = generation
+                publisher.updateAndPublish(this, offset, rows)
                 onDirty?.invoke()
+            }
+        } finally {
+            renderScheduled.set(false)
+            if (!isClosed() && pendingRenderGeneration.get() != renderedGeneration) {
+                scheduleRenderDrain()
             }
         }
     }
@@ -229,6 +272,16 @@ class TerminalSession(
     override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
         synchronized(mutationLock) {
             renderReader.readRenderFrame(scrollbackOffset, consumer)
+        }
+    }
+
+    override fun readRenderFrame(
+        scrollbackOffset: Int,
+        viewportRows: Int,
+        consumer: TerminalRenderFrameConsumer,
+    ) {
+        synchronized(mutationLock) {
+            renderReader.readRenderFrame(scrollbackOffset, viewportRows, consumer)
         }
     }
 
@@ -297,6 +350,18 @@ class TerminalSession(
 
     companion object {
         private const val RESPONSE_BUFFER_SIZE: Int = 1024
+
+        private fun packRenderRequest(scrollbackOffset: Int, viewportRows: Int): Long {
+            return (scrollbackOffset.toLong() shl 32) or (viewportRows.toLong() and 0xffff_ffffL)
+        }
+
+        private fun unpackScrollbackOffset(request: Long): Int {
+            return (request ushr 32).toInt()
+        }
+
+        private fun unpackViewportRows(request: Long): Int {
+            return request.toInt()
+        }
 
         /**
          * Creates a production session with the standard parser, integration

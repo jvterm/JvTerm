@@ -13,15 +13,23 @@ internal class CoreTerminalRenderFrame(
     private val clusterScratch = RenderClusterScratch()
     private var isValid: Boolean = false
     private var resolvedScrollbackOffset: Int = 0
+    private var resolvedRows: Int = 0
 
     internal fun <T> use(scrollbackOffset: Int, block: () -> T): T {
+        return use(scrollbackOffset, state.dimensions.height, block)
+    }
+
+    internal fun <T> use(scrollbackOffset: Int, viewportRows: Int, block: () -> T): T {
+        require(viewportRows > 0) { "viewportRows must be > 0, was $viewportRows" }
         resolvedScrollbackOffset = state.clampScrollbackOffset(scrollbackOffset)
+        resolvedRows = viewportRows.coerceAtMost(state.dimensions.height + resolvedScrollbackOffset)
         isValid = true
         try {
             return block()
         } finally {
             isValid = false
             resolvedScrollbackOffset = 0
+            resolvedRows = 0
         }
     }
 
@@ -38,7 +46,7 @@ internal class CoreTerminalRenderFrame(
     override val rows: Int
         get() {
             checkValid()
-            return state.dimensions.height
+            return resolvedRows
         }
 
     override val historySize: Int

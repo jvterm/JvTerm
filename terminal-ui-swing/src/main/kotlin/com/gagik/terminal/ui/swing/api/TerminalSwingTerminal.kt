@@ -1,5 +1,6 @@
 package com.gagik.terminal.ui.swing.api
 
+import com.gagik.terminal.render.cache.TerminalRenderCache
 import com.gagik.terminal.session.TerminalSession
 import com.gagik.terminal.ui.swing.input.TerminalSwingKeyMapper
 import com.gagik.terminal.ui.swing.render.TerminalGridPainter
@@ -171,6 +172,7 @@ class TerminalSwingTerminal(
                     width = width,
                     height = height,
                     cursorBlinkVisible = cursorBlinkVisible,
+                    contentYOffset = contentYOffset(cache),
                 )
             }
             if (painted == null) {
@@ -223,18 +225,22 @@ class TerminalSwingTerminal(
 
     private fun handleMouseWheel(event: MouseWheelEvent) {
         val boundSession = session ?: return
-        val cache = boundSession.publisher.current() ?: return
-        val historySize = cache.historySize
+        val historySize = boundSession.publisher.readCurrent { cache -> cache.historySize } ?: return
         if (historySize == 0) return
 
         val delta = wheelScrollLines(event)
         if (delta == 0.0) return
 
-        val previousOffset = scrollModel.offset
+        val previousRequestedOffset = scrollModel.requestedOffset
+        val previousRequestedRows = requestedRenderRows()
         if (!scrollModel.scrollBy(delta, historySize)) return
 
-        if (scrollModel.offset != previousOffset) {
-            boundSession.requestRender(scrollModel.offset)
+        val nextRequestedOffset = scrollModel.requestedOffset
+        val nextRequestedRows = requestedRenderRows()
+        if (nextRequestedOffset != previousRequestedOffset || nextRequestedRows != previousRequestedRows) {
+            boundSession.requestRender(nextRequestedOffset, nextRequestedRows)
+        } else {
+            repaint()
         }
         event.consume()
     }
@@ -250,32 +256,30 @@ class TerminalSwingTerminal(
 
     private fun handlePublishedFrame() {
         val boundSession = session ?: return
-        val cache = boundSession.publisher.current()
-        if (cache == null) {
-            repaint()
-            return
-        }
+        boundSession.publisher.readCurrent { cache ->
+            when {
+                scrollModel.clamp(cache.historySize) -> {
+                    boundSession.requestRender(scrollModel.requestedOffset, requestedRenderRows())
+                }
 
-        if (scrollModel.clamp(cache.historySize)) {
-            boundSession.requestRender(scrollModel.offset)
-            return
-        }
+                cache.scrollbackOffset != scrollModel.requestedOffset -> {
+                    boundSession.requestRender(scrollModel.requestedOffset, requestedRenderRows())
+                }
 
-        if (cache.scrollbackOffset != scrollModel.offset) {
-            boundSession.requestRender(scrollModel.offset)
-            return
-        }
-
-        repaintPlanner.requestFrameRepaint(
-            cache = cache,
-            metrics = metrics,
-            componentWidth = width,
-            componentHeight = height,
-            repaintAll = { repaint() },
-            repaintRegion = { x, y, regionWidth, regionHeight ->
-                repaint(x, y, regionWidth, regionHeight)
-            },
-        )
+                else -> {
+                    repaintPlanner.requestFrameRepaint(
+                        cache = cache,
+                        metrics = metrics,
+                        componentWidth = width,
+                        componentHeight = height,
+                        repaintAll = { repaint() },
+                        repaintRegion = { x, y, regionWidth, regionHeight ->
+                            repaint(x, y, regionWidth, regionHeight)
+                        },
+                    )
+                }
+            }
+        } ?: repaint()
     }
 
     private fun repaintBlinkingCursor() {
@@ -323,6 +327,15 @@ class TerminalSwingTerminal(
 
     private fun visibleGridRows(): Int {
         return maxOf(1, height / metrics.cellHeight)
+    }
+
+    private fun requestedRenderRows(): Int {
+        return scrollModel.requestedRows(visibleGridRows())
+    }
+
+    private fun contentYOffset(cache: TerminalRenderCache): Double {
+        if (cache.rows < requestedRenderRows()) return 0.0
+        return scrollModel.contentYOffset(metrics.cellHeight)
     }
 
     private fun buildMetrics(settings: TerminalSwingSettings): TerminalSwingMetrics {

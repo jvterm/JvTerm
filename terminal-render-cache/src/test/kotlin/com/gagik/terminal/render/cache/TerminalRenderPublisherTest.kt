@@ -11,23 +11,25 @@ import kotlin.concurrent.thread
 class TerminalRenderPublisherTest {
 
     @Test
-    fun `TerminalRenderCache ownership assertion`() {
-        val cache = TerminalRenderCache(3, 1)
-        cache.assertOwnership() // owner = main
+    fun `writer buffers can be reused by different worker threads`() {
+        val publisher = TerminalRenderPublisher(3, 1)
+        val texts = listOf("abc", "def", "ghi", "jkl", "mno", "pqr")
 
-        var exception: Throwable? = null
-        val t = thread(start = true) {
-            try {
-                cache.assertOwnership()
-            } catch (e: Throwable) {
-                exception = e
+        texts.forEach { text ->
+            var exception: Throwable? = null
+            val renderThread = thread(start = true) {
+                try {
+                    publisher.updateAndPublish(MockFrame(3, 1, text))
+                } catch (error: Throwable) {
+                    exception = error
+                }
             }
-        }
-        t.join()
+            renderThread.join()
 
-        assertNotNull(exception)
-        assertTrue(exception is IllegalStateException)
-        assertTrue(exception?.message?.contains("owned by") == true)
+            assertNull(exception)
+        }
+
+        assertEquals("pqr", publisher.current()?.rowText(0))
     }
 
     @Test
@@ -49,18 +51,63 @@ class TerminalRenderPublisherTest {
     }
 
     @Test
-    fun `resize updates all buffers`() {
+    fun `resize prepares writable buffers for next publication`() {
         val publisher = TerminalRenderPublisher(3, 1)
         publisher.resize(5, 2)
 
-        // Triple buffering: check other buffers via updateAndPublish
         val frame = MockFrame(5, 2, "12345")
         publisher.updateAndPublish(frame)
         assertEquals("12345", publisher.current()?.rowText(0))
     }
 
     @Test
-    fun `resize resets buffer ownership for next render worker update`() {
+    fun `resize does not mutate a leased front snapshot`() {
+        val publisher = TerminalRenderPublisher(3, 1)
+        publisher.updateAndPublish(MockFrame(3, 1, "abc"))
+
+        publisher.readCurrent { front ->
+            assertAll(
+                { assertEquals(3, front.columns) },
+                { assertEquals(1, front.rows) },
+                { assertEquals("abc", front.rowText(0)) },
+            )
+
+            publisher.resize(5, 2)
+
+            assertAll(
+                { assertEquals(3, front.columns) },
+                { assertEquals(1, front.rows) },
+                { assertEquals("abc", front.rowText(0)) },
+            )
+        }
+    }
+
+    @Test
+    fun `resize does not mutate writer owned back buffer during publication`() {
+        val publisher = TerminalRenderPublisher(3, 1)
+        val frame = BlockingMockFrame(3, 1, "abc")
+        val writerFinished = AtomicBoolean(false)
+
+        val writer = thread(start = true) {
+            publisher.updateAndPublish(frame)
+            writerFinished.set(true)
+        }
+
+        assertTrue(frame.awaitCopy(), "writer did not enter copyLine")
+        publisher.resize(5, 2)
+        frame.releaseCopy()
+        writer.join(1_000)
+
+        assertTrue(writerFinished.get(), "writer did not finish")
+        assertAll(
+            { assertEquals(3, publisher.current()?.columns) },
+            { assertEquals(1, publisher.current()?.rows) },
+            { assertEquals("abc", publisher.current()?.rowText(0)) },
+        )
+    }
+
+    @Test
+    fun `resize does not require worker thread affinity on later publication`() {
         val publisher = TerminalRenderPublisher(3, 1)
         val firstFrame = MockFrame(3, 1, "abc")
         val secondFrame = MockFrame(5, 2, "12345")
@@ -100,6 +147,21 @@ class TerminalRenderPublisherTest {
             { assertEquals(4, front?.historySize) },
             { assertEquals("old", front?.rowText(0)) },
             { assertFalse(front?.cursor?.visible == true) },
+        )
+    }
+
+    @Test
+    fun `updateAndPublish forwards viewport row overscan to reader`() {
+        val publisher = TerminalRenderPublisher(3, 1)
+        val frame = OffsetRecordingFrame()
+
+        publisher.updateAndPublish(frame, scrollbackOffset = 1, viewportRows = 2)
+
+        val front = publisher.current()
+        assertAll(
+            { assertEquals(1, frame.lastRequestedOffset) },
+            { assertEquals(2, frame.lastRequestedRows) },
+            { assertEquals(2, front?.rows) },
         )
     }
 
@@ -168,18 +230,18 @@ class TerminalRenderPublisherTest {
     private fun TerminalRenderCache.rowText(row: Int): String =
         codeWords[row].map { if (it == 0) ' ' else it.toChar() }.joinToString("")
 
-    private class MockFrame(
+    private open class MockFrame(
         override val columns: Int,
         override val rows: Int,
         val text: String
     ) : TerminalRenderFrame, TerminalRenderFrameReader {
 
-        override val frameGeneration: Long = 1L
+        override val frameGeneration: Long = text.hashCode().toLong()
         override val structureGeneration: Long = 1L
         override val activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY
         override val cursor: TerminalRenderCursor = TerminalRenderCursor(0, 0, true, false, TerminalRenderCursorShape.BLOCK, 1L)
 
-        override fun lineGeneration(row: Int): Long = 1L
+        override fun lineGeneration(row: Int): Long = text.hashCode().toLong()
         override fun lineWrapped(row: Int): Boolean = false
 
         override fun copyLine(
@@ -207,14 +269,67 @@ class TerminalRenderPublisherTest {
         }
     }
 
+    private class BlockingMockFrame(
+        columns: Int,
+        rows: Int,
+        text: String,
+    ) : MockFrame(columns, rows, text) {
+        private val copyEntered = CountDownLatch(1)
+        private val releaseCopy = CountDownLatch(1)
+
+        override fun copyLine(
+            row: Int,
+            codeWords: IntArray,
+            codeOffset: Int,
+            attrWords: LongArray,
+            attrOffset: Int,
+            flags: IntArray,
+            flagOffset: Int,
+            extraAttrWords: LongArray?,
+            extraAttrOffset: Int,
+            hyperlinkIds: IntArray?,
+            hyperlinkOffset: Int,
+            clusterSink: TerminalRenderClusterSink?
+        ) {
+            copyEntered.countDown()
+            assertTrue(releaseCopy.await(1, TimeUnit.SECONDS), "copyLine was not released")
+            super.copyLine(
+                row,
+                codeWords,
+                codeOffset,
+                attrWords,
+                attrOffset,
+                flags,
+                flagOffset,
+                extraAttrWords,
+                extraAttrOffset,
+                hyperlinkIds,
+                hyperlinkOffset,
+                clusterSink,
+            )
+        }
+
+        fun awaitCopy(): Boolean {
+            return copyEntered.await(1, TimeUnit.SECONDS)
+        }
+
+        fun releaseCopy() {
+            releaseCopy.countDown()
+        }
+    }
+
     private class OffsetRecordingFrame : TerminalRenderFrame, TerminalRenderFrameReader {
         private var resolvedOffset: Int = 0
+        private var resolvedRows: Int = 1
 
         var lastRequestedOffset: Int = -1
             private set
+        var lastRequestedRows: Int = -1
+            private set
 
         override val columns: Int = 3
-        override val rows: Int = 1
+        override val rows: Int
+            get() = resolvedRows
         override val historySize: Int = 4
         override val scrollbackOffset: Int
             get() = resolvedOffset
@@ -262,7 +377,21 @@ class TerminalRenderPublisherTest {
 
         override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
             lastRequestedOffset = scrollbackOffset
+            lastRequestedRows = 0
             resolvedOffset = scrollbackOffset.coerceIn(0, historySize)
+            resolvedRows = 1
+            consumer.accept(this)
+        }
+
+        override fun readRenderFrame(
+            scrollbackOffset: Int,
+            viewportRows: Int,
+            consumer: TerminalRenderFrameConsumer,
+        ) {
+            lastRequestedOffset = scrollbackOffset
+            lastRequestedRows = viewportRows
+            resolvedOffset = scrollbackOffset.coerceIn(0, historySize)
+            resolvedRows = viewportRows.coerceAtLeast(1)
             consumer.accept(this)
         }
     }
