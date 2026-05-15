@@ -267,11 +267,13 @@ class TerminalSwingTerminal(
                 }
 
                 else -> {
+                    val yOffset = contentYOffset(cache)
                     repaintPlanner.requestFrameRepaint(
                         cache = cache,
                         metrics = metrics,
                         componentWidth = width,
                         componentHeight = height,
+                        contentYOffset = yOffset,
                         repaintAll = { repaint() },
                         repaintRegion = { x, y, regionWidth, regionHeight ->
                             repaint(x, y, regionWidth, regionHeight)
@@ -288,7 +290,9 @@ class TerminalSwingTerminal(
             repaintPlanner.requestCursorBlinkRepaint(
                 cache = cache,
                 metrics = metrics,
+                componentWidth = width,
                 componentHeight = height,
+                contentYOffset = contentYOffset(cache),
                 repaintRegion = { x, y, regionWidth, regionHeight ->
                     repaint(x, y, regionWidth, regionHeight)
                 },

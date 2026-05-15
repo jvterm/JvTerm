@@ -365,6 +365,95 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `requestRender waits for a new generation after publish failure`() {
+        val terminal = TerminalBuffers.create(width = 10, height = 3)
+        val connector = MockConnector()
+        val renderReader = FailingFirstOffsetRenderReader()
+        val dirtyCalls = AtomicInteger(0)
+        val renderPublished = CountDownLatch(1)
+        val session = TerminalSession(
+            terminal = terminal,
+            publisher = TerminalRenderPublisher(terminal.width, terminal.height),
+            renderReader = renderReader,
+            responseReader = terminal,
+            connector = connector,
+            parser = RecordingParser(),
+            inputEncoder = NoOpInputEncoder,
+        )
+        session.onDirty = {
+            dirtyCalls.incrementAndGet()
+            renderPublished.countDown()
+        }
+
+        session.requestRender(scrollbackOffset = 1)
+        assertTrue(renderReader.awaitFirstRead(), "first render did not start")
+        Thread.sleep(100)
+
+        assertAll(
+            { assertEquals(1, renderReader.readCalls) },
+            { assertEquals(0, dirtyCalls.get()) },
+            { assertNull(session.publisher.current()) },
+        )
+
+        session.requestRender(scrollbackOffset = 2)
+
+        assertTrue(renderPublished.await(1, TimeUnit.SECONDS), "second render was not published")
+        assertAll(
+            { assertEquals(2, renderReader.readCalls) },
+            { assertEquals(1, dirtyCalls.get()) },
+            { assertEquals(2, session.publisher.current()?.scrollbackOffset) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `onDirty exception does not republish completed generation`() {
+        val terminal = TerminalBuffers.create(width = 10, height = 3)
+        val connector = MockConnector()
+        val renderReader = OffsetRecordingRenderReader()
+        val firstDirtyCall = CountDownLatch(1)
+        val secondDirtyCall = CountDownLatch(1)
+        val dirtyCalls = AtomicInteger(0)
+        val session = TerminalSession(
+            terminal = terminal,
+            publisher = TerminalRenderPublisher(terminal.width, terminal.height),
+            renderReader = renderReader,
+            responseReader = terminal,
+            connector = connector,
+            parser = RecordingParser(),
+            inputEncoder = NoOpInputEncoder,
+        )
+        session.onDirty = {
+            val call = dirtyCalls.incrementAndGet()
+            if (call == 1) {
+                firstDirtyCall.countDown()
+                throw IllegalStateException("dirty callback failed")
+            }
+            secondDirtyCall.countDown()
+        }
+
+        session.requestRender(scrollbackOffset = 1)
+        assertTrue(firstDirtyCall.await(1, TimeUnit.SECONDS), "first dirty callback did not run")
+        Thread.sleep(100)
+
+        assertAll(
+            { assertEquals(1, renderReader.readCalls) },
+            { assertEquals(1, dirtyCalls.get()) },
+            { assertEquals(1, session.publisher.current()?.scrollbackOffset) },
+        )
+
+        session.requestRender(scrollbackOffset = 2)
+
+        assertTrue(secondDirtyCall.await(1, TimeUnit.SECONDS), "second dirty callback did not run")
+        assertAll(
+            { assertEquals(2, renderReader.readCalls) },
+            { assertEquals(2, dirtyCalls.get()) },
+            { assertEquals(2, session.publisher.current()?.scrollbackOffset) },
+        )
+        session.close()
+    }
+
+    @Test
     fun `readRenderFrame blocks host byte mutation until callback returns`() {
         val terminal = TerminalBuffers.create(width = 10, height = 3)
         val connector = MockConnector()
@@ -742,16 +831,47 @@ class TerminalSessionTest {
     }
 
     private class OffsetRecordingRenderReader : TerminalRenderFrameReader {
+        private val calls = AtomicInteger(0)
+
         var lastOffset: Int = -1
             private set
+
+        val readCalls: Int
+            get() = calls.get()
 
         override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
             readRenderFrame(scrollbackOffset = 0, consumer = consumer)
         }
 
         override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
+            calls.incrementAndGet()
             lastOffset = scrollbackOffset
             consumer.accept(OffsetRenderFrame(scrollbackOffset))
+        }
+    }
+
+    private class FailingFirstOffsetRenderReader : TerminalRenderFrameReader {
+        private val firstReadEntered = CountDownLatch(1)
+        private val calls = AtomicInteger(0)
+
+        val readCalls: Int
+            get() = calls.get()
+
+        override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
+            readRenderFrame(scrollbackOffset = 0, consumer = consumer)
+        }
+
+        override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
+            val call = calls.incrementAndGet()
+            if (call == 1) {
+                firstReadEntered.countDown()
+                throw IllegalStateException("first render fails before publish")
+            }
+            consumer.accept(OffsetRenderFrame(scrollbackOffset))
+        }
+
+        fun awaitFirstRead(): Boolean {
+            return firstReadEntered.await(1, TimeUnit.SECONDS)
         }
     }
 

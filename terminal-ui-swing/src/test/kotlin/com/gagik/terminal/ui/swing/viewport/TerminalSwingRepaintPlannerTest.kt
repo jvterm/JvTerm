@@ -14,7 +14,7 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, {}, ignoreRegion)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
 
         frame.setRow(2, "WXYZ")
         cache.updateFrom(frame.reader)
@@ -25,6 +25,7 @@ class TerminalSwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
+            contentYOffset = 0.0,
             repaintAll = { error("dirty row update must not request full repaint") },
             repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
         )
@@ -39,7 +40,7 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, {}, ignoreRegion)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
 
         frame.setRow(1, "BBBB")
         frame.setRow(2, "CCCC")
@@ -51,6 +52,7 @@ class TerminalSwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
+            contentYOffset = 0.0,
             repaintAll = { error("dirty row update must not request full repaint") },
             repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
         )
@@ -66,7 +68,7 @@ class TerminalSwingRepaintPlannerTest {
 
         frame.cursor = cursor(column = 1, row = 0, generation = 1)
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, {}, ignoreRegion)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
 
         frame.cursor = cursor(column = 3, row = 2, generation = 2)
         frame.frameGeneration++
@@ -78,6 +80,7 @@ class TerminalSwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
+            contentYOffset = 0.0,
             repaintAll = { error("cursor-only update must not request full repaint") },
             repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
         )
@@ -102,11 +105,85 @@ class TerminalSwingRepaintPlannerTest {
         TerminalSwingRepaintPlanner().requestCursorBlinkRepaint(
             cache = cache,
             metrics = METRICS,
+            componentWidth = WIDTH,
             componentHeight = HEIGHT,
+            contentYOffset = 0.0,
             repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
         )
 
         assertEquals(listOf(Region(2 * CELL_WIDTH, CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT)), regions)
+    }
+
+    @Test
+    fun `fractional content offset shifts dirty row repaint bounds`() {
+        val frame = MutableFrame(columns = 4, rows = 4)
+        val cache = TerminalRenderCache(columns = 4, rows = 4)
+        val planner = TerminalSwingRepaintPlanner()
+
+        cache.updateFrom(frame.reader)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
+
+        frame.setRow(1, "BBBB")
+        cache.updateFrom(frame.reader)
+
+        val regions = mutableListOf<Region>()
+        planner.requestFrameRepaint(
+            cache = cache,
+            metrics = METRICS,
+            componentWidth = WIDTH,
+            componentHeight = HEIGHT,
+            contentYOffset = -12.0,
+            repaintAll = { error("translated dirty row update must not request full repaint") },
+            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+        )
+
+        assertEquals(listOf(Region(0, 4, WIDTH, CELL_HEIGHT)), regions)
+    }
+
+    @Test
+    fun `fractional content offset clips dirty row repaint bounds at component top`() {
+        val frame = MutableFrame(columns = 4, rows = 4)
+        val cache = TerminalRenderCache(columns = 4, rows = 4)
+        val planner = TerminalSwingRepaintPlanner()
+
+        cache.updateFrom(frame.reader)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
+
+        frame.setRow(0, "BBBB")
+        cache.updateFrom(frame.reader)
+
+        val regions = mutableListOf<Region>()
+        planner.requestFrameRepaint(
+            cache = cache,
+            metrics = METRICS,
+            componentWidth = WIDTH,
+            componentHeight = HEIGHT,
+            contentYOffset = -12.0,
+            repaintAll = { error("translated dirty row update must not request full repaint") },
+            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+        )
+
+        assertEquals(listOf(Region(0, 0, WIDTH, 4)), regions)
+    }
+
+    @Test
+    fun `cursor blink repaint uses fractional content offset`() {
+        val frame = MutableFrame(columns = 4, rows = 4)
+        frame.cursor = cursor(column = 2, row = 1, blinking = true, generation = 1)
+        val cache = TerminalRenderCache(columns = 4, rows = 4)
+        cache.updateFrom(frame.reader)
+
+        val regions = mutableListOf<Region>()
+        TerminalSwingRepaintPlanner().requestCursorBlinkRepaint(
+            cache = cache,
+            metrics = METRICS,
+            componentWidth = WIDTH,
+            componentHeight = HEIGHT,
+            contentYOffset = -12.0,
+            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+        )
+
+        assertEquals(listOf(Region(2 * CELL_WIDTH, 4, CELL_WIDTH, CELL_HEIGHT)), regions)
     }
 
     @Test
@@ -123,6 +200,7 @@ class TerminalSwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
+            contentYOffset = 0.0,
             repaintAll = { fullRepaints++ },
             repaintRegion = { _, _, _, _ -> error("resize must not request partial repaint") },
         )

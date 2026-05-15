@@ -227,27 +227,46 @@ class TerminalSession(
     }
 
     private fun drainRenderRequests() {
-        var renderedGeneration = -1L
+        var publishedGeneration = -1L
+        var failedGeneration = NO_RENDER_GENERATION
+        var reschedule = true
         try {
             while (!isClosed()) {
                 val generation = pendingRenderGeneration.get()
-                if (generation == renderedGeneration) return
+                if (generation == publishedGeneration) return
 
                 val request = pendingRenderRequest.get()
                 val offset = unpackScrollbackOffset(request)
                 val rows = unpackViewportRows(request)
-                renderedGeneration = generation
-                
+
                 try {
                     publisher.updateAndPublish(this, offset, rows)
+                    publishedGeneration = generation
+                } catch (e: Exception) {
+                    if (e is InterruptedException) {
+                        Thread.currentThread().interrupt()
+                    }
+                    failedGeneration = generation
+                    return
+                }
+
+                try {
                     onDirty?.invoke()
-                } catch (e: Throwable) {
-                    // Ignore UI or publisher errors to prevent killing the render worker
+                } catch (e: Exception) {
+                    // UI notification failure must not invalidate an already-published frame.
                 }
             }
+        } catch (e: Error) {
+            reschedule = false
+            throw e
         } finally {
             renderScheduled.set(false)
-            if (!isClosed() && pendingRenderGeneration.get() != renderedGeneration) {
+            val pendingGeneration = pendingRenderGeneration.get()
+            if (reschedule &&
+                !isClosed() &&
+                pendingGeneration != publishedGeneration &&
+                pendingGeneration != failedGeneration
+            ) {
                 scheduleRenderDrain()
             }
         }
@@ -346,6 +365,7 @@ class TerminalSession(
     companion object {
         private val SESSION_COUNTER = java.util.concurrent.atomic.AtomicInteger(1)
         private const val RESPONSE_BUFFER_SIZE: Int = 1024
+        private const val NO_RENDER_GENERATION: Long = -1L
 
         private fun packRenderRequest(scrollbackOffset: Int, viewportRows: Int): Long {
             return (scrollbackOffset.toLong() shl 32) or (viewportRows.toLong() and 0xffff_ffffL)
