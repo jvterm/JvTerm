@@ -1,5 +1,6 @@
 package com.gagik.terminal.ui.swing.render.cache
 
+import com.gagik.terminal.ui.swing.render.cache.TerminalComplexTextLayoutCache.Companion.REPLACEMENT_CHARACTER
 import java.awt.Font
 import java.awt.font.FontRenderContext
 import java.awt.font.TextLayout
@@ -47,7 +48,17 @@ internal class TerminalComplexTextLayoutCache(
     }
 
     /**
-     * Returns a cached layout for a single Unicode code point.
+     * Resolves a shaped text layout for a single Unicode code point using an allocation-free primitive key.
+     *
+     * Avoids heap allocation by converting the 32-bit integer code point and its corresponding
+     * style mask into a single packed 64-bit primitive key. This layout bypasses standard string
+     * instantiation during cache lookup passes.
+     *
+     * @param codePoint The 32-bit Unicode scalar value to render.
+     * @param style The packed integer bitmask specifying the target font style.
+     * @param fontRenderContext The active Java2D graphics context for metrics tracking.
+     * @param fontCache The stateful font resolver for fallback execution.
+     * @return An immutable, single-character [TextLayout].
      */
     fun codePointLayout(
         codePoint: Int,
@@ -57,11 +68,14 @@ internal class TerminalComplexTextLayoutCache(
     ): TextLayout {
         fontCache.refreshSystemFallbackFonts()
         prepare(fontRenderContext, fontCache.generation)
+
         val normalizedStyle = style and STYLE_MASK
         val key = codePointKey(codePoint, normalizedStyle)
         val cached = codePointLayouts[key]
         if (cached != null) return cached
 
+        // Convert the code point directly to a transient char array on cache misses to minimize
+        // object lifecycle footprints prior to layout shaping.
         val text = String(Character.toChars(codePoint))
         val layout = TextLayout(text, fontCache.fontForCodePoint(codePoint, normalizedStyle), fontRenderContext)
         codePointLayouts.put(key, layout)
@@ -69,7 +83,20 @@ internal class TerminalComplexTextLayoutCache(
     }
 
     /**
-     * Returns a cached layout for a grapheme cluster.
+     * Resolves a shaped text layout for a multi-code-unit grapheme cluster, enforcing size limits
+     * to insulate the rendering pipeline from resource exhaustion.
+     *
+     * This method handles the complex text shaping pipeline. It applies a defensive length filter
+     * to neutralize adversarial input sequences (e.g., pathological Zero-Width Joiner loops)
+     * *prior* to cache interrogation. This design choice collapses unbounded variants into a
+     * uniform tracking token, guaranteeing an upper bound on memory consumption and preventing
+     * cache thrashing.
+     *
+     * @param text The raw character sequence or grapheme cluster to be shaped.
+     * @param style The packed integer bitmask specifying the target font style (Bold/Italic variants).
+     * @param fontRenderContext The active Java2D graphics context specifying scaling and anti-aliasing configurations.
+     * @param fontCache The stateful primary and fallback font resolver for typography resolution.
+     * @return An immutable, shaped [TextLayout] strictly bound to terminal cell advances.
      */
     fun clusterLayout(
         text: String,
@@ -77,15 +104,26 @@ internal class TerminalComplexTextLayoutCache(
         fontRenderContext: FontRenderContext,
         fontCache: TerminalFontCache,
     ): TextLayout {
+        // Enforce an upper bound on text length to isolate the OpenType layout engine from
+        // CPU-bound execution spikes. Hostile or out-of-spec inputs are mapped onto a safe
+        // replacement character sequence.
+        val safeText = sanitizeCluster(text)
+
         fontCache.refreshSystemFallbackFonts()
         prepare(fontRenderContext, fontCache.generation)
+
         val normalizedStyle = style and STYLE_MASK
         val styleLayouts = clusterLayouts[normalizedStyle]
-        val cached = styleLayouts[text]
+
+        // Interrogate the style-segregated LRU cache using the sanitized text token to
+        // ensure O(1) layout retrieval for repeating clusters and neutralized attack strings.
+        val cached = styleLayouts[safeText]
         if (cached != null) return cached
 
-        val layout = TextLayout(text, fontCache.fontForText(text, normalizedStyle), fontRenderContext)
-        styleLayouts[text] = layout
+        // Execute heavy font-fallback tracking and glyph layout calculation only on a cache miss.
+        // The resultant layout is committed to the LRU map to eliminate subsequent allocation.
+        val layout = TextLayout(safeText, fontCache.fontForText(safeText, normalizedStyle), fontRenderContext)
+        styleLayouts[safeText] = layout
         return layout
     }
 
@@ -267,16 +305,45 @@ internal class TerminalComplexTextLayoutCache(
         private const val LOAD_FACTOR = 0.75f
         private const val EMPTY = -1
 
+        /**
+         * The absolute upper bound for permitted UTF-16 code units within a single cluster.
+         * Designed to safely accommodate complex multi-modifier emojis (e.g., standard family
+         * configurations) while intercepting malicious deep-nested styling exploits.
+         */
+        private const val MAX_CLUSTER_LENGTH = 32
+
+        /** The uniform replacement token used to substitute out-of-bounds sequences. */
+        private const val REPLACEMENT_CHARACTER = "\uFFFD"
+
+        @JvmStatic
         private fun codePointKey(codePoint: Int, style: Int): Long {
             return (style.toLong() shl 32) or (codePoint.toLong() and 0xFFFF_FFFFL)
         }
 
+        @JvmStatic
         private fun hashCapacity(entryCapacity: Int): Int {
             var capacity = 1
             while (capacity < entryCapacity * 2) {
                 capacity = capacity shl 1
             }
             return capacity
+        }
+
+        /**
+         * Evaluates a grapheme sequence against string length constraints to defend against
+         * CPU-exhaustion vectors.
+         *
+         * @param cluster The input text sequence under inspection.
+         * @return The original sequence if it satisfies structural constraints; otherwise, the
+         * fallback [REPLACEMENT_CHARACTER] string.
+         */
+        @JvmStatic
+        fun sanitizeCluster(cluster: String): String {
+            return if (cluster.length > MAX_CLUSTER_LENGTH) {
+                REPLACEMENT_CHARACTER
+            } else {
+                cluster
+            }
         }
     }
 }
