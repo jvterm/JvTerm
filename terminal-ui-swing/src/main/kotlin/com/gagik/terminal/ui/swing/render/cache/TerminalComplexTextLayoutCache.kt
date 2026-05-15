@@ -11,7 +11,10 @@ import java.util.*
  * Single code points use a primitive-key LRU so repeated Unicode cells do not
  * allocate lookup keys. Grapheme clusters are already stored as strings in the
  * render cache, so cluster layouts use bounded access-order maps by style.
- */
+ *
+ * **Thread Safety:** Not thread-safe. This cache must only be accessed
+ * from the Swing Event Dispatch Thread (EDT).
+*/
 internal class TerminalComplexTextLayoutCache(
     codePointCapacity: Int = DEFAULT_CODE_POINT_CAPACITY,
     clusterCapacityPerStyle: Int = DEFAULT_CLUSTER_CAPACITY_PER_STYLE,
@@ -105,6 +108,19 @@ internal class TerminalComplexTextLayoutCache(
         }
     }
 
+    /**
+     * ARCHITECTURAL WARNING: MANUAL MONOMORPHIZATION
+     * * Do not attempt to DRY (Don't Repeat Yourself) this cache logic using
+     * generic base classes (e.g., `<T>`).
+     * * This terminal emulator relies on a strict zero-allocation render loop.
+     * Because the JVM uses Type Erasure, passing primitives (Int, Long) to a
+     * generic type parameter forces boxing (allocating `java.lang.Integer` on the heap).
+     * * To maintain 60FPS without Garbage Collection stutter, this hash map logic
+     * is manually duplicated to operate directly on contiguous primitive arrays
+     * (`IntArray`, `LongArray`). Suppress IDE duplication warnings and leave
+     * this math alone.
+     */
+    @Suppress("DuplicatedCode")
     private class LongTextLayoutLru(capacity: Int) {
         private val entryKeys = LongArray(capacity)
         private val entryLayouts = arrayOfNulls<TextLayout>(capacity)
