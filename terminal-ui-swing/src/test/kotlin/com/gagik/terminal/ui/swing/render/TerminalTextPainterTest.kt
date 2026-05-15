@@ -227,6 +227,18 @@ class TerminalTextPainterTest {
         }
 
         @Test
+        fun `light box drawing stroke remains one pixel clean`() {
+            val fixture = fixture()
+            val cache = renderCache(TestRenderFrame.text("\u2500"))
+
+            fixture.paintRow(cache)
+
+            val centerY = fixture.metrics.cellHeight / 2
+            assertEquals(TEST_RED, fixture.image.getRGB(fixture.metrics.cellWidth / 2, centerY))
+            assertTrue(fixture.image.getRGB(fixture.metrics.cellWidth / 2, centerY + 1) != TEST_RED)
+        }
+
+        @Test
         fun `box drawing vertical spans adjacent row boundary`() {
             val fixture = fixture()
             val cache = renderCache(
@@ -244,6 +256,35 @@ class TerminalTextPainterTest {
             val centerX = fixture.metrics.cellWidth / 2
             assertEquals(TEST_RED, fixture.image.getRGB(centerX, fixture.metrics.cellHeight - 1))
             assertEquals(TEST_RED, fixture.image.getRGB(centerX, fixture.metrics.cellHeight))
+        }
+
+        @Test
+        fun `rounded box corner uses curved geometry instead of square elbow`() {
+            val fixture = fixture()
+            val cache = renderCache(TestRenderFrame.text("\u256D"))
+
+            fixture.paintRow(cache)
+
+            val centerX = fixture.metrics.cellWidth / 2
+            val centerY = fixture.metrics.cellHeight / 2
+            assertTrue(fixture.image.getRGB(centerX, centerY) != TEST_RED)
+            assertTrue(fixture.image.containsColorInRange(TEST_RED, centerX, fixture.metrics.cellWidth))
+        }
+
+        @Test
+        fun `rounded box corners use the correct arc quadrant`() {
+            val fixture = fixture(width = 120)
+            val cache = renderCache(TestRenderFrame.text("\u256D\u256E\u2570\u256F"))
+
+            fixture.paintRow(cache)
+
+            assertRoundedQuadrants(
+                fixture,
+                RoundedQuadrant(column = 0, right = true, lower = true),
+                RoundedQuadrant(column = 1, right = false, lower = true),
+                RoundedQuadrant(column = 2, right = true, lower = false),
+                RoundedQuadrant(column = 3, right = false, lower = false),
+            )
         }
 
         @Test
@@ -344,6 +385,28 @@ class TerminalTextPainterTest {
 
             assertEquals(TEST_GREEN, fixture.image.getRGB(fixture.metrics.cellWidth / 2, fixture.metrics.cellHeight / 2))
         }
+
+        private fun assertRoundedQuadrants(fixture: Fixture, vararg quadrants: RoundedQuadrant) {
+            for (quadrant in quadrants) {
+                assertRoundedQuadrant(fixture, quadrant)
+            }
+        }
+
+        private fun assertRoundedQuadrant(
+            fixture: Fixture,
+            quadrant: RoundedQuadrant,
+        ) {
+            val cellX = quadrant.column * fixture.metrics.cellWidth
+            val midX = cellX + fixture.metrics.cellWidth / 2
+            val midY = fixture.metrics.cellHeight / 2
+            val xStart = if (quadrant.right) midX else cellX
+            val xEnd = if (quadrant.right) cellX + fixture.metrics.cellWidth else midX + 1
+            val yStart = if (quadrant.lower) midY else 0
+            val yEnd = if (quadrant.lower) fixture.metrics.cellHeight else midY + 1
+
+            val painted = fixture.image.countColorInRange(TEST_RED, xStart, xEnd, yStart, yEnd)
+            assertTrue(painted > 0, "rounded corner at column ${quadrant.column} did not paint the expected quadrant")
+        }
     }
 
     @Nested
@@ -404,6 +467,12 @@ class TerminalTextPainterTest {
             painter.paintRow(g, cache, settings.palette, metrics, row = row, fontRenderContext = g.fontRenderContext)
         }
     }
+
+    private data class RoundedQuadrant(
+        val column: Int,
+        val right: Boolean,
+        val lower: Boolean,
+    )
 
     private fun fixture(
         foreground: Int = TEST_RED,
