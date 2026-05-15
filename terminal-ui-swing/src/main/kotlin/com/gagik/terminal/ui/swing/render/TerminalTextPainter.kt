@@ -21,6 +21,7 @@ internal class TerminalTextPainter(
     private val complexTextLayouts = TerminalComplexTextLayoutCache()
     private val asciiGlyphVectors = TerminalAsciiGlyphVectorCache()
     private val asciiDrawChars = TerminalAsciiDrawCharsCache()
+    private val cellPrimitives = TerminalCellPrimitivePainter()
     private val textRun = TerminalTextRunBuffer(INITIAL_TEXT_RUN_CAPACITY)
 
     /**
@@ -113,7 +114,10 @@ internal class TerminalTextPainter(
             g.color = colorCache.color(foreground)
 
             val baselineY = row * metrics.cellHeight + metrics.baseline
-            if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
+            val codeWord = cache.codeWords[row][column]
+            if (flags and TerminalRenderCellFlags.CLUSTER == 0 && cellPrimitives.canPaint(codeWord)) {
+                cellPrimitives.paint(g, codeWord, column, row, metrics)
+            } else if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
                 val cluster = cache.clusters[row][column]
                 if (cluster != null) {
                     drawComplexCluster(
@@ -128,7 +132,7 @@ internal class TerminalTextPainter(
             } else {
                 drawComplexCodePoint(
                     g = g,
-                    codePoint = cache.codeWords[row][column],
+                    codePoint = codeWord,
                     fontStyle = terminalFontStyle(attr),
                     x = column * metrics.cellWidth,
                     baselineY = baselineY,
@@ -207,7 +211,10 @@ internal class TerminalTextPainter(
         g.font = fontCache.font(fontStyle)
         g.color = colorCache.color(foreground)
 
-        if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
+        val codeWord = cache.codeWords[row][column]
+        if (flags and TerminalRenderCellFlags.CLUSTER == 0 && cellPrimitives.canPaint(codeWord)) {
+            cellPrimitives.paint(g, codeWord, column, row, metrics)
+        } else if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
             val cluster = cache.clusters[row][column]
             if (cluster != null) {
                 drawComplexCluster(g, cluster, fontStyle, column * metrics.cellWidth, baselineY, fontRenderContext)
@@ -215,7 +222,7 @@ internal class TerminalTextPainter(
         } else {
             drawComplexCodePoint(
                 g = g,
-                codePoint = cache.codeWords[row][column],
+                codePoint = codeWord,
                 fontStyle = fontStyle,
                 x = column * metrics.cellWidth,
                 baselineY = baselineY,

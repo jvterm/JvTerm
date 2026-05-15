@@ -213,6 +213,140 @@ class TerminalTextPainterTest {
     }
 
     @Nested
+    inner class CellPrimitives {
+        @Test
+        fun `box drawing horizontal spans adjacent cell boundary`() {
+            val fixture = fixture()
+            val cache = renderCache(TestRenderFrame.text("\u2500\u2500"))
+
+            fixture.paintRow(cache)
+
+            val centerY = fixture.metrics.cellHeight / 2
+            assertEquals(TEST_RED, fixture.image.getRGB(fixture.metrics.cellWidth - 1, centerY))
+            assertEquals(TEST_RED, fixture.image.getRGB(fixture.metrics.cellWidth, centerY))
+        }
+
+        @Test
+        fun `box drawing vertical spans adjacent row boundary`() {
+            val fixture = fixture()
+            val cache = renderCache(
+                TestRenderFrame(
+                    arrayOf(
+                        arrayOf(TestCell(codeWord = 0x2502, flags = TerminalRenderCellFlags.CODEPOINT)),
+                        arrayOf(TestCell(codeWord = 0x2502, flags = TerminalRenderCellFlags.CODEPOINT)),
+                    ),
+                ),
+            )
+
+            fixture.paintRow(cache, row = 0)
+            fixture.paintRow(cache, row = 1)
+
+            val centerX = fixture.metrics.cellWidth / 2
+            assertEquals(TEST_RED, fixture.image.getRGB(centerX, fixture.metrics.cellHeight - 1))
+            assertEquals(TEST_RED, fixture.image.getRGB(centerX, fixture.metrics.cellHeight))
+        }
+
+        @Test
+        fun `double dashed box drawing horizontal is painted`() {
+            val fixture = fixture()
+            val cache = renderCache(TestRenderFrame.text("\u254C\u254D"))
+
+            fixture.paintRow(cache)
+
+            val centerY = fixture.metrics.cellHeight / 2
+            assertTrue(fixture.image.containsColorInRange(TEST_RED, 0, fixture.metrics.cellWidth))
+            assertTrue(
+                fixture.image.containsColorInRange(
+                    TEST_RED,
+                    fixture.metrics.cellWidth,
+                    fixture.metrics.cellWidth * 2,
+                ),
+            )
+            assertEquals(TEST_RED, fixture.image.getRGB(0, centerY))
+        }
+
+        @Test
+        fun `double dashed box drawing vertical is painted`() {
+            val fixture = fixture()
+            val cache = renderCache(TestRenderFrame.text("\u254E\u254F"))
+
+            fixture.paintRow(cache)
+
+            val lightCenterX = fixture.metrics.cellWidth / 2
+            val heavyCenterX = fixture.metrics.cellWidth + fixture.metrics.cellWidth / 2
+            assertTrue(fixture.image.containsColor(TEST_RED, fixture.metrics.cellWidth, fixture.metrics.cellHeight))
+            assertTrue(
+                fixture.image.containsColorInRange(
+                    TEST_RED,
+                    fixture.metrics.cellWidth,
+                    fixture.metrics.cellWidth * 2,
+                ),
+            )
+            assertEquals(TEST_RED, fixture.image.getRGB(lightCenterX, 0))
+            assertEquals(TEST_RED, fixture.image.getRGB(heavyCenterX, 0))
+        }
+
+        @Test
+        fun `block element fills full terminal cell`() {
+            val fixture = fixture()
+            val cache = renderCache(TestRenderFrame.text("\u2588"))
+
+            fixture.paintRow(cache)
+
+            assertEquals(TEST_RED, fixture.image.getRGB(0, 0))
+            assertEquals(TEST_RED, fixture.image.getRGB(fixture.metrics.cellWidth - 1, fixture.metrics.cellHeight - 1))
+        }
+
+        @Test
+        fun `upper half block fills top half only`() {
+            val fixture = fixture()
+            val cache = renderCache(TestRenderFrame.text("\u2580"))
+
+            fixture.paintRow(cache)
+
+            assertEquals(TEST_RED, fixture.image.getRGB(fixture.metrics.cellWidth / 2, 0))
+            assertTrue(fixture.image.getRGB(fixture.metrics.cellWidth / 2, fixture.metrics.cellHeight - 1) != TEST_RED)
+        }
+
+        @Test
+        fun `dark shade is dense but not solid`() {
+            val fixture = fixture()
+            val cache = renderCache(TestRenderFrame.text("\u2593"))
+
+            fixture.paintRow(cache)
+
+            val painted = fixture.image.countColorInRange(
+                TEST_RED,
+                xStart = 0,
+                xEnd = fixture.metrics.cellWidth,
+                yStart = 0,
+                yEnd = fixture.metrics.cellHeight,
+            )
+            assertTrue(painted > fixture.metrics.cellWidth * fixture.metrics.cellHeight / 2)
+            assertTrue(painted < fixture.metrics.cellWidth * fixture.metrics.cellHeight)
+        }
+
+        @Test
+        fun `cursor foreground repaints box drawing primitive`() {
+            val fixture = fixture(foreground = TEST_WHITE)
+            val cache = renderCache(TestRenderFrame.text("\u2500"))
+
+            fixture.painter.paintCellForeground(
+                fixture.g,
+                cache,
+                fixture.settings.palette,
+                fixture.metrics,
+                column = 0,
+                row = 0,
+                foreground = TEST_GREEN,
+                fontRenderContext = fixture.g.fontRenderContext,
+            )
+
+            assertEquals(TEST_GREEN, fixture.image.getRGB(fixture.metrics.cellWidth / 2, fixture.metrics.cellHeight / 2))
+        }
+    }
+
+    @Nested
     inner class CursorForeground {
         @Test
         fun `paints ascii cell with supplied foreground`() {
@@ -261,9 +395,13 @@ class TerminalTextPainterTest {
         val painter: TerminalTextPainter,
     ) {
         fun paintRow(cache: com.gagik.terminal.render.cache.TerminalRenderCache) {
+            paintRow(cache, row = 0)
+        }
+
+        fun paintRow(cache: com.gagik.terminal.render.cache.TerminalRenderCache, row: Int) {
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
             g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, settings.fractionalMetrics)
-            painter.paintRow(g, cache, settings.palette, metrics, row = 0, fontRenderContext = g.fontRenderContext)
+            painter.paintRow(g, cache, settings.palette, metrics, row = row, fontRenderContext = g.fontRenderContext)
         }
     }
 

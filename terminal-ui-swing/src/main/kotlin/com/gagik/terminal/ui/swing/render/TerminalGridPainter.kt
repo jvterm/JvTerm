@@ -55,6 +55,8 @@ internal class TerminalGridPainter {
         val palette = settings.palette
         textPainter.updateSettings(settings)
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
         g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, settings.fractionalMetrics)
         g.font = textPainter.font(Font.PLAIN)
         val fontRenderContext = g.fontRenderContext
