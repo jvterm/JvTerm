@@ -1,6 +1,7 @@
 package com.gagik.terminal.ui.swing.render
 
 import com.gagik.terminal.render.api.*
+import com.gagik.terminal.ui.swing.render.primitives.TerminalBoxDrawingPainter
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -328,6 +329,24 @@ class TerminalTextPainterTest {
         }
 
         @Test
+        fun `dashed box drawing glyphs use unicode dash counts`() {
+            val image = BufferedImage(84, 24, BufferedImage.TYPE_INT_ARGB)
+            val g = image.createGraphics()
+            val painter = TerminalBoxDrawingPainter()
+            g.color = java.awt.Color(TEST_RED, true)
+
+            painter.paint(g, 0x254C, x = 0, y = 0, width = 21, height = 21)
+            painter.paint(g, 0x2504, x = 28, y = 0, width = 21, height = 21)
+            painter.paint(g, 0x2508, x = 56, y = 0, width = 21, height = 21)
+            g.dispose()
+
+            val centerY = 21 / 2
+            assertEquals(2, image.countColorRunsHorizontal(TEST_RED, xStart = 0, xEnd = 21, y = centerY))
+            assertEquals(3, image.countColorRunsHorizontal(TEST_RED, xStart = 28, xEnd = 49, y = centerY))
+            assertEquals(4, image.countColorRunsHorizontal(TEST_RED, xStart = 56, xEnd = 77, y = centerY))
+        }
+
+        @Test
         fun `block element fills full terminal cell`() {
             val fixture = fixture()
             val cache = renderCache(TestRenderFrame.text("\u2588"))
@@ -572,5 +591,20 @@ class TerminalTextPainterTest {
             y++
         }
         return count
+    }
+
+    private fun BufferedImage.countColorRunsHorizontal(argb: Int, xStart: Int, xEnd: Int, y: Int): Int {
+        var runs = 0
+        var insideRun = false
+        var x = xStart
+        while (x < xEnd) {
+            val painted = getRGB(x, y) == argb
+            if (painted && !insideRun) {
+                runs++
+            }
+            insideRun = painted
+            x++
+        }
+        return runs
     }
 }

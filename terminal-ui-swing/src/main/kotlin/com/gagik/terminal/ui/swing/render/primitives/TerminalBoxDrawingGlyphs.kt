@@ -46,6 +46,15 @@ internal object TerminalBoxDrawingGlyphs {
         }
     }
 
+    fun dashCount(codePoint: Int): Int {
+        return when (codePoint) {
+            0x2504, 0x2505, 0x2506, 0x2507 -> 3
+            0x2508, 0x2509, 0x250A, 0x250B -> 4
+            0x254C, 0x254D, 0x254E, 0x254F -> 2
+            else -> 0
+        }
+    }
+
     fun diagonalMask(codePoint: Int): Int {
         return when (codePoint) {
             0x2571 -> DIAGONAL_RISING

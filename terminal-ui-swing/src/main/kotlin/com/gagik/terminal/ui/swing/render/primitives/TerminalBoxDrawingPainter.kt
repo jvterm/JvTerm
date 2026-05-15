@@ -30,13 +30,13 @@ internal class TerminalBoxDrawingPainter {
 
         val horizontalDashStyle = TerminalBoxDrawingGlyphs.horizontalDashStyle(codePoint)
         if (horizontalDashStyle != NONE) {
-            paintDashedHorizontal(g, x, y, width, height, horizontalDashStyle)
+            paintDashedHorizontal(g, x, y, width, height, horizontalDashStyle, TerminalBoxDrawingGlyphs.dashCount(codePoint))
             return
         }
 
         val verticalDashStyle = TerminalBoxDrawingGlyphs.verticalDashStyle(codePoint)
         if (verticalDashStyle != NONE) {
-            paintDashedVertical(g, x, y, width, height, verticalDashStyle)
+            paintDashedVertical(g, x, y, width, height, verticalDashStyle, TerminalBoxDrawingGlyphs.dashCount(codePoint))
             return
         }
 
@@ -137,20 +137,46 @@ internal class TerminalBoxDrawingPainter {
         }
     }
 
-    private fun paintDashedHorizontal(g: Graphics2D, x: Int, y: Int, width: Int, height: Int, style: Int) {
+    private fun paintDashedHorizontal(
+        g: Graphics2D,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        style: Int,
+        dashCount: Int,
+    ) {
         val lineThickness = thickness(style, width, height)
         val centerY = y + height / 2
-        val dash = maxOf(1, width / 3)
-        fillHorizontal(g, x, minOf(x + width, x + dash), centerY, lineThickness)
-        fillHorizontal(g, maxOf(x, x + width - dash), x + width, centerY, lineThickness)
+        val units = dashUnits(dashCount)
+        var dash = 0
+        while (dash < dashCount) {
+            val startX = x + dashStart(width, units, dash)
+            val endX = x + dashEnd(width, units, dash)
+            fillHorizontal(g, startX, endX, centerY, lineThickness)
+            dash++
+        }
     }
 
-    private fun paintDashedVertical(g: Graphics2D, x: Int, y: Int, width: Int, height: Int, style: Int) {
+    private fun paintDashedVertical(
+        g: Graphics2D,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        style: Int,
+        dashCount: Int,
+    ) {
         val lineThickness = thickness(style, width, height)
         val centerX = x + width / 2
-        val dash = maxOf(1, height / 3)
-        fillVertical(g, centerX, y, minOf(y + height, y + dash), lineThickness)
-        fillVertical(g, centerX, maxOf(y, y + height - dash), y + height, lineThickness)
+        val units = dashUnits(dashCount)
+        var dash = 0
+        while (dash < dashCount) {
+            val startY = y + dashStart(height, units, dash)
+            val endY = y + dashEnd(height, units, dash)
+            fillVertical(g, centerX, startY, endY, lineThickness)
+            dash++
+        }
     }
 
     private fun paintRoundedCorner(
@@ -257,6 +283,18 @@ internal class TerminalBoxDrawingPainter {
 
     private fun doubleOffset(width: Int, height: Int): Int {
         return maxOf(1, minOf(width, height) / 5)
+    }
+
+    private fun dashUnits(dashCount: Int): Int {
+        return maxOf(1, dashCount * 2 - 1)
+    }
+
+    private fun dashStart(length: Int, units: Int, dash: Int): Int {
+        return dash * 2 * length / units
+    }
+
+    private fun dashEnd(length: Int, units: Int, dash: Int): Int {
+        return maxOf(dashStart(length, units, dash) + 1, ((dash * 2 + 1) * length + units - 1) / units)
     }
 
     private fun stronger(first: Int, second: Int): Int {
