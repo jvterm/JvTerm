@@ -1,11 +1,17 @@
-package com.gagik.terminal.ui.swing.render
+package com.gagik.terminal.ui.swing.render.painter
 
 import com.gagik.terminal.render.api.*
+import com.gagik.terminal.render.cache.TerminalRenderCache
+import com.gagik.terminal.ui.swing.render.*
+import com.gagik.terminal.ui.swing.render.cache.AwtColorCache
 import com.gagik.terminal.ui.swing.render.primitives.TerminalBoxDrawingPainter
+import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import java.awt.Color
 import java.awt.Font
+import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
@@ -39,7 +45,7 @@ class TerminalTextPainterTest {
             )
             val g = image.createGraphics()
             val fontMetrics = g.getFontMetrics(settings.font)
-            val metrics = com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics(
+            val metrics = TerminalSwingMetrics(
                 cellWidth = maxOf(1, fontMetrics.charWidth('W')),
                 cellHeight = fontMetrics.height,
                 baseline = fontMetrics.ascent,
@@ -333,7 +339,7 @@ class TerminalTextPainterTest {
             val image = BufferedImage(84, 24, BufferedImage.TYPE_INT_ARGB)
             val g = image.createGraphics()
             val painter = TerminalBoxDrawingPainter()
-            g.color = java.awt.Color(TEST_RED, true)
+            g.color = Color(TEST_RED, true)
 
             painter.paint(g, 0x254C, x = 0, y = 0, width = 21, height = 21)
             painter.paint(g, 0x2504, x = 28, y = 0, width = 21, height = 21)
@@ -505,16 +511,16 @@ class TerminalTextPainterTest {
 
     private data class Fixture(
         val image: BufferedImage,
-        val g: java.awt.Graphics2D,
-        val settings: com.gagik.terminal.ui.swing.settings.TerminalSwingSettings,
-        val metrics: com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics,
+        val g: Graphics2D,
+        val settings: TerminalSwingSettings,
+        val metrics: TerminalSwingMetrics,
         val painter: TerminalTextPainter,
     ) {
-        fun paintRow(cache: com.gagik.terminal.render.cache.TerminalRenderCache) {
+        fun paintRow(cache: TerminalRenderCache) {
             paintRow(cache, row = 0)
         }
 
-        fun paintRow(cache: com.gagik.terminal.render.cache.TerminalRenderCache, row: Int) {
+        fun paintRow(cache: TerminalRenderCache, row: Int) {
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
             g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, settings.fractionalMetrics)
             painter.paintRow(g, cache, settings.palette, metrics, row = row, fontRenderContext = g.fontRenderContext)

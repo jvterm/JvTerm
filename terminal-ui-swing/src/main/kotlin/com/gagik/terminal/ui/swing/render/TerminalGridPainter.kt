@@ -1,6 +1,11 @@
 package com.gagik.terminal.ui.swing.render
 
 import com.gagik.terminal.render.cache.TerminalRenderCache
+import com.gagik.terminal.ui.swing.render.cache.AwtColorCache
+import com.gagik.terminal.ui.swing.render.painter.TerminalBackgroundPainter
+import com.gagik.terminal.ui.swing.render.painter.TerminalCursorPainter
+import com.gagik.terminal.ui.swing.render.painter.TerminalDecorationPainter
+import com.gagik.terminal.ui.swing.render.painter.TerminalTextPainter
 import com.gagik.terminal.ui.swing.settings.TerminalColorPalette
 import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings

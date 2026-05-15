@@ -1,6 +1,8 @@
-package com.gagik.terminal.ui.swing.render
+package com.gagik.terminal.ui.swing.render.cache
 
+import com.gagik.terminal.ui.swing.render.font.TerminalSystemFallbackFonts
 import java.awt.Font
+import java.util.*
 
 /**
  * Caches terminal font style variants for one settings snapshot.
@@ -283,10 +285,10 @@ internal class TerminalFontCache(
         }
 
         fun clear() {
-            java.util.Arrays.fill(entryFonts, null)
-            java.util.Arrays.fill(previous, EMPTY)
-            java.util.Arrays.fill(next, EMPTY)
-            java.util.Arrays.fill(hashEntries, EMPTY)
+            Arrays.fill(entryFonts, null)
+            Arrays.fill(previous, EMPTY)
+            Arrays.fill(next, EMPTY)
+            Arrays.fill(hashEntries, EMPTY)
             size = 0
             head = EMPTY
             tail = EMPTY

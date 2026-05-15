@@ -1,4 +1,4 @@
-package com.gagik.terminal.ui.swing.render
+package com.gagik.terminal.ui.swing.render.font
 
 /**
  * Reusable mutable text buffer for Java2D draw calls.

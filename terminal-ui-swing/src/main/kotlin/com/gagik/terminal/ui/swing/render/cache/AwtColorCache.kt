@@ -1,4 +1,4 @@
-package com.gagik.terminal.ui.swing.render
+package com.gagik.terminal.ui.swing.render.cache
 
 import java.awt.Color
 
@@ -6,7 +6,7 @@ import java.awt.Color
  * Bounded primitive-keyed LRU cache for packed ARGB AWT colors.
  *
  * Rendering resolves colors as packed integers in hot paths. This cache avoids
- * per-cell boxing for recently used colors while bounding retained [Color]
+ * per-cell boxing for recently used colors while bounding retained [java.awt.Color]
  * instances for truecolor streams such as gradients, images, and animations.
  */
 internal class AwtColorCache(

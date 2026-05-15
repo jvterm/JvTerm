@@ -1,7 +1,9 @@
-package com.gagik.terminal.ui.swing.render
+package com.gagik.terminal.ui.swing.render.cache
 
+import java.awt.Font
 import java.awt.font.FontRenderContext
 import java.awt.font.TextLayout
+import java.util.*
 
 /**
  * Bounded renderer-local cache for shaped complex text layouts.
@@ -147,10 +149,10 @@ internal class TerminalComplexTextLayoutCache(
         }
 
         fun clear() {
-            java.util.Arrays.fill(entryLayouts, null)
-            java.util.Arrays.fill(previous, EMPTY)
-            java.util.Arrays.fill(next, EMPTY)
-            java.util.Arrays.fill(hashEntries, EMPTY)
+            Arrays.fill(entryLayouts, null)
+            Arrays.fill(previous, EMPTY)
+            Arrays.fill(next, EMPTY)
+            Arrays.fill(hashEntries, EMPTY)
             size = 0
             head = EMPTY
             tail = EMPTY
@@ -245,7 +247,7 @@ internal class TerminalComplexTextLayoutCache(
         private const val DEFAULT_CODE_POINT_CAPACITY = 4096
         private const val DEFAULT_CLUSTER_CAPACITY_PER_STYLE = 1024
         private const val STYLE_COUNT = 4
-        private const val STYLE_MASK = java.awt.Font.BOLD or java.awt.Font.ITALIC
+        private const val STYLE_MASK = Font.BOLD or Font.ITALIC
         private const val LOAD_FACTOR = 0.75f
         private const val EMPTY = -1
 
