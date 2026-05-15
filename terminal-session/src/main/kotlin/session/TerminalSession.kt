@@ -22,7 +22,7 @@ import com.gagik.terminal.transport.TerminalConnectorListener
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Runtime terminal session that binds core, parser, input encoding, and a
@@ -47,15 +47,16 @@ class TerminalSession(
     private val remoteClosed = AtomicBoolean(false)
     private val parserClosed = AtomicBoolean(false)
     private val started = AtomicBoolean(false)
-    private val renderPending = AtomicBoolean(false)
-    private val pendingRenderScrollbackOffset = AtomicInteger(0)
+    private val renderScheduled = AtomicBoolean(false)
+    private val pendingRenderRequest = AtomicLong(packRenderRequest(scrollbackOffset = 0, viewportRows = 0))
+    private val pendingRenderGeneration = AtomicLong(0)
 
     private val inboundLock = Any()
     private val mutationLock = Any()
     private val responseScratch = ByteArray(RESPONSE_BUFFER_SIZE)
 
     private val renderWorker = Executors.newSingleThreadExecutor { r ->
-        Thread(r, "terminal-render-worker").apply { isDaemon = true }
+        Thread(r, "terminal-render-worker-${SESSION_COUNTER.getAndIncrement()}").apply { isDaemon = true }
     }
 
     /**
@@ -93,7 +94,6 @@ class TerminalSession(
 
         synchronized(mutationLock) {
             terminal.resize(columns, rows)
-            publisher.resize(columns, rows)
         }
         connector.resize(columns, rows)
         connector.start(this)
@@ -108,9 +108,9 @@ class TerminalSession(
 
         synchronized(mutationLock) {
             terminal.resize(columns, rows)
-            publisher.resize(columns, rows)
         }
         connector.resize(columns, rows)
+        notifyRenderDirty()
     }
 
     /**
@@ -118,12 +118,16 @@ class TerminalSession(
      *
      * Input before [start] is ignored.
      */
-    override fun encodeKey(event: TerminalKeyEvent) {
+    private inline fun withInputLock(block: TerminalInputEncoder.() -> Unit) {
         synchronized(outboundWriteLock) {
             if (isAcceptingInput()) {
-                inputEncoder.encodeKey(event)
+                inputEncoder.block()
             }
         }
+    }
+
+    override fun encodeKey(event: TerminalKeyEvent) {
+        withInputLock { encodeKey(event) }
     }
 
     /**
@@ -132,11 +136,7 @@ class TerminalSession(
      * Input before [start] is ignored.
      */
     override fun encodePaste(event: TerminalPasteEvent) {
-        synchronized(outboundWriteLock) {
-            if (isAcceptingInput()) {
-                inputEncoder.encodePaste(event)
-            }
-        }
+        withInputLock { encodePaste(event) }
     }
 
     /**
@@ -145,11 +145,7 @@ class TerminalSession(
      * Input before [start] is ignored.
      */
     override fun encodeFocus(event: TerminalFocusEvent) {
-        synchronized(outboundWriteLock) {
-            if (isAcceptingInput()) {
-                inputEncoder.encodeFocus(event)
-            }
-        }
+        withInputLock { encodeFocus(event) }
     }
 
     /**
@@ -158,11 +154,7 @@ class TerminalSession(
      * Input before [start] is ignored.
      */
     override fun encodeMouse(event: TerminalMouseEvent) {
-        synchronized(outboundWriteLock) {
-            if (isAcceptingInput()) {
-                inputEncoder.encodeMouse(event)
-            }
-        }
+        withInputLock { encodeMouse(event) }
     }
 
     /**
@@ -203,14 +195,79 @@ class TerminalSession(
      * publication they need.
      */
     fun requestRender(scrollbackOffset: Int) {
+        requestRender(scrollbackOffset, viewportRows = 0)
+    }
+
+    /**
+     * Requests a render-cache publication with optional render-only viewport
+     * overscan rows.
+     *
+     * [viewportRows] greater than zero asks the render reader to expose that
+     * many rows when possible. This is UI composition state and must not resize
+     * the terminal or connector.
+     */
+    fun requestRender(scrollbackOffset: Int, viewportRows: Int) {
         if (isClosed()) return
-        pendingRenderScrollbackOffset.set(scrollbackOffset.coerceAtLeast(0))
-        if (renderPending.compareAndSet(false, true)) {
+        pendingRenderRequest.set(
+            packRenderRequest(
+                scrollbackOffset = scrollbackOffset.coerceAtLeast(0),
+                viewportRows = viewportRows.coerceAtLeast(0),
+            )
+        )
+        pendingRenderGeneration.incrementAndGet()
+        scheduleRenderDrain()
+    }
+
+    private fun scheduleRenderDrain() {
+        if (renderScheduled.compareAndSet(false, true)) {
             renderWorker.execute {
-                val offset = pendingRenderScrollbackOffset.get()
-                renderPending.set(false)
-                publisher.updateAndPublish(this, offset)
-                onDirty?.invoke()
+                drainRenderRequests()
+            }
+        }
+    }
+
+    private fun drainRenderRequests() {
+        var publishedGeneration = -1L
+        var failedGeneration = NO_RENDER_GENERATION
+        var reschedule = true
+        try {
+            while (!isClosed()) {
+                val generation = pendingRenderGeneration.get()
+                if (generation == publishedGeneration) return
+
+                val request = pendingRenderRequest.get()
+                val offset = unpackScrollbackOffset(request)
+                val rows = unpackViewportRows(request)
+
+                try {
+                    publisher.updateAndPublish(this, offset, rows)
+                    publishedGeneration = generation
+                } catch (e: Exception) {
+                    if (e is InterruptedException) {
+                        Thread.currentThread().interrupt()
+                    }
+                    failedGeneration = generation
+                    return
+                }
+
+                try {
+                    onDirty?.invoke()
+                } catch (e: Exception) {
+                    // UI notification failure must not invalidate an already-published frame.
+                }
+            }
+        } catch (e: Error) {
+            reschedule = false
+            throw e
+        } finally {
+            renderScheduled.set(false)
+            val pendingGeneration = pendingRenderGeneration.get()
+            if (reschedule &&
+                !isClosed() &&
+                pendingGeneration != publishedGeneration &&
+                pendingGeneration != failedGeneration
+            ) {
+                scheduleRenderDrain()
             }
         }
     }
@@ -229,6 +286,16 @@ class TerminalSession(
     override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
         synchronized(mutationLock) {
             renderReader.readRenderFrame(scrollbackOffset, consumer)
+        }
+    }
+
+    override fun readRenderFrame(
+        scrollbackOffset: Int,
+        viewportRows: Int,
+        consumer: TerminalRenderFrameConsumer,
+    ) {
+        synchronized(mutationLock) {
+            renderReader.readRenderFrame(scrollbackOffset, viewportRows, consumer)
         }
     }
 
@@ -260,7 +327,6 @@ class TerminalSession(
             connector.close()
         }
         cleanupParser()
-        renderWorker.shutdown()
         renderWorker.awaitTermination(500, TimeUnit.MILLISECONDS)
     }
 
@@ -285,6 +351,7 @@ class TerminalSession(
         synchronized(mutationLock) {
             parser.endOfInput()
         }
+        renderWorker.shutdown()
     }
 
     private fun isClosed(): Boolean {
@@ -296,7 +363,21 @@ class TerminalSession(
     }
 
     companion object {
+        private val SESSION_COUNTER = java.util.concurrent.atomic.AtomicInteger(1)
         private const val RESPONSE_BUFFER_SIZE: Int = 1024
+        private const val NO_RENDER_GENERATION: Long = -1L
+
+        private fun packRenderRequest(scrollbackOffset: Int, viewportRows: Int): Long {
+            return (scrollbackOffset.toLong() shl 32) or (viewportRows.toLong() and 0xffff_ffffL)
+        }
+
+        private fun unpackScrollbackOffset(request: Long): Int {
+            return (request ushr 32).toInt()
+        }
+
+        private fun unpackViewportRows(request: Long): Int {
+            return request.toInt()
+        }
 
         /**
          * Creates a production session with the standard parser, integration

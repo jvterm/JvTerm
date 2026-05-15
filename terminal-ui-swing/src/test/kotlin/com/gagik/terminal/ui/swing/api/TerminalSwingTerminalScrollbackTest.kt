@@ -117,6 +117,53 @@ class TerminalSwingTerminalScrollbackTest {
         session.close()
     }
 
+    @Test
+    fun `precise mouse wheel fractions update scrollback viewport`() {
+        val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
+        val session = TerminalSession(
+            terminal = terminal,
+            publisher = TerminalRenderPublisher(3, 1),
+            renderReader = ScrollbackFrameReader(),
+            responseReader = terminal,
+            connector = NoOpConnector,
+            parser = NoOpParser,
+            inputEncoder = NoOpInputEncoder,
+        )
+        val component = TerminalSwingTerminal()
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(30, 20)
+            component.bind(session)
+        }
+        session.requestRender(scrollbackOffset = 0)
+        assertTrue(awaitOffset(session, 0), "initial render was not published")
+
+        SwingUtilities.invokeAndWait {
+            component.dispatchEvent(
+                MouseWheelEvent(
+                    component,
+                    MouseWheelEvent.MOUSE_WHEEL,
+                    System.currentTimeMillis(),
+                    0,
+                    5,
+                    5,
+                    0,
+                    0,
+                    0,
+                    false,
+                    MouseWheelEvent.WHEEL_UNIT_SCROLL,
+                    3,
+                    0,
+                    -0.25,
+                )
+            )
+        }
+
+        assertTrue(awaitOffset(session, 1), "fractional scroll did not publish crossed line offset")
+        assertTrue(session.publisher.current()?.rows ?: 0 > 1, "fractional scroll did not request overscan rows")
+        session.close()
+    }
+
     private class CountingRepaintManager(
         private val target: JComponent,
     ) : RepaintManager() {
@@ -150,6 +197,9 @@ class TerminalSwingTerminalScrollbackTest {
         @Volatile
         var lastRequestedOffset: Int = -1
             private set
+        @Volatile
+        var lastRequestedRows: Int = -1
+            private set
 
         override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
             readRenderFrame(scrollbackOffset = 0, consumer = consumer)
@@ -157,15 +207,26 @@ class TerminalSwingTerminalScrollbackTest {
 
         override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
             lastRequestedOffset = scrollbackOffset
-            consumer.accept(ScrollbackFrame(scrollbackOffset.coerceIn(0, 5)))
+            lastRequestedRows = 0
+            consumer.accept(ScrollbackFrame(scrollbackOffset.coerceIn(0, 5), rows = 1))
+        }
+
+        override fun readRenderFrame(
+            scrollbackOffset: Int,
+            viewportRows: Int,
+            consumer: TerminalRenderFrameConsumer,
+        ) {
+            lastRequestedOffset = scrollbackOffset
+            lastRequestedRows = viewportRows
+            consumer.accept(ScrollbackFrame(scrollbackOffset.coerceIn(0, 5), rows = viewportRows.coerceAtLeast(1)))
         }
     }
 
     private class ScrollbackFrame(
         override val scrollbackOffset: Int,
+        override val rows: Int,
     ) : TerminalRenderFrame {
         override val columns: Int = 3
-        override val rows: Int = 1
         override val historySize: Int = 5
         override val frameGeneration: Long = 1
         override val structureGeneration: Long = 1

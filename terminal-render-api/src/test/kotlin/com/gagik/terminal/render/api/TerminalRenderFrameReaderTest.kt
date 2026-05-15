@@ -24,6 +24,28 @@ class TerminalRenderFrameReaderTest {
         assertSame(frame, observed)
     }
 
+    @Test
+    fun `default overscan read delegates to scrollback read`() {
+        val frame = RecordingFrame(columns = 80, rows = 24)
+        var requestedOffset = -1
+        val reader = object : TerminalRenderFrameReader {
+            override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
+                consumer.accept(frame)
+            }
+
+            override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
+                requestedOffset = scrollbackOffset
+                consumer.accept(frame)
+            }
+        }
+
+        reader.readRenderFrame(scrollbackOffset = 7, viewportRows = 25) {
+            assertSame(frame, it)
+        }
+
+        assertEquals(7, requestedOffset)
+    }
+
     private class RecordingFrame(
         override val columns: Int,
         override val rows: Int,

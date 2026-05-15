@@ -1,0 +1,80 @@
+package com.gagik.terminal.ui.swing.render
+
+import java.awt.Font
+import java.awt.font.FontRenderContext
+
+/**
+ * Caches whether Java2D's natural ASCII advances match terminal cell advances.
+ *
+ * When every printable ASCII glyph in a style advances by exactly one cell,
+ * `Graphics2D.drawChars` is the cheapest correct path. If any glyph has a
+ * different advance, the renderer must use positioned glyph vectors so glyph
+ * origins stay pinned to terminal columns.
+ */
+internal class TerminalAsciiDrawCharsCache {
+    private val fonts = arrayOfNulls<Font>(STYLE_COUNT)
+    private val contexts = arrayOfNulls<FontRenderContext>(STYLE_COUNT)
+    private val cellWidths = IntArray(STYLE_COUNT)
+    private val compatible = BooleanArray(STYLE_COUNT)
+    private val probe = CharArray(1)
+
+    /**
+     * Clears cached compatibility decisions after font settings change.
+     */
+    fun clear() {
+        java.util.Arrays.fill(fonts, null)
+        java.util.Arrays.fill(contexts, null)
+        java.util.Arrays.fill(cellWidths, 0)
+        java.util.Arrays.fill(compatible, false)
+    }
+
+    /**
+     * Returns true when [font] can use `drawChars` for printable ASCII cells.
+     */
+    fun canDrawChars(
+        font: Font,
+        style: Int,
+        cellWidth: Int,
+        fontRenderContext: FontRenderContext,
+    ): Boolean {
+        val normalizedStyle = style and STYLE_MASK
+        if (
+            fonts[normalizedStyle] == font &&
+            contexts[normalizedStyle] == fontRenderContext &&
+            cellWidths[normalizedStyle] == cellWidth
+        ) {
+            return compatible[normalizedStyle]
+        }
+
+        val nextCompatible = computeCompatibility(font, cellWidth, fontRenderContext)
+        fonts[normalizedStyle] = font
+        contexts[normalizedStyle] = fontRenderContext
+        cellWidths[normalizedStyle] = cellWidth
+        compatible[normalizedStyle] = nextCompatible
+        return nextCompatible
+    }
+
+    private fun computeCompatibility(
+        font: Font,
+        cellWidth: Int,
+        fontRenderContext: FontRenderContext,
+    ): Boolean {
+        var codepoint = FIRST_PRINTABLE_ASCII
+        while (codepoint <= LAST_PRINTABLE_ASCII) {
+            probe[0] = codepoint.toChar()
+            val glyphVector = font.createGlyphVector(fontRenderContext, probe)
+            if (glyphVector.getGlyphPosition(1).x != cellWidth.toDouble()) {
+                return false
+            }
+            codepoint++
+        }
+        return true
+    }
+
+    private companion object {
+        private const val STYLE_COUNT = 4
+        private const val STYLE_MASK = Font.BOLD or Font.ITALIC
+        private const val FIRST_PRINTABLE_ASCII = 0x20
+        private const val LAST_PRINTABLE_ASCII = 0x7e
+    }
+}

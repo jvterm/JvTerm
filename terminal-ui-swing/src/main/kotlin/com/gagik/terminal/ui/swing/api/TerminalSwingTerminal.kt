@@ -1,16 +1,17 @@
 package com.gagik.terminal.ui.swing.api
 
+import com.gagik.terminal.render.cache.TerminalRenderCache
 import com.gagik.terminal.session.TerminalSession
 import com.gagik.terminal.ui.swing.input.TerminalSwingKeyMapper
 import com.gagik.terminal.ui.swing.render.TerminalGridPainter
 import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettingsProvider
+import com.gagik.terminal.ui.swing.viewport.TerminalSwingRepaintPlanner
+import com.gagik.terminal.ui.swing.viewport.TerminalSwingScrollModel
 import java.awt.*
-import java.awt.event.KeyAdapter
-import java.awt.event.KeyEvent
-import java.awt.event.MouseWheelEvent
-import java.awt.event.MouseWheelListener
+import java.awt.event.*
+import java.lang.reflect.InvocationTargetException
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
@@ -34,24 +35,28 @@ class TerminalSwingTerminal(
     private var settings: TerminalSwingSettings = settingsProvider.currentSettings()
     private var metrics: TerminalSwingMetrics = buildMetrics(settings)
     private var cursorBlinkVisible: Boolean = true
-    private var scrollbackOffset: Int = 0
+    private var lastResizedColumns: Int = NO_RESIZE_DIMENSION
+    private var lastResizedRows: Int = NO_RESIZE_DIMENSION
     private val renderPending = AtomicBoolean(false)
 
     private val painter = TerminalGridPainter()
+    private val repaintPlanner = TerminalSwingRepaintPlanner()
+    private val scrollModel = TerminalSwingScrollModel()
+    private val keyMapper = TerminalSwingKeyMapper()
     private val cursorTimer = Timer(settings.cursorBlinkMillis) {
         cursorBlinkVisible = !cursorBlinkVisible
-        repaint()
+        repaintBlinkingCursor()
     }
 
     private val inputKeyListener = object : KeyAdapter() {
         override fun keyPressed(event: KeyEvent) {
-            val keyEvent = TerminalSwingKeyMapper.keyPressed(event) ?: return
+            val keyEvent = keyMapper.keyPressed(event) ?: return
             session?.encodeKey(keyEvent)
             event.consume()
         }
 
         override fun keyTyped(event: KeyEvent) {
-            val keyEvent = TerminalSwingKeyMapper.keyTyped(event) ?: return
+            val keyEvent = keyMapper.keyTyped(event) ?: return
             session?.encodeKey(keyEvent)
             event.consume()
         }
@@ -59,6 +64,12 @@ class TerminalSwingTerminal(
 
     private val viewportWheelListener = MouseWheelListener { event ->
         handleMouseWheel(event)
+    }
+
+    private val resizeListener = object : ComponentAdapter() {
+        override fun componentResized(event: ComponentEvent) {
+            resizeSessionToVisibleGridOnEdt()
+        }
     }
 
     init {
@@ -70,6 +81,7 @@ class TerminalSwingTerminal(
         focusTraversalKeysEnabled = false
         addKeyListener(inputKeyListener)
         addMouseWheelListener(viewportWheelListener)
+        addComponentListener(resizeListener)
         preferredSize = preferredGridSize(settings.columns, settings.rows)
         cursorTimer.isRepeats = true
     }
@@ -78,58 +90,56 @@ class TerminalSwingTerminal(
      * Binds this component to [session].
      *
      * The session remains host-owned; this component only observes dirty render
-     * notifications and repaints itself on the EDT.
+     * notifications and repaints itself on the EDT. This method may be called
+     * from any thread; component state is updated synchronously on the EDT.
      *
      * @param session terminal session to display.
      */
     fun bind(session: TerminalSession) {
-        this.session?.onDirty = null
-        this.session = session
-        session.onDirty = {
-            schedulePublishedFrame()
+        runOnEdtAndWait {
+            bindOnEdt(session)
         }
-        scrollbackOffset = 0
-        renderPending.set(false)
-        repaint()
     }
 
     /**
      * Removes the current session binding.
+     *
+     * This method may be called from any thread; component state is updated
+     * synchronously on the EDT.
      */
     fun unbind() {
-        session?.onDirty = null
-        session = null
-        scrollbackOffset = 0
-        renderPending.set(false)
-        repaint()
+        runOnEdtAndWait {
+            unbindOnEdt()
+        }
     }
 
     /**
      * Rebuilds settings, metrics, preferred size, and repaint state.
+     *
+     * This method may be called from any thread; component state is updated
+     * synchronously on the EDT.
      */
     fun reloadSettings() {
-        settings = settingsProvider.currentSettings()
-        font = settings.font
-        background = Color(settings.palette.defaultBackground, true)
-        foreground = Color(settings.palette.defaultForeground, true)
-        isOpaque = true
-        metrics = buildMetrics(settings)
-        preferredSize = preferredGridSize(settings.columns, settings.rows)
-        cursorTimer.delay = settings.cursorBlinkMillis
-        revalidate()
-        repaint()
+        runOnEdtAndWait {
+            reloadSettingsOnEdt()
+        }
     }
 
     /**
      * Returns the grid size that fits in this component's current bounds.
      *
+     * This method may be called from any thread; component state is read
+     * synchronously on the EDT.
+     *
      * @return dimension where width is columns and height is rows.
      */
     fun visibleGridSize(): Dimension {
-        return Dimension(
-            maxOf(1, width / metrics.cellWidth),
-            maxOf(1, height / metrics.cellHeight),
-        )
+        return callOnEdtAndWait {
+            Dimension(
+                maxOf(1, width / metrics.cellWidth),
+                maxOf(1, height / metrics.cellHeight),
+            )
+        }
     }
 
     override fun addNotify() {
@@ -162,6 +172,7 @@ class TerminalSwingTerminal(
                     width = width,
                     height = height,
                     cursorBlinkVisible = cursorBlinkVisible,
+                    contentYOffset = contentYOffset(cache),
                 )
             }
             if (painted == null) {
@@ -172,20 +183,65 @@ class TerminalSwingTerminal(
         }
     }
 
+    private fun bindOnEdt(session: TerminalSession) {
+        this.session?.onDirty = null
+        this.session = session
+        session.onDirty = {
+            schedulePublishedFrame()
+        }
+        resetScrollbackState()
+        lastResizedColumns = NO_RESIZE_DIMENSION
+        lastResizedRows = NO_RESIZE_DIMENSION
+        repaintPlanner.reset()
+        renderPending.set(false)
+        resizeSessionToVisibleGridOnEdt()
+        repaint()
+    }
+
+    private fun unbindOnEdt() {
+        session?.onDirty = null
+        session = null
+        resetScrollbackState()
+        lastResizedColumns = NO_RESIZE_DIMENSION
+        lastResizedRows = NO_RESIZE_DIMENSION
+        repaintPlanner.reset()
+        renderPending.set(false)
+        repaint()
+    }
+
+    private fun reloadSettingsOnEdt() {
+        settings = settingsProvider.currentSettings()
+        font = settings.font
+        background = Color(settings.palette.defaultBackground, true)
+        foreground = Color(settings.palette.defaultForeground, true)
+        isOpaque = true
+        metrics = buildMetrics(settings)
+        preferredSize = preferredGridSize(settings.columns, settings.rows)
+        cursorTimer.delay = settings.cursorBlinkMillis
+        resizeSessionToVisibleGridOnEdt()
+        revalidate()
+        repaint()
+    }
+
     private fun handleMouseWheel(event: MouseWheelEvent) {
         val boundSession = session ?: return
-        val cache = boundSession.publisher.current() ?: return
-        val historySize = cache.historySize
+        val historySize = boundSession.publisher.readCurrent { cache -> cache.historySize } ?: return
         if (historySize == 0) return
 
-        val delta = -event.unitsToScroll
-        if (delta == 0) return
+        val delta = wheelScrollLines(event)
+        if (delta == 0.0) return
 
-        val nextOffset = (scrollbackOffset + delta).coerceIn(0, historySize)
-        if (nextOffset == scrollbackOffset) return
+        val previousRequestedOffset = scrollModel.requestedOffset
+        val previousRequestedRows = requestedRenderRows()
+        if (!scrollModel.scrollBy(delta, historySize)) return
 
-        scrollbackOffset = nextOffset
-        boundSession.requestRender(scrollbackOffset)
+        val nextRequestedOffset = scrollModel.requestedOffset
+        val nextRequestedRows = requestedRenderRows()
+        if (nextRequestedOffset != previousRequestedOffset || nextRequestedRows != previousRequestedRows) {
+            boundSession.requestRender(nextRequestedOffset, nextRequestedRows)
+        } else {
+            repaint()
+        }
         event.consume()
     }
 
@@ -200,31 +256,130 @@ class TerminalSwingTerminal(
 
     private fun handlePublishedFrame() {
         val boundSession = session ?: return
-        val cache = boundSession.publisher.current()
-        if (cache == null) {
-            repaint()
-            return
-        }
+        boundSession.publisher.readCurrent { cache ->
+            when {
+                scrollModel.clamp(cache.historySize) -> {
+                    boundSession.requestRender(scrollModel.requestedOffset, requestedRenderRows())
+                }
 
-        val clampedOffset = scrollbackOffset.coerceIn(0, cache.historySize)
-        if (clampedOffset != scrollbackOffset) {
-            scrollbackOffset = clampedOffset
-        }
+                cache.scrollbackOffset != scrollModel.requestedOffset -> {
+                    boundSession.requestRender(scrollModel.requestedOffset, requestedRenderRows())
+                }
 
-        if (cache.scrollbackOffset != scrollbackOffset) {
-            boundSession.requestRender(scrollbackOffset)
-            return
-        }
+                else -> {
+                    val yOffset = contentYOffset(cache)
+                    repaintPlanner.requestFrameRepaint(
+                        cache = cache,
+                        metrics = metrics,
+                        componentWidth = width,
+                        componentHeight = height,
+                        contentYOffset = yOffset,
+                        repaintAll = { repaint() },
+                        repaintRegion = { x, y, regionWidth, regionHeight ->
+                            repaint(x, y, regionWidth, regionHeight)
+                        },
+                    )
+                }
+            }
+        } ?: repaint()
+    }
 
-        repaint()
+    private fun repaintBlinkingCursor() {
+        val publisher = session?.publisher ?: return
+        publisher.readCurrent { cache ->
+            repaintPlanner.requestCursorBlinkRepaint(
+                cache = cache,
+                metrics = metrics,
+                componentWidth = width,
+                componentHeight = height,
+                contentYOffset = contentYOffset(cache),
+                repaintRegion = { x, y, regionWidth, regionHeight ->
+                    repaint(x, y, regionWidth, regionHeight)
+                },
+            )
+        }
+    }
+
+    private fun resetScrollbackState() {
+        scrollModel.reset()
     }
 
     private fun preferredGridSize(columns: Int, rows: Int): Dimension {
         return Dimension(columns * metrics.cellWidth, rows * metrics.cellHeight)
     }
 
+    private fun resizeSessionToVisibleGridOnEdt() {
+        val boundSession = session ?: return
+        if (width <= 0 || height <= 0) return
+
+        val columns = maxOf(1, width / metrics.cellWidth)
+        val rows = maxOf(1, height / metrics.cellHeight)
+        if (columns == lastResizedColumns && rows == lastResizedRows) return
+
+        lastResizedColumns = columns
+        lastResizedRows = rows
+        boundSession.resize(columns, rows)
+    }
+
+    private fun wheelScrollLines(event: MouseWheelEvent): Double {
+        return when (event.scrollType) {
+            MouseWheelEvent.WHEEL_UNIT_SCROLL -> -event.preciseWheelRotation * event.scrollAmount
+            MouseWheelEvent.WHEEL_BLOCK_SCROLL -> -event.preciseWheelRotation * visibleGridRows()
+            else -> -event.preciseWheelRotation
+        }
+    }
+
+    private fun visibleGridRows(): Int {
+        return maxOf(1, height / metrics.cellHeight)
+    }
+
+    private fun requestedRenderRows(): Int {
+        return scrollModel.requestedRows(visibleGridRows())
+    }
+
+    private fun contentYOffset(cache: TerminalRenderCache): Double {
+        if (cache.rows < requestedRenderRows()) return 0.0
+        return scrollModel.contentYOffset(metrics.cellHeight)
+    }
+
     private fun buildMetrics(settings: TerminalSwingSettings): TerminalSwingMetrics {
         val metricsSource: FontMetrics = getFontMetrics(settings.font)
         return TerminalSwingMetrics.from(metricsSource)
+    }
+
+    private fun runOnEdtAndWait(action: () -> Unit) {
+        callOnEdtAndWait {
+            action()
+        }
+    }
+
+    private fun <T> callOnEdtAndWait(action: () -> T): T {
+        if (SwingUtilities.isEventDispatchThread()) {
+            return action()
+        }
+
+        var result: T? = null
+        try {
+            SwingUtilities.invokeAndWait {
+                result = action()
+            }
+        } catch (error: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw IllegalStateException("Interrupted while waiting for Swing event dispatch thread", error)
+        } catch (error: InvocationTargetException) {
+            val cause = error.cause ?: error
+            when (cause) {
+                is RuntimeException -> throw cause
+                is Error -> throw cause
+                else -> throw IllegalStateException("Swing event dispatch thread action failed", cause)
+            }
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        return result as T
+    }
+
+    private companion object {
+        private const val NO_RESIZE_DIMENSION = -1
     }
 }

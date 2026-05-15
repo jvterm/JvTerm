@@ -1,9 +1,6 @@
 package com.gagik.terminal.render.cache
 
-import com.gagik.terminal.render.api.TerminalRenderBufferKind
-import com.gagik.terminal.render.api.TerminalRenderClusterSink
-import com.gagik.terminal.render.api.TerminalRenderCursor
-import com.gagik.terminal.render.api.TerminalRenderFrameReader
+import com.gagik.terminal.render.api.*
 
 /**
  * Caller-owned primitive cache for render frames.
@@ -20,10 +17,7 @@ import com.gagik.terminal.render.api.TerminalRenderFrameReader
 class TerminalRenderCache(
     columns: Int,
     rows: Int,
-) {
-    @Volatile
-    private var ownerThread: Thread? = null
-
+) : TerminalRenderFrameConsumer {
     /**
      * Cached visible width in cells.
      */
@@ -51,37 +45,37 @@ class TerminalRenderCache(
     /**
      * Copied row code words. See [TerminalRenderFrame.copyLine].
      */
-    var codeWords: Array<IntArray> = emptyIntRows()
+    var codeWords: Array<IntArray> = EMPTY_INT_ROWS
         private set
 
     /**
      * Copied primary public render attribute words.
      */
-    var attrWords: Array<LongArray> = emptyLongRows()
+    var attrWords: Array<LongArray> = EMPTY_LONG_ROWS
         private set
 
     /**
      * Copied public render cell flags.
      */
-    var flags: Array<IntArray> = emptyIntRows()
+    var flags: Array<IntArray> = EMPTY_INT_ROWS
         private set
 
     /**
      * Copied optional public extra-attribute words.
      */
-    var extraAttrWords: Array<LongArray> = emptyLongRows()
+    var extraAttrWords: Array<LongArray> = EMPTY_LONG_ROWS
         private set
 
     /**
      * Copied optional hyperlink identifiers. Zero means no hyperlink.
      */
-    var hyperlinkIds: Array<IntArray> = emptyIntRows()
+    var hyperlinkIds: Array<IntArray> = EMPTY_INT_ROWS
         private set
 
     /**
      * Copied cluster text by row and column. Non-cluster cells contain `null`.
      */
-    var clusters: Array<Array<String?>> = emptyClusterRows()
+    var clusters: Array<Array<String?>> = EMPTY_CLUSTER_ROWS
         private set
 
     /**
@@ -143,6 +137,7 @@ class TerminalRenderCache(
         private set
 
     private var clusterSinkRow: Int = NO_CLUSTER_SINK_ROW
+    private var clusterSinkClusters: Array<Array<String?>> = EMPTY_CLUSTER_ROWS
 
     /**
      * Reused sink to avoid allocating one capturing lambda per copied row.
@@ -152,17 +147,19 @@ class TerminalRenderCache(
      */
     private val reusableClusterSink = TerminalRenderClusterSink { column, text ->
         val row = clusterSinkRow
+        val copiedClusters = clusterSinkClusters
         check(row != NO_CLUSTER_SINK_ROW) {
             "TerminalRenderClusterSink invoked outside copyLine"
         }
-        check(row in 0 until rows) {
-            "Cluster sink row out of bounds: row=$row, rows=$rows"
+        check(row in copiedClusters.indices) {
+            "Cluster sink row out of bounds: row=$row, rows=${copiedClusters.size}"
         }
-        check(column in 0 until columns) {
-            "Cluster sink column out of bounds: column=$column, columns=$columns"
+        val clusterRow = copiedClusters[row]
+        check(column in clusterRow.indices) {
+            "Cluster sink column out of bounds: column=$column, columns=${clusterRow.size}"
         }
 
-        clusters[row][column] = text
+        clusterRow[column] = text
     }
 
     init {
@@ -171,41 +168,6 @@ class TerminalRenderCache(
         resizeStorage(columns, rows)
     }
 
-    /**
-     * Asserts that this cache is owned by the current thread.
-     *
-     * The first thread to call this method becomes the owner. Subsequent calls
-     * from other threads will throw [IllegalStateException].
-     */
-    fun assertOwnership() {
-        val current = Thread.currentThread()
-        val owner = ownerThread
-        if (owner == null) {
-            ownerThread = current
-            return
-        }
-        check(owner == current) {
-            "TerminalRenderCache accessed from $current but owned by $owner"
-        }
-    }
-
-    /**
-     * Resizes the primitive storage to [columns] x [rows].
-     */
-    fun resize(columns: Int, rows: Int) {
-        resizeStorage(columns, rows)
-    }
-
-    /**
-     * Clears thread ownership after external lifecycle changes.
-     *
-     * Only [TerminalRenderPublisher] should call this after resizing all
-     * buffers under its publish lock. The render worker will acquire ownership
-     * again on the next [updateFrom].
-     */
-    internal fun resetOwnership() {
-        ownerThread = null
-    }
 
     /**
      * Copies changed rows and cursor state from [reader].
@@ -233,11 +195,34 @@ class TerminalRenderCache(
      * @param scrollbackOffset requested lines above the live bottom viewport.
      */
     fun updateFrom(reader: TerminalRenderFrameReader, scrollbackOffset: Int) {
-        assertOwnership()
-        reader.readRenderFrame(scrollbackOffset) { frame ->
-            resizedOnLastUpdate = false
+        updateFrom(reader, scrollbackOffset, viewportRows = 0)
+    }
 
-            if (columns != frame.columns || rows != frame.rows) {
+    /**
+     * Copies changed rows and cursor state for a caller-owned scrollback
+     * viewport with optional render-only overscan rows.
+     *
+     * A [viewportRows] value greater than zero asks the reader for that many
+     * rows without resizing terminal state. Readers clamp the resolved count
+     * before exposing [TerminalRenderFrame.rows], and this cache resizes only to
+     * the resolved frame shape.
+     *
+     * @param reader source of the short-lived render frame.
+     * @param scrollbackOffset requested lines above the live bottom viewport.
+     * @param viewportRows requested render rows, or zero for the reader default.
+     */
+    fun updateFrom(reader: TerminalRenderFrameReader, scrollbackOffset: Int, viewportRows: Int) {
+        if (viewportRows > 0) {
+            reader.readRenderFrame(scrollbackOffset, viewportRows, this)
+        } else {
+            reader.readRenderFrame(scrollbackOffset, this)
+        }
+    }
+
+    override fun accept(frame: TerminalRenderFrame) {
+        resizedOnLastUpdate = false
+
+        if (columns != frame.columns || rows != frame.rows) {
                 resizeStorage(frame.columns, frame.rows)
                 resizedOnLastUpdate = true
                 structureGeneration = UNINITIALIZED_GENERATION
@@ -265,6 +250,7 @@ class TerminalRenderCache(
                     clearClusterRow(row)
 
                     clusterSinkRow = row
+                    clusterSinkClusters = clusters
                     try {
                         frame.copyLine(
                             row = row,
@@ -277,6 +263,7 @@ class TerminalRenderCache(
                         )
                     } finally {
                         clusterSinkRow = NO_CLUSTER_SINK_ROW
+                        clusterSinkClusters = EMPTY_CLUSTER_ROWS
                     }
 
                     lineGenerations[row] = lineGeneration
@@ -295,12 +282,11 @@ class TerminalRenderCache(
                 cursorChangedOnLastUpdate = true
             }
 
-            cursor = newCursor
-            historySize = frame.historySize
-            this.scrollbackOffset = frame.scrollbackOffset
-            frameGeneration = frame.frameGeneration
-            structureGeneration = frame.structureGeneration
-        }
+        cursor = newCursor
+        historySize = frame.historySize
+        this.scrollbackOffset = frame.scrollbackOffset
+        frameGeneration = frame.frameGeneration
+        structureGeneration = frame.structureGeneration
     }
 
     private fun resizeStorage(newColumns: Int, newRows: Int) {
@@ -329,6 +315,7 @@ class TerminalRenderCache(
         activeBuffer = TerminalRenderBufferKind.PRIMARY
         cursorChangedOnLastUpdate = false
         clusterSinkRow = NO_CLUSTER_SINK_ROW
+        clusterSinkClusters = EMPTY_CLUSTER_ROWS
     }
 
     private fun clearAllClusters() {
@@ -347,10 +334,10 @@ class TerminalRenderCache(
         private const val UNINITIALIZED_GENERATION = -1L
         private const val NO_CLUSTER_SINK_ROW = -1
 
-        private fun emptyIntRows(): Array<IntArray> = emptyArray()
+        private val EMPTY_INT_ROWS: Array<IntArray> = emptyArray()
 
-        private fun emptyLongRows(): Array<LongArray> = emptyArray()
+        private val EMPTY_LONG_ROWS: Array<LongArray> = emptyArray()
 
-        private fun emptyClusterRows(): Array<Array<String?>> = emptyArray()
+        private val EMPTY_CLUSTER_ROWS: Array<Array<String?>> = emptyArray()
     }
 }

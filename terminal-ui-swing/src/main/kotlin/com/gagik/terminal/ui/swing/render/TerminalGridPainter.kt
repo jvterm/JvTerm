@@ -6,7 +6,10 @@ import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import java.awt.Font
 import java.awt.Graphics2D
+import java.awt.Rectangle
 import java.awt.RenderingHints
+import kotlin.math.ceil
+import kotlin.math.floor
 
 /**
  * Java2D renderer facade for cached primitive terminal frames.
@@ -22,6 +25,7 @@ internal class TerminalGridPainter {
     private val decorationPainter = TerminalDecorationPainter(colorCache)
     private val textPainter = TerminalTextPainter(colorCache, decorationPainter)
     private val cursorPainter = TerminalCursorPainter(colorCache, textPainter)
+    private val clipScratch = Rectangle()
 
     /**
      * Clears [width] x [height] with the terminal default background.
@@ -46,6 +50,7 @@ internal class TerminalGridPainter {
         width: Int,
         height: Int,
         cursorBlinkVisible: Boolean,
+        contentYOffset: Double = 0.0,
     ) {
         val palette = settings.palette
         textPainter.updateSettings(settings)
@@ -54,16 +59,48 @@ internal class TerminalGridPainter {
         g.font = textPainter.font(Font.PLAIN)
         val fontRenderContext = g.fontRenderContext
 
-        val rows = minOf(cache.rows, height / metrics.cellHeight + 1)
+        val clip = g.getClipBounds(clipScratch)
         backgroundPainter.clear(g, palette, width, height)
 
-        var row = 0
-        while (row < rows) {
-            backgroundPainter.paintRow(g, cache, palette, metrics, row)
-            textPainter.paintRow(g, cache, palette, metrics, row, fontRenderContext)
-            row++
-        }
+        val firstRow = firstPaintRow(clip, metrics, contentYOffset)
+        val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentYOffset)
+        g.translate(0.0, contentYOffset)
+        try {
+            var row = firstRow
+            while (row < rows) {
+                backgroundPainter.paintRow(g, cache, palette, metrics, row)
+                textPainter.paintRow(g, cache, palette, metrics, row, fontRenderContext)
+                row++
+            }
 
-        cursorPainter.paint(g, cache, palette, metrics, cursorBlinkVisible, fontRenderContext)
+            cursorPainter.paint(g, cache, palette, metrics, cursorBlinkVisible, fontRenderContext)
+        } finally {
+            g.translate(0.0, -contentYOffset)
+        }
+    }
+
+    private fun firstPaintRow(
+        clip: Rectangle?,
+        metrics: TerminalSwingMetrics,
+        contentYOffset: Double,
+    ): Int {
+        if (clip == null) return 0
+        return maxOf(0, floor((clip.y - contentYOffset) / metrics.cellHeight).toInt())
+    }
+
+    private fun lastPaintRowExclusive(
+        clip: Rectangle?,
+        cache: TerminalRenderCache,
+        metrics: TerminalSwingMetrics,
+        componentHeight: Int,
+        contentYOffset: Double,
+    ): Int {
+        val visibleRows = minOf(cache.rows, componentHeight / metrics.cellHeight + 2)
+        if (clip == null || clip.height <= 0) return visibleRows
+
+        val clipBottom = clip.y + clip.height
+        if (clipBottom <= 0) return 0
+        val clippedRows = ceil((clipBottom - contentYOffset) / metrics.cellHeight).toInt()
+        return clippedRows.coerceIn(0, visibleRows)
     }
 }

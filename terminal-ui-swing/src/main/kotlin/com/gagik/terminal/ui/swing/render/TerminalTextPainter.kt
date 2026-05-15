@@ -20,6 +20,7 @@ internal class TerminalTextPainter(
     private val fontCache = TerminalFontCache()
     private val complexTextLayouts = TerminalComplexTextLayoutCache()
     private val asciiGlyphVectors = TerminalAsciiGlyphVectorCache()
+    private val asciiDrawChars = TerminalAsciiDrawCharsCache()
     private val textRun = TerminalTextRunBuffer(INITIAL_TEXT_RUN_CAPACITY)
 
     /**
@@ -29,6 +30,7 @@ internal class TerminalTextPainter(
         if (fontCache.update(settings.font, settings.fallbackFonts, settings.useSystemFallbackFonts)) {
             complexTextLayouts.clear()
             asciiGlyphVectors.clear()
+            asciiDrawChars.clear()
         }
     }
 
@@ -233,9 +235,7 @@ internal class TerminalTextPainter(
         fontStyle: Int,
         fontRenderContext: FontRenderContext,
     ) {
-        val expectedWidth = textRun.length * metrics.cellWidth
-        val measuredWidth = g.fontMetrics.charsWidth(textRun.chars, 0, textRun.length)
-        if (measuredWidth == expectedWidth) {
+        if (asciiDrawChars.canDrawChars(g.font, fontStyle, metrics.cellWidth, fontRenderContext)) {
             g.drawChars(textRun.chars, 0, textRun.length, startColumn * metrics.cellWidth, baselineY)
             return
         }

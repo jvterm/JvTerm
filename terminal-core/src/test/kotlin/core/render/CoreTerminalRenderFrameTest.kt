@@ -267,6 +267,27 @@ class CoreTerminalRenderFrameTest {
     }
 
     @Test
+    fun `scrollback render viewport can expose one overscan row`() {
+        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 3, maxHistory = 5)
+        val reader = buffer as TerminalRenderFrameReader
+        repeat(6) { buffer.writeLogicalLine("L$it") }
+
+        reader.readRenderFrame(scrollbackOffset = 1, viewportRows = 4) { frame ->
+            assertAll(
+                { assertEquals(4, frame.rows) },
+                { assertEquals(1, frame.scrollbackOffset) },
+                { assertEquals("L3", rowText(frame, 0)) },
+                { assertEquals("L4", rowText(frame, 1)) },
+                { assertEquals("L5", rowText(frame, 2)) },
+            )
+        }
+
+        reader.readRenderFrame(scrollbackOffset = 0, viewportRows = 4) { frame ->
+            assertEquals(3, frame.rows)
+        }
+    }
+
+    @Test
     fun `active buffer reports alternate after switch`() {
         val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 1)
         val reader = buffer as TerminalRenderFrameReader
