@@ -18,11 +18,11 @@ internal class TerminalTextRunBuffer(
         require(maxCapacity >= initialCapacity) { "maxCapacity must be >= initialCapacity" }
     }
 
-    /** The backing array of code points. */
+    /** The backing array of UTF-16 code units. */
     var chars: CharArray = CharArray(initialCapacity)
         private set
 
-    /** The number of code points in the buffer. */
+    /** The number of UTF-16 code units in the buffer. */
     var length: Int = 0
         private set
 
@@ -40,8 +40,7 @@ internal class TerminalTextRunBuffer(
      * @param codepoint ASCII code point
      */
     fun appendAscii(codepoint: Int) {
-        if (length >= maxCapacity) return // Circuit Breaker
-        ensureCapacity(length + 1)
+        if (!ensureCapacity(length + 1)) return
         chars[length] = codepoint.toChar()
         length++
     }
@@ -54,13 +53,11 @@ internal class TerminalTextRunBuffer(
      */
     fun appendCodePoint(codepoint: Int) {
         if (codepoint <= 0xffff) {
-            if (length >= maxCapacity) return // Circuit Breaker
-            ensureCapacity(length + 1)
+            if (!ensureCapacity(length + 1)) return
             chars[length] = codepoint.toChar()
             length++
         } else {
-            if (length + 1 >= maxCapacity) return // Circuit Breaker
-            ensureCapacity(length + 2)
+            if (!ensureCapacity(length + 2)) return
             val value = codepoint - 0x10000
             chars[length] = (0xd800 or (value ushr 10)).toChar()
             chars[length + 1] = (0xdc00 or (value and 0x3ff)).toChar()
@@ -68,18 +65,20 @@ internal class TerminalTextRunBuffer(
         }
     }
 
-    private fun ensureCapacity(required: Int) {
-        if (required <= chars.size) return
+    private fun ensureCapacity(required: Int): Boolean {
+        if (required > maxCapacity) return false
+        if (required <= chars.size) return true
 
-        var newCapacity = chars.size * 2
+        var newCapacity = chars.size
         while (newCapacity < required) {
-            newCapacity *= 2
-        }
-
-        // Hard clamp to prevent memory exhaustion
-        if (newCapacity > maxCapacity) {
-            newCapacity = maxCapacity
+            val doubled = newCapacity * 2
+            newCapacity = if (doubled <= 0 || doubled > maxCapacity) {
+                maxCapacity
+            } else {
+                doubled
+            }
         }
         chars = chars.copyOf(newCapacity)
+        return true
     }
 }
