@@ -7,6 +7,7 @@ import com.gagik.terminal.ui.swing.render.TerminalGridPainter
 import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettingsProvider
+import com.gagik.terminal.ui.swing.viewport.TerminalRepaintSink
 import com.gagik.terminal.ui.swing.viewport.TerminalSwingRepaintPlanner
 import com.gagik.terminal.ui.swing.viewport.TerminalSwingScrollModel
 import java.awt.*
@@ -43,6 +44,15 @@ class TerminalSwingTerminal(
     private val repaintPlanner = TerminalSwingRepaintPlanner()
     private val scrollModel = TerminalSwingScrollModel()
     private val keyMapper = TerminalSwingKeyMapper()
+    private val repaintSink = object : TerminalRepaintSink {
+        override fun requestFullRepaint() {
+            repaint()
+        }
+
+        override fun requestRegionRepaint(x: Int, y: Int, width: Int, height: Int) {
+            repaint(x, y, width, height)
+        }
+    }
     private val cursorTimer = Timer(settings.cursorBlinkMillis) {
         cursorBlinkVisible = !cursorBlinkVisible
         repaintBlinkingCursor()
@@ -282,10 +292,7 @@ class TerminalSwingTerminal(
                         componentWidth = width,
                         componentHeight = height,
                         contentYOffset = yOffset,
-                        repaintAll = { repaint() },
-                        repaintRegion = { x, y, regionWidth, regionHeight ->
-                            repaint(x, y, regionWidth, regionHeight)
-                        },
+                        repaintSink = repaintSink,
                     )
                 }
             }
@@ -301,9 +308,7 @@ class TerminalSwingTerminal(
                 componentWidth = width,
                 componentHeight = height,
                 contentYOffset = contentYOffset(cache),
-                repaintRegion = { x, y, regionWidth, regionHeight ->
-                    repaint(x, y, regionWidth, regionHeight)
-                },
+                repaintSink = repaintSink,
             )
         }
     }

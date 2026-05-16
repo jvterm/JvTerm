@@ -34,12 +34,11 @@ internal class TerminalSwingRepaintPlanner {
         componentWidth: Int,
         componentHeight: Int,
         contentYOffset: Double,
-        repaintAll: () -> Unit,
-        repaintRegion: (x: Int, y: Int, width: Int, height: Int) -> Unit,
+        repaintSink: TerminalRepaintSink,
     ) {
         if (cache.resizedOnLastUpdate) {
             lastCursor = cache.cursor
-            repaintAll()
+            repaintSink.requestFullRepaint()
             return
         }
 
@@ -51,7 +50,7 @@ internal class TerminalSwingRepaintPlanner {
             componentHeight = componentHeight,
             visibleRows = visibleRows,
             contentYOffset = contentYOffset,
-            repaintRegion = repaintRegion,
+            repaintSink = repaintSink,
         )
 
         if (cache.cursorChangedOnLastUpdate) {
@@ -64,7 +63,7 @@ internal class TerminalSwingRepaintPlanner {
                 visibleRows = visibleRows,
                 contentYOffset = contentYOffset,
                 skipDirtyRows = true,
-                repaintRegion = repaintRegion,
+                repaintSink = repaintSink,
             )
             repaintCursorIfNeeded(
                 cursor = cache.cursor,
@@ -75,7 +74,7 @@ internal class TerminalSwingRepaintPlanner {
                 visibleRows = visibleRows,
                 contentYOffset = contentYOffset,
                 skipDirtyRows = true,
-                repaintRegion = repaintRegion,
+                repaintSink = repaintSink,
             )
         }
 
@@ -91,7 +90,7 @@ internal class TerminalSwingRepaintPlanner {
         componentWidth: Int,
         componentHeight: Int,
         contentYOffset: Double,
-        repaintRegion: (x: Int, y: Int, width: Int, height: Int) -> Unit,
+        repaintSink: TerminalRepaintSink,
     ) {
         val cursor = cache.cursor ?: return
         if (!cursor.visible || !cursor.blinking) return
@@ -105,7 +104,7 @@ internal class TerminalSwingRepaintPlanner {
             visibleRows = visibleRows(cache, metrics, componentHeight),
             contentYOffset = contentYOffset,
             skipDirtyRows = false,
-            repaintRegion = repaintRegion,
+            repaintSink = repaintSink,
         )
     }
 
@@ -116,7 +115,7 @@ internal class TerminalSwingRepaintPlanner {
         componentHeight: Int,
         visibleRows: Int,
         contentYOffset: Double,
-        repaintRegion: (x: Int, y: Int, width: Int, height: Int) -> Unit,
+        repaintSink: TerminalRepaintSink,
     ) {
         var row = 0
         while (row < visibleRows) {
@@ -138,7 +137,7 @@ internal class TerminalSwingRepaintPlanner {
                 componentWidth = componentWidth,
                 componentHeight = componentHeight,
                 contentYOffset = contentYOffset,
-                repaintRegion = repaintRegion,
+                repaintSink = repaintSink,
             )
         }
     }
@@ -152,7 +151,7 @@ internal class TerminalSwingRepaintPlanner {
         visibleRows: Int,
         contentYOffset: Double,
         skipDirtyRows: Boolean,
-        repaintRegion: (x: Int, y: Int, width: Int, height: Int) -> Unit,
+        repaintSink: TerminalRepaintSink,
     ): Boolean {
         if (cursor == null || !cursor.visible) return false
         if (cursor.column !in 0 until cache.columns || cursor.row !in 0 until visibleRows) return false
@@ -171,7 +170,7 @@ internal class TerminalSwingRepaintPlanner {
         val regionHeight = clippedBottom - clippedY
         if (regionHeight <= 0) return false
 
-        repaintRegion(
+        repaintSink.requestRegionRepaint(
             x,
             clippedY,
             regionWidth,
@@ -187,7 +186,7 @@ internal class TerminalSwingRepaintPlanner {
         componentWidth: Int,
         componentHeight: Int,
         contentYOffset: Double,
-        repaintRegion: (x: Int, y: Int, width: Int, height: Int) -> Unit,
+        repaintSink: TerminalRepaintSink,
     ) {
         if (componentWidth <= 0 || componentHeight <= 0) return
 
@@ -200,7 +199,7 @@ internal class TerminalSwingRepaintPlanner {
         val regionHeight = clippedBottom - clippedY
         if (regionHeight <= 0) return
 
-        repaintRegion(0, clippedY, componentWidth, regionHeight)
+        repaintSink.requestRegionRepaint(0, clippedY, componentWidth, regionHeight)
     }
 
     private fun rowTop(

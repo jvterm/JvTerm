@@ -14,23 +14,22 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
 
         frame.setRow(2, "WXYZ")
         cache.updateFrom(frame.reader)
 
-        val regions = mutableListOf<Region>()
+        val repaintSink = RecordingRepaintSink(failOnFullRepaint = true)
         planner.requestFrameRepaint(
             cache = cache,
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
-            repaintAll = { error("dirty row update must not request full repaint") },
-            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+            repaintSink = repaintSink,
         )
 
-        assertEquals(listOf(Region(0, 2 * CELL_HEIGHT, WIDTH, CELL_HEIGHT)), regions)
+        assertEquals(listOf(Region(0, 2 * CELL_HEIGHT, WIDTH, CELL_HEIGHT)), repaintSink.regions)
     }
 
     @Test
@@ -40,24 +39,23 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
 
         frame.setRow(1, "BBBB")
         frame.setRow(2, "CCCC")
         cache.updateFrom(frame.reader)
 
-        val regions = mutableListOf<Region>()
+        val repaintSink = RecordingRepaintSink(failOnFullRepaint = true)
         planner.requestFrameRepaint(
             cache = cache,
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
-            repaintAll = { error("dirty row update must not request full repaint") },
-            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+            repaintSink = repaintSink,
         )
 
-        assertEquals(listOf(Region(0, CELL_HEIGHT, WIDTH, 2 * CELL_HEIGHT)), regions)
+        assertEquals(listOf(Region(0, CELL_HEIGHT, WIDTH, 2 * CELL_HEIGHT)), repaintSink.regions)
     }
 
     @Test
@@ -68,21 +66,20 @@ class TerminalSwingRepaintPlannerTest {
 
         frame.cursor = cursor(column = 1, row = 0, generation = 1)
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
 
         frame.cursor = cursor(column = 3, row = 2, generation = 2)
         frame.frameGeneration++
         cache.updateFrom(frame.reader)
 
-        val regions = mutableListOf<Region>()
+        val repaintSink = RecordingRepaintSink(failOnFullRepaint = true)
         planner.requestFrameRepaint(
             cache = cache,
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
-            repaintAll = { error("cursor-only update must not request full repaint") },
-            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+            repaintSink = repaintSink,
         )
 
         assertEquals(
@@ -90,7 +87,7 @@ class TerminalSwingRepaintPlannerTest {
                 Region(CELL_WIDTH, 0, CELL_WIDTH, CELL_HEIGHT),
                 Region(3 * CELL_WIDTH, 2 * CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT),
             ),
-            regions,
+            repaintSink.regions,
         )
     }
 
@@ -101,17 +98,17 @@ class TerminalSwingRepaintPlannerTest {
         val cache = TerminalRenderCache(columns = 4, rows = 4)
         cache.updateFrom(frame.reader)
 
-        val regions = mutableListOf<Region>()
+        val repaintSink = RecordingRepaintSink()
         TerminalSwingRepaintPlanner().requestCursorBlinkRepaint(
             cache = cache,
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
-            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+            repaintSink = repaintSink,
         )
 
-        assertEquals(listOf(Region(2 * CELL_WIDTH, CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT)), regions)
+        assertEquals(listOf(Region(2 * CELL_WIDTH, CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT)), repaintSink.regions)
     }
 
     @Test
@@ -121,23 +118,22 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
 
         frame.setRow(1, "BBBB")
         cache.updateFrom(frame.reader)
 
-        val regions = mutableListOf<Region>()
+        val repaintSink = RecordingRepaintSink(failOnFullRepaint = true)
         planner.requestFrameRepaint(
             cache = cache,
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = -12.0,
-            repaintAll = { error("translated dirty row update must not request full repaint") },
-            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+            repaintSink = repaintSink,
         )
 
-        assertEquals(listOf(Region(0, 4, WIDTH, CELL_HEIGHT)), regions)
+        assertEquals(listOf(Region(0, 4, WIDTH, CELL_HEIGHT)), repaintSink.regions)
     }
 
     @Test
@@ -147,23 +143,22 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, {}, ignoreRegion)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
 
         frame.setRow(0, "BBBB")
         cache.updateFrom(frame.reader)
 
-        val regions = mutableListOf<Region>()
+        val repaintSink = RecordingRepaintSink(failOnFullRepaint = true)
         planner.requestFrameRepaint(
             cache = cache,
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = -12.0,
-            repaintAll = { error("translated dirty row update must not request full repaint") },
-            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+            repaintSink = repaintSink,
         )
 
-        assertEquals(listOf(Region(0, 0, WIDTH, 4)), regions)
+        assertEquals(listOf(Region(0, 0, WIDTH, 4)), repaintSink.regions)
     }
 
     @Test
@@ -173,17 +168,17 @@ class TerminalSwingRepaintPlannerTest {
         val cache = TerminalRenderCache(columns = 4, rows = 4)
         cache.updateFrom(frame.reader)
 
-        val regions = mutableListOf<Region>()
+        val repaintSink = RecordingRepaintSink()
         TerminalSwingRepaintPlanner().requestCursorBlinkRepaint(
             cache = cache,
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = -12.0,
-            repaintRegion = { x, y, width, height -> regions.add(Region(x, y, width, height)) },
+            repaintSink = repaintSink,
         )
 
-        assertEquals(listOf(Region(2 * CELL_WIDTH, 4, CELL_WIDTH, CELL_HEIGHT)), regions)
+        assertEquals(listOf(Region(2 * CELL_WIDTH, 4, CELL_WIDTH, CELL_HEIGHT)), repaintSink.regions)
     }
 
     @Test
@@ -201,8 +196,15 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
-            repaintAll = { fullRepaints++ },
-            repaintRegion = { _, _, _, _ -> error("resize must not request partial repaint") },
+            repaintSink = object : TerminalRepaintSink {
+                override fun requestFullRepaint() {
+                    fullRepaints++
+                }
+
+                override fun requestRegionRepaint(x: Int, y: Int, width: Int, height: Int) {
+                    error("resize must not request partial repaint")
+                }
+            },
         )
 
         assertEquals(1, fullRepaints)
@@ -214,6 +216,28 @@ class TerminalSwingRepaintPlannerTest {
         val width: Int,
         val height: Int,
     )
+
+    private class RecordingRepaintSink(
+        private val failOnFullRepaint: Boolean = false,
+    ) : TerminalRepaintSink {
+        val regions = mutableListOf<Region>()
+
+        override fun requestFullRepaint() {
+            if (failOnFullRepaint) {
+                error("update must not request full repaint")
+            }
+        }
+
+        override fun requestRegionRepaint(x: Int, y: Int, width: Int, height: Int) {
+            regions.add(Region(x, y, width, height))
+        }
+    }
+
+    private object NoOpRepaintSink : TerminalRepaintSink {
+        override fun requestFullRepaint() = Unit
+
+        override fun requestRegionRepaint(x: Int, y: Int, width: Int, height: Int) = Unit
+    }
 
     private class MutableFrame(
         override val columns: Int,
@@ -291,9 +315,6 @@ class TerminalSwingRepaintPlannerTest {
             overlineY = 0,
             cursorStrokeWidth = 1,
         )
-
-        private val ignoreRegion: (Int, Int, Int, Int) -> Unit = { _, _, _, _ -> }
-
         private fun cursor(
             column: Int,
             row: Int,
@@ -311,3 +332,4 @@ class TerminalSwingRepaintPlannerTest {
         }
     }
 }
+
