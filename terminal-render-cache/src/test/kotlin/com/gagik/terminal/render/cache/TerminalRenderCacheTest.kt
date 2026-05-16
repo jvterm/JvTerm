@@ -123,6 +123,24 @@ class TerminalRenderCacheTest {
     }
 
     @Test
+    fun `cluster copy truncates absurd reported lengths before allocating`() {
+        val frame = LongClusterFrame(reportedLength = 50_000)
+        val cache = TerminalRenderCache(columns = 1, rows = 1)
+
+        cache.updateFrom(frame.reader)
+
+        val ref = cache.clusterRefs[cache.rowOffset(0)]
+        val offset = cache.clusterOffset(ref)
+        val length = cache.clusterLength(ref)
+        assertAll(
+            { assertEquals(256, length) },
+            { assertEquals('z'.code, cache.clusterCodepoints[offset]) },
+            { assertEquals('z'.code, cache.clusterCodepoints[offset + length - 1]) },
+            { assertEquals("z".repeat(256), cache.clusterText(0, 0)) },
+        )
+    }
+
+    @Test
     fun `cursor change updates cursor without dirtying rows`() {
         val frame = MutableFrame(columns = 3, rows = 1)
         frame.setRow(0, "abc")
@@ -264,6 +282,58 @@ class TerminalRenderCacheTest {
                 shape = TerminalRenderCursorShape.BAR,
                 generation = 7L,
             )
+        }
+    }
+
+    private class LongClusterFrame(
+        private val reportedLength: Int,
+    ) : TerminalRenderFrame {
+        override val columns: Int = 1
+        override val rows: Int = 1
+        override val frameGeneration: Long = 1L
+        override val structureGeneration: Long = 1L
+        override val activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY
+        override val cursor: TerminalRenderCursor = TerminalRenderCursor(
+            column = 0,
+            row = 0,
+            visible = false,
+            blinking = false,
+            shape = TerminalRenderCursorShape.BLOCK,
+            generation = 1L,
+        )
+        private val clusterCodepoints = IntArray(256) { 'z'.code }
+
+        val reader = object : TerminalRenderFrameReader {
+            override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
+                consumer.accept(this@LongClusterFrame)
+            }
+        }
+
+        override fun lineGeneration(row: Int): Long = 1L
+
+        override fun lineWrapped(row: Int): Boolean = false
+
+        override fun copyLine(
+            row: Int,
+            codeWords: IntArray,
+            codeOffset: Int,
+            attrWords: LongArray,
+            attrOffset: Int,
+            flags: IntArray,
+            flagOffset: Int,
+            extraAttrWords: LongArray?,
+            extraAttrOffset: Int,
+            hyperlinkIds: IntArray?,
+            hyperlinkOffset: Int,
+            clusterSink: TerminalRenderClusterSink?,
+            clusterDataSink: TerminalRenderClusterDataSink?,
+        ) {
+            codeWords[codeOffset] = 0
+            attrWords[attrOffset] = TerminalRenderAttrs.DEFAULT
+            flags[flagOffset] = TerminalRenderCellFlags.CLUSTER
+            extraAttrWords?.set(extraAttrOffset, TerminalRenderExtraAttrs.DEFAULT)
+            hyperlinkIds?.set(hyperlinkOffset, 0)
+            clusterDataSink?.onCluster(0, clusterCodepoints, 0, reportedLength)
         }
     }
 

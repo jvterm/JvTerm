@@ -472,21 +472,34 @@ class TerminalRenderCache(
 
     private fun appendNextCluster(codepoints: IntArray, offset: Int, length: Int): Long {
         require(length > 0) { "cluster length must be > 0, was $length" }
-        require(offset >= 0 && codepoints.size - offset >= length) {
-            "cluster source has insufficient capacity: size=${codepoints.size}, offset=$offset, length=$length"
+        require(offset >= 0) { "cluster offset must be >= 0, was $offset" }
+
+        val copiedLength = minOf(length, MAX_CLUSTER_CODEPOINTS)
+        require(codepoints.size - offset >= copiedLength) {
+            "cluster source has insufficient capacity: size=${codepoints.size}, offset=$offset, length=$copiedLength"
         }
-        ensureNextClusterCapacity(nextClusterCodepointCount + length)
+        require(nextClusterCodepointCount <= Int.MAX_VALUE - copiedLength) {
+            "cluster codepoint count overflows Int: current=$nextClusterCodepointCount, length=$copiedLength"
+        }
+
+        ensureNextClusterCapacity(nextClusterCodepointCount + copiedLength)
         val nextOffset = nextClusterCodepointCount
-        System.arraycopy(codepoints, offset, nextClusterCodepoints, nextOffset, length)
-        nextClusterCodepointCount += length
-        return packClusterRef(nextOffset, length)
+        System.arraycopy(codepoints, offset, nextClusterCodepoints, nextOffset, copiedLength)
+        nextClusterCodepointCount += copiedLength
+        return packClusterRef(nextOffset, copiedLength)
     }
 
     private fun ensureNextClusterCapacity(required: Int) {
         if (required <= nextClusterCodepoints.size) return
 
+        require(nextClusterCodepoints.size <= Int.MAX_VALUE / 2) {
+            "cluster codepoint capacity overflows Int: required=$required"
+        }
         var newCapacity = maxOf(INITIAL_CLUSTER_CODEPOINT_CAPACITY, nextClusterCodepoints.size * 2)
         while (newCapacity < required) {
+            require(newCapacity <= Int.MAX_VALUE / 2) {
+                "cluster codepoint capacity overflows Int: required=$required"
+            }
             newCapacity *= 2
         }
         nextClusterCodepoints = nextClusterCodepoints.copyOf(newCapacity)
@@ -524,6 +537,10 @@ class TerminalRenderCache(
         private const val NO_CLUSTER_SINK_ROW = -1
         private const val NO_CLUSTER_REF = 0L
         private const val INITIAL_CLUSTER_CODEPOINT_CAPACITY = 256
+
+        // Cache-side defense: parser/core normally cap clusters much lower, but
+        // render cache must not let a malformed frame dictate unbounded arrays.
+        private const val MAX_CLUSTER_CODEPOINTS = 256
 
         private val EMPTY_LONG_REFS = LongArray(0)
 
