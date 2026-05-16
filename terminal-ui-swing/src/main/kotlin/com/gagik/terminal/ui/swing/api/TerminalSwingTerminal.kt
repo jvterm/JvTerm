@@ -101,12 +101,12 @@ class TerminalSwingTerminal(
      *
      * The session remains host-owned; this component only observes dirty render
      * notifications and repaints itself on the EDT. This method may be called
-     * from any thread; component state is updated synchronously on the EDT.
+     * from any thread; component state is updated asynchronously on the EDT.
      *
      * @param session terminal session to display.
      */
     fun bind(session: TerminalSession) {
-        runOnEdtAndWait {
+        runOnEdt {
             bindOnEdt(session)
         }
     }
@@ -115,10 +115,10 @@ class TerminalSwingTerminal(
      * Removes the current session binding.
      *
      * This method may be called from any thread; component state is updated
-     * synchronously on the EDT.
+     * asynchronously on the EDT.
      */
     fun unbind() {
-        runOnEdtAndWait {
+        runOnEdt {
             unbindOnEdt()
         }
     }
@@ -127,10 +127,10 @@ class TerminalSwingTerminal(
      * Rebuilds settings, metrics, preferred size, and repaint state.
      *
      * This method may be called from any thread; component state is updated
-     * synchronously on the EDT.
+     * asynchronously on the EDT.
      */
     fun reloadSettings() {
-        runOnEdtAndWait {
+        runOnEdt {
             reloadSettingsOnEdt()
         }
     }
@@ -360,17 +360,19 @@ class TerminalSwingTerminal(
         return TerminalSwingMetrics.from(metricsSource)
     }
 
-    private fun runOnEdtAndWait(action: () -> Unit) {
-        callOnEdtAndWait {
+    private fun runOnEdt(action: () -> Unit) {
+        if (SwingUtilities.isEventDispatchThread()) {
             action()
+        } else {
+            SwingUtilities.invokeLater(action)
         }
     }
 
     /**
      * Executes [action] synchronously on the EDT, blocking the caller until complete.
-     * * This barrier ensures that when a host invokes public API methods (like
-     * [unbind] or [reloadSettings]) from a background thread, the internal Swing
-     * component state is fully reconciled before the host thread continues executing.
+     *
+     * This barrier is reserved for public read APIs that must return a value
+     * derived from EDT-owned Swing state.
      * Throws [IllegalStateException] if the thread is interrupted to prevent
      * corrupted partial-state application.
      */

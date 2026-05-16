@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test
 import java.awt.Dimension
 import java.awt.Font
 import java.awt.event.ComponentEvent
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -33,13 +35,56 @@ class TerminalSwingTerminalThreadingTest {
         runOffEdt {
             component.bind(session)
         }
+        drainEdt()
         assertNotNull(session.onDirty)
 
         runOffEdt {
             component.unbind()
         }
+        drainEdt()
 
         assertNull(session.onDirty)
+        session.close()
+    }
+
+    @Test
+    fun `bind called off EDT does not wait for EDT execution`() {
+        val session = testSession()
+        val component = TerminalSwingTerminal()
+        val edtBlocked = CountDownLatch(1)
+        val releaseEdt = CountDownLatch(1)
+        val bindReturned = AtomicBoolean(false)
+        val failure = AtomicReference<Throwable?>()
+
+        SwingUtilities.invokeLater {
+            try {
+                edtBlocked.countDown()
+                if (!releaseEdt.await(1, TimeUnit.SECONDS)) {
+                    failure.set(AssertionError("EDT blocker was not released"))
+                }
+            } catch (error: Throwable) {
+                failure.set(error)
+            }
+        }
+        assertTrue(edtBlocked.await(1, TimeUnit.SECONDS), "EDT blocker did not start")
+
+        val worker = thread(start = true) {
+            try {
+                component.bind(session)
+                bindReturned.set(true)
+            } catch (error: Throwable) {
+                failure.set(error)
+            }
+        }
+
+        worker.join(500)
+        assertTrue(bindReturned.get(), "bind should post to EDT and return without waiting")
+
+        releaseEdt.countDown()
+        worker.join(1_000)
+        failure.get()?.let { throw it }
+        drainEdt()
+        assertNotNull(session.onDirty)
         session.close()
     }
 
@@ -99,6 +144,7 @@ class TerminalSwingTerminalThreadingTest {
         }
 
         component.bind(session)
+        drainEdt()
 
         assertAll(
             { assertEquals(expected.width, connector.lastColumns.get()) },
@@ -118,6 +164,7 @@ class TerminalSwingTerminalThreadingTest {
             component.size = Dimension(160, 80)
         }
         component.bind(session)
+        drainEdt()
         connector.reset()
 
         val expected = edtCall {
@@ -176,6 +223,10 @@ class TerminalSwingTerminalThreadingTest {
             result.set(action())
         }
         return result.get()
+    }
+
+    private fun drainEdt() {
+        edtCall { }
     }
 
     private object NoOpConnector : TerminalConnector {
