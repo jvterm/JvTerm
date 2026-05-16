@@ -15,6 +15,7 @@ import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import java.awt.Font
 import java.awt.Graphics2D
+import java.awt.Rectangle
 import java.awt.font.FontRenderContext
 
 /**
@@ -30,6 +31,7 @@ internal class TerminalTextPainter(
     private val asciiDrawChars = TerminalAsciiDrawCharsCache()
     private val cellPrimitives = TerminalCellPrimitivePainter()
     private val textRun = TerminalTextRunBuffer(INITIAL_TEXT_RUN_CAPACITY)
+    private val clipBoundsScratch = Rectangle()
 
     /**
      * Updates font-dependent caches for a settings snapshot.
@@ -113,7 +115,7 @@ internal class TerminalTextPainter(
         if (!hasDrawableText(flags)) return
 
         val attr = cache.attrWords[row][column]
-        val oldClip = g.clip
+        val oldClipBounds = g.getClipBounds(clipBoundsScratch) != null
         try {
             g.clipRect(column * metrics.cellWidth, row * metrics.cellHeight, metrics.cellWidth, metrics.cellHeight)
             g.font = fontCache.font(terminalFontStyle(attr))
@@ -148,7 +150,16 @@ internal class TerminalTextPainter(
                 )
             }
         } finally {
-            g.clip = oldClip
+            if (oldClipBounds) {
+                g.setClip(
+                    clipBoundsScratch.x,
+                    clipBoundsScratch.y,
+                    clipBoundsScratch.width,
+                    clipBoundsScratch.height,
+                )
+            } else {
+                g.setClip(null)
+            }
         }
     }
 

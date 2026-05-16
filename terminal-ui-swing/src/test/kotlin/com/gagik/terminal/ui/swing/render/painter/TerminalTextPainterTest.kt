@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.awt.Font
 import java.awt.Graphics2D
+import java.awt.Rectangle
 import java.awt.RenderingHints
 import java.awt.geom.AffineTransform
 import java.awt.image.BufferedImage
@@ -288,6 +289,29 @@ class TerminalTextPainterTest {
                 !fixture.image.containsColor(TEST_GREEN, fixture.metrics.cellWidth, fixture.metrics.cellHeight),
                 "Empty cell painted ghost text when targeted by block cursor"
             )
+        }
+
+        @Test
+        fun `paintCellForeground restores rectangular clip bounds`() {
+            // Arrange
+            val fixture = fixture(foreground = TEST_WHITE)
+            val cache = renderCache(TestRenderFrame.text("A"))
+            val originalClip = Rectangle(3, 4, fixture.metrics.cellWidth, fixture.metrics.cellHeight)
+            fixture.g.setClip(originalClip.x, originalClip.y, originalClip.width, originalClip.height)
+
+            // Act
+            fixture.painter.paintCellForeground(
+                fixture.g,
+                cache,
+                fixture.metrics,
+                column = 0,
+                row = 0,
+                foreground = TEST_GREEN,
+                fontRenderContext = fixture.g.fontRenderContext,
+            )
+
+            // Assert
+            assertEquals(originalClip, fixture.g.getClipBounds(Rectangle()))
         }
     }
 
