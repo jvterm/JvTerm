@@ -16,9 +16,9 @@ import com.gagik.terminal.render.api.TerminalRenderColorKind
  * @property selectionBackground selection background ARGB color.
  * @property cursorForeground cursor foreground ARGB color.
  * @property cursorBackground cursor background ARGB color.
- * @property indexedColors 256-entry indexed palette in packed ARGB form.
  * @property boldAsBright whether indexed ANSI 0..7 foreground colors should use
  * bright variants 8..15 when bold is active.
+ * @param indexedColors 256-entry indexed palette in packed ARGB form.
  */
 class TerminalColorPalette(
     val defaultForeground: Int = 0xFFE6E8EF.toInt(),
@@ -31,12 +31,6 @@ class TerminalColorPalette(
     val boldAsBright: Boolean = true,
 ) {
     private val indexedColorStorage: IntArray
-
-    /**
-     * 256-entry indexed palette in packed ARGB form.
-     */
-    val indexedColors: IntArray
-        get() = indexedColorStorage.copyOf()
 
     init {
         require(indexedColors.size == INDEXED_COLOR_COUNT) {
@@ -96,6 +90,30 @@ class TerminalColorPalette(
             "indexed color index out of range: $index"
         }
         return indexedColorStorage[index]
+    }
+
+    /**
+     * Copies the indexed palette into [destination].
+     *
+     * This is the allocation-free way for hosts to read the full palette.
+     *
+     * @param destination destination array receiving 256 packed ARGB colors.
+     * @param offset first destination index to write.
+     */
+    fun copyIndexedColorsInto(destination: IntArray, offset: Int = 0) {
+        require(offset >= 0 && destination.size - offset >= INDEXED_COLOR_COUNT) {
+            "destination has insufficient capacity: size=${destination.size}, offset=$offset, required=$INDEXED_COLOR_COUNT"
+        }
+        indexedColorStorage.copyInto(destination, destinationOffset = offset)
+    }
+
+    /**
+     * Returns a newly allocated copy of the indexed palette.
+     *
+     * @return 256-entry indexed palette in packed ARGB form.
+     */
+    fun toIndexedColorsArray(): IntArray {
+        return indexedColorStorage.copyOf()
     }
 
     /**

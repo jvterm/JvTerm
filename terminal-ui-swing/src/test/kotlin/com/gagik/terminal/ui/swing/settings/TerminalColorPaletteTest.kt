@@ -5,6 +5,7 @@ import com.gagik.terminal.render.api.TerminalRenderColorKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class TerminalColorPaletteTest {
     @Test
@@ -37,16 +38,41 @@ class TerminalColorPaletteTest {
     }
 
     @Test
-    fun copiesIndexedColorsOnConstructionAndAccess() {
+    fun copiesIndexedColorsOnConstructionAndExplicitArrayExport() {
         val colors = IntArray(256) { 0xFF000000.toInt() or it }
         val palette = TerminalColorPalette(indexedColors = colors)
 
         colors[4] = 0xFFFF0000.toInt()
-        val exposed = palette.indexedColors
+        val exposed = palette.toIndexedColorsArray()
         exposed[4] = 0xFF00FF00.toInt()
 
         assertEquals(0xFF000004.toInt(), palette.indexedColor(4))
-        assertEquals(0xFF000004.toInt(), palette.indexedColors[4])
+        assertEquals(0xFF000004.toInt(), palette.toIndexedColorsArray()[4])
+    }
+
+    @Test
+    fun copiesIndexedColorsIntoCallerOwnedBuffer() {
+        val colors = IntArray(256) { 0xFF000000.toInt() or it }
+        val palette = TerminalColorPalette(indexedColors = colors)
+        val destination = IntArray(300) { -1 }
+
+        palette.copyIndexedColorsInto(destination, offset = 10)
+
+        assertEquals(-1, destination[9])
+        assertEquals(colors[0], destination[10])
+        assertEquals(colors[255], destination[265])
+        assertEquals(-1, destination[266])
+    }
+
+    @Test
+    fun copyIndexedColorsIntoRejectsTooSmallDestination() {
+        val palette = TerminalColorPalette()
+
+        val error = assertFailsWith<IllegalArgumentException> {
+            palette.copyIndexedColorsInto(IntArray(255))
+        }
+
+        assertTrue(error.message!!.contains("insufficient capacity"))
     }
 
     @Test
