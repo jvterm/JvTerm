@@ -76,6 +76,19 @@ class TerminalComplexTextLayoutCacheTest {
     }
 
     @Test
+    fun `code point cache bulk eviction creates reusable free slots`() {
+        val fontCache = fontCache()
+        val layoutCache = TerminalComplexTextLayoutCache(codePointCapacity = 20)
+        val frc = FontRenderContext(null, false, false)
+
+        repeat(21) { index ->
+            layoutCache.codePointLayout(0x0400 + index, Font.PLAIN, frc, fontCache)
+        }
+
+        assertEquals(19, layoutCache.cachedCodePointLayoutCount())
+    }
+
+    @Test
     fun `clear invalidates code point layouts`() {
         val fontCache = fontCache()
         val layoutCache = TerminalComplexTextLayoutCache(codePointCapacity = 4)
@@ -131,6 +144,20 @@ class TerminalComplexTextLayoutCacheTest {
 
         assertNotSame(plain, layoutCache.clusterLayout(cluster, Font.PLAIN, frc, fontCache))
         assertSame(bold, layoutCache.clusterLayout(cluster, Font.BOLD, frc, fontCache))
+    }
+
+    @Test
+    fun `cluster cache bulk eviction creates reusable free slots`() {
+        val fontCache = fontCache()
+        val layoutCache = TerminalComplexTextLayoutCache(clusterCapacityPerStyle = 20)
+        val frc = FontRenderContext(null, false, false)
+
+        repeat(21) { index ->
+            val cluster = intArrayOf(0x1000 + index, 0x0301)
+            layoutCache.clusterLayout(cluster, 0, cluster.size, Font.PLAIN, frc, fontCache)
+        }
+
+        assertEquals(19, layoutCache.cachedClusterLayoutCount())
     }
 
     @Test
@@ -219,4 +246,22 @@ class TerminalComplexTextLayoutCacheTest {
         cache.update(Font(Font.MONOSPACED, Font.PLAIN, 14), emptyList(), useSystemFallbackFonts = false)
         return cache
     }
+
+    private fun TerminalComplexTextLayoutCache.cachedCodePointLayoutCount(): Int {
+        val cache = declaredField("codePointLayouts").get(this)
+        return cache.countCachedLayouts()
+    }
+
+    private fun TerminalComplexTextLayoutCache.cachedClusterLayoutCount(): Int {
+        val caches = declaredField("clusterLayouts").get(this) as Array<*>
+        return caches[Font.PLAIN]!!.countCachedLayouts()
+    }
+
+    private fun Any.countCachedLayouts(): Int {
+        val layouts = declaredField("entryLayouts").get(this) as Array<*>
+        return layouts.count { it != null }
+    }
+
+    private fun Any.declaredField(name: String) =
+        javaClass.getDeclaredField(name).apply { isAccessible = true }
 }

@@ -196,10 +196,13 @@ internal class TerminalComplexTextLayoutCache(
         private val entryLayouts = arrayOfNulls<TextLayout>(capacity)
         private val previous = IntArray(capacity) { EMPTY }
         private val next = IntArray(capacity) { EMPTY }
+        private val freeEntries = IntArray(capacity)
         private val hashKeys = LongArray(hashCapacity(capacity))
         private val hashEntries = IntArray(hashKeys.size) { EMPTY }
         private val hashMask = hashKeys.size - 1
+        private val evictionBatchSize = maxOf(1, capacity / EVICTION_BATCH_DIVISOR)
         private var size = 0
+        private var freeSize = 0
         private var head = EMPTY
         private var tail = EMPTY
 
@@ -221,14 +224,7 @@ internal class TerminalComplexTextLayoutCache(
         }
 
         fun putAtMissSlot(key: Long, layout: TextLayout, missSlot: Int) {
-            val entry = if (size < entryKeys.size) {
-                size++
-            } else {
-                val evicted = tail
-                removeHashEntry(entryKeys[evicted], evicted)
-                unlink(evicted)
-                evicted
-            }
+            val entry = allocateEntry()
 
             entryKeys[entry] = key
             entryLayouts[entry] = layout
@@ -242,8 +238,29 @@ internal class TerminalComplexTextLayoutCache(
             Arrays.fill(next, EMPTY)
             Arrays.fill(hashEntries, EMPTY)
             size = 0
+            freeSize = 0
             head = EMPTY
             tail = EMPTY
+        }
+
+        private fun allocateEntry(): Int {
+            if (freeSize > 0) return freeEntries[--freeSize]
+            if (size < entryKeys.size) return size++
+
+            evictOldestBatch()
+            return freeEntries[--freeSize]
+        }
+
+        private fun evictOldestBatch() {
+            var remaining = evictionBatchSize
+            while (remaining > 0 && tail != EMPTY) {
+                val evicted = tail
+                removeHashEntry(entryKeys[evicted], evicted)
+                unlink(evicted)
+                entryLayouts[evicted] = null
+                freeEntries[freeSize++] = evicted
+                remaining--
+            }
         }
 
         private fun insertHashEntry(key: Long, entry: Int) {
@@ -333,10 +350,13 @@ internal class TerminalComplexTextLayoutCache(
         private val entryLayouts = arrayOfNulls<TextLayout>(capacity)
         private val previous = IntArray(capacity) { EMPTY }
         private val next = IntArray(capacity) { EMPTY }
+        private val freeEntries = IntArray(capacity)
         private val hashKeys = IntArray(hashCapacity(capacity))
         private val hashEntries = IntArray(hashKeys.size) { EMPTY }
         private val hashMask = hashKeys.size - 1
+        private val evictionBatchSize = maxOf(1, capacity / EVICTION_BATCH_DIVISOR)
         private var size = 0
+        private var freeSize = 0
         private var head = EMPTY
         private var tail = EMPTY
 
@@ -378,14 +398,7 @@ internal class TerminalComplexTextLayoutCache(
             layout: TextLayout,
             missSlot: Int,
         ) {
-            val entry = if (size < entryCodepoints.size) {
-                size++
-            } else {
-                val evicted = tail
-                removeHashEntry(entryHashes[evicted], evicted)
-                unlink(evicted)
-                evicted
-            }
+            val entry = allocateEntry()
 
             val stored = IntArray(length)
             System.arraycopy(codepoints, offset, stored, 0, length)
@@ -404,8 +417,32 @@ internal class TerminalComplexTextLayoutCache(
             Arrays.fill(next, EMPTY)
             Arrays.fill(hashEntries, EMPTY)
             size = 0
+            freeSize = 0
             head = EMPTY
             tail = EMPTY
+        }
+
+        private fun allocateEntry(): Int {
+            if (freeSize > 0) return freeEntries[--freeSize]
+            if (size < entryCodepoints.size) return size++
+
+            evictOldestBatch()
+            return freeEntries[--freeSize]
+        }
+
+        private fun evictOldestBatch() {
+            var remaining = evictionBatchSize
+            while (remaining > 0 && tail != EMPTY) {
+                val evicted = tail
+                removeHashEntry(entryHashes[evicted], evicted)
+                unlink(evicted)
+                entryCodepoints[evicted] = null
+                entryLengths[evicted] = 0
+                entryHashes[evicted] = 0
+                entryLayouts[evicted] = null
+                freeEntries[freeSize++] = evicted
+                remaining--
+            }
         }
 
         private fun equalsEntry(entry: Int, codepoints: IntArray, offset: Int, length: Int): Boolean {
@@ -505,6 +542,7 @@ internal class TerminalComplexTextLayoutCache(
         private const val STYLE_COUNT = 4
         private const val STYLE_MASK = Font.BOLD or Font.ITALIC
         private const val EMPTY = -1
+        private const val EVICTION_BATCH_DIVISOR = 10
 
         /**
          * Maximum code points shaped as one cluster before the renderer falls
