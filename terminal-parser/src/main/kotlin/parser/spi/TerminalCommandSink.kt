@@ -63,6 +63,13 @@ interface TerminalCommandSink {
      */
     fun resetTerminal()
 
+    /**
+     * DEC Screen Alignment Test (DECALN): ESC # 8.
+     *
+     * The parser identifies the sequence; the core owns the actual alignment test semantics.
+     */
+    fun decaln()
+
     fun saveCursor()
     fun restoreCursor()
 

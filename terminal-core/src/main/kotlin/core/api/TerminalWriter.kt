@@ -249,6 +249,15 @@ interface TerminalWriter {
     fun clearAll()
 
     /**
+     * Executes the DEC Screen Alignment Test (DECALN, `ESC # 8`).
+     *
+     * Fills the entire visible screen viewport with uppercase 'E' characters, resets all vertical
+     * and horizontal scrolling regions to the full viewport limits, homes the cursor to (0, 0), and
+     * cancels any pending cursor wrap state.
+     */
+    fun decaln()
+
+    /**
      * Sets the active pen attributes used by all subsequent write and erase operations.
      *
      * Out-of-range colour codes are clamped to the nearest valid value.

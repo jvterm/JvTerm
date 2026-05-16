@@ -1692,5 +1692,52 @@ class MutationEngineTest {
             )
         }
     }
+
+    @Nested
+    @DisplayName("decaln (DEC Screen Alignment Test)")
+    inner class DecalnTests {
+
+        @Test
+        fun `fills screen with E characters, resets margins, and homes cursor`() {
+            val state = createState(width = 5, height = 3)
+            val writer = MutationEngine(state)
+
+            // Seed some characters
+            seedLine(state, 0, "ABCDE")
+            seedLine(state, 1, "FGHIJ")
+            seedLine(state, 2, "KLMNO")
+
+            // Set some non-default margins
+            state.activeBuffer.setScrollRegion(2, 3, false, 3)
+            state.modes.isLeftRightMarginMode = true
+            state.activeBuffer.setLeftRightMargins(2, 4, 5)
+
+            // Put cursor in an offset state
+            state.cursor.row = 1
+            state.cursor.col = 2
+            state.cursor.pendingWrap = true
+
+            // Trigger DECALN
+            writer.decaln()
+
+            // Verify screen contents
+            for (row in 0 until 3) {
+                for (col in 0 until 5) {
+                    assertEquals('E'.code, lineAt(state, row).getCodepoint(col))
+                }
+            }
+
+            // Verify margins are reset to full screen
+            assertEquals(0, state.activeBuffer.scrollTop)
+            assertEquals(2, state.activeBuffer.scrollBottom)
+            assertEquals(0, state.activeBuffer.leftMargin)
+            assertEquals(4, state.activeBuffer.rightMargin)
+
+            // Verify cursor is homed
+            assertEquals(0, state.cursor.row)
+            assertEquals(0, state.cursor.col)
+            assertFalse(state.cursor.pendingWrap)
+        }
+    }
 }
 

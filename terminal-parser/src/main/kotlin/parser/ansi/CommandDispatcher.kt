@@ -58,6 +58,13 @@ internal object AnsiCommandDispatcher : CommandDispatcher {
             return
         }
 
+        if (state.intermediateCount == 1 && (state.intermediates and 0xff) == '#'.code) {
+            if (finalByte == '8'.code) {
+                sink.decaln()
+            }
+            return
+        }
+
         if (state.intermediateCount != 0) {
             return
         }

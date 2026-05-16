@@ -53,6 +53,10 @@ internal class RecordingTerminalCommandSink : TerminalCommandSink {
         events += "resetTerminal"
     }
 
+    override fun decaln() {
+        events += "decaln"
+    }
+
     override fun saveCursor() {
         events += "saveCursor"
     }

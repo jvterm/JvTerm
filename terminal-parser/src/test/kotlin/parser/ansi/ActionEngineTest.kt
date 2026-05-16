@@ -173,6 +173,10 @@ class ActionEngineTest {
             sinkCalls += "resetTerminal"
         }
 
+        override fun decaln() {
+            sinkCalls += "decaln"
+        }
+
         override fun saveCursor() {
             sinkCalls += "saveCursor"
         }

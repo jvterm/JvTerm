@@ -116,7 +116,7 @@ surface or maintenance cost without meaningful modern terminal value.
   - minimize/maximize/raise/lower variants
   Many modern terminals ignore or gate these to prevent hostile scripts from
   controlling the user's window.
-- `TODO(parser)`: DEC alignment test `DECALN`, `ESC # 8`.
+- `DONE(parser/core/integration)`: DEC alignment test `DECALN`, `ESC # 8`.
 - `DONE(parser/core/integration)`: terminal-to-host response channel and safe
   baseline responses for:
   - `DSR 5`, operating status, responding `CSI 0 n`

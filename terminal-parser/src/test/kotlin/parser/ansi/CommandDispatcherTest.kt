@@ -183,6 +183,14 @@ class CommandDispatcherTest {
         }
 
         @Test
+        fun `ESC hash 8 dispatches alignment test decaln`() {
+            assertEquals(
+                listOf("decaln"),
+                dispatchEsc('8', intermediates = '#'.code, intermediateCount = 1).events
+            )
+        }
+
+        @Test
         fun `ESC D performs lineFeed`() {
             assertEquals(listOf("lineFeed"), dispatchEsc('D').events)
         }

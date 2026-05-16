@@ -1011,4 +1011,34 @@ internal class MutationEngine(
         }
         markCursorIfMoved(oldCursorCol, oldCursorRow)
     }
+
+    /**
+     * Executes the DEC Screen Alignment Test (DECALN, `ESC # 8`).
+     *
+     * Fills the entire visible screen viewport with uppercase 'E' characters, resets all vertical
+     * and horizontal scrolling regions to the full viewport limits, homes the cursor to (0, 0), and
+     * cancels any pending cursor wrap state.
+     */
+    fun decaln() = structuralMutation {
+        state.cancelPendingWrap()
+
+        // Reset margins
+        state.activeBuffer.resetScrollRegion(height)
+        state.activeBuffer.resetLeftRightMargins(width)
+
+        // Home the cursor
+        state.cursor.col = 0
+        state.cursor.row = 0
+
+        // Fill the screen with uppercase 'E's using the default blank attributes
+        for (viewportRow in 0 until height) {
+            val line = state.ring[state.resolveRingIndex(viewportRow)]
+            line.clear(blankAttr, blankExtendedAttr)
+            for (col in 0 until width) {
+                line.setCell(col, 'E'.code, blankAttr, blankExtendedAttr)
+            }
+            state.markLineChanged(line)
+        }
+        state.markStructureChanged()
+    }
 }

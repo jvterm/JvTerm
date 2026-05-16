@@ -116,6 +116,10 @@ class CoreTerminalCommandSink(
         nextHyperlinkNumericId = 1
     }
 
+    override fun decaln() {
+        terminal.decaln()
+    }
+
     override fun saveCursor() {
         terminal.saveCursor()
     }

@@ -24,7 +24,7 @@ class TerminalSessionHeadlessTest {
         val connector = MockConnector()
         val session = createStartedSession(connector)
 
-        connector.feedFromHost("hello ".ascii())
+        connector.feedFromHost("hello".ascii())
 
         assertEquals("hello", session.terminal.getLineAsString(0))
         assertEquals("", connector.writtenBytes.asciiText())

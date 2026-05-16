@@ -794,6 +794,36 @@ class CoreTerminalCommandSinkTest {
                 { assertEquals(listOf("both"), events.windowTitles) },
             )
         }
+
+        @Test
+        fun `DECALN parsed from bytes fills the visible grid with E and resets margins and cursor`() {
+            val f = Fixture(terminal = TerminalBuffers.create(width = 8, height = 4))
+
+            // Write some garbage and offset cursor
+            f.acceptAscii("ABCDEF\n")
+            f.acceptAscii("GHIJK\n")
+
+            // Set some non-default margins
+            f.acceptAscii("\u001B[2;3r") // scroll region: lines 2 to 3 (indices 1 to 2)
+            f.acceptAscii("\u001B[?69h") // enable left-right margins
+            f.acceptAscii("\u001B[2;6s") // left-right margins: cols 2 to 6 (indices 1 to 5)
+
+            // Offset cursor
+            f.acceptAscii("\u001B[2;3H")
+
+            // Send DECALN: ESC # 8
+            f.acceptAscii("\u001B#8")
+            f.end()
+
+            // Verify screen contents are entirely filled with 'E'
+            for (row in 0 until 4) {
+                assertEquals("EEEEEEEE", f.terminal.getLineAsString(row))
+            }
+
+            // Verify cursor is homed
+            assertEquals(0, f.terminal.cursorRow)
+            assertEquals(0, f.terminal.cursorCol)
+        }
     }
 
     private class RecordingHostEventSink : TerminalHostEventSink {

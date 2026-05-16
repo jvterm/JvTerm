@@ -133,6 +133,10 @@ internal class TerminalWriterImpl(
         cursorEngine.setCursorAbsolute(0, 0)
     }
 
+    override fun decaln() {
+        mutationEngine.decaln()
+    }
+
     override fun clearAll() {
         state.pen.reset()
         mutationEngine.clearAllHistory()
