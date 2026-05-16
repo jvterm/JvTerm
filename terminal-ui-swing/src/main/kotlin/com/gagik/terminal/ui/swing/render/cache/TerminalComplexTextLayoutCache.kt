@@ -272,14 +272,21 @@ internal class TerminalComplexTextLayoutCache(
 
         private fun removeHashEntry(key: Long, entry: Int) {
             var slot = hashSlot(key)
-            while (true) {
-                if (hashEntries[slot] == entry && hashKeys[slot] == key) {
+            var probes = 0
+            while (probes < hashEntries.size) {
+                val candidate = hashEntries[slot]
+                if (candidate == entry && hashKeys[slot] == key) {
                     hashEntries[slot] = EMPTY
                     reinsertHashCluster((slot + 1) and hashMask)
                     return
                 }
+                if (candidate == EMPTY) {
+                    throw IllegalStateException("Text layout cache corruption: key $key in LRU but missing from hash map")
+                }
                 slot = (slot + 1) and hashMask
+                probes++
             }
+            throw IllegalStateException("Text layout cache corruption: hash map probe overflow for key $key")
         }
 
         private fun reinsertHashCluster(startSlot: Int) {
@@ -457,14 +464,23 @@ internal class TerminalComplexTextLayoutCache(
 
         private fun removeHashEntry(hash: Int, entry: Int) {
             var slot = hashSlot(hash)
-            while (true) {
-                if (hashEntries[slot] == entry && hashKeys[slot] == hash) {
+            var probes = 0
+            while (probes < hashEntries.size) {
+                val candidate = hashEntries[slot]
+                if (candidate == entry && hashKeys[slot] == hash) {
                     hashEntries[slot] = EMPTY
                     reinsertHashCluster((slot + 1) and hashMask)
                     return
                 }
+                if (candidate == EMPTY) {
+                    throw IllegalStateException(
+                        "Text layout cluster cache corruption: hash $hash in LRU but missing from hash map",
+                    )
+                }
                 slot = (slot + 1) and hashMask
+                probes++
             }
+            throw IllegalStateException("Text layout cluster cache corruption: hash map probe overflow for hash $hash")
         }
 
         private fun reinsertHashCluster(startSlot: Int) {

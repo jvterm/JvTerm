@@ -107,6 +107,19 @@ class TerminalComplexTextLayoutCacheTest {
     }
 
     @Test
+    fun `code point cache fails fast if LRU entry is missing from hash map during eviction`() {
+        val fontCache = fontCache()
+        val layoutCache = TerminalComplexTextLayoutCache(codePointCapacity = 1)
+        val frc = FontRenderContext(null, false, false)
+        layoutCache.codePointLayout(0x03A9, Font.PLAIN, frc, fontCache)
+        layoutCache.clearCodePointHashEntriesForTest()
+
+        assertThrows<IllegalStateException> {
+            layoutCache.codePointLayout(0x4E2D, Font.PLAIN, frc, fontCache)
+        }
+    }
+
+    @Test
     fun `clear invalidates code point layouts`() {
         val fontCache = fontCache()
         val layoutCache = TerminalComplexTextLayoutCache(codePointCapacity = 4)
@@ -199,6 +212,19 @@ class TerminalComplexTextLayoutCacheTest {
             retainedLayout,
             layoutCache.clusterLayout(clusters[2], 0, clusters[2].size, Font.PLAIN, frc, fontCache),
         )
+    }
+
+    @Test
+    fun `cluster cache fails fast if LRU entry is missing from hash map during eviction`() {
+        val fontCache = fontCache()
+        val layoutCache = TerminalComplexTextLayoutCache(clusterCapacityPerStyle = 1)
+        val frc = FontRenderContext(null, false, false)
+        layoutCache.clusterLayout("\u0E01\u0E34", Font.PLAIN, frc, fontCache)
+        layoutCache.clearClusterHashEntriesForTest()
+
+        assertThrows<IllegalStateException> {
+            layoutCache.clusterLayout("\u0E02\u0E34", Font.PLAIN, frc, fontCache)
+        }
     }
 
     @Test
@@ -298,9 +324,24 @@ class TerminalComplexTextLayoutCacheTest {
         return caches[Font.PLAIN]!!.countCachedLayouts()
     }
 
+    private fun TerminalComplexTextLayoutCache.clearCodePointHashEntriesForTest() {
+        val cache = declaredField("codePointLayouts").get(this)
+        cache.clearHashEntriesForTest()
+    }
+
+    private fun TerminalComplexTextLayoutCache.clearClusterHashEntriesForTest() {
+        val caches = declaredField("clusterLayouts").get(this) as Array<*>
+        caches[Font.PLAIN]!!.clearHashEntriesForTest()
+    }
+
     private fun Any.countCachedLayouts(): Int {
         val layouts = declaredField("entryLayouts").get(this) as Array<*>
         return layouts.count { it != null }
+    }
+
+    private fun Any.clearHashEntriesForTest() {
+        val hashEntries = declaredField("hashEntries").get(this) as IntArray
+        hashEntries.fill(EMPTY)
     }
 
     private fun collidingCodePoints(count: Int): IntArray {
@@ -356,5 +397,6 @@ class TerminalComplexTextLayoutCacheTest {
 
     private companion object {
         private const val TEST_HASH_MASK = 63
+        private const val EMPTY = -1
     }
 }
