@@ -462,7 +462,10 @@ professional emulator needs explicit contracts for it.
   backend painter integrations.
 - `TODO(host)`: double-width glyph display, emoji presentation, and ambiguous
   width presentation must match core width decisions.
-- `TODO(host)`: text selection and clipboard integration.
+- `TODO(host)`: text selection and clipboard integration, including:
+  - double-click word selection and triple-click line selection
+  - rectangular block selection (e.g., via Alt+Drag)
+  - scrollback viewport auto-scroll during active drag selection
 - `DONE(render-api/core/cache/session)`: caller-owned scrollback viewport
   offsets can be requested per render-frame read, clamped by core, copied by
   the primitive render cache, and forwarded through session synchronization.

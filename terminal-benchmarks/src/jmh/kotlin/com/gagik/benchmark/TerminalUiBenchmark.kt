@@ -44,7 +44,7 @@ open class TerminalLargeInputBenchmark {
         }
     }
 
-    @Setup(Level.Invocation)
+    @Setup(Level.Trial)
     open fun setupTerminal() {
         terminal = TerminalBuffers.create(
             width = LARGE_INPUT_COLUMNS,
@@ -53,6 +53,11 @@ open class TerminalLargeInputBenchmark {
         )
         renderReader = terminal as TerminalRenderFrameReader
         publisher = TerminalRenderPublisher(LARGE_INPUT_COLUMNS, LARGE_INPUT_ROWS)
+    }
+
+    @Setup(Level.Invocation)
+    open fun clearTerminal() {
+        terminal.clearAll()
     }
 
     @Benchmark

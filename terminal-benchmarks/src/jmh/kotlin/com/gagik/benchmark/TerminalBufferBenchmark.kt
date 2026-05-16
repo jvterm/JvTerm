@@ -2,8 +2,7 @@ package com.gagik.benchmark
 
 import com.gagik.core.TerminalBuffers
 import com.gagik.core.api.TerminalBufferApi
-import com.gagik.terminal.render.api.TerminalRenderClusterSink
-import com.gagik.terminal.render.api.TerminalRenderFrameReader
+import com.gagik.terminal.render.api.*
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.TimeUnit
 
@@ -13,7 +12,7 @@ import java.util.concurrent.TimeUnit
 @Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
-open class TerminalBufferBenchmark {
+open class TerminalBufferBenchmark : TerminalRenderFrameConsumer {
 
     @Param("80", "120", "240")
     var width: Int = 0
@@ -26,6 +25,8 @@ open class TerminalBufferBenchmark {
     private lateinit var codeWords: IntArray
     private lateinit var attrWords: LongArray
     private lateinit var flags: IntArray
+
+    private var runSingleRowOnly = false
 
     @Setup
     open fun setup() {
@@ -44,9 +45,10 @@ open class TerminalBufferBenchmark {
         }
     }
 
-    @Benchmark
-    open fun copyFullFrameAscii() {
-        reader.readRenderFrame { frame ->
+    override fun accept(frame: TerminalRenderFrame) {
+        if (runSingleRowOnly) {
+            frame.copyLine(0, codeWords, 0, attrWords, 0, flags, 0)
+        } else {
             for (row in 0 until height) {
                 frame.copyLine(row, codeWords, 0, attrWords, 0, flags, 0)
             }
@@ -54,10 +56,15 @@ open class TerminalBufferBenchmark {
     }
 
     @Benchmark
+    open fun copyFullFrameAscii() {
+        runSingleRowOnly = false
+        reader.readRenderFrame(this)
+    }
+
+    @Benchmark
     open fun copySingleRowAscii() {
-        reader.readRenderFrame { frame ->
-            frame.copyLine(0, codeWords, 0, attrWords, 0, flags, 0)
-        }
+        runSingleRowOnly = true
+        reader.readRenderFrame(this)
     }
 }
 
@@ -67,7 +74,7 @@ open class TerminalBufferBenchmark {
 @Warmup(iterations = 3, time = 1, timeUnit = TimeUnit.SECONDS)
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
-open class TerminalBufferClusterBenchmark {
+open class TerminalBufferClusterBenchmark : TerminalRenderFrameConsumer {
 
     @Param("0", "1", "100")
     var clusterPercent: Int = 0
@@ -80,6 +87,9 @@ open class TerminalBufferClusterBenchmark {
     private lateinit var attrWords: LongArray
     private lateinit var flags: IntArray
     private val clusterSink = TerminalRenderClusterSink { _, _ -> }
+    private val clusterDataSink = TerminalRenderClusterDataSink { _, _, _, _ -> }
+
+    private var runWithDataSink = false
 
     @Setup
     open fun setup() {
@@ -101,9 +111,21 @@ open class TerminalBufferClusterBenchmark {
         }
     }
 
-    @Benchmark
-    open fun copyFullFrameWithClusters() {
-        reader.readRenderFrame { frame ->
+    override fun accept(frame: TerminalRenderFrame) {
+        if (runWithDataSink) {
+            for (row in 0 until height) {
+                frame.copyLine(
+                    row = row,
+                    codeWords = codeWords,
+                    codeOffset = 0,
+                    attrWords = attrWords,
+                    attrOffset = 0,
+                    flags = flags,
+                    flagOffset = 0,
+                    clusterDataSink = clusterDataSink
+                )
+            }
+        } else {
             for (row in 0 until height) {
                 frame.copyLine(
                     row = row,
@@ -117,5 +139,17 @@ open class TerminalBufferClusterBenchmark {
                 )
             }
         }
+    }
+
+    @Benchmark
+    open fun copyFullFrameWithClusters() {
+        runWithDataSink = false
+        reader.readRenderFrame(this)
+    }
+
+    @Benchmark
+    open fun copyFullFrameWithClustersDataSink() {
+        runWithDataSink = true
+        reader.readRenderFrame(this)
     }
 }

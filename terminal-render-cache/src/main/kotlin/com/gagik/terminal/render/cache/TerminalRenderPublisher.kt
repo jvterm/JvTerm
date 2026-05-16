@@ -19,14 +19,14 @@ class TerminalRenderPublisher(
     columns: Int,
     rows: Int,
 ) {
-    private val buffers = Array(3) { TerminalRenderCache(columns, rows) }
-    private val readerCounts = IntArray(BUFFER_COUNT)
+    @PublishedApi internal val buffers = Array(3) { TerminalRenderCache(columns, rows) }
+    @PublishedApi internal val readerCounts = IntArray(BUFFER_COUNT)
     private val writerOwned = BooleanArray(BUFFER_COUNT)
 
     // Buffer indices, reader counts, and writer leases are mutated under publishLock.
-    private var frontIndex = NO_FRONT
+    @PublishedApi internal var frontIndex = NO_FRONT
     private var nextWriteIndex = 0
-    private val publishLock = ReentrantLock()
+    @PublishedApi internal val publishLock = ReentrantLock()
     private val bufferAvailable = publishLock.newCondition()
 
     // AtomicReference for lock-free front reads.
@@ -102,7 +102,7 @@ class TerminalRenderPublisher(
      * @param block reader invoked with the current front buffer.
      * @return [block]'s result, or `null` when no frame is available.
      */
-    fun <T> readCurrent(block: (TerminalRenderCache) -> T): T? {
+    inline fun <T> readCurrent(block: (TerminalRenderCache) -> T): T? {
         val index = publishLock.withLock {
             val i = frontIndex
             if (i != NO_FRONT) {
@@ -139,7 +139,8 @@ class TerminalRenderPublisher(
         }
     }
 
-    private fun releaseFrontLease(index: Int) {
+    @PublishedApi
+    internal fun releaseFrontLease(index: Int) {
         publishLock.withLock {
             readerCounts[index]--
             check(readerCounts[index] >= 0) {
@@ -159,8 +160,8 @@ class TerminalRenderPublisher(
         }
     }
 
-    private companion object {
-        private const val BUFFER_COUNT = 3
-        private const val NO_FRONT = -1
+    companion object {
+        @PublishedApi internal const val BUFFER_COUNT = 3
+        @PublishedApi internal const val NO_FRONT = -1
     }
 }

@@ -7,19 +7,19 @@ import com.gagik.terminal.render.api.*
  * Adapter from core state to the stable public render frame ABI.
  */
 internal class CoreTerminalRenderFrame(
-    private val state: TerminalState,
+    @PublishedApi internal val state: TerminalState,
 ) : TerminalRenderFrame {
     private val attrTranslator = RenderAttrTranslator()
     private val clusterScratch = RenderClusterScratch()
-    private var isValid: Boolean = false
-    private var resolvedScrollbackOffset: Int = 0
-    private var resolvedRows: Int = 0
+    @PublishedApi internal var isValid: Boolean = false
+    @PublishedApi internal var resolvedScrollbackOffset: Int = 0
+    @PublishedApi internal var resolvedRows: Int = 0
 
-    internal fun <T> use(scrollbackOffset: Int, block: () -> T): T {
+    internal inline fun <T> use(scrollbackOffset: Int, block: () -> T): T {
         return use(scrollbackOffset, state.dimensions.height, block)
     }
 
-    internal fun <T> use(scrollbackOffset: Int, viewportRows: Int, block: () -> T): T {
+    internal inline fun <T> use(scrollbackOffset: Int, viewportRows: Int, block: () -> T): T {
         require(viewportRows > 0) { "viewportRows must be > 0, was $viewportRows" }
         resolvedScrollbackOffset = state.clampScrollbackOffset(scrollbackOffset)
         resolvedRows = viewportRows.coerceAtMost(state.dimensions.height + resolvedScrollbackOffset)
