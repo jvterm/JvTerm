@@ -30,6 +30,7 @@ internal object Pty4jTerminalProcessFactory : TerminalProcessFactory {
             .setEnvironment(options.environment)
             .setInitialColumns(options.columns)
             .setInitialRows(options.rows)
+            .setUseWinConPty(true)
 
         options.workingDirectory?.let { directory ->
             builder.setDirectory(directory.toString())
