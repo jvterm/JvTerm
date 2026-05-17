@@ -182,20 +182,9 @@ internal class TerminalBoxDrawingPainter {
     ) {
         val t = thickness(style, w, h)
         val cy = y + h / 2.0
-        val units = dashCount * 2.0 // Total unit scale for perfect tiling
 
-        // Topology: Half-dash at edges, Full-dashes in the middle.
-        // E.g., for dashCount = 3: Half (0), Full (1), Full (2), Half (3)
-        for (i in 0..dashCount) {
-            val startUnit = if (i == 0) 0.0 else i * 2.0 - 0.5
-            val endUnit = if (i == dashCount) units else i * 2.0 + 0.5
-
-            // Calculate absolute geometry before snapping to integer bounds.
-            // This prevents accumulating float-drift (jitter) across the segments.
-            val startX = x + (startUnit * w / units)
-            val endX = x + (endUnit * w / units)
-
-            fillRectBounds(g, startX, cy - t / 2.0, endX, cy + t / 2.0)
+        iterateDashes(dashCount, w) { startOffset, endOffset ->
+            fillRectBounds(g, x + startOffset, cy - t / 2.0, x + endOffset, cy + t / 2.0)
         }
     }
 
@@ -204,16 +193,26 @@ internal class TerminalBoxDrawingPainter {
     ) {
         val t = thickness(style, w, h)
         val cx = x + w / 2.0
-        val units = dashCount * 2.0
 
+        iterateDashes(dashCount, h) { startOffset, endOffset ->
+            fillRectBounds(g, cx - t / 2.0, y + startOffset, cx + t / 2.0, y + endOffset)
+        }
+    }
+
+    /**
+     * Calculates absolute mathematical bounds for half-dash topology.
+     * Inlined to avoid object allocation during the render loop.
+     */
+    private inline fun iterateDashes(dashCount: Int, dimension: Double, block: (start: Double, end: Double) -> Unit) {
+        val units = dashCount * 2.0
         for (i in 0..dashCount) {
             val startUnit = if (i == 0) 0.0 else i * 2.0 - 0.5
             val endUnit = if (i == dashCount) units else i * 2.0 + 0.5
 
-            val startY = y + (startUnit * h / units)
-            val endY = y + (endUnit * h / units)
+            val startPx = (startUnit * dimension) / units
+            val endPx = (endUnit * dimension) / units
 
-            fillRectBounds(g, cx - t / 2.0, startY, cx + t / 2.0, endY)
+            block(startPx, endPx)
         }
     }
 
@@ -313,21 +312,25 @@ internal class TerminalBoxDrawingPainter {
 
     // --- Dynamic Scaling Mathematics ---
 
-    private fun thin(w: Double, h: Double): Double = maxOf(1.0, minOf(w, h) / 8.0)
-    private fun lightThickness(w: Double, h: Double): Double = maxOf(1.0, minOf(w, h) / 16.0)
+    private fun thin(w: Double, h: Double): Double = maxOf(1.0, minOf(w, h) / THIN_RATIO)
+    private fun lightThickness(w: Double, h: Double): Double = maxOf(1.0, minOf(w, h) / LIGHT_RATIO)
 
     private fun thickness(style: Int, w: Double, h: Double): Double {
         return when (style) {
-            HEAVY -> maxOf(2.0, minOf(w, h) / 4.0)
+            HEAVY -> maxOf(2.0, minOf(w, h) / HEAVY_RATIO)
             DOUBLE -> thin(w, h)
             else -> lightThickness(w, h)
         }
     }
 
-    private fun doubleOffset(w: Double, h: Double): Double = maxOf(2.0, minOf(w, h) / 5.0)
+    private fun doubleOffset(w: Double, h: Double): Double = maxOf(2.0, minOf(w, h) / DOUBLE_OFFSET_RATIO)
 
     private companion object {
         private const val KAPPA = 0.552284749831
+        private const val LIGHT_RATIO = 16.0
+        private const val THIN_RATIO = 8.0
+        private const val HEAVY_RATIO = 4.0
+        private const val DOUBLE_OFFSET_RATIO = 5.0
 
         // Prevents allocation in hot path while ensuring thread safety.
         private val pathLocal = ThreadLocal.withInitial { Path2D.Double() }
