@@ -40,9 +40,17 @@ class TerminalSwingTerminal(
     private var cursorBlinkVisible: Boolean = true
     private var lastResizedColumns: Int = NO_RESIZE_DIMENSION
     private var lastResizedRows: Int = NO_RESIZE_DIMENSION
-    private var selection: CellSelection? = null
+    private var selectionAnchorAbsoluteRow: Long? = null
     private var selectionAnchorColumn: Int = 0
     private var selectionAnchorRow: Int = 0
+    private var selectionCaretAbsoluteRow: Long? = null
+    private var selectionCaretColumn: Int = 0
+    private var selectingWithMouse: Boolean = false
+    private var lastSelectionDragX: Int = 0
+    private var lastSelectionDragY: Int = 0
+    private val selectionAutoscrollTimer = Timer(50) {
+        handleSelectionAutoscrollTick()
+    }
     private val renderPending = AtomicBoolean(false)
     private val visibleGridSizeSnapshot = AtomicLong(packVisibleGridSize(1, 1))
 
@@ -88,6 +96,10 @@ class TerminalSwingTerminal(
     private val selectionMouseListener = object : MouseAdapter() {
         override fun mousePressed(event: MouseEvent) {
             handleSelectionMousePressed(event)
+        }
+
+        override fun mouseReleased(event: MouseEvent) {
+            handleSelectionMouseReleased(event)
         }
     }
 
@@ -207,7 +219,7 @@ class TerminalSwingTerminal(
                     height = height,
                     cursorBlinkVisible = cursorBlinkVisible,
                     contentYOffset = contentYOffset(cache),
-                    selection = selection,
+                    selection = getViewportSelection(cache),
                 )
             }
             if (painted == null) {
@@ -227,6 +239,7 @@ class TerminalSwingTerminal(
         }
         resetScrollbackState()
         clearSelection()
+        stopSelectionDrag()
         lastResizedColumns = NO_RESIZE_DIMENSION
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
@@ -240,6 +253,7 @@ class TerminalSwingTerminal(
         session = null
         resetScrollbackState()
         clearSelection()
+        stopSelectionDrag()
         lastResizedColumns = NO_RESIZE_DIMENSION
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
@@ -273,11 +287,11 @@ class TerminalSwingTerminal(
      * @return current selection, or `null`.
      */
     fun currentSelection(): CellSelection? {
-        if (SwingUtilities.isEventDispatchThread()) return selection
+        if (SwingUtilities.isEventDispatchThread()) return getViewportSelection(session?.publisher?.current())
 
         val result = arrayOfNulls<CellSelection>(1)
         SwingUtilities.invokeAndWait {
-            result[0] = selection
+            result[0] = getViewportSelection(session?.publisher?.current())
         }
         return result[0]
     }
@@ -312,6 +326,10 @@ class TerminalSwingTerminal(
         if (!SwingUtilities.isLeftMouseButton(event)) return
         requestFocusInWindow()
 
+        selectingWithMouse = true
+        lastSelectionDragX = event.x
+        lastSelectionDragY = event.y
+
         val publisher = session?.publisher ?: return
         publisher.readCurrent { cache ->
             val cell = cellAt(event, cache)
@@ -320,20 +338,34 @@ class TerminalSwingTerminal(
 
             when {
                 event.clickCount >= 3 -> {
-                    selection = CellSelection(0, row, cache.columns, row)
+                    val absRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + row
+                    selectionAnchorAbsoluteRow = absRow
+                    selectionAnchorColumn = 0
+                    selectionCaretAbsoluteRow = absRow
+                    selectionCaretColumn = cache.columns
                 }
 
                 event.clickCount == 2 -> {
-                    selection = selectionTextExtractor.wordSelectionAt(cache, row, column)
+                    val wordSel = selectionTextExtractor.wordSelectionAt(cache, row, column)
+                    if (wordSel != null) {
+                        selectionAnchorAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + wordSel.anchorRow
+                        selectionAnchorColumn = wordSel.anchorColumn
+                        selectionCaretAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + wordSel.caretRow
+                        selectionCaretColumn = wordSel.caretColumn
+                    } else {
+                        clearSelection()
+                    }
                 }
 
                 else -> {
                     selectionAnchorColumn = column
                     selectionAnchorRow = row
-                    selection = null
+                    selectionAnchorAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + row
+                    selectionCaretAbsoluteRow = null
                 }
             }
         }
+        updateSelectionAutoscroll()
         repaint()
         event.consume()
     }
@@ -341,21 +373,33 @@ class TerminalSwingTerminal(
     private fun handleSelectionMouseDragged(event: MouseEvent) {
         if (event.modifiersEx and MouseEvent.BUTTON1_DOWN_MASK == 0) return
 
+        selectingWithMouse = true
+        lastSelectionDragX = event.x
+        lastSelectionDragY = event.y
+
         val publisher = session?.publisher ?: return
         publisher.readCurrent { cache ->
             val cell = cellAt(event, cache)
             val column = unpackCellColumn(cell)
             val row = unpackCellRow(cell)
+
+            val caretAbsRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + row
+            val anchorAbsRow = selectionAnchorAbsoluteRow ?: (cache.discardedCount + cache.historySize - cache.scrollbackOffset + selectionAnchorRow)
+
             val caretColumn = if (
-                row < selectionAnchorRow ||
-                row == selectionAnchorRow && column < selectionAnchorColumn
+                caretAbsRow < anchorAbsRow ||
+                (caretAbsRow == anchorAbsRow && column < selectionAnchorColumn)
             ) {
                 column
             } else {
                 column + 1
             }
-            selection = CellSelection(selectionAnchorColumn, selectionAnchorRow, caretColumn, row)
+
+            selectionAnchorAbsoluteRow = anchorAbsRow
+            selectionCaretAbsoluteRow = caretAbsRow
+            selectionCaretColumn = caretColumn
         }
+        updateSelectionAutoscroll()
         repaint()
         event.consume()
     }
@@ -373,7 +417,7 @@ class TerminalSwingTerminal(
     }
 
     private fun copySelectionToClipboard(): Boolean {
-        val currentSelection = selection ?: return false
+        val currentSelection = getViewportSelection(session?.publisher?.current()) ?: return false
         val publisher = session?.publisher ?: return false
         val selectedText = publisher.readCurrent { cache ->
             selectionTextExtractor.selectedText(cache, currentSelection)
@@ -391,15 +435,146 @@ class TerminalSwingTerminal(
     }
 
     private fun clearSelection() {
-        selection = null
+        selectionAnchorAbsoluteRow = null
+        selectionCaretAbsoluteRow = null
+    }
+
+    private fun getViewportSelection(cache: TerminalRenderCache?): CellSelection? {
+        val anchorAbsRow = selectionAnchorAbsoluteRow ?: return null
+        val caretAbsRow = selectionCaretAbsoluteRow ?: return null
+        val c = cache ?: return null
+
+        val isForward = caretAbsRow > anchorAbsRow ||
+                (caretAbsRow == anchorAbsRow && selectionCaretColumn >= selectionAnchorColumn)
+
+        val startAbsRow = if (isForward) anchorAbsRow else caretAbsRow
+        val startCol = if (isForward) selectionAnchorColumn else selectionCaretColumn
+        val endAbsRow = if (isForward) caretAbsRow else anchorAbsRow
+        val endCol = if (isForward) selectionCaretColumn else selectionAnchorColumn
+
+        val startViewportRow = (startAbsRow - c.discardedCount - (c.historySize - c.scrollbackOffset)).toInt()
+        val endViewportRow = (endAbsRow - c.discardedCount - (c.historySize - c.scrollbackOffset)).toInt()
+
+        if (endViewportRow < 0 || startViewportRow >= c.rows) {
+            return null
+        }
+
+        val clampedStartRow = startViewportRow.coerceIn(0, c.rows - 1)
+        val clampedStartCol = if (startViewportRow < 0) 0 else startCol.coerceIn(0, c.columns)
+
+        val clampedEndRow = endViewportRow.coerceIn(0, c.rows - 1)
+        val clampedEndCol = if (endViewportRow >= c.rows) c.columns else endCol.coerceIn(0, c.columns)
+
+        return if (isForward) {
+            CellSelection(
+                anchorColumn = clampedStartCol,
+                anchorRow = clampedStartRow,
+                caretColumn = clampedEndCol,
+                caretRow = clampedEndRow
+            )
+        } else {
+            CellSelection(
+                anchorColumn = clampedEndCol,
+                anchorRow = clampedEndRow,
+                caretColumn = clampedStartCol,
+                caretRow = clampedStartRow
+            )
+        }
     }
 
     private fun cellAt(event: MouseEvent, cache: TerminalRenderCache): Long {
-        val column = (event.x / metrics.cellWidth).coerceIn(0, cache.columns - 1)
-        val row = ((event.y - contentYOffset(cache)) / metrics.cellHeight)
+        return cellAt(event.x, event.y, cache)
+    }
+
+    private fun cellAt(x: Int, y: Int, cache: TerminalRenderCache): Long {
+        val column = (x / metrics.cellWidth).coerceIn(0, cache.columns - 1)
+        val row = ((y - contentYOffset(cache)) / metrics.cellHeight)
             .toInt()
             .coerceIn(0, cache.rows - 1)
         return packCell(column, row)
+    }
+
+    private fun handleSelectionMouseReleased(event: MouseEvent) {
+        if (SwingUtilities.isLeftMouseButton(event)) {
+            stopSelectionDrag()
+            event.consume()
+        }
+    }
+
+    private fun stopSelectionDrag() {
+        selectingWithMouse = false
+        selectionAutoscrollTimer.stop()
+    }
+
+    private fun updateSelectionAutoscroll() {
+        if (selectingWithMouse && selectionAutoscrollDelta(lastSelectionDragY) != 0.0) {
+            if (!selectionAutoscrollTimer.isRunning) selectionAutoscrollTimer.start()
+        } else {
+            selectionAutoscrollTimer.stop()
+        }
+    }
+
+    private fun selectionAutoscrollDelta(y: Int): Double {
+        return when {
+            y < 0 -> 1.0
+            y >= height -> -1.0
+            else -> 0.0
+        }
+    }
+
+    private fun handleSelectionAutoscrollTick() {
+        if (!selectingWithMouse) {
+            selectionAutoscrollTimer.stop()
+            return
+        }
+
+        val boundSession = session ?: return
+        val publisher = boundSession.publisher
+        publisher.readCurrent { cache ->
+            val delta = selectionAutoscrollDelta(lastSelectionDragY)
+            if (delta == 0.0) {
+                selectionAutoscrollTimer.stop()
+                return@readCurrent
+            }
+
+            val changed = scrollViewportBy(boundSession, delta, cache.historySize)
+            if (changed) {
+                val cell = cellAt(lastSelectionDragX, lastSelectionDragY, cache)
+                val column = unpackCellColumn(cell)
+                val row = unpackCellRow(cell)
+
+                val caretAbsRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + row
+                val anchorAbsRow = selectionAnchorAbsoluteRow ?: (cache.discardedCount + cache.historySize - cache.scrollbackOffset + selectionAnchorRow)
+
+                val caretColumn = if (
+                    caretAbsRow < anchorAbsRow ||
+                    (caretAbsRow == anchorAbsRow && column < selectionAnchorColumn)
+                ) {
+                    column
+                } else {
+                    column + 1
+                }
+
+                selectionAnchorAbsoluteRow = anchorAbsRow
+                selectionCaretAbsoluteRow = caretAbsRow
+                selectionCaretColumn = caretColumn
+            }
+        }
+    }
+
+    private fun scrollViewportBy(boundSession: TerminalSession, delta: Double, historySize: Int): Boolean {
+        val previousRequestedOffset = scrollModel.requestedOffset
+        val previousRequestedRows = requestedRenderRows()
+        if (!scrollModel.scrollBy(delta, historySize)) return false
+
+        val nextRequestedOffset = scrollModel.requestedOffset
+        val nextRequestedRows = requestedRenderRows()
+        if (nextRequestedOffset != previousRequestedOffset || nextRequestedRows != previousRequestedRows) {
+            boundSession.requestRender(nextRequestedOffset, nextRequestedRows)
+        } else {
+            repaint()
+        }
+        return true
     }
 
     /**

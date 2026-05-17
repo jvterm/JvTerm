@@ -7,9 +7,7 @@ import com.gagik.terminal.input.event.TerminalFocusEvent
 import com.gagik.terminal.input.event.TerminalKeyEvent
 import com.gagik.terminal.input.event.TerminalMouseEvent
 import com.gagik.terminal.input.event.TerminalPasteEvent
-import com.gagik.terminal.render.api.TerminalRenderFrame
-import com.gagik.terminal.render.api.TerminalRenderFrameConsumer
-import com.gagik.terminal.render.api.TerminalRenderFrameReader
+import com.gagik.terminal.render.api.*
 import com.gagik.terminal.render.cache.TerminalRenderPublisher
 import com.gagik.terminal.session.TerminalSession
 import com.gagik.terminal.transport.TerminalConnector
@@ -18,8 +16,7 @@ import com.gagik.terminal.ui.swing.render.TestRenderFrame
 import com.gagik.terminal.ui.swing.settings.TerminalClipboardHandler
 import com.gagik.terminal.ui.swing.settings.TerminalClipboardShortcuts
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
@@ -60,6 +57,35 @@ class TerminalSwingTerminalSelectionTest {
         }
 
         assertEquals(CellSelection(0, 0, 5, 0), component.currentSelection())
+        session.close()
+    }
+
+    @Test
+    fun `drag above viewport autoscrolls into scrollback`() {
+        val renderReader = ScrollbackFrameReader()
+        val session = testSession(
+            frame = ScrollbackFrame(scrollbackOffset = 0, rows = 1),
+            renderReader = renderReader,
+        )
+        val component = TerminalSwingTerminal()
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(60, 20)
+            component.bind(session)
+        }
+        session.requestRender(scrollbackOffset = 0)
+        assertTrue(awaitOffset(session, 0), "initial render was not published")
+
+        SwingUtilities.invokeAndWait {
+            component.mouseListeners.forEach { it.mousePressed(mousePressed(component, x = 8, y = 8, clickCount = 1)) }
+            component.mouseMotionListeners.forEach { it.mouseDragged(mouseDragged(component, x = 8, y = -10)) }
+        }
+
+        assertTrue(awaitOffset(session, 1), "selection drag did not request a scrolled render")
+        SwingUtilities.invokeAndWait {
+            component.mouseListeners.forEach { it.mouseReleased(mouseReleased(component, x = 8, y = -10)) }
+        }
+        assertEquals(1, renderReader.lastRequestedOffset)
         session.close()
     }
 
@@ -165,12 +191,13 @@ class TerminalSwingTerminalSelectionTest {
     private fun testSession(
         frame: TerminalRenderFrame,
         inputEncoder: TerminalInputEncoder = NoOpInputEncoder,
+        renderReader: TerminalRenderFrameReader = StaticFrameReader(frame),
     ): TerminalSession {
         val terminal = TerminalBuffers.create(width = frame.columns, height = frame.rows, maxHistory = 5)
         return TerminalSession(
             terminal = terminal,
             publisher = TerminalRenderPublisher(frame.columns, frame.rows),
-            renderReader = StaticFrameReader(frame),
+            renderReader = renderReader,
             responseReader = terminal,
             connector = NoOpConnector,
             parser = NoOpParser,
@@ -215,6 +242,33 @@ class TerminalSwingTerminalSelectionTest {
         )
     }
 
+    private fun mouseReleased(
+        component: TerminalSwingTerminal,
+        x: Int,
+        y: Int,
+    ): MouseEvent {
+        return MouseEvent(
+            component,
+            MouseEvent.MOUSE_RELEASED,
+            System.currentTimeMillis(),
+            InputEvent.BUTTON1_DOWN_MASK,
+            x,
+            y,
+            1,
+            false,
+            MouseEvent.BUTTON1,
+        )
+    }
+
+    private fun awaitOffset(session: TerminalSession, offset: Int): Boolean {
+        val deadline = System.nanoTime() + 1_000_000_000L
+        while (System.nanoTime() < deadline) {
+            if (session.publisher.current()?.scrollbackOffset == offset) return true
+            Thread.sleep(10)
+        }
+        return false
+    }
+
     private fun copyKey(component: TerminalSwingTerminal, modifiers: Int): KeyEvent {
         return clipboardKey(component, KeyEvent.VK_C, modifiers)
     }
@@ -239,6 +293,84 @@ class TerminalSwingTerminalSelectionTest {
     ) : TerminalRenderFrameReader {
         override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
             consumer.accept(frame)
+        }
+    }
+
+    private class ScrollbackFrameReader : TerminalRenderFrameReader {
+        @Volatile
+        var lastRequestedOffset: Int = -1
+            private set
+
+        override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
+            readRenderFrame(scrollbackOffset = 0, consumer = consumer)
+        }
+
+        override fun readRenderFrame(scrollbackOffset: Int, consumer: TerminalRenderFrameConsumer) {
+            lastRequestedOffset = scrollbackOffset
+            consumer.accept(ScrollbackFrame(scrollbackOffset = scrollbackOffset.coerceIn(0, 5), rows = 1))
+        }
+
+        override fun readRenderFrame(
+            scrollbackOffset: Int,
+            viewportRows: Int,
+            consumer: TerminalRenderFrameConsumer,
+        ) {
+            lastRequestedOffset = scrollbackOffset
+            consumer.accept(
+                ScrollbackFrame(
+                    scrollbackOffset = scrollbackOffset.coerceIn(0, 5),
+                    rows = viewportRows.coerceAtLeast(1),
+                )
+            )
+        }
+    }
+
+    private class ScrollbackFrame(
+        override val scrollbackOffset: Int,
+        override val rows: Int,
+    ) : TerminalRenderFrame {
+        override val columns: Int = 3
+        override val historySize: Int = 5
+        override val frameGeneration: Long = scrollbackOffset.toLong() + 1
+        override val structureGeneration: Long = 1
+        override val activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY
+        override val cursor: TerminalRenderCursor = TerminalRenderCursor(
+            column = 0,
+            row = 0,
+            visible = scrollbackOffset == 0,
+            blinking = false,
+            shape = TerminalRenderCursorShape.BLOCK,
+            generation = frameGeneration,
+        )
+
+        override fun lineGeneration(row: Int): Long = frameGeneration
+
+        override fun lineWrapped(row: Int): Boolean = false
+
+        override fun copyLine(
+            row: Int,
+            codeWords: IntArray,
+            codeOffset: Int,
+            attrWords: LongArray,
+            attrOffset: Int,
+            flags: IntArray,
+            flagOffset: Int,
+            extraAttrWords: LongArray?,
+            extraAttrOffset: Int,
+            hyperlinkIds: IntArray?,
+            hyperlinkOffset: Int,
+            clusterSink: TerminalRenderClusterSink?,
+            clusterDataSink: TerminalRenderClusterDataSink?,
+        ) {
+            var column = 0
+            while (column < columns) {
+                codeWords[codeOffset + column] = 'A'.code + column
+                attrWords[attrOffset + column] = TerminalRenderAttrs.DEFAULT
+                flags[flagOffset + column] = TerminalRenderCellFlags.CODEPOINT
+                extraAttrWords?.set(extraAttrOffset + column, TerminalRenderExtraAttrs.DEFAULT)
+                hyperlinkIds?.set(hyperlinkOffset + column, 0)
+                column++
+            }
         }
     }
 
