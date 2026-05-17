@@ -464,10 +464,9 @@ professional emulator needs explicit contracts for it.
   resolver integration, script/run-level shaping, and fallback cache eviction.
 - `TODO(host)`: font measurement policy, palette/default-color policy, and
   backend painter integrations.
-- `TODO(host/ui)`: native platform emoji presentation. On Windows this should
-  use DirectWrite/Direct2D or another platform text stack that can render
-  `Segoe UI Emoji` color glyphs like Windows Terminal; pure Swing Java2D font
-  fallback may expose only monochrome glyph outlines.
+- `DONE(host/ui)`: native platform emoji presentation has a Windows
+  `Segoe UI Emoji` COLR/CPAL rasterizer for platform color glyphs, with a
+  Java2D fallback when native color glyph data is unavailable.
 - `TODO(host)`: double-width glyph display and ambiguous width presentation
   must match core width decisions.
 - `TODO(host)`: text selection and clipboard integration, including:
