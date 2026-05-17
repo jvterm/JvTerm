@@ -28,6 +28,26 @@ class CoreTerminalRenderFrameTest {
     }
 
     @Test
+    fun `terminal render frame reflects mutated cursor shape`() {
+        val buffer = TerminalBuffer(initialWidth = 3, initialHeight = 2)
+        val reader = buffer as TerminalRenderFrameReader
+
+        buffer.setCursorShape(TerminalRenderCursorShape.UNDERLINE)
+
+        reader.readRenderFrame { frame ->
+            assertEquals(TerminalRenderCursorShape.UNDERLINE, frame.cursor.shape)
+        }
+
+        var reportedShape: TerminalRenderCursorShape? = null
+        reader.readRenderFrame { frame ->
+            frame.copyCursor { _, _, _, _, shape, _ ->
+                reportedShape = shape
+            }
+        }
+        assertEquals(TerminalRenderCursorShape.UNDERLINE, reportedShape)
+    }
+
+    @Test
     fun `empty line copies empty flags and default attrs`() {
         val buffer = TerminalBuffer(initialWidth = 3, initialHeight = 1)
         val reader = buffer as TerminalRenderFrameReader

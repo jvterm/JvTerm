@@ -98,7 +98,7 @@ internal class CoreTerminalRenderFrame(
                 row = row,
                 visible = state.modes.isCursorVisible && row in 0 until resolvedRows,
                 blinking = state.modes.isCursorBlinking,
-                shape = TerminalRenderCursorShape.BLOCK,
+                shape = state.cursorShape,
                 generation = state.cursorGeneration,
             )
         }
@@ -111,7 +111,7 @@ internal class CoreTerminalRenderFrame(
             row = row,
             visible = state.modes.isCursorVisible && row in 0 until resolvedRows,
             blinking = state.modes.isCursorBlinking,
-            shape = TerminalRenderCursorShape.BLOCK,
+            shape = state.cursorShape,
             generation = state.cursorGeneration,
         )
     }

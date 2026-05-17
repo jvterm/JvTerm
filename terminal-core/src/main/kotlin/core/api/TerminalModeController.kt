@@ -2,6 +2,7 @@ package com.gagik.core.api
 
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
+import com.gagik.terminal.render.api.TerminalRenderCursorShape
 
 /**
  * Mode-control contract for the terminal buffer.
@@ -73,6 +74,9 @@ interface TerminalModeController {
 
     /** Toggles cursor blink presentation state. */
     fun setCursorBlinking(enabled: Boolean)
+
+    /** Sets the cursor shape/style. */
+    fun setCursorShape(shape: TerminalRenderCursorShape)
 
     /**
      * Controls how East Asian Ambiguous codepoints are measured for future writes.

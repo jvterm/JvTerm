@@ -5,6 +5,7 @@ import com.gagik.core.engine.CursorEngine
 import com.gagik.core.state.TerminalState
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
+import com.gagik.terminal.render.api.TerminalRenderCursorShape
 
 internal class TerminalModeControllerImpl(
     private val state: TerminalState,
@@ -92,6 +93,12 @@ internal class TerminalModeControllerImpl(
 			if (state.modes.isCursorBlinking == enabled) return@mutateMode
 			state.modes.isCursorBlinking = enabled
 			state.markCursorChanged()
+		}
+	}
+
+	override fun setCursorShape(shape: TerminalRenderCursorShape) {
+		mutateMode {
+			state.cursorShape = shape
 		}
 	}
 
