@@ -143,4 +143,23 @@ class TerminalWriterUnicodeTest {
             { assertEquals(3, wide.cursorCol) }
         )
     }
+
+    @Test
+    fun `ambiguousWideMode_keepsTerminalCellGraphicsSingleWidth`() {
+        val buffer = TerminalBuffers.create(width = 8, height = 2)
+
+        buffer.setTreatAmbiguousAsWide(true)
+        buffer.writeCodepoint(0x2500)
+        buffer.writeCodepoint(0x2588)
+        buffer.writeCodepoint(0x2591)
+        buffer.writeCodepoint('X'.code)
+
+        assertAll(
+            { assertEquals(0x2500, buffer.getCodepointAt(0, 0), "Box drawing must remain one cell") },
+            { assertEquals(0x2588, buffer.getCodepointAt(1, 0), "Block element must remain one cell") },
+            { assertEquals(0x2591, buffer.getCodepointAt(2, 0), "Shade block must remain one cell") },
+            { assertEquals('X'.code, buffer.getCodepointAt(3, 0)) },
+            { assertEquals(4, buffer.cursorCol) },
+        )
+    }
 }

@@ -11,6 +11,7 @@ internal object UnicodeWidth {
     private val wide = BitSet(0x20000)
     private val zero = BitSet(0x20000)
     private val ambiguous = BitSet(0x20000)
+    private val terminalCellGraphics = BitSet(0x20000)
 
     // Astral Wide: CJK Extensions B through H (SIP & TIP)
     private val astralWideRanges = intArrayOf(
@@ -168,6 +169,16 @@ internal object UnicodeWidth {
         for (i in ambiguousRanges.indices step 2) {
             ambiguous.set(ambiguousRanges[i], ambiguousRanges[i + 1] + 1)
         }
+
+        val terminalCellGraphicRanges = intArrayOf(
+            0x2500, 0x257F, // Box Drawing
+            0x2580, 0x259F, // Block Elements
+            0x2800, 0x28FF, // Braille Patterns
+            0x1FB00, 0x1FBFF // Symbols for Legacy Computing
+        )
+        for (i in terminalCellGraphicRanges.indices step 2) {
+            terminalCellGraphics.set(terminalCellGraphicRanges[i], terminalCellGraphicRanges[i + 1] + 1)
+        }
     }
 
     /**
@@ -186,6 +197,7 @@ internal object UnicodeWidth {
         // O(1) BMP/SMP Lookup using BitSets
         if (cp < 0x20000) {
             if (zero.get(cp)) return 0
+            if (terminalCellGraphics.get(cp)) return 1
             if (wide.get(cp)) return 2 // Reordered: Wide checked before Ambiguous for performance
             if (ambiguous.get(cp)) return if (ambiguousAsWide) 2 else 1
             return 1

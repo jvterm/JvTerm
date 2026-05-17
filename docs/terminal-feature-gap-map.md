@@ -303,6 +303,9 @@ Missing:
   presentation should be explicit and versioned.
 - `TODO(core)`: configurable ambiguous-width policy is present, but table coverage
   should be generated and audited.
+- `DONE(core)`: terminal cell graphics such as box drawing, block elements,
+  Braille patterns, and Symbols for Legacy Computing stay single-cell even when
+  the host enables East Asian Ambiguous wide mode.
 - `TODO(core)`: invalid/unassigned codepoint width policy.
 
 ### Query and Response Channel

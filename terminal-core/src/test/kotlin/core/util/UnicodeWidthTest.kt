@@ -80,6 +80,13 @@ class UnicodeWidthTest {
             assertEquals(2, UnicodeWidth.calculate(cp, ambiguousAsWide = true))
         }
 
+        @ParameterizedTest(name = "Terminal cell graphic cp=0x{0} remains narrow")
+        @ValueSource(ints = [0x2500, 0x257F, 0x2588, 0x2591, 0x2800, 0x28FF, 0x1FB00, 0x1FBFF])
+        fun `terminal cell graphics stay narrow in ambiguous wide mode`(cp: Int) {
+            assertEquals(1, UnicodeWidth.calculate(cp, ambiguousAsWide = false))
+            assertEquals(1, UnicodeWidth.calculate(cp, ambiguousAsWide = true))
+        }
+
         @ParameterizedTest(name = "Non-ambiguous cp=0x{0} ignores toggle")
         @MethodSource("com.gagik.core.util.UnicodeWidthTest#nonAmbiguousSamples")
         fun `non-ambiguous classes ignore toggle`(cp: Int, expected: Int) {
