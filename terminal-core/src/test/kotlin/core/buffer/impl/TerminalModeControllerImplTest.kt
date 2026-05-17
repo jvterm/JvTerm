@@ -1,10 +1,13 @@
 package com.gagik.core.buffer.impl
 
+import com.gagik.core.buffer.TerminalBuffer
 import com.gagik.core.engine.CursorEngine
 import com.gagik.core.engine.MutationEngine
 import com.gagik.core.state.TerminalState
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
+import com.gagik.terminal.render.api.TerminalRenderCursorShape
+import com.gagik.terminal.render.api.TerminalRenderFrameReader
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -34,6 +37,34 @@ class TerminalModeControllerImplTest {
             { assertEquals(true, state.modes.isApplicationCursorKeys) },
             { assertEquals(true, state.modes.treatAmbiguousAsWide) }
         )
+    }
+
+    @Test
+    fun `cursor shape updates correctly and resets on full and soft reset`() {
+        val state = TerminalState(4, 3, 2)
+        val modeController = TerminalModeControllerImpl(state, CursorEngine(state))
+
+        assertEquals(TerminalRenderCursorShape.BLOCK, state.cursorShape)
+
+        modeController.setCursorShape(TerminalRenderCursorShape.BAR)
+        assertEquals(TerminalRenderCursorShape.BAR, state.cursorShape)
+
+        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 3)
+        buffer.setCursorShape(TerminalRenderCursorShape.BAR)
+        buffer.reset()
+
+        var shapeAfterReset: TerminalRenderCursorShape? = null
+        (buffer as TerminalRenderFrameReader).readRenderFrame { frame ->
+            shapeAfterReset = frame.cursor.shape
+        }
+        assertEquals(TerminalRenderCursorShape.BLOCK, shapeAfterReset)
+
+        buffer.setCursorShape(TerminalRenderCursorShape.UNDERLINE)
+        buffer.softReset()
+        (buffer as TerminalRenderFrameReader).readRenderFrame { frame ->
+            shapeAfterReset = frame.cursor.shape
+        }
+        assertEquals(TerminalRenderCursorShape.BLOCK, shapeAfterReset)
     }
 
     @Test

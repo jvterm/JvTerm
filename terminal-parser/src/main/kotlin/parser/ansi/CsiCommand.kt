@@ -49,4 +49,5 @@ internal object CsiCommand {
     const val DSR: Int = 36
     const val DSR_DEC: Int = 37
     const val WINDOW_OP: Int = 38
+    const val DECSCUSR: Int = 39
 }

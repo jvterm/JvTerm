@@ -1,6 +1,7 @@
 package com.gagik.core.state
 
 import com.gagik.core.model.*
+import com.gagik.terminal.render.api.TerminalRenderCursorShape
 
 /**
  * The global hardware context of the terminal.
@@ -38,6 +39,14 @@ internal class TerminalState(
             if (field != value) {
                 field = value
                 markVisualChanged()
+            }
+        }
+
+    var cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK
+        set(value) {
+            if (field != value) {
+                field = value
+                markCursorChanged()
             }
         }
 

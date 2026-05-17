@@ -84,6 +84,13 @@ class GeneratedCsiDispatchTableTest {
         }
 
         @Test
+        fun `DECSCUSR routes only through CSI space q`() {
+            assertEquals(CsiCommand.DECSCUSR, lookup('q', intermediates = ' '.code, intermediateCount = 1))
+            assertEquals(CsiCommand.UNKNOWN, lookup('q'))
+            assertEquals(CsiCommand.UNKNOWN, lookup('q', intermediates = '!'.code, intermediateCount = 1))
+        }
+
+        @Test
         fun `unknown signatures return UNKNOWN`() {
             assertEquals(CsiCommand.UNKNOWN, lookup('m', privateMarker = '?'.code))
             assertEquals(CsiCommand.UNKNOWN, lookup('A', privateMarker = '?'.code))

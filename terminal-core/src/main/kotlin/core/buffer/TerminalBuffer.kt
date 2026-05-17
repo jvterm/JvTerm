@@ -8,6 +8,7 @@ import com.gagik.core.engine.TerminalResizer
 import com.gagik.core.model.SavedCursorState
 import com.gagik.core.render.CoreTerminalRenderFrame
 import com.gagik.core.state.TerminalState
+import com.gagik.terminal.render.api.TerminalRenderCursorShape
 import com.gagik.terminal.render.api.TerminalRenderFrameConsumer
 import com.gagik.terminal.render.api.TerminalRenderFrameReader
 
@@ -118,6 +119,7 @@ internal class TerminalBuffer private constructor(
         state.hostResponses.clear()
         state.modes.reset()
         state.tabStops.resetToDefault()
+        state.cursorShape = TerminalRenderCursorShape.BLOCK
         state.markStructureChanged()
         state.markCursorChanged()
     }
@@ -136,6 +138,7 @@ internal class TerminalBuffer private constructor(
         state.altBuffer.cursor.pendingWrap = false
         resetSavedCursorToHome(state.primaryBuffer.savedCursor)
         resetSavedCursorToHome(state.altBuffer.savedCursor)
+        state.cursorShape = TerminalRenderCursorShape.BLOCK
         if (wasReverseVideo != state.modes.isReverseVideo) {
             state.markVisibleLinesChanged()
         }

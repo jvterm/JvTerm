@@ -72,6 +72,7 @@ interface TerminalCommandSink {
 
     fun saveCursor()
     fun restoreCursor()
+    fun setCursorStyle(style: Int)
 
     // -------------------------------------------------------------------------
     // Cursor navigation
