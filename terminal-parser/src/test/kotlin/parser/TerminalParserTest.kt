@@ -505,6 +505,25 @@ class TerminalParserTest {
                 { assertTrue(f.sink.events.isEmpty()) }
             )
         }
+
+        @Test
+        fun `DECSCUSR cursor style sequence parses successfully through the full parser`() {
+            val f = TerminalParserFixture()
+
+            // CSI 2 SP q (Underline)
+            f.acceptAscii("\u001B[2 q")
+            
+            // CSI SP q (Default/Omitted)
+            f.acceptAscii("\u001B[ q")
+
+            assertEquals(
+                listOf(
+                    "setCursorStyle:2",
+                    "setCursorStyle:0"
+                ),
+                f.sink.events
+            )
+        }
     }
 
     // ----- SGR --------------------------------------------------------------

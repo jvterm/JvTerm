@@ -65,6 +65,10 @@ internal class RecordingTerminalCommandSink : TerminalCommandSink {
         events += "restoreCursor"
     }
 
+    override fun setCursorStyle(style: Int) {
+        events += "setCursorStyle:$style"
+    }
+
     override fun cursorUp(n: Int) {
         events += "cursorUp:$n"
     }

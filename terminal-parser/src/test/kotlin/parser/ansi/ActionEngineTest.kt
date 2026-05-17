@@ -185,6 +185,10 @@ class ActionEngineTest {
             sinkCalls += "restoreCursor"
         }
 
+        override fun setCursorStyle(style: Int) {
+            sinkCalls += "setCursorStyle:$style"
+        }
+
         override fun cursorUp(n: Int) {
             sinkCalls += "cursorUp:$n"
         }

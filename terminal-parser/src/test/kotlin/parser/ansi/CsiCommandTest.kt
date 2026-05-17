@@ -38,7 +38,18 @@ class CsiCommandTest {
         CsiCommand.CHT,
         CsiCommand.CBT,
         CsiCommand.TBC,
-        CsiCommand.DECSTBM
+        CsiCommand.DECSTBM,
+        CsiCommand.DECSLRM,
+        CsiCommand.DECSED,
+        CsiCommand.DECSEL,
+        CsiCommand.DECSCA,
+        CsiCommand.DA_PRIMARY,
+        CsiCommand.DA_SECONDARY,
+        CsiCommand.DA_TERTIARY,
+        CsiCommand.DSR,
+        CsiCommand.DSR_DEC,
+        CsiCommand.WINDOW_OP,
+        CsiCommand.DECSCUSR
     )
 
     @Nested
@@ -47,7 +58,7 @@ class CsiCommandTest {
 
         @Test
         fun `command ids are contiguous and stable`() {
-            assertEquals((0..28).toList(), allCommands)
+            assertEquals((0..39).toList(), allCommands)
         }
 
         @Test

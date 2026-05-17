@@ -152,6 +152,7 @@ internal object AnsiCommandDispatcher : CommandDispatcher {
             CsiCommand.RM_DEC -> dispatchDecMode(sink, state, enable = false)
 
             CsiCommand.DECSTR -> sink.softReset()
+            CsiCommand.DECSCUSR -> sink.setCursorStyle(modeParam(state, 0))
             CsiCommand.SGR -> SgrDispatcher.dispatch(sink, state)
         }
     }
