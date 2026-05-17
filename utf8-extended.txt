@@ -1,0 +1,471 @@
+# Unicode Terminal Rendering Stress Test File (utf8-extended.txt)
+# Purpose: Comprehensive validation of terminal UTF-8 decoding, grapheme clustering,
+#          cursor advance, font fallback, Emoji ZWJ sequences, subdivision flags,
+#          variation selectors, RTL/Bidi script mixing, complex Indic/Thai conjuncts,
+#          East Asian width, box drawing alignment, and edge wrapping boundaries.
+#
+# Expected terminal model:
+#   Bytes -> UTF-8 Decoded Code Points -> Grapheme Clusters -> Visual Grid Width -> Render
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                  UNICODE TERMINAL RENDERING STRESS CORPUS                    │
+│                        Extended UTF-8 Verification File                      │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+SECTION 1 — ASCII & BASIC LATIN
+================================================================================
+
+ASCII Printable Characters:
+! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~
+ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+
+Pangrams & Mixed Text:
+- The quick brown fox jumps over the lazy dog.
+- Pack my box with five dozen liquor jugs.
+- Sphinx of black quartz, judge my vow.
+
+ASCII Alignment Ruler (80 columns):
+|00000000011111111112222222222333333333344444444445555555555666666666677777777778|
+|12345678901234567890123456789012345678901234567890123456789012345678901234567890|
+|................................................................................|
+
+================================================================================
+SECTION 2 — EUROPEAN EXTENSIONS & LATIN-1
+================================================================================
+
+French:     à â ä æ ç é è ê ë î ï ô œ ù û ü ÿ / À Â Ä Æ Ç É È Ê Ë Î Ï Ô Œ Ù Û Ü Ÿ
+            Café déjà vu: élève, garçon, cœur, Noël, façade, où.
+German:     ä ö ü ß Ä Ö Ü / Fußgänger, Straße, Größe, schön.
+Spanish:    á é í ó ú ü ñ ¿ ¡ / El pingüino comió piña en Málaga.
+Portuguese: á â ã ç é ê í ó ô õ ú / Coração, café, avó, útil, açúcar.
+Nordic:     å æ ø þ ð  / Blåbær, øl, þorskur, eða.
+
+European Alignment Check:
+|à|â|ä|æ|ç|é|è|ê|ë|î|ï|ô|œ|ù|û|ü|ÿ|ß|ñ|å|æ|ø|þ|ð|
+|1|2|3|4|5|6|7|8|9|0|1|2|3|4|5|6|7|8|9|0|1|2|3|4|
+
+================================================================================
+SECTION 3 — NON-LATIN ALPHABETS (LTR)
+================================================================================
+
+Armenian:   Հայերեն այբուբեն (Armenian Alphabet)
+            Ա Բ Գ Դ Ե Զ Է Ը Թ Ժ Ի Լ Խ Ծ Կ Հ Ձ Ղ Ճ Մ Յ Ն Շ Ո Չ Պ Ջ Ռ Ս Վ Տ Ր Ց Ւ Փ Ք Օ Ֆ
+            ա բ գ դ ե զ է ը թ ժ ի լ խ ծ կ հ ձ ղ ճ մ յ ն շ ո չ պ ջ ռ ս վ տ ր ց ւ փ ք օ ֆ
+
+Greek:      Καλημέρα κόσμε (Hello world)
+            Α Β Γ Δ Ε Ζ Η Θ Ι Κ Λ Μ Ν Ξ Ο Π Ρ Σ Τ Υ Φ Χ Ψ Ω
+            α β γ δ ε ζ η θ ι κ λ μ ν ξ ο π ρ σ τ υ φ χ ψ ω
+            Greek Polytonic: ῞Ω γλῶσσα, πάντα γίγνεται διὰ σοῦ.
+
+Cyrillic:   Привет, мир (Hello, world)
+            А Б В Г Д Е Ё Ж З И Й К Л М Н О П Р С Т У Ф Х Ц Ч Ш Щ Ъ Ы Ь Э Ю Я
+            а б в г д е ё ж з и й к л м н о п р с τ у φ х ц ч ш щ ъ ы ь э ю я
+
+Georgian:   გთხოვთ ახლავე გაიაროთ რეგისტრაცია (Georgian Mkhedruli)
+            ა ბ გ დ ე ვ ზ თ ი კ ლ მ ნ ო პ ჟ რ ს ტ უ ფ ქ ღ ყ შ ჩ ც ძ წ ჭ ხ ჯ ჰ
+
+Ethiopian:  ሰማይ አይتاረስ ንጉሥ አይከሰስ። (Amharic Ge'ez Proverbs)
+            ሀ ለ ሐ መ ሠ ረ ሰ ሸ ቀ በ ተ ቸ ኀ ነ ኘ አ ከ ኸ ወ ዐ ዘ ዠ የ ደ ጀ ገ ጠ ጨ ጰ ጸ ፀ ፈ ፐ
+
+Runes:      ᚻᛖ ᚳᚹᚫᚦ ᚦᚫᛏ ᚻᛖ ᛒᚢᛞᛖ ᚩᚾ ᚦᚫᛗ ᛚᚪᚾᛞᛖ (Old English Futhark)
+
+================================================================================
+SECTION 4 — COMBINING DIACRITICS & NORMALIZATION
+================================================================================
+
+Standard terminals must treat precomposed (NFC) and decomposed (NFD) strings
+identically in terms of column advance (exactly 1 cell each).
+
+NFC (Precomposed)  │ NFD (Decomposed)   │ Hex/Sequence Check
+───────────────────┼────────────────────┼───────────────────────────
+é (U+00E9)         │ é (U+0065 U+0301)  │ [e] + [combining acute]
+Å (U+00C5)         │ Å (U+0041 U+030A)  │ [A] + [combining ring above]
+ñ (U+00F1)         │ ñ (U+006E U+0303)  │ [n] + [combining tilde]
+ü (U+00FC)         │ ü (U+0075 U+0308)  │ [u] + [combining diaeresis]
+
+Combining Marks Stack (Stress/Zalgo test):
+- Single:   á (a + U+0301)
+- Double:  ä́ (a + U+0308 + U+0301)
+- Stripped: x̸ (x + U+0338) / a̷ (a + U+0337)
+- Deep Zalgo stack: Z̥̤̱͑͗͛̔͐̇̍ (Z + 10 combining marks)
+
+Visual Alignment Check (Combining clusters MUST stay in a single column):
+|a|é|ô|ñ|ü|x̸|Z͑|
+|A|B |C |D |E |F |G |
+
+Combining Marks after Punctuation / Space:
+| ́|  (Space + U+0301)
+|.́|  (Period + U+0301)
+|-̈|  (Hyphen + U+0308)
+|_̃|  (Underscore + U+0303)
+
+================================================================================
+SECTION 5 — RTL SCRIPTS & BIDIRECTIONAL TEXT (BIDI)
+================================================================================
+
+RTL text runs backwards visually. Terminal grid managers must decide whether
+they perform logical-to-visual Bidi reordering or display raw stream order.
+
+Pure Hebrew:       שָׁלוֹם עֹולָם (Hello World, with niqqud)
+Pure Arabic:       السَّلَامُ عَلَيْكُمْ (Peace be upon you, with harakat)
+
+Mixed LTR & RTL:
+- LTR prefix: שלום עולם :RTL suffix
+- Price: 1500 ₪ (Israeli Shekel symbol at end of run)
+- Version 3.4.1 متاح الآن للتحميل مجاناً (Arabic mixed with numbers)
+
+Parentheses / Brackets in RTL (should mirror correctly):
+- English prefix (مرحبا) English suffix
+- English prefix [שלום] English suffix
+
+================================================================================
+SECTION 6 — COMPLEX INDIC & SOUTHEAST ASIAN SCRIPTS
+================================================================================
+
+Complex scripts require glyph shaping engine (like HarfBuzz) and cluster
+segmentation to advance cursor correctly.
+
+Devanagari:  नमस्ते दुनिया (Hello World - requires conjunct shaping for 'स्त')
+             कर्म क्षेत्र हिन्दी संस्कृत (Hindi / Sanskrit)
+Bengali:     বাংলা ভাষা (Bengali Language)
+Tamil:       தமிழ் மொழி (Tamil Language)
+Khmer:       ភាសាខ្មែរ (Khmer Language)
+Sinhala:     සිංහල භාෂාව (Sinhala Language)
+
+Thai (UCS Level 2 Stacking):
+- สวัสดีชาวโลก (Hello World)
+- ๏ แผ่นดินฮั่นเสื่อมโทรมแสนสังเวช  พระปกเกศกองบู๊กู้ขึ้นใหม่ (Thai poetic columns)
+- ผสมวรรณยุกต์: ◌่ ◌้ ◌๊ ◌๋ (Tone marks) / ที่ นี่ น้ำ (Stacked tone over vowel)
+
+================================================================================
+SECTION 7 — ZERO-WIDTH & FORMAT CHARACTERS
+================================================================================
+
+These characters should occupy EXACTLY 0 visual columns and not render glyphs.
+
+Soft Hyphen (SHY: U+00AD):            soft­hyphen (invisible in normal rendering)
+Word Joiner (WJ: U+2060):             word⁠joiner
+Zero-Width Space (ZWSP: U+200B):      A​B (contains U+200B between A and B)
+Zero-Width Non-Joiner (ZWNJ: U+200C): A‌B (contains U+200C - Persian:می‌خواهم)
+Zero-Width Joiner (ZWJ: U+200D):      A‍B (contains U+200D between A and B)
+
+================================================================================
+SECTION 8 — VARIATION SELECTORS (TEXT VS EMOJI PRESENTATION)
+================================================================================
+
+Codepoint + VS15 (U+FE0E, force text) vs Codepoint + VS16 (U+FE0F, force emoji).
+Terminal renderers must advance exactly 1 cell for text, and 2 cells for emoji.
+
+Symbol │ VS15 (Force Text - 1 Cell) │ VS16 (Force Emoji - 2 Cells)
+───────┼────────────────────────────┼──────────────────────────────
+Heart  │ ♥︎                           │ ❤️
+Coffee │ ☕︎                          │ ☕️
+Plane  │ ✈︎                           │ ✈️
+Skull  │ ☠︎                           │ ☠️
+Gear   │ ⚙︎                           │ ⚙️
+Bolt   │ ⚡︎                           │ ⚡️
+Star   │ ⭐︎                           │ ⭐️
+
+Visual Alignment Check:
+|♥︎ |❤️|
+|☕︎ |☕️|
+|✈︎ |✈️|
+
+================================================================================
+SECTION 9 — EMOJIS & MODIFIERS (SKIN TONES)
+================================================================================
+
+Standard single-point emojis (width 2) and skin tone modifiers (U+1F3FB..U+1F3FF)
+which must merge into a single grapheme cluster of width 2.
+
+Skin Tone Modifier Matrix (Base + Modifier = 1 Cluster):
+  Base   │ Light (1F3FB) │ M-Light (1F3FC) │ Medium (1F3FD) │ M-Dark (1F3FE) │ Dark (1F3FF)
+─────────┼───────────────┼─────────────────┼────────────────┼────────────────┼─────────────
+  👍     │ 👍🏻            │ 👍🏼              │ 👍🏽             │ 👍🏾             │ 👍🏿
+  👋     │ 👋🏻            │ 👋🏼              │ 👋🏽             │ 👋🏾             │ 👋🏿
+  🧑     │ 🧑🏻            │ 🧑🏼              │ 🧑🏽             │ 🧑🏾             │ 🧑🏿
+  🏃     │ 🏃🏻            │ 🏃🏼              │ 🏃🏽             │ 🏃🏾             │ 🏃🏿
+
+Modern Emoji Additions (Emoji 15.0+):
+🫠 (Melting Face) | 🫨 (Shaking Face) | 🩷 (Pink Heart) | 🩵 (Light Blue Heart)
+🩶 (Grey Heart)   | 🫏 (Donkey)       | 🪿 (Goose)      | 🪼 (Jellyfish)
+🫛 (Pea Pod)      | 🫚 (Ginger)       | 🪭 (Folding Fan) | 🪮 (Hair Pick)
+🪇 (Maracas)      | 🪈 (Flute)        | 🪯 (Khanda)     | 🛜 (Wireless)
+
+================================================================================
+SECTION 10 — REGIONAL INDICATOR FLAGS
+================================================================================
+
+Pairs of Regional Indicator characters (U+1F1E6..U+1F1FF) merge into country flags.
+A single Regional Indicator or odd-numbered ones should NOT merge.
+
+Dual Regional Indicators (Valid Country Flags - Width 2):
+🇦🇲 (Armenia) | 🇫🇷 (France) | 🇺🇸 (USA) | 🇬🇧 (UK) | 🇩🇪 (Germany)
+🇯🇵 (Japan)   | 🇰🇷 (South Korea) | 🇨🇳 (China) | 🇮🇳 (India) | 🇪🇺 (EU)
+
+Single Regional Indicators (Should render as individual characters or boxes):
+🇦
+🇫
+🇺
+🇯
+
+Alignment Check:
+|🇦🇲|🇫🇷|🇺🇸|🇯🇵|🇪🇺|
+|AM|FR|US|JP|EU|
+
+================================================================================
+SECTION 11 — SUBDIVISION & TAG FLAGS
+================================================================================
+
+Subdivision flags use tag sequences starting with Black Flag (U+1F3F4) + Tag
+characters + Cancel Tag (U+E007F). ZWJ flags join flags with other emojis.
+
+Subdivision Flags (England, Scotland, Wales):
+🏴󠁧󠁢󠁥󠁮󠁧󠁿 (England Tag Sequence)
+🏴󠁧󠁢󠁳󠁣󠁴󠁿 (Scotland Tag Sequence)
+🏴󠁧󠁢󠁷󠁬󠁳󠁿 (Wales Tag Sequence)
+
+ZWJ Joined Flags:
+🏳️‍🌈 (Rainbow Flag: White Flag + ZWJ + Rainbow)
+🏳️‍⚧️ (Transgender Flag: White Flag + ZWJ + Transgender Symbol)
+🏴‍☠️ (Pirate Flag: Black Flag + ZWJ + Skull and Crossbones)
+
+================================================================================
+SECTION 12 — KEYCAP SEQUENCES
+================================================================================
+
+Keycaps: ASCII Digit/Symbol + VS16 (U+FE0F) + Combining Enclosing Keycap (U+20E3).
+These must form a single grapheme cluster of width 2.
+
+0️⃣ 1️⃣ 2️⃣ 3️⃣ 4️⃣ 5️⃣ 6️⃣ 7️⃣ 8️⃣ 9️⃣ 🔟 #️⃣ *️⃣
+
+Keycap Alignment Check:
+|0️⃣|1️⃣|2️⃣|3️⃣|#️⃣|*️⃣|
+|0 |1 |2 |3 |# |* |
+
+================================================================================
+SECTION 13 — ZERO-WIDTH JOINER (ZWJ) EMOJI SEQUENCES
+================================================================================
+
+Multi-character emojis joined by ZWJ (U+200D). They must render as a single
+combined emoji of width 2, rather than separate symbols.
+
+Professions (Base + ZWJ + Modifier):
+👩‍💻 👨‍💻 🧑‍💻 (Technologists)
+👩‍🔬 👨‍🔬 🧑‍🔬 (Scientists)
+👩‍🏫 👨‍🏫 🧑‍🏫 (Teachers)
+👩‍⚕️ 👨‍⚕️ 🧑‍⚕️ (Health Workers)
+👩‍🚀 👨‍🚀 🧑‍🚀 (Astronauts)
+👩‍🚒 👨‍🚒 🧑‍🚒 (Firefighters)
+
+Diverse Families (Complex ZWJ chains):
+👨‍👩‍👧 (Man + Woman + Girl)
+👨‍👩‍👦 (Man + Woman + Boy)
+👨‍👩‍👧‍👦 (Man + Woman + Girl + Boy)
+👩‍👩‍👦‍👦 (Woman + Woman + Boy + Boy)
+👨‍👨‍👧‍👧 (Man + Man + Girl + Girl)
+👩‍👧‍👦 (Woman + Girl + Boy)
+
+Couples & Romance:
+👩‍❤️‍👨 (Woman + Heart + Man)
+👨‍❤️‍👨 (Man + Heart + Man)
+👩‍❤️‍💋‍👩 (Woman + Heart + Kiss + Woman)
+
+Miscellaneous ZWJ Icons:
+❤️‍🔥 (Heart on Fire) | ❤️‍🩹 (Mended Heart) | 👁️‍🗨️ (Eye in Speech Bubble)
+
+ZWJ + Skin Tone Combinations:
+👩🏻‍💻 👩🏼‍💻 👩🏽‍💻 👩🏾‍💻 👩🏿‍💻 (Technologists with 5 skin tones)
+👨🏻‍⚕️ 👨🏼‍⚕️ 👨🏽‍⚕️ 👨🏾‍⚕️ 👨🏿‍⚕️ (Health Workers with 5 skin tones)
+
+================================================================================
+SECTION 14 — CJK WIDE CHARACTERS & FULLWIDTH / HALFWIDTH
+================================================================================
+
+Chinese:  中文漢字测试 (Simplified) / 中文漢字測試 (Traditional) / 你好，世界。
+Japanese: 日本語テスト / カタカナ ひらがな 漢字 / こんにちは世界。
+Korean:   한국어 한글 테스트 / 안녕하세요 세계.
+
+Fullwidth Latin & Digits (Width 2):
+ＡＢＣＤＥＦＧ ａｂｃｄｅｆｇ ０１２３４５６７８９
+
+Halfwidth Katakana (Width 1):
+ｶﾀｶﾅ ﾊﾝｶｸ
+
+Visual Grid Alignment (CJK characters must occupy exactly twice the width of ASCII):
+|中|文|漢|字|日|本|語|
+|AA|BB|CC|DD|EE|FF|GG|
+
+Mixed Narrow/Wide Spacing:
+|A中B|
+|A  B|
+
+================================================================================
+SECTION 15 — EAST ASIAN AMBIGUOUS WIDTH & BOX DRAWING
+================================================================================
+
+Ambiguous-width characters: may render as width 1 or 2 depending on mode.
+· × ÷ ± § ¶ © ® ™ µ Ω α β γ π λ ∑ √ ∞ ≈ ≠ ≤ ≥
+─ ━ │ ┃ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼
+← ↑ → ↓ ↔ ⇐ ⇒ ⇔
+
+Light Box Drawing:
+┌──────────────┐
+│ box drawing  │
+├──────────────┤
+│ 1234567890   │
+└──────────────┘
+
+Heavy Box Drawing:
+┏━━━━━━━━━━━━━━┓
+┃ heavy lines  ┃
+┣━━━━━━━━━━━━━━┫
+┃ 1234567890   ┃
+┗━━━━━━━━━━━━━━┛
+
+Rounded & Double Box Drawing:
+╭────────────────╮  ╔══════════════╗
+│ rounded corners│  ║ double lines ║
+╰────────────────╯  ╚══════════════╝
+
+================================================================================
+SECTION 16 — MATH, BRAILLE, BLOCKS & SHAPES
+================================================================================
+
+Math Symbols:
+∀ ∃ ∄ ∈ ∉ ⊂ ⊃ ⊆ ⊇ ∪ ∩ ∅ ∧ ∨ ¬ ⇒ ⇔ ⟹ ⟺
+∑ ∏ ∫ ∮ ∂ ∇ √ ∞ ≈ ≠ ≤ ≥ ≡ ≅ ∝ ℕ ℤ ℚ ℝ ℂ
+x² y³ z⁴  /  a₀ a₁ a₂ aₙ  /  H₂O CO₂
+
+Braille patterns:
+⠀ ⠁ ⠂ ⠃ ⠄ ⠅ ⠆ ⠇ ⠈ ⠉ ⠊ ⠋ ⠌ ⠍ ⠎ ⠏ ⣿ ⣀ ⣤ ⣶ ⣷ ⣾
+
+Block elements (Gradients and shading):
+█ ▉ ▊ ▋ ▌ ▍ ▎ ▏ (Vertical)
+█ ▇ ▆ ▅ ▄ ▃ ▂   (Horizontal)
+░ ▒ ▓ █ (Shading density)
+
+Geometric Shapes:
+■ □ ▢ ▣ ▤ ▥ ▦ ▧ ▨ ▩ ● ○ ◉ ◎ ◌ ◍ ▲ △ ▼ ▽ ◆ ◇
+
+================================================================================
+SECTION 17 — EXACT GRID ALIGNMENT & CELL WIDTH PROBES
+================================================================================
+
+Ruler: |123456789012345678901234567890|
+       ├──────────────────────────────┤
+ASCII: │A│B│C│D│E│F│G│H│I│J│            │ (Width 1 each)
+CJK:   │中│文│漢│字│日│本│語│            │ (Width 2 each)
+Emoji: │😀│😃│🔥│🚀│💻│🍎│🍌│            │ (Width 2 each)
+Flags: │🇦🇲│🇫🇷│🇺🇸│🇯🇵│🇪🇺│🇧🇷│🇮🇳│            │ (Width 2 each)
+ZWJ:   │👩‍💻│👨‍🚀│🧑‍🏫│🏳️‍🌈│❤️‍🔥│🏴‍☠️│👁️‍🗨️│            │ (Width 2 each)
+ZWJ4:  │👨‍👩‍👧‍👦│👩‍👩‍👦‍👦│👨‍👨‍👧‍👧│                │ (Width 2 each)
+Tag:   │🏴󠁧󠁢󠁥󠁮󠁧󠁿│🏴󠁧󠁢󠁳󠁣󠁴󠁿│🏴󠁧󠁢󠁷󠁬󠁳󠁿│                │ (Width 2 each)
+Comb:  │é│é│ñ│ñ│ü│ü│ä́│x̸│            │ (Width 1 each, NFC & NFD aligned)
+VS16:  │♥│♥️│❤│❤️│☕│☕️│⭐│⭐️│            │ (VS15 Text = 1, VS16 Emoji = 2)
+
+================================================================================
+SECTION 18 — LINE WRAPPING & BOUNDARY STRESS TESTS
+================================================================================
+
+Testing auto-wrap of complex clusters near standard column limits.
+Ruler (exactly 80 characters):
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+
+ASCII Wrap Edge:
+abcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcdeabcde
+
+CJK Wrap Edge (Should not split a wide character: wrapped cleanly or padded):
+中中中中中中中中中中中中중중중중중중중중중중중중중중중중중중중중중중중중중중중
+
+Emoji Wrap Edge:
+😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀
+
+Complex ZWJ Edge:
+👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻👩‍💻
+
+Mixed Wrap Stressor:
+A중B😀CéD🇫🇷E👩‍💻F❤️G1️⃣H👍🏽I🏳️‍🌈J K🏴󠁧󠁢󠁳󠁣󠁴󠁿L👨‍👩‍👧‍👦M A중B😀CéD🇫🇷E👩‍💻F❤️G1️⃣H👍🏽I🏳️‍🌈J K🏴󠁧󠁢󠁳󠁣󠁴󠁿L👨‍👩‍👧‍👦M
+
+================================================================================
+SECTION 19 — INVALID-SEQUENCE PLACEHOLDER TARGETS
+================================================================================
+
+This file consists of valid UTF-8. Terminal decoders must replace malformed
+byte sequences (e.g. C0 AF, ED A0 80) with the replacement character U+FFFD ().
+
+Standard Replacement Character Checks:
+
+
+AB
+
+================================================================================
+SECTION 20 — REALISTIC CLI TERMINAL UI MOCKUPS
+================================================================================
+
+A visual verification suite of modern, rich Terminal user interfaces.
+
+--------------------------------------------------------------------------------
+SUB-MOCKUP A: System Resource Monitor (htop style)
+--------------------------------------------------------------------------------
+
+  CPU [██████████████████████████████░░░░░░░░░░]  75.2%  Tasks: 142, 3 running
+  Mem [████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  30.0%  Uptime: 2 days, 04:12
+  Swp [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]   0.0%  Mode: Stable JVM 21
+
+  PID   USER      PRI  NI  VIRT   RES   SHR S  CPU% MEM%   TIME+  Command
+  1285  gagik      20   0 14.2g 1.2g  320m S  45.0  8.2  0:42.15 terminal-swing
+  2041  root       20   0  5.1g 128m   45m R  12.1  0.8  0:05.33 grapheme-seg
+  3092  guest      20   0  1.1g  84m   12m S   0.2  0.5  0:00.12 pty-transport
+
+--------------------------------------------------------------------------------
+SUB-MOCKUP B: Fastfetch System Summary Dashboard
+--------------------------------------------------------------------------------
+
+   /\_/\      gagik@terminal-buffer-machine
+  ( o.o )     -----------------------------
+   > ^ <      OS: Kotlin Terminal Platform x86_64
+  /     \     Kernel: Windows 11 / JVM 21.0.2
+  (__|__)     Uptime: 2 hours, 15 mins
+  Armenia     Shell: custom-kotlin-shell v2.1
+              Terminal: terminal-ui-swing-demo
+              Font: JetBrains Mono (Noto Color Emoji)
+              Palette: 🔴 🟢 🟡 🔵 🟣 ⚫ ⚪
+
+--------------------------------------------------------------------------------
+SUB-MOCKUP C: Process / Task Database Query Results
+--------------------------------------------------------------------------------
+
+┌─────┬──────────────────┬──────────┬──────────┬───────────────────────────────┐
+│ ID  │ Process Name     │ CPU %    │ Status   │ Geographical Source           │
+├─────┼──────────────────┼──────────┼──────────┼───────────────────────────────┤
+│ 001 │ terminal-core    │  12.5%   │ Active   │ 🇦🇲 Yerevan, Armenia          │
+│ 002 │ swing-painter    │  45.0%   │ Busy ⚙️   │ 🇫🇷 Paris, France              │
+│ 003 │ grapheme-seg     │   0.2%   │ Idle 💤   │ 🇯🇵 Tokyo, Japan              │
+│ 004 │ input-encoder    │   1.1%   │ Ready    │ 🇧🇷 Brasília, Brazil           │
+│ 005 │ subdivision-tag  │   5.4%   │ Running  │ 🏴󠁧󠁢󠁳󠁣󠁴󠁿 Edinburgh, Scotland      │
+└─────┴──────────────────┴──────────┴──────────┴───────────────────────────────┘
+
+--------------------------------------------------------------------------------
+SUB-MOCKUP D: Progressive Progress Bars
+--------------------------------------------------------------------------------
+
+- Downloading Font Cache: [████████████████████████████████████████] 100% (Done ✅)
+- Initializing PTY:       [░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0% (Queued ⏳)
+- Buffering Glyph Atlas:  [████████████████████░░░░░░░░░░░░░░░░░░░░] 50% (Processing ⚙️)
+
+================================================================================
+SECTION 21 — FINAL GOLDEN MIX (CONFORMANCE CHECK)
+================================================================================
+
+A final comprehensive multi-cluster horizontal verification line. Each type of
+character must line up perfectly under its expected column marker.
+
+Ruler:
+|01|02|03|04 |05 |06 |07 |08 |09 |10 |11 |12      |13 |14 |15      |16      |
+├──┼──┼──┼───┼───┼───┼───┼───┼───┼───┼───┼────────┼───┼───┼────────┼────────┤
+│A │é │é │中 │😀 │❤️ │☕️ │🇦🇲 │🇫🇷 │👍🏽 │👩‍💻 │👨‍👩‍👧‍👦   │🏳️‍🌈 │1️⃣ │🏴󠁧󠁢󠁳󠁣󠁴󠁿     │👁️‍🗨️      │
+└──┴──┴──┴───┴───┴───┴───┴───┴───┴───┴───┴────────┴───┴───┴────────┴────────┘
+
+End of Unicode Terminal Rendering Stress Test File.

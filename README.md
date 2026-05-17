@@ -222,3 +222,10 @@ We treat terminal testing as a critical engineering discipline:
 ## Project Status & Feature Gap Map
 
 Lattice is structured to support modern terminal protocols and rich TUI environments. Unsupported features or pending integrations are strictly documented inside the project [feature gap map](./docs/terminal-feature-gap-map.md) and annotated inside the source code using distinct `TODO` markers.
+
+
+## License
+
+Copyright 2026 Gagik Sargsyan
+
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
