@@ -49,7 +49,7 @@ internal class TerminalWriterImpl(
     ) {
         require(length in 1..codepoints.size) { "length must be in 1..${codepoints.size}, was $length" }
 
-        val charWidth = clusterWidth(codepoints, length)
+        val charWidth = UnicodeWidth.calculateCluster(codepoints, length, state.modes.treatAmbiguousAsWide)
 
         if (length == 1) {
             mutationEngine.printCodepoint(codepoints[0], charWidth)
@@ -61,35 +61,6 @@ internal class TerminalWriterImpl(
     override fun appendToPreviousCluster(codepoint: Int) {
         require(codepoint in 0..0x10ffff) { "invalid codepoint: $codepoint" }
         mutationEngine.appendToPreviousCluster(codepoint)
-    }
-
-    private fun clusterWidth(
-        codepoints: IntArray,
-        length: Int,
-    ): Int {
-        if (length == 0) return 0
-
-        val base = codepoints[0]
-        val baseWidth =
-            if (hasEmojiPresentationSelector(codepoints, length) && UnicodeWidth.isEmojiVariationBase(base)) {
-                2
-            } else {
-                UnicodeWidth.calculate(base, state.modes.treatAmbiguousAsWide)
-            }
-
-        // If a combining mark (width 0) is sent without a base character,
-        // force it to width 1 so it consumes a cell and doesn't break grid alignment.
-        return if (baseWidth > 0) baseWidth else 1
-    }
-
-    private fun hasEmojiPresentationSelector(
-        codepoints: IntArray,
-        length: Int,
-    ): Boolean {
-        for (i in 1 until length) {
-            if (codepoints[i] == EMOJI_PRESENTATION_SELECTOR) return true
-        }
-        return false
     }
 
     override fun newLine() = mutationEngine.newLine()
@@ -266,9 +237,5 @@ internal class TerminalWriterImpl(
 
     override fun resetPen() {
         state.pen.resetSgr()
-    }
-
-    private companion object {
-        const val EMOJI_PRESENTATION_SELECTOR: Int = 0xFE0F
     }
 }

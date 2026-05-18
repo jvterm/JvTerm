@@ -70,12 +70,45 @@ internal object UnicodeWidth {
         return 1
     }
 
+    fun calculateCluster(
+        codepoints: IntArray,
+        length: Int,
+        ambiguousAsWide: Boolean,
+    ): Int {
+        if (length == 0) return 0
+
+        if (contains(codepoints, length, TEXT_PRESENTATION_SELECTOR)) return 1
+
+        val base = codepoints[0]
+        val baseWidth =
+            if (contains(codepoints, length, EMOJI_PRESENTATION_SELECTOR) && isEmojiVariationBase(base)) {
+                2
+            } else {
+                calculate(base, ambiguousAsWide)
+            }
+
+        return if (baseWidth > 0) baseWidth else 1
+    }
+
     fun isEmojiVariationBase(codepoint: Int): Boolean =
         if (codepoint < GeneratedUnicodeWidthTable.BITSET_LIMIT) {
             emojiVariationBase.get(codepoint)
         } else {
             binarySearch(GeneratedUnicodeWidthTable.EMOJI_VARIATION_BASE_ASTRAL_RANGES, codepoint)
         }
+
+    private fun contains(
+        codepoints: IntArray,
+        length: Int,
+        needle: Int,
+    ): Boolean {
+        var index = 1
+        while (index < length) {
+            if (codepoints[index] == needle) return true
+            index++
+        }
+        return false
+    }
 
     private fun populate(
         bitSet: BitSet,
@@ -107,4 +140,7 @@ internal object UnicodeWidth {
         }
         return false
     }
+
+    private const val TEXT_PRESENTATION_SELECTOR: Int = 0xFE0E
+    private const val EMOJI_PRESENTATION_SELECTOR: Int = 0xFE0F
 }
