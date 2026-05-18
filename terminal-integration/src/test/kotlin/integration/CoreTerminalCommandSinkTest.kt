@@ -107,6 +107,31 @@ class CoreTerminalCommandSinkTest {
         }
 
         @Test
+        fun `symbol heavy paste split byte by byte leaves cursor after visual cells`() {
+            val text = "∀∂∈ℝ∧∪≡∞ ↑↗↨↻⇣ ┐┼╔╘░►☺♀ ﬁ�⑀₂ἠḂӥẄɐː⍎אԱა"
+            val bytes = text.encodeToByteArray()
+            val expectedCodepoints = text.codePointCount(0, text.length)
+            val f = Fixture(terminal = TerminalBuffers.create(width = 120, height = 3))
+
+            for (byte in bytes) {
+                f.parser.accept(byteArrayOf(byte))
+            }
+
+            assertAll(
+                { assertEquals(expectedCodepoints, f.terminal.cursorCol) },
+                { assertEquals(0, f.terminal.cursorRow) },
+                { assertEquals(text, f.terminal.getLineAsString(0)) },
+            )
+
+            (f.terminal as TerminalRenderFrameReader).readRenderFrame { frame ->
+                assertAll(
+                    { assertEquals(expectedCodepoints, frame.cursor.column) },
+                    { assertEquals(0, frame.cursor.row) },
+                )
+            }
+        }
+
+        @Test
         fun `CSI absolute cursor position writes at core coordinates`() {
             val f = Fixture()
 
