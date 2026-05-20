@@ -157,6 +157,45 @@ class TerminalDecorationPainterTest {
         }
     }
 
+    @Nested
+    inner class HyperlinkDecorations {
+        @Test
+        fun `hyperlink underline is dotted when not hovered`() {
+            val fixture = fixture()
+
+            fixture.painter.paintHyperlink(
+                fixture.g,
+                TEST_RED,
+                startColumn = 0,
+                endColumn = 1,
+                row = 0,
+                metrics = fixture.metrics,
+                hovered = false,
+            )
+
+            assertEquals(TEST_RED, fixture.image.getRGB(0, fixture.metrics.underlineY))
+            assertTrue(fixture.image.getRGB(1, fixture.metrics.underlineY) != TEST_RED)
+        }
+
+        @Test
+        fun `hyperlink underline is solid when hovered`() {
+            val fixture = fixture()
+
+            fixture.painter.paintHyperlink(
+                fixture.g,
+                TEST_RED,
+                startColumn = 0,
+                endColumn = 1,
+                row = 0,
+                metrics = fixture.metrics,
+                hovered = true,
+            )
+
+            assertEquals(TEST_RED, fixture.image.getRGB(0, fixture.metrics.underlineY))
+            assertEquals(TEST_RED, fixture.image.getRGB(1, fixture.metrics.underlineY))
+        }
+    }
+
     private data class Fixture(
         val image: BufferedImage,
         val g: Graphics2D,

@@ -41,6 +41,8 @@ import java.util.*
  * @property clipboardShortcuts platform clipboard key bindings.
  * @property hyperlinkHandler host policy for explicit Ctrl-click hyperlink
  * activation.
+ * @property hyperlinkActivationForeground packed ARGB foreground used for the
+ * linked span currently under Ctrl-hover.
  * @property selectionBackground packed ARGB overlay used for visible terminal
  * selection ranges.
  * @property fallbackFonts ordered fonts used by the complex-text renderer when
@@ -65,6 +67,7 @@ data class TerminalSwingSettings(
     val clipboardHandler: TerminalClipboardHandler = TerminalClipboardHandler.SYSTEM,
     val clipboardShortcuts: TerminalClipboardShortcuts = TerminalClipboardShortcuts.platformDefault(),
     val hyperlinkHandler: TerminalHyperlinkHandler = TerminalHyperlinkHandler.SYSTEM,
+    val hyperlinkActivationForeground: Int = DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND,
     val selectionBackground: Int = DEFAULT_SELECTION_BACKGROUND,
 ) {
     init {
@@ -77,6 +80,7 @@ data class TerminalSwingSettings(
 
     companion object {
         private const val DEFAULT_FONT_SIZE = 16
+        private const val DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND = 0xFF4DA3FF.toInt()
         private const val DEFAULT_SELECTION_BACKGROUND = 0x66FFFFFF
         private val preferredDefaultFontFamilies =
             arrayOf(

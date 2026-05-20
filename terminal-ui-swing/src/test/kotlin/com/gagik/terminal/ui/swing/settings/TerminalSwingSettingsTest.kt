@@ -57,6 +57,7 @@ class TerminalSwingSettingsTest {
         assertTrue(settings.fallbackFonts.isNotEmpty())
         assertEquals(false, settings.useSystemFallbackFonts)
         assertEquals(false, settings.treatAmbiguousAsWide)
+        assertEquals(0xFF4DA3FF.toInt(), settings.hyperlinkActivationForeground)
     }
 
     @Test

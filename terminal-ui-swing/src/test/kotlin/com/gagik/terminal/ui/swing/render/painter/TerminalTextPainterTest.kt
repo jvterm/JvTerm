@@ -182,6 +182,92 @@ class TerminalTextPainterTest {
     }
 
     @Nested
+    inner class HyperlinkRendering {
+        @Test
+        fun `hyperlinks get dotted underline by default`() {
+            val fixture = fixture()
+            val cache =
+                renderCache(
+                    TestRenderFrame(
+                        arrayOf(
+                            arrayOf(
+                                TestCell(
+                                    codeWord = ' '.code,
+                                    flags = TerminalRenderCellFlags.CODEPOINT,
+                                    hyperlinkId = 7,
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+
+            fixture.paintRow(cache)
+
+            assertEquals(TEST_RED, fixture.image.getRGB(0, fixture.metrics.underlineY))
+            assertTrue(fixture.image.getRGB(1, fixture.metrics.underlineY) != TEST_RED)
+        }
+
+        @Test
+        fun `hovered hyperlink gets solid underline`() {
+            val fixture = fixture()
+            val cache =
+                renderCache(
+                    TestRenderFrame(
+                        arrayOf(
+                            arrayOf(
+                                TestCell(
+                                    codeWord = ' '.code,
+                                    flags = TerminalRenderCellFlags.CODEPOINT,
+                                    hyperlinkId = 7,
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+
+            fixture.paintRow(cache, hoveredHyperlinkId = 7)
+
+            assertEquals(TEST_RED, fixture.image.getRGB(0, fixture.metrics.underlineY))
+            assertEquals(TEST_RED, fixture.image.getRGB(1, fixture.metrics.underlineY))
+        }
+
+        @Test
+        fun `ctrl hovered hyperlink uses activation blue without bleeding into another link`() {
+            val activationBlue = 0xFF4DA3FF.toInt()
+            val fixture = fixture()
+            val cache =
+                renderCache(
+                    TestRenderFrame(
+                        arrayOf(
+                            arrayOf(
+                                TestCell(
+                                    codeWord = ' '.code,
+                                    flags = TerminalRenderCellFlags.CODEPOINT,
+                                    hyperlinkId = 7,
+                                ),
+                                TestCell(
+                                    codeWord = ' '.code,
+                                    flags = TerminalRenderCellFlags.CODEPOINT,
+                                    hyperlinkId = 8,
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+
+            fixture.paintRow(
+                cache = cache,
+                hoveredHyperlinkId = 7,
+                hyperlinkActivationHover = true,
+                hyperlinkActivationForeground = activationBlue,
+            )
+
+            assertEquals(activationBlue, fixture.image.getRGB(0, fixture.metrics.underlineY))
+            assertEquals(TEST_RED, fixture.image.getRGB(fixture.metrics.cellWidth, fixture.metrics.underlineY))
+        }
+    }
+
+    @Nested
     inner class ComplexTextRendering {
         @Test
         fun `paints non-ascii unicode code point using layout cache`() {
@@ -518,10 +604,23 @@ class TerminalTextPainterTest {
         fun paintRow(
             cache: TerminalRenderCache,
             row: Int = 0,
+            hoveredHyperlinkId: Int = 0,
+            hyperlinkActivationHover: Boolean = false,
+            hyperlinkActivationForeground: Int = 0xFF4DA3FF.toInt(),
         ) {
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
             g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, settings.fractionalMetrics)
-            painter.paintRow(g, cache, settings.palette, metrics, row = row, fontRenderContext = g.fontRenderContext)
+            painter.paintRow(
+                g = g,
+                cache = cache,
+                palette = settings.palette,
+                metrics = metrics,
+                row = row,
+                fontRenderContext = g.fontRenderContext,
+                hoveredHyperlinkId = hoveredHyperlinkId,
+                hyperlinkActivationHover = hyperlinkActivationHover,
+                hyperlinkActivationForeground = hyperlinkActivationForeground,
+            )
         }
     }
 
