@@ -53,7 +53,7 @@ class TerminalSwingTerminal(
     private var session: TerminalSession? = null
     private var settings: TerminalSwingSettings = settingsProvider.currentSettings()
     private var metrics: TerminalSwingMetrics = buildMetrics(settings)
-    private var cursorBlinkVisible: Boolean = true
+    internal var cursorBlinkVisible: Boolean = true
     private var lastResizedColumns: Int = NO_RESIZE_DIMENSION
     private var lastResizedRows: Int = NO_RESIZE_DIMENSION
     private var selectionAnchorAbsoluteRow: Long? = null
@@ -94,7 +94,7 @@ class TerminalSwingTerminal(
                 repaint(x, y, width, height)
             }
         }
-    private val cursorTimer =
+    internal val cursorTimer =
         Timer(settings.cursorBlinkMillis) {
             cursorBlinkVisible = !cursorBlinkVisible
             repaintBlinkingCursor()
@@ -104,6 +104,7 @@ class TerminalSwingTerminal(
         object : KeyAdapter() {
             override fun keyPressed(event: KeyEvent) {
                 updateHyperlinkActivationHover(event.isControlDown)
+                resetCursorBlinkOnEdt(forceRepaint = true)
                 if (handleClipboardShortcut(event)) return
 
                 val keyEvent = keyMapper.keyPressed(event) ?: return
@@ -116,6 +117,7 @@ class TerminalSwingTerminal(
             }
 
             override fun keyTyped(event: KeyEvent) {
+                resetCursorBlinkOnEdt(forceRepaint = true)
                 val keyEvent = keyMapper.keyTyped(event) ?: return
                 session?.encodeKey(keyEvent)
                 event.consume()
@@ -799,6 +801,7 @@ class TerminalSwingTerminal(
     private fun handlePublishedFrame() {
         val boundSession = session ?: return
         boundSession.publisher.readCurrent { cache ->
+            resetCursorBlinkOnEdt(forceRepaint = false)
             when {
                 scrollModel.clamp(cache.historySize) -> {
                     boundSession.requestRender(scrollModel.requestedOffset, requestedRenderRows())
@@ -834,6 +837,17 @@ class TerminalSwingTerminal(
                 contentYOffset = contentYOffset(cache),
                 repaintSink = repaintSink,
             )
+        }
+    }
+
+    private fun resetCursorBlinkOnEdt(forceRepaint: Boolean) {
+        if (cursorTimer.isRunning) {
+            val wasVisible = cursorBlinkVisible
+            cursorBlinkVisible = true
+            cursorTimer.restart()
+            if (forceRepaint && !wasVisible) {
+                repaintBlinkingCursor()
+            }
         }
     }
 

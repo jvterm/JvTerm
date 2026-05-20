@@ -38,7 +38,7 @@ class TerminalModeReaderTest {
             { assertFalse(snapshot.isLeftRightMarginMode) },
             { assertFalse(snapshot.isReverseVideo) },
             { assertTrue(snapshot.isCursorVisible) },
-            { assertFalse(snapshot.isCursorBlinking) },
+            { assertTrue(snapshot.isCursorBlinking) },
             { assertFalse(snapshot.isBracketedPasteEnabled) },
             { assertFalse(snapshot.isFocusReportingEnabled) },
             { assertFalse(snapshot.treatAmbiguousAsWide) },
@@ -63,7 +63,7 @@ class TerminalModeReaderTest {
         buffer.setModifyOtherKeysMode(2)
         buffer.setReverseVideo(true)
         buffer.setCursorVisible(false)
-        buffer.setCursorBlinking(true)
+        buffer.setCursorBlinking(false)
 
         val afterBits = buffer.getModeBitsSnapshot()
         val inputBits = buffer.getInputModeBits()
@@ -81,7 +81,7 @@ class TerminalModeReaderTest {
             { assertEquals(0, before.modifyOtherKeysMode) },
             { assertFalse(before.isReverseVideo) },
             { assertTrue(before.isCursorVisible) },
-            { assertFalse(before.isCursorBlinking) },
+            { assertTrue(before.isCursorBlinking) },
             { assertTrue(after.isNewLineMode) },
             { assertTrue(after.isApplicationKeypad) },
             { assertEquals(MouseTrackingMode.ANY_EVENT, after.mouseTrackingMode) },
@@ -91,7 +91,7 @@ class TerminalModeReaderTest {
             { assertEquals(2, after.modifyOtherKeysMode) },
             { assertTrue(after.isReverseVideo) },
             { assertFalse(after.isCursorVisible) },
-            { assertTrue(after.isCursorBlinking) },
+            { assertFalse(after.isCursorBlinking) },
         )
     }
 }

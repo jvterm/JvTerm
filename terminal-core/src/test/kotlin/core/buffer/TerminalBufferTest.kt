@@ -165,7 +165,7 @@ class TerminalBufferTest {
         buffer.setOriginMode(true)
         buffer.setAutoWrap(false)
         buffer.setCursorVisible(false)
-        buffer.setCursorBlinking(true)
+        buffer.setCursorBlinking(false)
         buffer.setBracketedPasteEnabled(true)
         buffer.setFocusReportingEnabled(true)
         buffer.setMouseTrackingMode(MouseTrackingMode.BUTTON_EVENT)
@@ -198,7 +198,7 @@ class TerminalBufferTest {
             { assertTrue(snapshot.isAutoWrap) },
             { assertFalse(snapshot.isLeftRightMarginMode) },
             { assertTrue(snapshot.isCursorVisible) },
-            { assertFalse(snapshot.isCursorBlinking) },
+            { assertTrue(snapshot.isCursorBlinking) },
             { assertFalse(snapshot.isBracketedPasteEnabled) },
             { assertFalse(snapshot.isFocusReportingEnabled) },
             { assertEquals(MouseTrackingMode.OFF, snapshot.mouseTrackingMode) },
@@ -244,7 +244,7 @@ class TerminalBufferTest {
         buffer.setLeftRightMarginMode(true)
         buffer.setReverseVideo(true)
         buffer.setCursorVisible(false)
-        buffer.setCursorBlinking(true)
+        buffer.setCursorBlinking(false)
         buffer.setBracketedPasteEnabled(true)
         buffer.setFocusReportingEnabled(true)
         buffer.setMouseTrackingMode(MouseTrackingMode.BUTTON_EVENT)
@@ -268,7 +268,7 @@ class TerminalBufferTest {
             { assertFalse(snapshot.isLeftRightMarginMode) },
             { assertFalse(snapshot.isReverseVideo) },
             { assertTrue(snapshot.isCursorVisible) },
-            { assertFalse(snapshot.isCursorBlinking) },
+            { assertTrue(snapshot.isCursorBlinking) },
             { assertFalse(snapshot.isBracketedPasteEnabled) },
             { assertFalse(snapshot.isFocusReportingEnabled) },
             { assertFalse(snapshot.treatAmbiguousAsWide) },

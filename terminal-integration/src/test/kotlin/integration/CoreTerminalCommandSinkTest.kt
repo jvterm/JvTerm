@@ -256,7 +256,7 @@ class CoreTerminalCommandSinkTest {
                 { assertFalse(snapshot.isOriginMode) },
                 { assertTrue(snapshot.isAutoWrap) },
                 { assertTrue(snapshot.isCursorVisible) },
-                { assertFalse(snapshot.isCursorBlinking) },
+                { assertTrue(snapshot.isCursorBlinking) },
                 { assertFalse(snapshot.isFocusReportingEnabled) },
                 { assertFalse(snapshot.isBracketedPasteEnabled) },
                 { assertEquals(MouseEncodingMode.SGR, snapshot.mouseEncodingMode) },

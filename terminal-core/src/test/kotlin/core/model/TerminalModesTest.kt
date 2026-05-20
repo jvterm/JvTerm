@@ -35,7 +35,7 @@ class TerminalModesTest {
             { assertFalse(modes.isLeftRightMarginMode) },
             { assertFalse(modes.isReverseVideo) },
             { assertTrue(modes.isCursorVisible) },
-            { assertFalse(modes.isCursorBlinking) },
+            { assertTrue(modes.isCursorBlinking) },
             { assertFalse(modes.isBracketedPasteEnabled) },
             { assertFalse(modes.isFocusReportingEnabled) },
             { assertFalse(modes.treatAmbiguousAsWide) },
@@ -57,7 +57,7 @@ class TerminalModesTest {
         modes.isLeftRightMarginMode = true
         modes.isReverseVideo = true
         modes.isCursorVisible = false
-        modes.isCursorBlinking = true
+        modes.isCursorBlinking = false
         modes.isBracketedPasteEnabled = true
         modes.isFocusReportingEnabled = true
         modes.treatAmbiguousAsWide = true
@@ -77,7 +77,7 @@ class TerminalModesTest {
             { assertFalse(modes.isLeftRightMarginMode) },
             { assertFalse(modes.isReverseVideo) },
             { assertTrue(modes.isCursorVisible) },
-            { assertFalse(modes.isCursorBlinking) },
+            { assertTrue(modes.isCursorBlinking) },
             { assertFalse(modes.isBracketedPasteEnabled) },
             { assertFalse(modes.isFocusReportingEnabled) },
             { assertFalse(modes.treatAmbiguousAsWide) },
@@ -126,7 +126,7 @@ class TerminalModesTest {
         modes.isLeftRightMarginMode = true
         modes.isReverseVideo = true
         modes.isCursorVisible = false
-        modes.isCursorBlinking = true
+        modes.isCursorBlinking = false
         modes.isBracketedPasteEnabled = true
         modes.isFocusReportingEnabled = true
         modes.treatAmbiguousAsWide = true
@@ -146,7 +146,7 @@ class TerminalModesTest {
             { assertFalse(modes.isLeftRightMarginMode) },
             { assertFalse(modes.isReverseVideo) },
             { assertTrue(modes.isCursorVisible) },
-            { assertFalse(modes.isCursorBlinking) },
+            { assertTrue(modes.isCursorBlinking) },
             { assertFalse(modes.isBracketedPasteEnabled) },
             { assertFalse(modes.isFocusReportingEnabled) },
             { assertTrue(modes.treatAmbiguousAsWide) },

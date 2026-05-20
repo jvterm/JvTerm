@@ -80,7 +80,7 @@ internal class TerminalModes : TerminalInputState {
         get() = TerminalModeBits.hasFlag(currentBits, TerminalModeBits.CURSOR_VISIBLE)
         set(value) = setFlag(TerminalModeBits.CURSOR_VISIBLE, value)
 
-    /** Cursor blink presentation flag. False = steady cursor (default). */
+    /** Cursor blink presentation flag. True = blinking cursor (default). */
     var isCursorBlinking: Boolean
         get() = TerminalModeBits.hasFlag(currentBits, TerminalModeBits.CURSOR_BLINKING)
         set(value) = setFlag(TerminalModeBits.CURSOR_BLINKING, value)
@@ -204,7 +204,7 @@ internal class TerminalModes : TerminalInputState {
 
     private companion object {
         private const val DEFAULT_MODE_BITS: Long =
-            TerminalModeBits.AUTO_WRAP or TerminalModeBits.CURSOR_VISIBLE
+            TerminalModeBits.AUTO_WRAP or TerminalModeBits.CURSOR_VISIBLE or TerminalModeBits.CURSOR_BLINKING
         private const val SOFT_RESET_PRESERVE_MASK: Long =
             TerminalModeBits.AMBIGUOUS_WIDE or TerminalModeBits.MOUSE_ENCODING_MASK
         private const val SOFT_RESET_MODE_BITS: Long = DEFAULT_MODE_BITS
