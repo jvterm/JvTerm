@@ -717,4 +717,61 @@ class ClusterStoreTest {
             )
         }
     }
+
+    // =========================================================================
+    // Segregated Freelist and Capacity Re-use
+    // =========================================================================
+
+    @Nested
+    @DisplayName("segregated freelist and capacity re-use")
+    inner class SegregatedFreelistTests {
+        @Test
+        fun `reusing slot does not shrink its physical capacity`() {
+            val store = ClusterStore()
+            // Allocate a large cluster (length 4) -> should allocate slot 0 with capacity 4
+            val hLarge = store.alloc(intArrayOf(1, 2, 3, 4))
+            store.free(hLarge)
+
+            // Allocate a small cluster (length 2). 
+            // It searches Bucket 0, 1, 2. Since Bucket 2 has the freed slot, it pops it.
+            val hSmall = store.alloc(intArrayOf(5, 6))
+            assertEquals(hLarge, hSmall, "Should reuse the large slot index")
+
+            // Free the small cluster handle. It should go back to Bucket 2 because its physical capacity is still 4!
+            store.free(hSmall)
+
+            // Allocate another cluster of length 4.
+            // It should pop the same slot from Bucket 2.
+            val hLarge2 = store.alloc(intArrayOf(7, 8, 9, 10))
+            assertEquals(hLarge, hLarge2, "Should reuse the same slot and fit its capacity of 4")
+        }
+
+        @Test
+        fun `small allocations do not pollute bucket 3 slots`() {
+            val store = ClusterStore()
+            // Allocate a large cluster of length 5 -> goes to Bucket 3 (capacity 5+)
+            val h5 = store.alloc(intArrayOf(1, 2, 3, 4, 5))
+            store.free(h5)
+
+            // Allocate a small cluster of length 2.
+            // Since L=2, it searches Buckets 0, 1, 2. Bucket 3 should NOT be searched.
+            // It should allocate a brand-new slot.
+            val h2 = store.alloc(intArrayOf(6, 7))
+            assertNotEquals(h5, h2, "Should not pop a Bucket 3 slot for a small cluster")
+        }
+
+        @Test
+        fun `fallback searches smaller buckets when preferred ones are empty`() {
+            val store = ClusterStore()
+            // Alloc length 2 (slot 0, capacity 2)
+            val h2 = store.alloc(intArrayOf(1, 2))
+            store.free(h2)
+
+            // Alloc length 3.
+            // Bucket 1 (capacity 3) and Bucket 2 (capacity 4) are empty.
+            // It should fallback to check Bucket 0 (capacity 2), pop slot 0, and grow its capacity to 3.
+            val h3 = store.alloc(intArrayOf(3, 4, 5))
+            assertEquals(h2, h3, "Should fallback to pop slot 0 from Bucket 0 and grow it")
+        }
+    }
 }
