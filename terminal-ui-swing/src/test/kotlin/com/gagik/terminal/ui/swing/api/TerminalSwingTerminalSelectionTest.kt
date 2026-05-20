@@ -24,6 +24,7 @@ import com.gagik.terminal.input.event.TerminalMouseEvent
 import com.gagik.terminal.input.event.TerminalPasteEvent
 import com.gagik.terminal.render.api.*
 import com.gagik.terminal.render.cache.TerminalRenderPublisher
+import com.gagik.terminal.session.TerminalHyperlinkResolver
 import com.gagik.terminal.session.TerminalSession
 import com.gagik.terminal.transport.TerminalConnector
 import com.gagik.terminal.transport.TerminalConnectorListener
@@ -31,12 +32,14 @@ import com.gagik.terminal.ui.swing.render.TestCell
 import com.gagik.terminal.ui.swing.render.TestRenderFrame
 import com.gagik.terminal.ui.swing.settings.TerminalClipboardHandler
 import com.gagik.terminal.ui.swing.settings.TerminalClipboardShortcuts
+import com.gagik.terminal.ui.swing.settings.TerminalHyperlinkHandler
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import javax.swing.SwingUtilities
 
@@ -291,10 +294,106 @@ class TerminalSwingTerminalSelectionTest {
         session.close()
     }
 
+    @Test
+    fun `ctrl click on hyperlink opens resolved uri without changing selection`() {
+        val opened = AtomicReference<String?>()
+        val frame =
+            TestRenderFrame(
+                arrayOf(
+                    arrayOf(
+                        TestCell(
+                            codeWord = 'h'.code,
+                            flags = TerminalRenderCellFlags.CODEPOINT,
+                            hyperlinkId = 7,
+                        ),
+                    ),
+                ),
+            )
+        val session =
+            testSession(
+                frame = frame,
+                hyperlinkResolver = TerminalHyperlinkResolver { id ->
+                    if (id == 7) "https://example.com" else null
+                },
+            )
+        val component =
+            TerminalSwingTerminal {
+                TerminalSwingSettings(
+                    hyperlinkHandler =
+                        TerminalHyperlinkHandler { uri ->
+                            opened.set(uri)
+                            true
+                        },
+                )
+            }
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(80, 40)
+            component.bind(session)
+            session.publisher.updateAndPublish(StaticFrameReader(frame))
+            component.mouseListeners.forEach {
+                it.mousePressed(mousePressedWithCtrl(component, x = 8, y = 8))
+            }
+        }
+
+        assertEquals("https://example.com", opened.get())
+        assertNull(component.currentSelection())
+        session.close()
+    }
+
+    @Test
+    fun `plain click on hyperlink keeps normal selection behavior`() {
+        val opened = AtomicInteger(0)
+        val frame =
+            TestRenderFrame(
+                arrayOf(
+                    arrayOf(
+                        TestCell(
+                            codeWord = 'h'.code,
+                            flags = TerminalRenderCellFlags.CODEPOINT,
+                            hyperlinkId = 7,
+                        ),
+                    ),
+                ),
+            )
+        val session =
+            testSession(
+                frame = frame,
+                hyperlinkResolver = TerminalHyperlinkResolver { "https://example.com" },
+            )
+        val component =
+            TerminalSwingTerminal {
+                TerminalSwingSettings(
+                    hyperlinkHandler =
+                        TerminalHyperlinkHandler {
+                            opened.incrementAndGet()
+                            true
+                        },
+                )
+            }
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(80, 40)
+            component.bind(session)
+            session.publisher.updateAndPublish(StaticFrameReader(frame))
+            component.mouseListeners.forEach {
+                it.mousePressed(mousePressed(component, x = 8, y = 8, clickCount = 1))
+            }
+            component.mouseMotionListeners.forEach {
+                it.mouseDragged(mouseDragged(component, x = 20, y = 8))
+            }
+        }
+
+        assertEquals(0, opened.get())
+        assertEquals(CellSelection(0, 0, 1, 0), component.currentSelection())
+        session.close()
+    }
+
     private fun testSession(
         frame: TerminalRenderFrame,
         inputEncoder: TerminalInputEncoder = NoOpInputEncoder,
         renderReader: TerminalRenderFrameReader = StaticFrameReader(frame),
+        hyperlinkResolver: TerminalHyperlinkResolver = TerminalHyperlinkResolver.NONE,
     ): TerminalSession {
         val terminal = TerminalBuffers.create(width = frame.columns, height = frame.rows, maxHistory = 5)
         return TerminalSession(
@@ -305,6 +404,7 @@ class TerminalSwingTerminalSelectionTest {
             connector = NoOpConnector,
             parser = NoOpParser,
             inputEncoder = inputEncoder,
+            hyperlinkResolver = hyperlinkResolver,
         )
     }
 
@@ -370,6 +470,23 @@ class TerminalSwingTerminalSelectionTest {
             MouseEvent.MOUSE_PRESSED,
             System.currentTimeMillis(),
             InputEvent.BUTTON1_DOWN_MASK or InputEvent.ALT_DOWN_MASK,
+            x,
+            y,
+            1,
+            false,
+            MouseEvent.BUTTON1,
+        )
+
+    private fun mousePressedWithCtrl(
+        component: TerminalSwingTerminal,
+        x: Int,
+        y: Int,
+    ): MouseEvent =
+        MouseEvent(
+            component,
+            MouseEvent.MOUSE_PRESSED,
+            System.currentTimeMillis(),
+            InputEvent.BUTTON1_DOWN_MASK or InputEvent.CTRL_DOWN_MASK,
             x,
             y,
             1,

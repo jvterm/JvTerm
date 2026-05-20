@@ -140,6 +140,7 @@ internal data class TestCell(
     val flags: Int = TerminalRenderCellFlags.EMPTY,
     val attr: Long = TerminalRenderAttrs.DEFAULT,
     val extraAttr: Long = TerminalRenderExtraAttrs.DEFAULT,
+    val hyperlinkId: Int = 0,
     val cluster: String? = null,
 )
 
@@ -201,7 +202,7 @@ internal class TestRenderFrame(
             attrWords[attrOffset + column] = cell.attr
             flags[flagOffset + column] = cell.flags
             extraAttrWords?.set(extraAttrOffset + column, cell.extraAttr)
-            hyperlinkIds?.set(hyperlinkOffset + column, 0)
+            hyperlinkIds?.set(hyperlinkOffset + column, cell.hyperlinkId)
             if (cell.cluster != null) {
                 clusterSink?.onCluster(column, cell.cluster)
                 val codepoints = clusterCodepoints(cell.cluster)

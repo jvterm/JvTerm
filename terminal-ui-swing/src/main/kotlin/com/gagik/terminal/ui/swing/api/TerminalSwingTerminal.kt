@@ -129,6 +129,10 @@ class TerminalSwingTerminal(
             override fun mouseReleased(event: MouseEvent) {
                 handleSelectionMouseReleased(event)
             }
+
+            override fun mouseExited(event: MouseEvent) {
+                updateHyperlinkCursor(active = false)
+            }
         }
 
     private val selectionMouseMotionListener =
@@ -281,6 +285,7 @@ class TerminalSwingTerminal(
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
         renderPending.set(false)
+        updateHyperlinkCursor(active = false)
         resizeSessionToVisibleGridOnEdt()
         repaint()
     }
@@ -295,6 +300,7 @@ class TerminalSwingTerminal(
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
         renderPending.set(false)
+        updateHyperlinkCursor(active = false)
         repaint()
     }
 
@@ -309,6 +315,7 @@ class TerminalSwingTerminal(
         cursorTimer.delay = settings.cursorBlinkMillis
         session?.let { applySettingsToSession(it, settings) }
         clearSelection()
+        updateHyperlinkCursor(active = false)
         resizeSessionToVisibleGridOnEdt()
         revalidate()
         repaint()
@@ -409,11 +416,16 @@ class TerminalSwingTerminal(
     }
 
     private fun handleSelectionMouseMoved(event: MouseEvent) {
-        handleMouseTracking(event, TerminalMouseEventType.MOTION)
+        if (handleMouseTracking(event, TerminalMouseEventType.MOTION)) {
+            updateHyperlinkCursor(active = false)
+            return
+        }
+        updateHyperlinkCursor(active = hyperlinkUriAt(event) != null)
     }
 
     private fun handleSelectionMousePressed(event: MouseEvent) {
         if (handleMouseTracking(event, TerminalMouseEventType.PRESS)) return
+        if (handleHyperlinkActivation(event)) return
         if (!SwingUtilities.isLeftMouseButton(event)) return
         requestFocusInWindow()
 
@@ -612,6 +624,38 @@ class TerminalSwingTerminal(
     private fun stopSelectionDrag() {
         selectingWithMouse = false
         selectionAutoscrollTimer.stop()
+    }
+
+    private fun handleHyperlinkActivation(event: MouseEvent): Boolean {
+        if (!SwingUtilities.isLeftMouseButton(event) || !event.isControlDown) return false
+        val uri = hyperlinkUriAt(event) ?: return false
+        if (!settings.hyperlinkHandler.openHyperlink(uri)) return false
+        event.consume()
+        return true
+    }
+
+    private fun hyperlinkUriAt(event: MouseEvent): String? {
+        val boundSession = session ?: return null
+        return boundSession.publisher.readCurrent { cache ->
+            val hyperlinkId = hyperlinkIdAt(event, cache)
+            if (hyperlinkId == NO_HYPERLINK_ID) null else boundSession.hyperlinkUri(hyperlinkId)
+        }
+    }
+
+    private fun hyperlinkIdAt(
+        event: MouseEvent,
+        cache: TerminalRenderCache,
+    ): Int {
+        if (cache.columns <= 0 || cache.rows <= 0) return NO_HYPERLINK_ID
+        val cell = cellAt(event, cache)
+        val column = unpackCellColumn(cell)
+        val row = unpackCellRow(cell)
+        return cache.hyperlinkIds[cache.rowOffset(row) + column]
+    }
+
+    private fun updateHyperlinkCursor(active: Boolean) {
+        val nextCursor = if (active) HAND_CURSOR else DEFAULT_CURSOR
+        if (cursor !== nextCursor) cursor = nextCursor
     }
 
     private fun updateSelectionAutoscroll() {
@@ -816,6 +860,9 @@ class TerminalSwingTerminal(
 
     private companion object {
         private const val NO_RESIZE_DIMENSION = -1
+        private const val NO_HYPERLINK_ID = 0
+        private val HAND_CURSOR: Cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        private val DEFAULT_CURSOR: Cursor = Cursor.getDefaultCursor()
 
         private fun packVisibleGridSize(
             columns: Int,

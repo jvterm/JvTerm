@@ -68,6 +68,7 @@ class CoreTerminalCommandSink(
     private var activeHyperlinkNumericId: Int = 0
     private var nextHyperlinkNumericId: Int = 1
     private val hyperlinkIds = LinkedHashMap<HyperlinkKey, Int>(256, 0.75f, true)
+    private val hyperlinkKeysByNumericId = HashMap<Int, HyperlinkKey>(256)
 
     override fun writeCodepoint(codepoint: Int) {
         terminal.writeCodepoint(codepoint)
@@ -132,6 +133,7 @@ class CoreTerminalCommandSink(
         activeHyperlinkId = null
         activeHyperlinkNumericId = 0
         hyperlinkIds.clear()
+        hyperlinkKeysByNumericId.clear()
         nextHyperlinkNumericId = 1
     }
 
@@ -597,6 +599,19 @@ class CoreTerminalCommandSink(
         terminal.setHyperlinkId(0)
     }
 
+    /**
+     * Returns the OSC 8 URI associated with [hyperlinkId], or `null`.
+     *
+     * The renderer stores only primitive ids in cells. This adapter owns the
+     * bounded metadata registry that maps those ids back to validated URIs for
+     * explicit host/UI activation. Ids evicted by [hostPolicy] are intentionally
+     * unresolved even if older cells still contain their primitive id.
+     *
+     * @param hyperlinkId render-cell hyperlink id.
+     * @return target URI, or `null`.
+     */
+    fun hyperlinkUri(hyperlinkId: Int): String? = hyperlinkKeysByNumericId[hyperlinkId]?.uri
+
     private fun setMouseTrackingMode(
         enabled: Boolean,
         mode: MouseTrackingMode,
@@ -638,13 +653,18 @@ class CoreTerminalCommandSink(
         if (hyperlinkIds.size >= hostPolicy.maxHyperlinkEntries) {
             val eldest = hyperlinkIds.entries.iterator()
             if (eldest.hasNext()) {
-                eldest.next()
+                val entry = eldest.next()
+                hyperlinkKeysByNumericId.remove(entry.value)
                 eldest.remove()
             }
         }
 
         val numericId = nextHyperlinkNumericId
+        hyperlinkKeysByNumericId[numericId]?.let { staleKey ->
+            hyperlinkIds.remove(staleKey)
+        }
         hyperlinkIds[key] = numericId
+        hyperlinkKeysByNumericId[numericId] = key
         nextHyperlinkNumericId = nextHyperlinkIdAfter(numericId)
         return numericId
     }

@@ -275,6 +275,31 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `hyperlinkUri delegates to session resolver`() {
+        val terminal = TerminalBuffers.create(width = 10, height = 3)
+        val connector = MockConnector()
+        val session =
+            TerminalSession(
+                terminal = terminal,
+                publisher = TerminalRenderPublisher(terminal.width, terminal.height),
+                renderReader = terminal as TerminalRenderFrameReader,
+                responseReader = terminal,
+                connector = connector,
+                parser = RecordingParser(),
+                inputEncoder = NoOpInputEncoder,
+                hyperlinkResolver = TerminalHyperlinkResolver { id ->
+                    if (id == 42) "https://example.com" else null
+                },
+            )
+
+        assertAll(
+            { assertEquals("https://example.com", session.hyperlinkUri(42)) },
+            { assertNull(session.hyperlinkUri(7)) },
+        )
+        session.close()
+    }
+
+    @Test
     fun `readRenderFrame forwards caller owned scrollback offset`() {
         val terminal = TerminalBuffers.create(width = 10, height = 3)
         val connector = MockConnector()

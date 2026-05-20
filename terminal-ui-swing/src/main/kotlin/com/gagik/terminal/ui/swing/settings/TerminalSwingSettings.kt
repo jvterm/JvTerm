@@ -39,6 +39,8 @@ import java.util.*
  * @property fractionalMetrics fractional font metrics hint used during painting.
  * @property clipboardHandler host clipboard adapter for copy and paste actions.
  * @property clipboardShortcuts platform clipboard key bindings.
+ * @property hyperlinkHandler host policy for explicit Ctrl-click hyperlink
+ * activation.
  * @property selectionBackground packed ARGB overlay used for visible terminal
  * selection ranges.
  * @property fallbackFonts ordered fonts used by the complex-text renderer when
@@ -62,6 +64,7 @@ data class TerminalSwingSettings(
     val fractionalMetrics: Any = RenderingHints.VALUE_FRACTIONALMETRICS_OFF,
     val clipboardHandler: TerminalClipboardHandler = TerminalClipboardHandler.SYSTEM,
     val clipboardShortcuts: TerminalClipboardShortcuts = TerminalClipboardShortcuts.platformDefault(),
+    val hyperlinkHandler: TerminalHyperlinkHandler = TerminalHyperlinkHandler.SYSTEM,
     val selectionBackground: Int = DEFAULT_SELECTION_BACKGROUND,
 ) {
     init {
