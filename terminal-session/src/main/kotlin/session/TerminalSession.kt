@@ -31,6 +31,7 @@ import com.gagik.terminal.input.impl.DefaultTerminalInputEncoder
 import com.gagik.terminal.input.policy.TerminalInputPolicy
 import com.gagik.terminal.render.api.TerminalRenderFrameConsumer
 import com.gagik.terminal.render.api.TerminalRenderFrameReader
+import com.gagik.terminal.render.cache.TerminalRenderCache
 import com.gagik.terminal.render.cache.TerminalRenderPublisher
 import com.gagik.terminal.transport.TerminalConnector
 import com.gagik.terminal.transport.TerminalConnectorListener
@@ -56,6 +57,7 @@ class TerminalSession(
     private val connector: TerminalConnector,
     private val parser: TerminalOutputParser,
     private val inputEncoder: TerminalInputEncoder,
+    private val hyperlinkResolver: TerminalHyperlinkResolver = TerminalHyperlinkResolver.NONE,
     private val outboundWriteLock: Any = Any(),
 ) : TerminalConnectorListener,
     TerminalInputEncoder,
@@ -101,6 +103,18 @@ class TerminalSession(
     @Volatile
     var failure: Throwable? = null
         private set
+
+    /**
+     * Resolves a primitive render-frame hyperlink id to a target URI.
+     *
+     * UI components call this from explicit user activation paths after reading
+     * [TerminalRenderCache.hyperlinkIds]. The lookup is outside the paint loop
+     * and returns `null` when metadata is unavailable or was evicted by policy.
+     *
+     * @param hyperlinkId cell hyperlink id; `0` means no hyperlink.
+     * @return target URI, or `null`.
+     */
+    fun hyperlinkUri(hyperlinkId: Int): String? = hyperlinkResolver.uriForHyperlinkId(hyperlinkId)
 
     /**
      * Starts the connector after resizing core and transport to [columns] x
@@ -454,6 +468,7 @@ class TerminalSession(
                 connector = connector,
                 parser = parser,
                 inputEncoder = inputEncoder,
+                hyperlinkResolver = TerminalHyperlinkResolver(sink::hyperlinkUri),
                 outboundWriteLock = outboundWriteLock,
             )
         }

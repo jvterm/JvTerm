@@ -143,11 +143,14 @@ A change is not done until:
 - Unsupported parts are explicit TODOs, not silent no-ops pretending to work.
 - `docs/terminal-feature-gap-map.md` is updated when capability or scope
   changes.
+- `./gradlew spotlessApply` has been run after edits and before final
+  verification.
 - No unrelated formatting churn or architecture drift is introduced.
 
 ## Useful Commands
 
 - Full test suite: `./gradlew test`
+- Format Kotlin and Gradle files: `./gradlew spotlessApply`
 - Parser tests: `./gradlew :terminal-parser:test`
 - Core tests: `./gradlew :terminal-core:test`
 - Integration tests: `./gradlew :terminal-integration:test`

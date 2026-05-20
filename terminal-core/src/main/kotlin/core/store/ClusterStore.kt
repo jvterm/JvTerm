@@ -79,6 +79,9 @@ internal class ClusterStore {
     /** Number of codepoints stored in each slot. */
     private var slotLengths = IntArray(INITIAL_SLOT_CAPACITY)
 
+    /** Maximum capacity of codepoints allocated to each slot. */
+    private var slotCapacities = IntArray(INITIAL_SLOT_CAPACITY)
+
     /**
      * Freelist linkage. For a live slot this value is unused.
      * For a freed slot, stores the index of the next free slot, or [NO_FREE].
@@ -101,8 +104,8 @@ internal class ClusterStore {
     /** High-water mark: total number of slots ever allocated. */
     private var slotCount = 0
 
-    /** Head of the O(1) freelist. [NO_FREE] when the list is empty. */
-    private var freeHead = NO_FREE
+    /** Heads of the O(1) segregated freelists. */
+    private val freeHeads = IntArray(4) { NO_FREE }
 
     // Public API — allocation
 
@@ -125,12 +128,39 @@ internal class ClusterStore {
         length: Int = codepoints.size,
     ): Int {
         require(length >= 1) { "cluster must have at least 1 codepoint, got $length" }
-        val slot = acquireSlot()
+
+        val bucket = bucketForCapacity(length)
+        var slot = NO_FREE
+
+        // 1. Search preferred buckets (matching or slightly larger, but not Bucket 3 for small lengths)
+        if (bucket < 3) {
+            for (b in bucket..2) {
+                slot = popSlot(b)
+                if (slot != NO_FREE) break
+            }
+        } else {
+            slot = popSlot(3)
+        }
+
+        // 2. Fallback: search smaller buckets to reuse existing slots before allocating new ones
+        if (slot == NO_FREE) {
+            for (b in (bucket - 1) downTo 0) {
+                slot = popSlot(b)
+                if (slot != NO_FREE) break
+            }
+        }
+
+        if (slot == NO_FREE) {
+            slot = acquireNewSlot()
+        }
+
         val start =
-            if (slotLengths[slot] >= length) {
+            if (slotCapacities[slot] >= length) {
                 slotStarts[slot] // reuse existing data region
             } else {
-                reserveData(length) // bump allocate new region
+                val newStart = reserveData(length)
+                slotCapacities[slot] = length
+                newStart
             }
         System.arraycopy(codepoints, offset, clusterData, start, length)
         slotStarts[slot] = start
@@ -154,8 +184,10 @@ internal class ClusterStore {
             throw IllegalStateException("Cluster handle $handle was freed more than once")
         }
         isLive[slot] = false
-        nextFree[slot] = freeHead
-        freeHead = slot
+
+        val bucket = bucketForCapacity(slotCapacities[slot])
+        nextFree[slot] = freeHeads[bucket]
+        freeHeads[bucket] = slot
     }
 
     /**
@@ -251,14 +283,28 @@ internal class ClusterStore {
 
     // Private helpers
 
-    /** Returns the next available slot index, popping the freelist or growing the table. */
-    private fun acquireSlot(): Int {
-        if (freeHead != NO_FREE) {
-            val slot = freeHead
-            freeHead = nextFree[slot]
+    /** Maps a physical capacity to one of the 4 size-classed buckets. */
+    private fun bucketForCapacity(capacity: Int): Int =
+        when {
+            capacity <= 2 -> 0
+            capacity == 3 -> 1
+            capacity == 4 -> 2
+            else -> 3
+        }
+
+    /** Pops a slot index from a specific bucket, returning [NO_FREE] if empty. */
+    private fun popSlot(bucket: Int): Int {
+        val slot = freeHeads[bucket]
+        if (slot != NO_FREE) {
+            freeHeads[bucket] = nextFree[slot]
             nextFree[slot] = NO_FREE
             return slot
         }
+        return NO_FREE
+    }
+
+    /** Returns a brand new slot index, growing parallel slot tables if full. */
+    private fun acquireNewSlot(): Int {
         if (slotCount == slotStarts.size) growSlots()
         return slotCount++
     }
@@ -275,6 +321,7 @@ internal class ClusterStore {
         val newCap = slotStarts.size * 2
         slotStarts = slotStarts.copyOf(newCap)
         slotLengths = slotLengths.copyOf(newCap)
+        slotCapacities = slotCapacities.copyOf(newCap)
         val grown = nextFree.copyOf(newCap)
         isLive = isLive.copyOf(newCap)
         for (i in slotCount until newCap) grown[i] = NO_FREE

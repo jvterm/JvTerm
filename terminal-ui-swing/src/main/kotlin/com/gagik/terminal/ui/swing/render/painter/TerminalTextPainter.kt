@@ -72,6 +72,9 @@ internal class TerminalTextPainter(
         metrics: TerminalSwingMetrics,
         row: Int,
         fontRenderContext: FontRenderContext,
+        hoveredHyperlinkId: Int = NO_HYPERLINK_ID,
+        hyperlinkActivationHover: Boolean = false,
+        hyperlinkActivationForeground: Int = DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND,
     ) {
         val flagsPlane = cache.flags
         val codeWords = cache.codeWords
@@ -99,6 +102,9 @@ internal class TerminalTextPainter(
                         startColumn = column,
                         baselineY = baselineY,
                         fontRenderContext = fontRenderContext,
+                        hoveredHyperlinkId = hoveredHyperlinkId,
+                        hyperlinkActivationHover = hyperlinkActivationHover,
+                        hyperlinkActivationForeground = hyperlinkActivationForeground,
                     )
                 } else {
                     paintComplexCell(
@@ -110,6 +116,9 @@ internal class TerminalTextPainter(
                         column = column,
                         baselineY = baselineY,
                         fontRenderContext = fontRenderContext,
+                        hoveredHyperlinkId = hoveredHyperlinkId,
+                        hyperlinkActivationHover = hyperlinkActivationHover,
+                        hyperlinkActivationForeground = hyperlinkActivationForeground,
                     )
                 }
         }
@@ -218,16 +227,24 @@ internal class TerminalTextPainter(
         startColumn: Int,
         baselineY: Int,
         fontRenderContext: FontRenderContext,
+        hoveredHyperlinkId: Int,
+        hyperlinkActivationHover: Boolean,
+        hyperlinkActivationForeground: Int,
     ): Int {
         val flagsPlane = cache.flags
         val attrWords = cache.attrWords
         val extraAttrWords = cache.extraAttrWords
         val codeWords = cache.codeWords
+        val hyperlinkIds = cache.hyperlinkIds
         val rowOffset = cache.rowOffset(row)
         val startIndex = rowOffset + startColumn
         val attr = attrWords[startIndex]
         val extraAttr = extraAttrWords[startIndex]
-        val foreground = TerminalSwingColors.foreground(palette, attr)
+        val hyperlinkId = hyperlinkIds[startIndex]
+        val hovered = hyperlinkId != NO_HYPERLINK_ID && hyperlinkId == hoveredHyperlinkId
+        val activationHover = hovered && hyperlinkActivationHover
+        val naturalForeground = TerminalSwingColors.foreground(palette, attr)
+        val foreground = if (activationHover) hyperlinkActivationForeground else naturalForeground
         val fontStyle = terminalFontStyle(attr)
         val decoration = decorationKey(attr, extraAttr)
         var column = startColumn
@@ -239,11 +256,21 @@ internal class TerminalTextPainter(
             val codeWord = codeWords[index]
             val currentAttr = attrWords[index]
             val currentExtraAttr = extraAttrWords[index]
+            val currentHyperlinkId = hyperlinkIds[index]
+            val currentHovered = currentHyperlinkId != NO_HYPERLINK_ID && currentHyperlinkId == hoveredHyperlinkId
+            val currentActivationHover = currentHovered && hyperlinkActivationHover
+            val currentForeground =
+                if (currentActivationHover) {
+                    hyperlinkActivationForeground
+                } else {
+                    TerminalSwingColors.foreground(palette, currentAttr)
+                }
             if (
                 !isFastAsciiCell(flags, codeWord) ||
-                TerminalSwingColors.foreground(palette, currentAttr) != foreground ||
+                currentForeground != foreground ||
                 terminalFontStyle(currentAttr) != fontStyle ||
-                decorationKey(currentAttr, currentExtraAttr) != decoration
+                decorationKey(currentAttr, currentExtraAttr) != decoration ||
+                currentHyperlinkId != hyperlinkId
             ) {
                 break
             }
@@ -256,6 +283,16 @@ internal class TerminalTextPainter(
         g.color = colorCache.color(foreground)
         drawAsciiRun(g, metrics, startColumn, baselineY, fontStyle, fontRenderContext)
         decorationPainter.paint(g, palette, attr, extraAttr, foreground, startColumn, column, row, metrics)
+        paintHyperlinkDecoration(
+            g = g,
+            hyperlinkId = hyperlinkId,
+            hovered = hovered,
+            color = foreground,
+            startColumn = startColumn,
+            endColumn = column,
+            row = row,
+            metrics = metrics,
+        )
         return column
     }
 
@@ -268,17 +305,29 @@ internal class TerminalTextPainter(
         column: Int,
         baselineY: Int,
         fontRenderContext: FontRenderContext,
+        hoveredHyperlinkId: Int,
+        hyperlinkActivationHover: Boolean,
+        hyperlinkActivationForeground: Int,
     ): Int {
         val flagsPlane = cache.flags
         val attrWords = cache.attrWords
         val extraAttrWords = cache.extraAttrWords
         val codeWords = cache.codeWords
+        val hyperlinkIds = cache.hyperlinkIds
         val clusterRefs = cache.clusterRefs
         val index = cache.rowOffset(row) + column
         val flags = flagsPlane[index]
         val attr = attrWords[index]
         val extraAttr = extraAttrWords[index]
-        val foreground = TerminalSwingColors.foreground(palette, attr)
+        val hyperlinkId = hyperlinkIds[index]
+        val hovered = hyperlinkId != NO_HYPERLINK_ID && hyperlinkId == hoveredHyperlinkId
+        val activationHover = hovered && hyperlinkActivationHover
+        val foreground =
+            if (activationHover) {
+                hyperlinkActivationForeground
+            } else {
+                TerminalSwingColors.foreground(palette, attr)
+            }
         val fontStyle = terminalFontStyle(attr)
         val endColumn = minOf(cache.columns, column + cellSpan(flags))
         val oldClip = g.clip
@@ -350,10 +399,42 @@ internal class TerminalTextPainter(
             }
 
             decorationPainter.paint(g, palette, attr, extraAttr, foreground, column, endColumn, row, metrics)
+            paintHyperlinkDecoration(
+                g = g,
+                hyperlinkId = hyperlinkId,
+                hovered = hovered,
+                color = foreground,
+                startColumn = column,
+                endColumn = endColumn,
+                row = row,
+                metrics = metrics,
+            )
         } finally {
             g.clip = oldClip
         }
         return endColumn
+    }
+
+    private fun paintHyperlinkDecoration(
+        g: Graphics2D,
+        hyperlinkId: Int,
+        hovered: Boolean,
+        color: Int,
+        startColumn: Int,
+        endColumn: Int,
+        row: Int,
+        metrics: TerminalSwingMetrics,
+    ) {
+        if (hyperlinkId == NO_HYPERLINK_ID) return
+        decorationPainter.paintHyperlink(
+            g = g,
+            color = color,
+            startColumn = startColumn,
+            endColumn = endColumn,
+            row = row,
+            metrics = metrics,
+            hovered = hovered,
+        )
     }
 
     private fun drawAsciiRun(
@@ -468,5 +549,7 @@ internal class TerminalTextPainter(
         private const val INITIAL_TEXT_RUN_CAPACITY = 256
         private const val STRIKETHROUGH_KEY = 1L shl 8
         private const val EXTRA_ATTR_KEY_SHIFT = 9
+        private const val NO_HYPERLINK_ID = 0
+        private const val DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND = 0xFF4DA3FF.toInt()
     }
 }

@@ -361,6 +361,9 @@ Missing:
 - `DONE(integration/policy)`: OSC 8 hyperlink id pool is bounded by
   `TerminalHostPolicy`, rejects overlong URI/id payloads, and evicts
   least-recently-used entries instead of growing without limit.
+- `DONE(integration/session/ui)`: OSC 8 hyperlink ids can be resolved through
+  session metadata and activated by Swing only after explicit Ctrl-left-click
+  through a host-replaceable hyperlink handler.
 - `DONE(core/integration/host)`: OSC title state is stored in core, mirrored as
   integration metadata for title stack behavior, and reported to hosts through
   `TerminalHostEventSink`.
@@ -368,8 +371,8 @@ Missing:
   icon/window title changes. Device responses use the core response queue, and
   UI input reports use `TerminalSession` host output serialization.
 - `TODO(integration/host/policy)`: host callbacks or policy surfaces for
-  hyperlink inspection/activation, palette updates, terminal notifications,
-  mouse-report policy, and clipboard policy.
+  palette updates, terminal notifications, mouse-report policy, and clipboard
+  policy.
 
 ## Input Module Gaps
 
@@ -515,6 +518,10 @@ professional emulator needs explicit contracts for it.
   - platform clipboard shortcuts copy selected visible text through the Swing
     clipboard abstraction
   - platform paste shortcuts read clipboard text and send a terminal paste event
+- `DONE(host/session/ui)`: Swing hyperlink activation hit-tests primitive
+  render-cache hyperlink ids outside the paint loop, resolves metadata through
+  `TerminalSession`, changes the hover cursor over resolvable links, and opens
+  links only through the configured `TerminalHyperlinkHandler`.
 - `DONE(render-api/core/cache/session)`: caller-owned scrollback viewport
   offsets can be requested per render-frame read, clamped by core, copied by
   the primitive render cache, and forwarded through session synchronization.
@@ -531,8 +538,8 @@ professional emulator needs explicit contracts for it.
 
 - `TODO(policy)`: OSC 52 clipboard permission model.
 - `TODO(policy)`: DCS/OSC query response allowlist.
-- `TODO(policy)`: hyperlink validation and display policy beyond integration
-  resource limits.
+- `TODO(policy)`: richer hyperlink validation and display policy beyond
+  integration resource limits and Swing's explicit-activation handler.
 - `DONE(parser)`: OSC/DCS string payload accumulation is bounded by parser
   state and overflowed payloads are discarded safely.
 - `TODO(policy)`: protocol-family-specific payload limits and host-configurable

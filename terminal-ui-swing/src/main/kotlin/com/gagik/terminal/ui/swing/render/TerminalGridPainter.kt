@@ -71,6 +71,8 @@ internal class TerminalGridPainter {
         cursorBlinkVisible: Boolean,
         contentYOffset: Double = 0.0,
         selection: CellSelection? = null,
+        hoveredHyperlinkId: Int = 0,
+        hyperlinkActivationHover: Boolean = false,
     ) {
         val palette = settings.palette
         textPainter.updateSettings(settings)
@@ -95,7 +97,17 @@ internal class TerminalGridPainter {
             while (row < rows) {
                 backgroundPainter.paintRow(g, cache, palette, metrics, row)
                 selectionPainter.paint(g, cache, metrics, row, selection, settings.selectionBackground)
-                textPainter.paintRow(g, cache, palette, metrics, row, fontRenderContext)
+                textPainter.paintRow(
+                    g = g,
+                    cache = cache,
+                    palette = palette,
+                    metrics = metrics,
+                    row = row,
+                    fontRenderContext = fontRenderContext,
+                    hoveredHyperlinkId = hoveredHyperlinkId,
+                    hyperlinkActivationHover = hyperlinkActivationHover,
+                    hyperlinkActivationForeground = settings.hyperlinkActivationForeground,
+                )
                 row++
             }
 

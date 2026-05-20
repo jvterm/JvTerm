@@ -744,7 +744,9 @@ class CoreTerminalCommandSinkTest {
                 { assertNull(f.sink.activeHyperlinkUri) },
                 { assertNull(f.sink.activeHyperlinkId) },
                 { assertEquals(1, f.terminal.getAttrAt(0, 0)?.hyperlinkId) },
+                { assertEquals("https://example.com", f.sink.hyperlinkUri(1)) },
                 { assertEquals(0, f.terminal.getAttrAt(1, 0)?.hyperlinkId) },
+                { assertNull(f.sink.hyperlinkUri(0)) },
             )
         }
 
@@ -872,6 +874,9 @@ class CoreTerminalCommandSinkTest {
                 { assertEquals(1, f.terminal.getAttrAt(2, 0)?.hyperlinkId) },
                 { assertEquals(3, f.terminal.getAttrAt(3, 0)?.hyperlinkId) },
                 { assertEquals(4, f.terminal.getAttrAt(4, 0)?.hyperlinkId) },
+                { assertNull(f.sink.hyperlinkUri(1)) },
+                { assertEquals("https://example.com/c", f.sink.hyperlinkUri(3)) },
+                { assertEquals("https://example.com/b", f.sink.hyperlinkUri(4)) },
             )
         }
 

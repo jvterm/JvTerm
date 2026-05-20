@@ -65,6 +65,8 @@ class TerminalSwingTerminal(
     private var selectionIsBlock: Boolean = false
     private var lastSelectionDragX: Int = 0
     private var lastSelectionDragY: Int = 0
+    private var hoveredHyperlinkId: Int = NO_HYPERLINK_ID
+    private var hyperlinkActivationHover: Boolean = false
     private val selectionAutoscrollTimer =
         Timer(50) {
             handleSelectionAutoscrollTick()
@@ -101,11 +103,16 @@ class TerminalSwingTerminal(
     private val inputKeyListener =
         object : KeyAdapter() {
             override fun keyPressed(event: KeyEvent) {
+                updateHyperlinkActivationHover(event.isControlDown)
                 if (handleClipboardShortcut(event)) return
 
                 val keyEvent = keyMapper.keyPressed(event) ?: return
                 session?.encodeKey(keyEvent)
                 event.consume()
+            }
+
+            override fun keyReleased(event: KeyEvent) {
+                updateHyperlinkActivationHover(event.isControlDown)
             }
 
             override fun keyTyped(event: KeyEvent) {
@@ -128,6 +135,10 @@ class TerminalSwingTerminal(
 
             override fun mouseReleased(event: MouseEvent) {
                 handleSelectionMouseReleased(event)
+            }
+
+            override fun mouseExited(event: MouseEvent) {
+                updateHyperlinkHover(NO_HYPERLINK_ID, activationHover = false)
             }
         }
 
@@ -257,6 +268,8 @@ class TerminalSwingTerminal(
                         cursorBlinkVisible = cursorBlinkVisible,
                         contentYOffset = contentYOffset(cache),
                         selection = getViewportSelection(cache),
+                        hoveredHyperlinkId = hoveredHyperlinkId,
+                        hyperlinkActivationHover = hyperlinkActivationHover,
                     )
                 }
             if (painted == null) {
@@ -281,6 +294,7 @@ class TerminalSwingTerminal(
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
         renderPending.set(false)
+        updateHyperlinkHover(NO_HYPERLINK_ID, activationHover = false)
         resizeSessionToVisibleGridOnEdt()
         repaint()
     }
@@ -295,6 +309,7 @@ class TerminalSwingTerminal(
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
         renderPending.set(false)
+        updateHyperlinkHover(NO_HYPERLINK_ID, activationHover = false)
         repaint()
     }
 
@@ -309,6 +324,7 @@ class TerminalSwingTerminal(
         cursorTimer.delay = settings.cursorBlinkMillis
         session?.let { applySettingsToSession(it, settings) }
         clearSelection()
+        updateHyperlinkHover(NO_HYPERLINK_ID, activationHover = false)
         resizeSessionToVisibleGridOnEdt()
         revalidate()
         repaint()
@@ -409,11 +425,16 @@ class TerminalSwingTerminal(
     }
 
     private fun handleSelectionMouseMoved(event: MouseEvent) {
-        handleMouseTracking(event, TerminalMouseEventType.MOTION)
+        if (handleMouseTracking(event, TerminalMouseEventType.MOTION)) {
+            updateHyperlinkHover(NO_HYPERLINK_ID, activationHover = false)
+            return
+        }
+        updateHyperlinkHover(resolvableHyperlinkIdAt(event), activationHover = event.isControlDown)
     }
 
     private fun handleSelectionMousePressed(event: MouseEvent) {
         if (handleMouseTracking(event, TerminalMouseEventType.PRESS)) return
+        if (handleHyperlinkActivation(event)) return
         if (!SwingUtilities.isLeftMouseButton(event)) return
         requestFocusInWindow()
 
@@ -612,6 +633,64 @@ class TerminalSwingTerminal(
     private fun stopSelectionDrag() {
         selectingWithMouse = false
         selectionAutoscrollTimer.stop()
+    }
+
+    private fun handleHyperlinkActivation(event: MouseEvent): Boolean {
+        if (!SwingUtilities.isLeftMouseButton(event) || !event.isControlDown) return false
+        val uri = hyperlinkUriAt(event) ?: return false
+        if (!settings.hyperlinkHandler.openHyperlink(uri)) return false
+        event.consume()
+        return true
+    }
+
+    private fun hyperlinkUriAt(event: MouseEvent): String? {
+        val boundSession = session ?: return null
+        return boundSession.publisher.readCurrent { cache ->
+            val hyperlinkId = hyperlinkIdAt(event, cache)
+            if (hyperlinkId == NO_HYPERLINK_ID) null else boundSession.hyperlinkUri(hyperlinkId)
+        }
+    }
+
+    private fun resolvableHyperlinkIdAt(event: MouseEvent): Int {
+        val boundSession = session ?: return NO_HYPERLINK_ID
+        return boundSession.publisher.readCurrent { cache ->
+            val hyperlinkId = hyperlinkIdAt(event, cache)
+            if (hyperlinkId != NO_HYPERLINK_ID && boundSession.hyperlinkUri(hyperlinkId) != null) {
+                hyperlinkId
+            } else {
+                NO_HYPERLINK_ID
+            }
+        } ?: NO_HYPERLINK_ID
+    }
+
+    private fun hyperlinkIdAt(
+        event: MouseEvent,
+        cache: TerminalRenderCache,
+    ): Int {
+        if (cache.columns <= 0 || cache.rows <= 0) return NO_HYPERLINK_ID
+        val cell = cellAt(event, cache)
+        val column = unpackCellColumn(cell)
+        val row = unpackCellRow(cell)
+        return cache.hyperlinkIds[cache.rowOffset(row) + column]
+    }
+
+    private fun updateHyperlinkActivationHover(active: Boolean) {
+        if (hoveredHyperlinkId == NO_HYPERLINK_ID || hyperlinkActivationHover == active) return
+        hyperlinkActivationHover = active
+        repaint()
+    }
+
+    private fun updateHyperlinkHover(
+        hyperlinkId: Int,
+        activationHover: Boolean,
+    ) {
+        val normalizedActivationHover = hyperlinkId != NO_HYPERLINK_ID && activationHover
+        val changed = hoveredHyperlinkId != hyperlinkId || hyperlinkActivationHover != normalizedActivationHover
+        hoveredHyperlinkId = hyperlinkId
+        hyperlinkActivationHover = normalizedActivationHover
+        val nextCursor = if (hyperlinkId != NO_HYPERLINK_ID) HAND_CURSOR else DEFAULT_CURSOR
+        if (cursor !== nextCursor) cursor = nextCursor
+        if (changed) repaint()
     }
 
     private fun updateSelectionAutoscroll() {
@@ -816,6 +895,9 @@ class TerminalSwingTerminal(
 
     private companion object {
         private const val NO_RESIZE_DIMENSION = -1
+        private const val NO_HYPERLINK_ID = 0
+        private val HAND_CURSOR: Cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        private val DEFAULT_CURSOR: Cursor = Cursor.getDefaultCursor()
 
         private fun packVisibleGridSize(
             columns: Int,
