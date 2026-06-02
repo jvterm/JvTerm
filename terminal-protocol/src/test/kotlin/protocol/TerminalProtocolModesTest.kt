@@ -112,4 +112,44 @@ class TerminalProtocolModesTest {
             { assertEquals(4, XtermKeyFormatResource.FORMAT_OTHER_KEYS) },
         )
     }
+
+    @Test
+    fun `kitty keyboard progressive flags match protocol bit values`() {
+        assertAll(
+            { assertEquals(1, KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES) },
+            { assertEquals(2, KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES) },
+            { assertEquals(4, KittyKeyboardProgressiveFlag.REPORT_ALTERNATE_KEYS) },
+            { assertEquals(8, KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES) },
+            { assertEquals(16, KittyKeyboardProgressiveFlag.REPORT_ASSOCIATED_TEXT) },
+            { assertEquals(31, KittyKeyboardProgressiveFlag.SUPPORTED_MASK) },
+        )
+    }
+
+    @Test
+    fun `kitty keyboard flag application modes match protocol parameter values`() {
+        assertAll(
+            { assertEquals(1, KittyKeyboardFlagApplicationMode.REPLACE) },
+            { assertEquals(2, KittyKeyboardFlagApplicationMode.SET) },
+            { assertEquals(3, KittyKeyboardFlagApplicationMode.CLEAR) },
+        )
+    }
+
+    @Test
+    fun `kitty keyboard event types match protocol subparameter values`() {
+        assertAll(
+            { assertEquals(1, KittyKeyboardEventType.PRESS) },
+            { assertEquals(2, KittyKeyboardEventType.REPEAT) },
+            { assertEquals(3, KittyKeyboardEventType.RELEASE) },
+        )
+    }
+
+    @Test
+    fun `kitty keyboard first-slice functional key codes match protocol values`() {
+        assertAll(
+            { assertEquals(0x09, KittyKeyboardFunctionalKeyCode.TAB) },
+            { assertEquals(0x0d, KittyKeyboardFunctionalKeyCode.ENTER) },
+            { assertEquals(0x1b, KittyKeyboardFunctionalKeyCode.ESCAPE) },
+            { assertEquals(0x7f, KittyKeyboardFunctionalKeyCode.BACKSPACE) },
+        )
+    }
 }
