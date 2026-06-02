@@ -16,6 +16,7 @@
 package com.gagik.terminal.input.impl
 
 import com.gagik.core.api.TerminalInputState
+import com.gagik.core.api.TerminalModeBits
 import com.gagik.terminal.input.event.TerminalKey
 import com.gagik.terminal.input.event.TerminalKeyEvent
 import com.gagik.terminal.input.event.TerminalModifiers
@@ -26,6 +27,7 @@ import com.gagik.terminal.input.policy.UnsupportedModifiedKeyPolicy
 import com.gagik.terminal.protocol.ControlCode
 import com.gagik.terminal.protocol.host.TerminalHostOutput
 import com.gagik.terminal.protocol.keyboard.FormatOtherKeysMode
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardFunctionalKeyCode
 import com.gagik.terminal.protocol.keyboard.ModifyOtherKeysMode
 
 internal class KeyboardEncoder(
@@ -37,6 +39,12 @@ internal class KeyboardEncoder(
         event: TerminalKeyEvent,
         modeBits: Long,
     ) {
+        val kittyFlags = TerminalInputState.kittyKeyboardFlags(modeBits)
+        if (kittyFlags > 0) {
+            encodeKitty(event, kittyFlags, modeBits)
+            return
+        }
+
         val key = event.key
         if (key != null) {
             encodeSpecialKey(
@@ -791,6 +799,49 @@ internal class KeyboardEncoder(
 
     private fun writeStatic(bytes: ByteArray) {
         output.writeBytes(bytes, 0, bytes.size)
+    }
+
+    private fun encodeKitty(
+        event: TerminalKeyEvent,
+        kittyFlags: Int,
+        modeBits: Long,
+    ) {
+        val key = event.key
+        val modifiers = event.modifiers
+
+        if (key == TerminalKey.ENTER && modifiers == TerminalModifiers.CTRL) {
+            writeKittyCsiU(KittyKeyboardFunctionalKeyCode.ENTER, modifiers)
+            return
+        }
+
+        if (key == null && event.codepoint == 'i'.code && modifiers == TerminalModifiers.CTRL) {
+            writeKittyCsiU('i'.code, modifiers)
+            return
+        }
+
+        // Fallback to legacy encoding during progressive implementation of the protocol.
+        val legacyModeBits = modeBits and TerminalModeBits.KITTY_KEYBOARD_FLAGS_MASK.inv()
+        if (key != null) {
+            encodeSpecialKey(key, modifiers, legacyModeBits)
+        } else {
+            encodeCodepoint(event.codepoint, modifiers, legacyModeBits)
+        }
+    }
+
+    private fun writeKittyCsiU(
+        code: Int,
+        modifiers: Int,
+    ) {
+        scratch.clear()
+        scratch.appendByte(ControlCode.ESC)
+        scratch.appendByte('['.code)
+        scratch.appendDecimal(code)
+        if (modifiers != TerminalModifiers.NONE) {
+            scratch.appendByte(';'.code)
+            scratch.appendDecimal(TerminalModifiers.toCsiModifierParam(modifiers))
+        }
+        scratch.appendByte('u'.code)
+        scratch.writeTo(output)
     }
 
     private companion object {

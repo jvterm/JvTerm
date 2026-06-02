@@ -25,6 +25,7 @@ import com.gagik.terminal.input.policy.TerminalInputPolicy
 import com.gagik.terminal.input.policy.UnsupportedModifiedKeyPolicy
 import com.gagik.terminal.protocol.host.TerminalHostOutput
 import com.gagik.terminal.protocol.keyboard.FormatOtherKeysMode
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
 import com.gagik.terminal.protocol.keyboard.ModifyOtherKeysMode
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertSame
@@ -528,6 +529,34 @@ class KeyboardEncoderTest {
     }
 
     @Test
+    fun `Kitty keyboard encodes Ctrl+I and Ctrl+Enter first slice`() {
+        val bits = kittyKeyboardBits(KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES)
+
+        assertBytes(
+            expected = esc("[105;5u"),
+            event = TerminalKeyEvent.codepoint('i'.code, TerminalModifiers.CTRL),
+            modeBits = bits,
+        )
+        assertBytes(
+            expected = esc("[13;5u"),
+            event = TerminalKeyEvent.key(TerminalKey.ENTER, TerminalModifiers.CTRL),
+            modeBits = bits,
+        )
+
+        // Fallback cases (ensure legacy works)
+        assertBytes(
+            expected = bytes(0x61),
+            event = TerminalKeyEvent.codepoint('a'.code),
+            modeBits = bits,
+        )
+        assertBytes(
+            expected = esc("[A"),
+            event = TerminalKeyEvent.key(TerminalKey.UP),
+            modeBits = bits,
+        )
+    }
+
+    @Test
     fun `unmodified special keys write static sequence arrays`() {
         val output = ReferenceRecordingHostOutput()
         val encoder = KeyboardEncoder(output, InputScratchBuffer())
@@ -569,6 +598,14 @@ class KeyboardEncoderTest {
             mask = TerminalModeBits.FORMAT_OTHER_KEYS_MASK,
             shift = TerminalModeBits.FORMAT_OTHER_KEYS_SHIFT,
             value = mode,
+        )
+
+    private fun kittyKeyboardBits(flags: Int): Long =
+        TerminalModeBits.withPackedValue(
+            bits = 0L,
+            mask = TerminalModeBits.KITTY_KEYBOARD_FLAGS_MASK,
+            shift = TerminalModeBits.KITTY_KEYBOARD_FLAGS_SHIFT,
+            value = flags,
         )
 
     private fun ascii(text: String): ByteArray {
