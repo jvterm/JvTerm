@@ -28,6 +28,7 @@ import com.gagik.terminal.protocol.ControlCode
 import com.gagik.terminal.protocol.host.TerminalHostOutput
 import com.gagik.terminal.protocol.keyboard.FormatOtherKeysMode
 import com.gagik.terminal.protocol.keyboard.KittyKeyboardFunctionalKeyCode
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
 import com.gagik.terminal.protocol.keyboard.ModifyOtherKeysMode
 
 internal class KeyboardEncoder(
@@ -808,23 +809,81 @@ internal class KeyboardEncoder(
     ) {
         val key = event.key
         val modifiers = event.modifiers
+        val isDisambiguate = (kittyFlags and KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES) != 0
+        val isReportAll = (kittyFlags and KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES) != 0
 
-        if (key == TerminalKey.ENTER && modifiers == TerminalModifiers.CTRL) {
-            writeKittyCsiU(KittyKeyboardFunctionalKeyCode.ENTER, modifiers)
-            return
-        }
-
-        if (key == null && event.codepoint == 'i'.code && modifiers == TerminalModifiers.CTRL) {
-            writeKittyCsiU('i'.code, modifiers)
-            return
-        }
-
-        // Fallback to legacy encoding during progressive implementation of the protocol.
-        val legacyModeBits = modeBits and TerminalModeBits.KITTY_KEYBOARD_FLAGS_MASK.inv()
         if (key != null) {
-            encodeSpecialKey(key, modifiers, legacyModeBits)
+            when (key) {
+                TerminalKey.ENTER -> {
+                    if (isDisambiguate || isReportAll || modifiers != TerminalModifiers.NONE) {
+                        writeKittyCsiU(KittyKeyboardFunctionalKeyCode.ENTER, modifiers)
+                    } else {
+                        if (TerminalInputState.isNewLineMode(modeBits)) {
+                            output.writeByte(ControlCode.CR)
+                            output.writeByte(ControlCode.LF)
+                        } else {
+                            output.writeByte(ControlCode.CR)
+                        }
+                    }
+                    return
+                }
+
+                TerminalKey.TAB -> {
+                    if (isDisambiguate || isReportAll || modifiers != TerminalModifiers.NONE) {
+                        writeKittyCsiU(KittyKeyboardFunctionalKeyCode.TAB, modifiers)
+                    } else {
+                        if (modifiers == TerminalModifiers.SHIFT) {
+                            writeStatic(TerminalSequences.BACK_TAB)
+                        } else {
+                            output.writeByte(ControlCode.HT)
+                        }
+                    }
+                    return
+                }
+
+                TerminalKey.ESCAPE -> {
+                    if (isDisambiguate || isReportAll || modifiers != TerminalModifiers.NONE) {
+                        writeKittyCsiU(KittyKeyboardFunctionalKeyCode.ESCAPE, modifiers)
+                    } else {
+                        output.writeByte(ControlCode.ESC)
+                    }
+                    return
+                }
+
+                TerminalKey.BACKSPACE -> {
+                    if (isDisambiguate || isReportAll || modifiers != TerminalModifiers.NONE) {
+                        writeKittyCsiU(KittyKeyboardFunctionalKeyCode.BACKSPACE, modifiers)
+                    } else {
+                        val baseByte =
+                            when (policy.backspacePolicy) {
+                                BackspacePolicy.DELETE -> ControlCode.DEL
+                                BackspacePolicy.BACKSPACE -> BS
+                            }
+                        output.writeByte(baseByte)
+                    }
+                    return
+                }
+
+                else -> {
+                    // Fallback to legacy encoding for arrows, functions, keypad, etc.
+                    val legacyModeBits = modeBits and TerminalModeBits.KITTY_KEYBOARD_FLAGS_MASK.inv()
+                    encodeSpecialKey(key, modifiers, legacyModeBits)
+                    return
+                }
+            }
         } else {
-            encodeCodepoint(event.codepoint, modifiers, legacyModeBits)
+            val codepoint = event.codepoint
+            if (isReportAll || (modifiers != TerminalModifiers.NONE && modifiers != TerminalModifiers.SHIFT)) {
+                writeKittyCsiU(codepoint, modifiers)
+            } else {
+                if (shouldSuppressForMeta(modifiers)) {
+                    return
+                }
+                if (shouldPrefixEscape(modifiers)) {
+                    output.writeByte(ControlCode.ESC)
+                }
+                writeUtf8Codepoint(codepoint)
+            }
         }
     }
 

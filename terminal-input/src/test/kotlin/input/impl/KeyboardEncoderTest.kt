@@ -529,31 +529,78 @@ class KeyboardEncoderTest {
     }
 
     @Test
-    fun `Kitty keyboard encodes Ctrl+I and Ctrl+Enter first slice`() {
+    fun `Kitty keyboard encodes printable keys with and without modifiers`() {
+        val bitsDisambiguate = kittyKeyboardBits(KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES)
+        val bitsReportAll = kittyKeyboardBits(KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES)
+
+        // 1. Under DISAMBIGUATE_ESCAPE_CODES:
+        // Unmodified printable -> raw text
+        assertBytes(bytes(0x61), TerminalKeyEvent.codepoint('a'.code), bitsDisambiguate)
+        // Shift alone on printable -> shifted raw text
+        assertBytes(bytes(0x41), TerminalKeyEvent.codepoint('A'.code, TerminalModifiers.SHIFT), bitsDisambiguate)
+        // Ctrl + printable -> CSI-u
+        assertBytes(esc("[97;5u"), TerminalKeyEvent.codepoint('a'.code, TerminalModifiers.CTRL), bitsDisambiguate)
+        // Alt + printable -> CSI-u
+        assertBytes(esc("[97;3u"), TerminalKeyEvent.codepoint('a'.code, TerminalModifiers.ALT), bitsDisambiguate)
+        // Ctrl+Shift+a -> CSI-u
+        assertBytes(
+            esc("[97;6u"),
+            TerminalKeyEvent.codepoint('a'.code, TerminalModifiers.CTRL or TerminalModifiers.SHIFT),
+            bitsDisambiguate,
+        )
+
+        // 2. Under REPORT_ALL_KEYS_AS_ESCAPE_CODES:
+        // Unmodified printable -> CSI-u
+        assertBytes(esc("[97u"), TerminalKeyEvent.codepoint('a'.code), bitsReportAll)
+        // Shift + printable -> CSI-u with modifier parameter 2
+        assertBytes(esc("[97;2u"), TerminalKeyEvent.codepoint('a'.code, TerminalModifiers.SHIFT), bitsReportAll)
+        // Ctrl + printable -> CSI-u
+        assertBytes(esc("[97;5u"), TerminalKeyEvent.codepoint('a'.code, TerminalModifiers.CTRL), bitsReportAll)
+    }
+
+    @Test
+    fun `Kitty keyboard encodes Enter Tab Escape Backspace`() {
+        val bitsDisambiguate = kittyKeyboardBits(KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES)
+        val bitsReportAll = kittyKeyboardBits(KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES)
+        val bitsOther = kittyKeyboardBits(KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES) // neither 1 nor 8
+
+        // 1. Under DISAMBIGUATE_ESCAPE_CODES (unmodified -> CSI-u):
+        assertBytes(esc("[13u"), TerminalKeyEvent.key(TerminalKey.ENTER), bitsDisambiguate)
+        assertBytes(esc("[9u"), TerminalKeyEvent.key(TerminalKey.TAB), bitsDisambiguate)
+        assertBytes(esc("[27u"), TerminalKeyEvent.key(TerminalKey.ESCAPE), bitsDisambiguate)
+        assertBytes(esc("[127u"), TerminalKeyEvent.key(TerminalKey.BACKSPACE), bitsDisambiguate)
+
+        // 2. Under REPORT_ALL_KEYS_AS_ESCAPE_CODES (unmodified -> CSI-u):
+        assertBytes(esc("[13u"), TerminalKeyEvent.key(TerminalKey.ENTER), bitsReportAll)
+        assertBytes(esc("[9u"), TerminalKeyEvent.key(TerminalKey.TAB), bitsReportAll)
+        assertBytes(esc("[27u"), TerminalKeyEvent.key(TerminalKey.ESCAPE), bitsReportAll)
+        assertBytes(esc("[127u"), TerminalKeyEvent.key(TerminalKey.BACKSPACE), bitsReportAll)
+
+        // 3. With modifiers (always CSI-u):
+        assertBytes(esc("[13;2u"), TerminalKeyEvent.key(TerminalKey.ENTER, TerminalModifiers.SHIFT), bitsOther)
+        assertBytes(esc("[9;5u"), TerminalKeyEvent.key(TerminalKey.TAB, TerminalModifiers.CTRL), bitsOther)
+        assertBytes(esc("[27;3u"), TerminalKeyEvent.key(TerminalKey.ESCAPE, TerminalModifiers.ALT), bitsOther)
+        assertBytes(esc("[127;5u"), TerminalKeyEvent.key(TerminalKey.BACKSPACE, TerminalModifiers.CTRL), bitsOther)
+
+        // 4. Unmodified without disambiguation/report-all (fallback to legacy):
+        assertBytes(bytes(0x0d), TerminalKeyEvent.key(TerminalKey.ENTER), bitsOther)
+        assertBytes(bytes(0x09), TerminalKeyEvent.key(TerminalKey.TAB), bitsOther)
+        assertBytes(bytes(0x1b), TerminalKeyEvent.key(TerminalKey.ESCAPE), bitsOther)
+        assertBytes(bytes(0x7f), TerminalKeyEvent.key(TerminalKey.BACKSPACE), bitsOther)
+    }
+
+    @Test
+    fun `Kitty keyboard fallbacks map other keys to legacy`() {
         val bits = kittyKeyboardBits(KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES)
 
-        assertBytes(
-            expected = esc("[105;5u"),
-            event = TerminalKeyEvent.codepoint('i'.code, TerminalModifiers.CTRL),
-            modeBits = bits,
-        )
-        assertBytes(
-            expected = esc("[13;5u"),
-            event = TerminalKeyEvent.key(TerminalKey.ENTER, TerminalModifiers.CTRL),
-            modeBits = bits,
-        )
+        // Unmodified arrows/functions should fall back to legacy sequences
+        assertBytes(esc("[A"), TerminalKeyEvent.key(TerminalKey.UP), bits)
+        assertBytes(esc("OP"), TerminalKeyEvent.key(TerminalKey.F1), bits)
+        assertBytes(esc("[15~"), TerminalKeyEvent.key(TerminalKey.F5), bits)
 
-        // Fallback cases (ensure legacy works)
-        assertBytes(
-            expected = bytes(0x61),
-            event = TerminalKeyEvent.codepoint('a'.code),
-            modeBits = bits,
-        )
-        assertBytes(
-            expected = esc("[A"),
-            event = TerminalKeyEvent.key(TerminalKey.UP),
-            modeBits = bits,
-        )
+        // Modified arrows/functions should fall back to legacy modified sequences
+        assertBytes(esc("[1;5A"), TerminalKeyEvent.key(TerminalKey.UP, TerminalModifiers.CTRL), bits)
+        assertBytes(esc("[1;5P"), TerminalKeyEvent.key(TerminalKey.F1, TerminalModifiers.CTRL), bits)
     }
 
     @Test
