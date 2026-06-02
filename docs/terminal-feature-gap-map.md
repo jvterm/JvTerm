@@ -443,7 +443,7 @@ Missing:
 - `DONE(input)`: xterm input profile matrix tests covering application
   cursor/keypad, bracketed paste, focus, mouse tracking/encoding combinations,
   and modifyOtherKeys off/mode1/mode2.
-- `DONE(protocol/core/parser)`: Kitty Keyboard Protocol foundation:
+- `DONE(protocol/core/parser/integration)`: Kitty Keyboard Protocol foundation:
     - protocol constants for the five progressive-enhancement flags and flag
       application modes
     - packed core input-mode bits and snapshot helpers for active Kitty
@@ -456,9 +456,11 @@ Missing:
       `CSI > flags u`, and `CSI < count u`
     - parser recording-sink and full byte-stream tests for default parameters,
       malformed parameters, and structural dispatch
-- `TODO(integration/core/input)`: Kitty Keyboard Protocol behavior, after the
-  xterm input profile is locked. Keep it as a separate protocol path rather
-  than mixing it into the xterm legacy/modifyOtherKeys encoder.
+    - integration routing for `CSI = flags ; mode u` replace/set/clear
+      semantics into core's active Kitty keyboard flag state
+- `TODO(core/input)`: Kitty Keyboard Protocol behavior, after the xterm input
+  profile is locked. Keep it as a separate protocol path rather than mixing it
+  into the xterm legacy/modifyOtherKeys encoder.
 
 Planned Kitty Keyboard Protocol scope:
 
@@ -477,8 +479,9 @@ Planned Kitty Keyboard Protocol scope:
       push/pop controls are parsed, a bounded mode stack. The stack must
       eventually respect kitty's main-screen and alternate-screen separation
       rule; do not fake this in integration.
-    - `terminal-integration`: map parser semantic mode controls to core APIs,
-      with explicit no-op/TODO behavior for unsupported query responses.
+    - `terminal-integration`: maps active flag application controls to core
+      APIs, with explicit no-op/TODO behavior for stack controls until core
+      owns stack state and for unsupported query responses until policy exists.
     - `terminal-input`: add a dedicated Kitty encoder branch selected from core
       mode bits. Do not mix Kitty progressive-enhancement flags into the xterm
       legacy/modifyOtherKeys branch.

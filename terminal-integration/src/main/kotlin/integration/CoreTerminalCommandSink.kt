@@ -23,10 +23,7 @@ import com.gagik.terminal.protocol.AnsiMode
 import com.gagik.terminal.protocol.DecPrivateMode
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
-import com.gagik.terminal.protocol.keyboard.FormatOtherKeysMode
-import com.gagik.terminal.protocol.keyboard.ModifyOtherKeysMode
-import com.gagik.terminal.protocol.keyboard.XtermKeyFormatResource
-import com.gagik.terminal.protocol.keyboard.XtermKeyModifierResource
+import com.gagik.terminal.protocol.keyboard.*
 import com.gagik.terminal.render.api.TerminalRenderCursorShape
 
 /**
@@ -460,7 +457,16 @@ class CoreTerminalCommandSink(
         flags: Int,
         applicationMode: Int,
     ) {
-        // TODO(integration): map Kitty keyboard flag application modes to core state.
+        if (flags < 0) return
+        val current = terminal.getModeSnapshot().kittyKeyboardFlags
+        val next =
+            when (applicationMode) {
+                KittyKeyboardFlagApplicationMode.REPLACE -> flags
+                KittyKeyboardFlagApplicationMode.SET -> current or flags
+                KittyKeyboardFlagApplicationMode.CLEAR -> current and flags.inv()
+                else -> return
+            }
+        terminal.setKittyKeyboardFlags(next)
     }
 
     override fun pushKittyKeyboardFlags(flags: Int) {

@@ -24,6 +24,7 @@ import com.gagik.parser.api.TerminalParsers
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
 import com.gagik.terminal.protocol.keyboard.FormatOtherKeysMode
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
 import com.gagik.terminal.protocol.keyboard.ModifyOtherKeysMode
 import com.gagik.terminal.render.api.TerminalRenderCursorShape
 import com.gagik.terminal.render.api.TerminalRenderFrameReader
@@ -450,6 +451,56 @@ class CoreTerminalCommandSinkTest {
             f.acceptAscii("\u001B[>4;9m")
             f.acceptAscii("\u001B[>1;1f")
             f.acceptAscii("\u001B[>4;2f")
+
+            assertEquals(before, f.terminal.getModeSnapshot())
+        }
+
+        @Test
+        fun `Kitty keyboard flag controls update input-facing core mode snapshot`() {
+            val f = Fixture()
+
+            f.acceptAscii("\u001B[=9u")
+            assertEquals(
+                KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES or
+                    KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+                f.terminal.getModeSnapshot().kittyKeyboardFlags,
+            )
+
+            f.acceptAscii("\u001B[=2;2u")
+            assertEquals(
+                KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES or
+                    KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES or
+                    KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+                f.terminal.getModeSnapshot().kittyKeyboardFlags,
+            )
+
+            f.acceptAscii("\u001B[=1;3u")
+            assertEquals(
+                KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES or
+                    KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+                f.terminal.getModeSnapshot().kittyKeyboardFlags,
+            )
+        }
+
+        @Test
+        fun `Kitty keyboard controls mask unsupported flags through core storage`() {
+            val f = Fixture()
+
+            f.acceptAscii("\u001B[=1023u")
+
+            assertEquals(KittyKeyboardProgressiveFlag.SUPPORTED_MASK, f.terminal.getModeSnapshot().kittyKeyboardFlags)
+        }
+
+        @Test
+        fun `unsupported Kitty keyboard controls leave core mode snapshot unchanged`() {
+            val f = Fixture()
+
+            f.acceptAscii("\u001B[=3u")
+            val before = f.terminal.getModeSnapshot()
+
+            f.acceptAscii("\u001B[=1;9u")
+            f.acceptAscii("\u001B[>5u")
+            f.acceptAscii("\u001B[<2u")
 
             assertEquals(before, f.terminal.getModeSnapshot())
         }
