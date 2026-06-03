@@ -42,7 +42,6 @@ internal object TerminalSequences {
     val F2: ByteArray = ascii("\u001bOQ")
     val F3: ByteArray = ascii("\u001bOR")
     val F4: ByteArray = ascii("\u001bOS")
-    val F3_KITTY: ByteArray = ascii("\u001b[13~")
     val F5: ByteArray = ascii("\u001b[15~")
     val F6: ByteArray = ascii("\u001b[17~")
     val F7: ByteArray = ascii("\u001b[18~")

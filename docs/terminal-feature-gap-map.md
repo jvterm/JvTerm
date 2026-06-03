@@ -458,7 +458,7 @@ Missing:
       malformed parameters, and structural dispatch
     - integration routing for `CSI = flags ; mode u` replace/set/clear
       semantics into core's active Kitty keyboard flag state
-- `DONE(core/input)`: Kitty Keyboard Protocol behavior (expanded key coverage for printables, control keys, arrows, navigation keys, function keys, and numeric keypad keys). Implemented as a clean, separate protocol path.
+- `DONE(core/input)`: Kitty Keyboard Protocol behavior (expanded key coverage for printables, control keys, arrows, navigation keys, function keys, and numeric keypad keys). Implemented as a clean, separate protocol path.
 
 Planned Kitty Keyboard Protocol scope:
 
