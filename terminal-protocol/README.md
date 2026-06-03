@@ -99,12 +99,20 @@ Exposes semantic `enum class` definitions in package `com.gagik.terminal.protoco
 
 ---
 
-### 5. Low-Level Performance Constants ([`MouseModes.kt (Constants)`](./src/main/kotlin/protocol/mouse/MouseModes.kt) & [`ModifyOtherKeysMode`](./src/main/kotlin/protocol/ModifyOtherKeysMode.kt))
+### 5. Low-Level Performance Constants
 Designed for JIT-friendly performance in hot paths (like input event loops). These constants map high-level core states directly to packed integer bits without producing garbage allocations.
+
+Mouse reporting constants live under package `com.gagik.terminal.protocol.mouse`:
+
 * **`com.gagik.terminal.protocol.mouse.MouseTrackingMode`**: Defines integer constants (`NONE = 0`, `X10 = 1`, `NORMAL = 2`, `BUTTON_EVENT = 3`, `ANY_EVENT = 4`) matching the packed ordinals in the core decoder.
 * **`com.gagik.terminal.protocol.mouse.MouseEncodingMode`**: Defines integer constants (`DEFAULT = 0`, `UTF8 = 1`, `SGR = 2`, `URXVT = 3`).
-* **`ModifyOtherKeysMode`**: Mapped to `DISABLED = 0`, `MODE_1 = 1` (encode legacy-ambiguous modified keys), `MODE_2 = 2` (encode all modified ordinary keys), and `MODE_3 = 3` (encode ordinary keys even without modifiers), matching xterm's modifyOtherKeys states.
-* **`FormatOtherKeysMode`**: Mapped to `DEFAULT = 0` for `CSI 27 ; modifier ; codepoint ~` and `CSI_U = 1` for `CSI codepoint ; modifier u`.
+
+Keyboard protocol constants live under package `com.gagik.terminal.protocol.keyboard`:
+
+* **`ModifyOtherKeysMode`** ([source](./src/main/kotlin/protocol/keyboard/ModifyOtherKeysMode.kt)): Mapped to `DISABLED = 0`, `MODE_1 = 1` (encode legacy-ambiguous modified keys), `MODE_2 = 2` (encode all modified ordinary keys), and `MODE_3 = 3` (encode ordinary keys even without modifiers), matching xterm's modifyOtherKeys states.
+* **`FormatOtherKeysMode`** ([source](./src/main/kotlin/protocol/keyboard/FormatOtherKeysMode.kt)): Mapped to `DEFAULT = 0` for `CSI 27 ; modifier ; codepoint ~` and `CSI_U = 1` for `CSI codepoint ; modifier u`.
+* **`XtermKeyModifierResource`** and **`XtermKeyFormatResource`** ([source](./src/main/kotlin/protocol/keyboard/XtermKeyModifierResource.kt), [source](./src/main/kotlin/protocol/keyboard/XtermKeyFormatResource.kt)): Resource ids for xterm key modifier and key format option controls.
+* **Kitty keyboard constants** ([flags](./src/main/kotlin/protocol/keyboard/KittyKeyboardProgressiveFlag.kt), [application modes](./src/main/kotlin/protocol/keyboard/KittyKeyboardFlagApplicationMode.kt), [event types](./src/main/kotlin/protocol/keyboard/KittyKeyboardEventType.kt), [functional key codes](./src/main/kotlin/protocol/keyboard/KittyKeyboardFunctionalKeyCode.kt)): Primitive vocabulary for the planned Kitty keyboard protocol path.
 
 ---
 
@@ -175,6 +183,16 @@ fun encode(event: TerminalMouseEvent, tracking: Int, encoding: Int) {
 }
 ```
 
+Keyboard input protocol constants follow the same primitive-vocabulary model:
+
+```kotlin
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
+import com.gagik.terminal.protocol.keyboard.ModifyOtherKeysMode
+
+val xtermMode = ModifyOtherKeysMode.MODE_3
+val kittyFlags = KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES
+```
+
 ---
 
 ## Performance & Engineering Discipline
@@ -192,6 +210,7 @@ To satisfy the high-performance targets of the Lattice Terminal stack, the `term
 Although `terminal-protocol` is largely composed of constants, it includes standard unit tests to verify that values adhere to standard terminal protocols and specifications.
 
 * **Mode and Code Validation ([`TerminalProtocolModesTest`](./src/test/kotlin/protocol/TerminalProtocolModesTest.kt))**: Asserts that every control code matches its exact wire-byte value (e.g. `BEL` = `0x07`, `CSI` = `0x9B`), that ANSI modes match CSI SM/RM standard targets, and that DEC private modes align with correct specification values.
+* **Keyboard Vocabulary Validation ([`TerminalKeyboardProtocolTest`](./src/test/kotlin/protocol/keyboard/TerminalKeyboardProtocolTest.kt))**: Asserts that xterm modified-key constants and Kitty keyboard protocol constants match their documented wire values.
 
 To run the protocol module checks:
 ```bash

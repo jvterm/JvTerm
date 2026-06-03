@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.gagik.terminal.protocol
+package com.gagik.terminal.protocol.keyboard
 
 /**
- * Xterm XTMODKEYS resource ids used by `CSI > Pp ; Pv m`.
+ * Xterm XTFMTKEYS resource ids used by `CSI > Pp ; Pv f`.
  *
- * Values mirror xterm's control-sequences table for "Set/reset key modifier
- * options (XTMODKEYS)":
+ * Values mirror xterm's control-sequences table for "Set/reset key format
+ * options (XTFMTKEYS)":
  * <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>.
- * In that table, `Pp = 4` selects modifyOtherKeys.
+ * In that table, `Pp = 4` selects formatOtherKeys.
  */
-object XtermKeyModifierResource {
-    /** modifyOtherKeys resource id. */
-    const val MODIFY_OTHER_KEYS: Int = 4
+object XtermKeyFormatResource {
+    /** formatOtherKeys resource id. */
+    const val FORMAT_OTHER_KEYS: Int = 4
 }

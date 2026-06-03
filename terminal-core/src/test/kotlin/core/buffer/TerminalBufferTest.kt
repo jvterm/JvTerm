@@ -23,6 +23,7 @@ import com.gagik.core.model.UnderlineStyle
 import com.gagik.core.state.TerminalState
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -171,6 +172,7 @@ class TerminalBufferTest {
         buffer.setMouseTrackingMode(MouseTrackingMode.BUTTON_EVENT)
         buffer.setMouseEncodingMode(MouseEncodingMode.SGR)
         buffer.setModifyOtherKeysMode(2)
+        buffer.setKittyKeyboardFlags(KittyKeyboardProgressiveFlag.SUPPORTED_MASK)
         buffer.setSelectiveEraseProtection(true)
         buffer.setPenColors(
             foreground = AttributeColor.indexed(196),
@@ -205,6 +207,7 @@ class TerminalBufferTest {
             { assertEquals(MouseEncodingMode.SGR, snapshot.mouseEncodingMode) },
             { assertEquals(0, snapshot.modifyOtherKeysMode) },
             { assertEquals(0, snapshot.formatOtherKeysMode) },
+            { assertEquals(0, snapshot.kittyKeyboardFlags) },
             { assertEquals(0, state.primaryBuffer.scrollTop) },
             { assertEquals(3, state.primaryBuffer.scrollBottom) },
             { assertEquals(0, state.primaryBuffer.leftMargin) },
@@ -251,6 +254,7 @@ class TerminalBufferTest {
         buffer.setMouseTrackingMode(MouseTrackingMode.BUTTON_EVENT)
         buffer.setMouseEncodingMode(MouseEncodingMode.SGR)
         buffer.setModifyOtherKeysMode(2)
+        buffer.setKittyKeyboardFlags(KittyKeyboardProgressiveFlag.SUPPORTED_MASK)
         buffer.setTreatAmbiguousAsWide(true)
         buffer.enterAltBuffer()
 
@@ -277,6 +281,7 @@ class TerminalBufferTest {
             { assertEquals(MouseEncodingMode.DEFAULT, snapshot.mouseEncodingMode) },
             { assertEquals(0, snapshot.modifyOtherKeysMode) },
             { assertEquals(0, snapshot.formatOtherKeysMode) },
+            { assertEquals(0, snapshot.kittyKeyboardFlags) },
             { assertEquals(0, buffer.cursorCol) },
             { assertEquals(0, buffer.cursorRow) },
         )

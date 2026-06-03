@@ -103,6 +103,16 @@ object TerminalModeBits {
     const val FORMAT_OTHER_KEYS_MASK: Long =
         ((1L shl FORMAT_OTHER_KEYS_WIDTH) - 1L) shl FORMAT_OTHER_KEYS_SHIFT
 
+    /** Starting bit for the packed Kitty keyboard progressive-enhancement flags. */
+    const val KITTY_KEYBOARD_FLAGS_SHIFT: Int = 28
+
+    /** Width in bits of the packed Kitty keyboard progressive-enhancement flags. */
+    const val KITTY_KEYBOARD_FLAGS_WIDTH: Int = 5
+
+    /** Bit mask for the packed Kitty keyboard progressive-enhancement flags. */
+    const val KITTY_KEYBOARD_FLAGS_MASK: Long =
+        ((1L shl KITTY_KEYBOARD_FLAGS_WIDTH) - 1L) shl KITTY_KEYBOARD_FLAGS_SHIFT
+
     /**
      * Returns true when [flag] is set in [bits].
      *

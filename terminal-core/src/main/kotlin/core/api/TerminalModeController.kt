@@ -76,6 +76,15 @@ interface TerminalModeController {
     fun setFormatOtherKeysMode(mode: Int)
 
     /**
+     * Sets active Kitty keyboard progressive-enhancement flags.
+     *
+     * Core stores the supported bit subset in its packed input-mode word so the
+     * input encoder can read one coherent snapshot without touching core
+     * internals.
+     */
+    fun setKittyKeyboardFlags(flags: Int)
+
+    /**
      * Toggles reverse-video presentation state (DECSCNM, `CSI ? 5 h` / `CSI ? 5 l`).
      *
      * This is renderer-facing state stored in core because the host controls it.

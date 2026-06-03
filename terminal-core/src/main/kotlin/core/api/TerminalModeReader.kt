@@ -43,6 +43,8 @@ data class TerminalModeSnapshot(
     val mouseEncodingMode: MouseEncodingMode,
     val modifyOtherKeysMode: Int,
     val formatOtherKeysMode: Int,
+    /** Active Kitty keyboard progressive-enhancement flags stored by core. */
+    val kittyKeyboardFlags: Int,
 )
 
 /**

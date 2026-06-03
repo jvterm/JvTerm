@@ -17,6 +17,7 @@ package com.gagik.core.model
 
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -43,6 +44,7 @@ class TerminalModesTest {
             { assertEquals(MouseEncodingMode.DEFAULT, modes.mouseEncodingMode) },
             { assertEquals(0, modes.modifyOtherKeysMode) },
             { assertEquals(0, modes.formatOtherKeysMode) },
+            { assertEquals(0, modes.kittyKeyboardFlags) },
         )
     }
 
@@ -66,6 +68,7 @@ class TerminalModesTest {
         modes.mouseEncodingMode = MouseEncodingMode.SGR
         modes.modifyOtherKeysMode = 2
         modes.formatOtherKeysMode = 1
+        modes.kittyKeyboardFlags = KittyKeyboardProgressiveFlag.SUPPORTED_MASK
 
         modes.reset()
 
@@ -87,6 +90,7 @@ class TerminalModesTest {
             { assertEquals(MouseEncodingMode.DEFAULT, modes.mouseEncodingMode) },
             { assertEquals(0, modes.modifyOtherKeysMode) },
             { assertEquals(0, modes.formatOtherKeysMode) },
+            { assertEquals(0, modes.kittyKeyboardFlags) },
         )
     }
 
@@ -102,6 +106,9 @@ class TerminalModesTest {
         modes.mouseEncodingMode = MouseEncodingMode.SGR
         modes.modifyOtherKeysMode = 2
         modes.formatOtherKeysMode = 1
+        modes.kittyKeyboardFlags =
+            KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES or
+            KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES
 
         val bits = modes.getModeBitsSnapshot()
         val snapshot = modes.getModeSnapshot()
@@ -116,7 +123,23 @@ class TerminalModesTest {
             { assertEquals(MouseEncodingMode.SGR, snapshot.mouseEncodingMode) },
             { assertEquals(2, snapshot.modifyOtherKeysMode) },
             { assertEquals(1, snapshot.formatOtherKeysMode) },
+            {
+                assertEquals(
+                    KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES or
+                        KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES,
+                    snapshot.kittyKeyboardFlags,
+                )
+            },
         )
+    }
+
+    @Test
+    fun `kitty keyboard flags mask unsupported bits`() {
+        val modes = TerminalModes()
+
+        modes.kittyKeyboardFlags = Int.MAX_VALUE
+
+        assertEquals(KittyKeyboardProgressiveFlag.SUPPORTED_MASK, modes.kittyKeyboardFlags)
     }
 
     @Test
@@ -139,6 +162,7 @@ class TerminalModesTest {
         modes.mouseEncodingMode = MouseEncodingMode.URXVT
         modes.modifyOtherKeysMode = 2
         modes.formatOtherKeysMode = 1
+        modes.kittyKeyboardFlags = KittyKeyboardProgressiveFlag.SUPPORTED_MASK
 
         modes.softReset()
 
@@ -160,6 +184,7 @@ class TerminalModesTest {
             { assertEquals(MouseEncodingMode.URXVT, modes.mouseEncodingMode) },
             { assertEquals(0, modes.modifyOtherKeysMode) },
             { assertEquals(0, modes.formatOtherKeysMode) },
+            { assertEquals(0, modes.kittyKeyboardFlags) },
         )
     }
 }

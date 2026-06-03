@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.gagik.terminal.protocol
+package com.gagik.terminal.protocol.keyboard
 
 /**
- * Xterm XTFMTKEYS resource ids used by `CSI > Pp ; Pv f`.
- *
- * Values mirror xterm's control-sequences table for "Set/reset key format
- * options (XTFMTKEYS)":
- * <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>.
- * In that table, `Pp = 4` selects formatOtherKeys.
+ * Xterm formatOtherKeys values stored in core's packed input-mode word.
  */
-object XtermKeyFormatResource {
-    /** formatOtherKeys resource id. */
-    const val FORMAT_OTHER_KEYS: Int = 4
+object FormatOtherKeysMode {
+    /** Use the original xterm `CSI 27 ; modifier ; codepoint ~` format. */
+    const val DEFAULT: Int = 0
+
+    /** Use xterm's compact `CSI codepoint ; modifier u` format. */
+    const val CSI_U: Int = 1
 }

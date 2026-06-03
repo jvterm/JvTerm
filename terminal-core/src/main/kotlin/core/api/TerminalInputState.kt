@@ -101,5 +101,16 @@ interface TerminalInputState {
                 TerminalModeBits.FORMAT_OTHER_KEYS_MASK,
                 TerminalModeBits.FORMAT_OTHER_KEYS_SHIFT,
             )
+
+        /**
+         * Returns the packed Kitty keyboard progressive-enhancement flags from [bits].
+         */
+        @JvmStatic
+        fun kittyKeyboardFlags(bits: Long): Int =
+            TerminalModeBits.packedValue(
+                bits,
+                TerminalModeBits.KITTY_KEYBOARD_FLAGS_MASK,
+                TerminalModeBits.KITTY_KEYBOARD_FLAGS_SHIFT,
+            )
     }
 }

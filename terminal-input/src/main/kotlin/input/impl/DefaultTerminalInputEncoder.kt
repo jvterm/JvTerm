@@ -21,6 +21,7 @@ import com.gagik.terminal.input.event.TerminalFocusEvent
 import com.gagik.terminal.input.event.TerminalKeyEvent
 import com.gagik.terminal.input.event.TerminalMouseEvent
 import com.gagik.terminal.input.event.TerminalPasteEvent
+import com.gagik.terminal.input.impl.keyboard.KeyboardEncoder
 import com.gagik.terminal.input.policy.TerminalInputPolicy
 import com.gagik.terminal.protocol.host.TerminalHostOutput
 

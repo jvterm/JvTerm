@@ -21,6 +21,7 @@ import com.gagik.core.engine.MutationEngine
 import com.gagik.core.state.TerminalState
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
 import com.gagik.terminal.render.api.TerminalRenderCursorShape
 import com.gagik.terminal.render.api.TerminalRenderFrameReader
 import org.junit.jupiter.api.Assertions.*
@@ -94,6 +95,7 @@ class TerminalModeControllerImplTest {
         modeController.setFocusReportingEnabled(true)
         modeController.setModifyOtherKeysMode(2)
         modeController.setFormatOtherKeysMode(1)
+        modeController.setKittyKeyboardFlags(KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES)
         modeController.setReverseVideo(true)
         modeController.setCursorVisible(false)
         modeController.setCursorBlinking(true)
@@ -107,6 +109,7 @@ class TerminalModeControllerImplTest {
             { assertTrue(state.modes.isFocusReportingEnabled) },
             { assertEquals(2, state.modes.modifyOtherKeysMode) },
             { assertEquals(1, state.modes.formatOtherKeysMode) },
+            { assertEquals(KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES, state.modes.kittyKeyboardFlags) },
             { assertTrue(state.modes.isReverseVideo) },
             { assertFalse(state.modes.isCursorVisible) },
             { assertTrue(state.modes.isCursorBlinking) },
@@ -134,6 +137,9 @@ class TerminalModeControllerImplTest {
         withPendingWrap(modeController, state) { modeController.setFocusReportingEnabled(true) }
         withPendingWrap(modeController, state) { modeController.setModifyOtherKeysMode(2) }
         withPendingWrap(modeController, state) { modeController.setFormatOtherKeysMode(1) }
+        withPendingWrap(modeController, state) {
+            modeController.setKittyKeyboardFlags(KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES)
+        }
         withPendingWrap(modeController, state) { modeController.setReverseVideo(true) }
         withPendingWrap(modeController, state) { modeController.setCursorVisible(false) }
         withPendingWrap(modeController, state) { modeController.setCursorBlinking(true) }

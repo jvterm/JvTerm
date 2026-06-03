@@ -18,6 +18,7 @@ package com.gagik.core.buffer.impl
 import com.gagik.core.TerminalBuffers
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -46,6 +47,7 @@ class TerminalModeReaderTest {
             { assertEquals(MouseEncodingMode.DEFAULT, snapshot.mouseEncodingMode) },
             { assertEquals(0, snapshot.modifyOtherKeysMode) },
             { assertEquals(0, snapshot.formatOtherKeysMode) },
+            { assertEquals(0, snapshot.kittyKeyboardFlags) },
         )
     }
 
@@ -63,6 +65,7 @@ class TerminalModeReaderTest {
         buffer.setFocusReportingEnabled(true)
         buffer.setModifyOtherKeysMode(2)
         buffer.setFormatOtherKeysMode(1)
+        buffer.setKittyKeyboardFlags(KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES)
         buffer.setReverseVideo(true)
         buffer.setCursorVisible(false)
         buffer.setCursorBlinking(false)
@@ -82,6 +85,7 @@ class TerminalModeReaderTest {
             { assertFalse(before.isFocusReportingEnabled) },
             { assertEquals(0, before.modifyOtherKeysMode) },
             { assertEquals(0, before.formatOtherKeysMode) },
+            { assertEquals(0, before.kittyKeyboardFlags) },
             { assertFalse(before.isReverseVideo) },
             { assertTrue(before.isCursorVisible) },
             { assertTrue(before.isCursorBlinking) },
@@ -93,6 +97,7 @@ class TerminalModeReaderTest {
             { assertTrue(after.isFocusReportingEnabled) },
             { assertEquals(2, after.modifyOtherKeysMode) },
             { assertEquals(1, after.formatOtherKeysMode) },
+            { assertEquals(KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES, after.kittyKeyboardFlags) },
             { assertTrue(after.isReverseVideo) },
             { assertFalse(after.isCursorVisible) },
             { assertFalse(after.isCursorBlinking) },

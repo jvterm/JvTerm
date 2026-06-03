@@ -90,6 +90,10 @@ internal class TerminalModeControllerImpl(
         mutateMode { state.modes.formatOtherKeysMode = mode }
     }
 
+    override fun setKittyKeyboardFlags(flags: Int) {
+        mutateMode { state.modes.kittyKeyboardFlags = flags }
+    }
+
     override fun setReverseVideo(enabled: Boolean) {
         mutateMode {
             if (state.modes.isReverseVideo == enabled) return@mutateMode

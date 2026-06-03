@@ -18,9 +18,9 @@ package com.gagik.terminal.input.impl
 import com.gagik.core.api.TerminalInputState
 import com.gagik.core.api.TerminalModeBits
 import com.gagik.terminal.input.event.*
-import com.gagik.terminal.protocol.FormatOtherKeysMode
-import com.gagik.terminal.protocol.ModifyOtherKeysMode
 import com.gagik.terminal.protocol.host.TerminalHostOutput
+import com.gagik.terminal.protocol.keyboard.FormatOtherKeysMode
+import com.gagik.terminal.protocol.keyboard.ModifyOtherKeysMode
 import com.gagik.terminal.protocol.mouse.MouseEncodingMode
 import com.gagik.terminal.protocol.mouse.MouseTrackingMode
 import org.junit.jupiter.api.Assertions.assertArrayEquals

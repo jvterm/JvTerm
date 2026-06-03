@@ -20,6 +20,7 @@ import com.gagik.core.api.TerminalModeBits
 import com.gagik.core.api.TerminalModeSnapshot
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -144,6 +145,21 @@ internal class TerminalModes : TerminalInputState {
                 value.coerceIn(0, 3),
             )
 
+    /**
+     * Active Kitty keyboard progressive-enhancement flags.
+     *
+     * Unsupported bits are masked out until the input contract grows matching
+     * event vocabulary and encoder behavior.
+     */
+    var kittyKeyboardFlags: Int
+        get() = TerminalInputState.kittyKeyboardFlags(currentBits)
+        set(value) =
+            setPacked(
+                TerminalModeBits.KITTY_KEYBOARD_FLAGS_MASK,
+                TerminalModeBits.KITTY_KEYBOARD_FLAGS_SHIFT,
+                value and KittyKeyboardProgressiveFlag.SUPPORTED_MASK,
+            )
+
     private val currentBits: Long
         get() = modeBits.get()
 
@@ -174,6 +190,7 @@ internal class TerminalModes : TerminalInputState {
             mouseEncodingMode = decodeMouseEncoding(bits),
             modifyOtherKeysMode = TerminalInputState.modifyOtherKeysMode(bits),
             formatOtherKeysMode = TerminalInputState.formatOtherKeysMode(bits),
+            kittyKeyboardFlags = TerminalInputState.kittyKeyboardFlags(bits),
         )
     }
 

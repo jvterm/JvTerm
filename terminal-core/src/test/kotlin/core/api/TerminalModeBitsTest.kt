@@ -15,6 +15,7 @@
  */
 package com.gagik.core.api
 
+import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -68,12 +69,26 @@ class TerminalModeBitsTest {
                 shift = TerminalModeBits.FORMAT_OTHER_KEYS_SHIFT,
                 value = 1,
             )
+        val withKittyFlags =
+            TerminalModeBits.withPackedValue(
+                bits = withFormat,
+                mask = TerminalModeBits.KITTY_KEYBOARD_FLAGS_MASK,
+                shift = TerminalModeBits.KITTY_KEYBOARD_FLAGS_SHIFT,
+                value =
+                    KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES or
+                        KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+            )
 
-        assertTrue(TerminalInputState.isApplicationCursorKeys(withFormat))
-        assertTrue(TerminalInputState.isApplicationKeypad(withFormat))
-        assertTrue(TerminalInputState.isNewLineMode(withFormat))
-        assertTrue(TerminalInputState.isBracketedPasteEnabled(withFormat))
-        assertTrue(TerminalInputState.isFocusReportingEnabled(withFormat))
-        assertEquals(1, TerminalInputState.formatOtherKeysMode(withFormat))
+        assertTrue(TerminalInputState.isApplicationCursorKeys(withKittyFlags))
+        assertTrue(TerminalInputState.isApplicationKeypad(withKittyFlags))
+        assertTrue(TerminalInputState.isNewLineMode(withKittyFlags))
+        assertTrue(TerminalInputState.isBracketedPasteEnabled(withKittyFlags))
+        assertTrue(TerminalInputState.isFocusReportingEnabled(withKittyFlags))
+        assertEquals(1, TerminalInputState.formatOtherKeysMode(withKittyFlags))
+        assertEquals(
+            KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES or
+                KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+            TerminalInputState.kittyKeyboardFlags(withKittyFlags),
+        )
     }
 }

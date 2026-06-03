@@ -21,12 +21,9 @@ import com.gagik.core.model.UnderlineStyle
 import com.gagik.parser.spi.TerminalCommandSink
 import com.gagik.terminal.protocol.AnsiMode
 import com.gagik.terminal.protocol.DecPrivateMode
-import com.gagik.terminal.protocol.FormatOtherKeysMode
-import com.gagik.terminal.protocol.ModifyOtherKeysMode
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
-import com.gagik.terminal.protocol.XtermKeyFormatResource
-import com.gagik.terminal.protocol.XtermKeyModifierResource
+import com.gagik.terminal.protocol.keyboard.*
 import com.gagik.terminal.render.api.TerminalRenderCursorShape
 
 /**
@@ -454,6 +451,30 @@ class CoreTerminalCommandSink(
 
     override fun resetKeyFormatOptions() {
         terminal.setFormatOtherKeysMode(FormatOtherKeysMode.DEFAULT)
+    }
+
+    override fun applyKittyKeyboardFlags(
+        flags: Int,
+        applicationMode: Int,
+    ) {
+        if (flags < 0) return
+        val current = terminal.getModeSnapshot().kittyKeyboardFlags
+        val next =
+            when (applicationMode) {
+                KittyKeyboardFlagApplicationMode.REPLACE -> flags
+                KittyKeyboardFlagApplicationMode.SET -> current or flags
+                KittyKeyboardFlagApplicationMode.CLEAR -> current and flags.inv()
+                else -> return
+            }
+        terminal.setKittyKeyboardFlags(next)
+    }
+
+    override fun pushKittyKeyboardFlags(flags: Int) {
+        // TODO(integration/core): route once core owns the bounded Kitty keyboard mode stack.
+    }
+
+    override fun popKittyKeyboardFlags(count: Int) {
+        // TODO(integration/core): route once core owns the bounded Kitty keyboard mode stack.
     }
 
     override fun requestDeviceStatusReport(
