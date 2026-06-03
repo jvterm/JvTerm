@@ -98,7 +98,7 @@ internal class KittyKeyboardEncoder(
                 }
 
                 TerminalKey.TAB -> {
-                    if (isDisambiguate || isReportAll || modifiers != TerminalModifiers.NONE) {
+                    if (isDisambiguate || isReportAll || (modifiers != TerminalModifiers.NONE && modifiers != TerminalModifiers.SHIFT)) {
                         CsiWriter.writeCsiU(scratch, output, KittyKeyboardFunctionalKeyCode.TAB, modifiers)
                     } else {
                         if (modifiers == TerminalModifiers.SHIFT) {

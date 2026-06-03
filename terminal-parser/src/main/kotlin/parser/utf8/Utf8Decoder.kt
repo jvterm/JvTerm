@@ -168,7 +168,7 @@ internal class Utf8Decoder(
             }
 
             byteValue == 0xe0 -> {
-                start(byteValue and 0x0f, needed = 2, lower = 0xa0, upper = 0xbf)
+                start(0, needed = 2, lower = 0xa0, upper = 0xbf)
                 Utf8DecodeResult.NONE
             }
 
@@ -189,7 +189,7 @@ internal class Utf8Decoder(
             }
 
             byteValue == 0xf0 -> {
-                start(byteValue and 0x07, needed = 3, lower = 0x90, upper = 0xbf)
+                start(0, needed = 3, lower = 0x90, upper = 0xbf)
                 Utf8DecodeResult.NONE
             }
 
