@@ -36,15 +36,6 @@ internal class HostResponseQueue(
         size++
     }
 
-    fun enqueueAscii(text: String) {
-        ensureCapacity(size + text.length)
-        var i = 0
-        while (i < text.length) {
-            enqueueByte(text[i].code)
-            i++
-        }
-    }
-
     fun enqueuePositiveDecimal(value: Int) {
         if (value == 0) {
             enqueueByte('0'.code)
