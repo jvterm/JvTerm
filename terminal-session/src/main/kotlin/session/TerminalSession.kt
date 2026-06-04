@@ -35,6 +35,7 @@ import com.gagik.terminal.render.cache.TerminalRenderCache
 import com.gagik.terminal.render.cache.TerminalRenderPublisher
 import com.gagik.terminal.transport.TerminalConnector
 import com.gagik.terminal.transport.TerminalConnectorListener
+import com.gagik.terminal.transport.checkBounds
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -216,12 +217,7 @@ class TerminalSession(
         offset: Int,
         length: Int,
     ) {
-        require(offset >= 0) { "offset must be non-negative, got $offset" }
-        require(length >= 0) { "length must be non-negative, got $length" }
-        require(offset <= bytes.size) { "offset $offset exceeds size ${bytes.size}" }
-        require(length <= bytes.size - offset) {
-            "offset + length exceeds size: offset=$offset length=$length size=${bytes.size}"
-        }
+        bytes.checkBounds(offset, length)
 
         synchronized(inboundLock) {
             if (isClosed()) return

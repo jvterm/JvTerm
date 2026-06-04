@@ -79,13 +79,7 @@ internal class HostResponseQueue(
         val count = minOf(length, size)
         if (count == 0) return 0
 
-        val first = minOf(count, bytes.size - head)
-        bytes.copyInto(destination, offset, head, head + first)
-
-        val second = count - first
-        if (second > 0) {
-            bytes.copyInto(destination, offset + first, 0, second)
-        }
+        readWithoutConsuming(destination, offset, count)
 
         head = (head + count) % bytes.size
         size -= count
