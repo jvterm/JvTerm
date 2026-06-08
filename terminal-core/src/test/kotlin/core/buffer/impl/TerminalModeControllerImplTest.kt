@@ -325,4 +325,49 @@ class TerminalModeControllerImplTest {
             { assertEquals('A'.code, state.altBuffer.ring[state.resolveRingIndex(0)].getCodepoint(0)) },
         )
     }
+
+    @Test
+    fun `kitty keyboard push pop via controller updates modes and buffer`() {
+        val state = TerminalState(6, 4, 2)
+        val modeController = TerminalModeControllerImpl(state, CursorEngine(state))
+
+        // Initial state
+        assertEquals(0, state.modes.kittyKeyboardFlags)
+        assertEquals(0, state.activeBuffer.kittyKeyboardFlags)
+
+        // Set flags directly
+        modeController.setKittyKeyboardFlags(3)
+        assertEquals(3, state.modes.kittyKeyboardFlags)
+        assertEquals(3, state.activeBuffer.kittyKeyboardFlags)
+
+        // Push flags
+        modeController.pushKittyKeyboardFlags(12)
+        assertEquals(12, state.modes.kittyKeyboardFlags)
+        assertEquals(12, state.activeBuffer.kittyKeyboardFlags)
+
+        // Switch to alternate buffer
+        modeController.enterAltBuffer()
+        assertEquals(0, state.modes.kittyKeyboardFlags)
+        assertEquals(0, state.activeBuffer.kittyKeyboardFlags)
+
+        // Push inside alt screen
+        modeController.pushKittyKeyboardFlags(5)
+        assertEquals(5, state.modes.kittyKeyboardFlags)
+        assertEquals(5, state.activeBuffer.kittyKeyboardFlags)
+
+        // Exit alt buffer
+        modeController.exitAltBuffer()
+        assertEquals(12, state.modes.kittyKeyboardFlags)
+        assertEquals(12, state.activeBuffer.kittyKeyboardFlags)
+
+        // Pop on primary
+        modeController.popKittyKeyboardFlags(1)
+        assertEquals(3, state.modes.kittyKeyboardFlags)
+        assertEquals(3, state.activeBuffer.kittyKeyboardFlags)
+
+        // Pop to baseline
+        modeController.popKittyKeyboardFlags(1)
+        assertEquals(3, state.modes.kittyKeyboardFlags)
+        assertEquals(3, state.activeBuffer.kittyKeyboardFlags)
+    }
 }

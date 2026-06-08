@@ -468,11 +468,11 @@ class CoreTerminalCommandSink(
     }
 
     override fun pushKittyKeyboardFlags(flags: Int) {
-        // TODO(integration/core): route once core owns the bounded Kitty keyboard mode stack.
+        terminal.pushKittyKeyboardFlags(flags)
     }
 
     override fun popKittyKeyboardFlags(count: Int) {
-        // TODO(integration/core): route once core owns the bounded Kitty keyboard mode stack.
+        terminal.popKittyKeyboardFlags(count)
     }
 
     override fun requestDeviceStatusReport(
