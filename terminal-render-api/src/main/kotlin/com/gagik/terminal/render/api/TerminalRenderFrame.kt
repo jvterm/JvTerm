@@ -77,6 +77,12 @@ interface TerminalRenderFrame {
     val activeBuffer: TerminalRenderBufferKind
 
     /**
+     * Currently active resolved color palette.
+     */
+    val palette: TerminalColorPalette
+        get() = TerminalColorPalette()
+
+    /**
      * Current render cursor overlay state.
      *
      * Prefer [copyCursor] in frame-copy hot paths so implementations can expose

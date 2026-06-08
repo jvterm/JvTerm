@@ -112,6 +112,12 @@ internal class CoreTerminalRenderFrame(
             }
         }
 
+    override val palette: TerminalColorPalette
+        get() {
+            checkValid()
+            return state.palette
+        }
+
     override val cursor: TerminalRenderCursor
         get() {
             checkValid()

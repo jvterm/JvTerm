@@ -16,6 +16,7 @@
 package com.gagik.core.state
 
 import com.gagik.core.model.*
+import com.gagik.terminal.render.api.TerminalColorPalette
 import com.gagik.terminal.render.api.TerminalRenderCursorShape
 
 /**
@@ -40,6 +41,8 @@ internal class TerminalState(
     val pen = Pen()
     val dimensions = GridDimensions(initialWidth, initialHeight)
     val hostResponses = HostResponseQueue()
+    var themePalette = TerminalColorPalette()
+    var palette = themePalette
     var windowPixelWidth: Int = 0
     var windowPixelHeight: Int = 0
     var windowTitle: String = ""

@@ -44,6 +44,20 @@ interface TerminalResponseChannel : TerminalHostResponseReader {
 
     fun requestWindowReport(mode: Int)
 
+    /**
+     * Enqueues the color query response for a specific 256-color palette index.
+     *
+     * @param index the color index to query.
+     */
+    fun queryPaletteColor(index: Int)
+
+    /**
+     * Enqueues the color query response for a dynamic target (10, 11, or 12).
+     *
+     * @param target the target code (10 for foreground, 11 for background, 12 for cursor).
+     */
+    fun queryDynamicColor(target: Int)
+
     companion object {
         const val DEVICE_ATTRIBUTES_PRIMARY: Int = 0
         const val DEVICE_ATTRIBUTES_SECONDARY: Int = 1

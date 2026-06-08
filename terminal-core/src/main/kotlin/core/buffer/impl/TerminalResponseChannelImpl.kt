@@ -151,6 +151,67 @@ internal class TerminalResponseChannelImpl(
         state.hostResponses.enqueueByte('t'.code)
     }
 
+    override fun queryPaletteColor(index: Int) {
+        if (index !in 0..255) return
+        val color = state.palette.indexedColor(index)
+        enqueueOscPrefix()
+        state.hostResponses.enqueueByte('4'.code)
+        state.hostResponses.enqueueByte(';'.code)
+        state.hostResponses.enqueuePositiveDecimal(index)
+        state.hostResponses.enqueueByte(';'.code)
+        enqueueColorResponse(color)
+        enqueueStSuffix()
+    }
+
+    override fun queryDynamicColor(target: Int) {
+        val color = when (target) {
+            10 -> state.palette.defaultForeground
+            11 -> state.palette.defaultBackground
+            12 -> state.palette.cursorBackground
+            else -> return
+        }
+        enqueueOscPrefix()
+        state.hostResponses.enqueuePositiveDecimal(target)
+        state.hostResponses.enqueueByte(';'.code)
+        enqueueColorResponse(color)
+        enqueueStSuffix()
+    }
+
+    private fun enqueueColorResponse(argb: Int) {
+        val r = (argb ushr 16) and 0xFF
+        val g = (argb ushr 8) and 0xFF
+        val b = argb and 0xFF
+
+        state.hostResponses.enqueueByte('r'.code)
+        state.hostResponses.enqueueByte('g'.code)
+        state.hostResponses.enqueueByte('b'.code)
+        state.hostResponses.enqueueByte(':'.code)
+        enqueue4HexDigits(r)
+        state.hostResponses.enqueueByte('/'.code)
+        enqueue4HexDigits(g)
+        state.hostResponses.enqueueByte('/'.code)
+        enqueue4HexDigits(b)
+    }
+
+    private fun enqueue4HexDigits(value8: Int) {
+        val value16 = (value8 shl 8) or value8
+        val hexChars = "0123456789abcdef"
+        state.hostResponses.enqueueByte(hexChars[(value16 ushr 12) and 0xF].code)
+        state.hostResponses.enqueueByte(hexChars[(value16 ushr 8) and 0xF].code)
+        state.hostResponses.enqueueByte(hexChars[(value16 ushr 4) and 0xF].code)
+        state.hostResponses.enqueueByte(hexChars[value16 and 0xF].code)
+    }
+
+    private fun enqueueOscPrefix() {
+        state.hostResponses.enqueueByte(ControlCode.ESC)
+        state.hostResponses.enqueueByte(']'.code)
+    }
+
+    private fun enqueueStSuffix() {
+        state.hostResponses.enqueueByte(ControlCode.ESC)
+        state.hostResponses.enqueueByte('\\'.code)
+    }
+
     private fun enqueueCsiPrefix() {
         state.hostResponses.enqueueByte(ControlCode.ESC)
         state.hostResponses.enqueueByte('['.code)

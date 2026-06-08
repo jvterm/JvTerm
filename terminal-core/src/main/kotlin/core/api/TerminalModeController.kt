@@ -17,6 +17,7 @@ package com.gagik.core.api
 
 import com.gagik.terminal.protocol.MouseEncodingMode
 import com.gagik.terminal.protocol.MouseTrackingMode
+import com.gagik.terminal.render.api.TerminalColorPalette
 import com.gagik.terminal.render.api.TerminalRenderCursorShape
 
 /**
@@ -168,4 +169,29 @@ interface TerminalModeController {
      * visible after the switch. Primary scrollback history is unaffected.
      */
     fun exitAltBuffer()
+
+    /**
+     * Sets the theme-configured color palette for the terminal session.
+     *
+     * This updates both the default theme palette and the active palette.
+     *
+     * @param palette the theme color palette configuration.
+     */
+    fun setThemePalette(palette: TerminalColorPalette)
+
+    /**
+     * Updates an individual color index in the active 256-color palette.
+     *
+     * @param index the color index in range `0..255`.
+     * @param color the packed ARGB color value.
+     */
+    fun setPaletteColor(index: Int, color: Int)
+
+    /**
+     * Updates a dynamic target color (foreground, background, or cursor color).
+     *
+     * @param target the target code (10 for foreground, 11 for background, 12 for cursor).
+     * @param color the packed ARGB color value.
+     */
+    fun setDynamicColor(target: Int, color: Int)
 }
