@@ -93,13 +93,21 @@ data class AttributeColor(
         /** Terminal default color descriptor. */
         val DEFAULT = AttributeColor(AttributeColorKind.DEFAULT)
 
+        private val INDEXED_COLORS =
+            Array(256) { index ->
+                AttributeColor(AttributeColorKind.INDEXED, index)
+            }
+
         /**
-         * Creates an indexed palette color.
+         * Returns an indexed palette color.
          *
          * @param index Palette index in `0..255`.
          * @return Indexed color descriptor.
          */
-        fun indexed(index: Int): AttributeColor = AttributeColor(AttributeColorKind.INDEXED, index)
+        fun indexed(index: Int): AttributeColor {
+            require(index in 0..255) { "indexed color value must be in 0..255, was $index" }
+            return INDEXED_COLORS[index]
+        }
 
         /**
          * Creates an RGB color from separate 8-bit channels.

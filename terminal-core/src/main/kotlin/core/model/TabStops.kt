@@ -96,7 +96,19 @@ internal class TabStops(
      */
     fun reset(newWidth: Int) {
         width = newWidth
-        stops = BooleanArray(newWidth) { col -> col % 8 == 0 }
+        if (newWidth != stops.size) {
+            stops = BooleanArray(newWidth)
+        }
+        resetStopsToDefault()
+    }
+
+    private fun resetStopsToDefault() {
+        stops.fill(false)
+        var col = 0
+        while (col < stops.size) {
+            stops[col] = true
+            col += 8
+        }
     }
 
     // Query
