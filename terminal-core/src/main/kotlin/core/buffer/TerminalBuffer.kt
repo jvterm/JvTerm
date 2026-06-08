@@ -142,6 +142,7 @@ internal class TerminalBuffer private constructor(
         state.modes.reset()
         state.tabStops.resetToDefault()
         state.cursorShape = TerminalRenderCursorShape.BLOCK
+        state.palette = state.themePalette
         state.markStructureChanged()
         state.markCursorChanged()
     }

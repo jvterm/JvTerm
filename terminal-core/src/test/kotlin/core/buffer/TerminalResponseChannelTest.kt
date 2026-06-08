@@ -150,6 +150,24 @@ class TerminalResponseChannelTest {
         assertEquals(0, buffer.pendingResponseBytes)
     }
 
+    @Test
+    fun `queryPaletteColor formats color in 16-bit hex and queues response`() {
+        val buffer = TerminalBuffers.create(width = 10, height = 5)
+
+        buffer.queryPaletteColor(1)
+
+        assertEquals("\u001B]4;1;rgb:8080/0000/0000\u001B\\", drain(buffer))
+    }
+
+    @Test
+    fun `queryDynamicColor formats target in 16-bit hex and queues response`() {
+        val buffer = TerminalBuffers.create(width = 10, height = 5)
+
+        buffer.queryDynamicColor(10)
+
+        assertEquals("\u001B]10;rgb:ffff/ffff/ffff\u001B\\", drain(buffer))
+    }
+
     private fun drain(buffer: TerminalBufferApi): String {
         val destination = ByteArray(128)
         val count = buffer.readResponseBytes(destination)

@@ -93,6 +93,74 @@ class OscDispatcherTest {
     }
 
     @Nested
+    @DisplayName("colors")
+    inner class Colors {
+        @Test
+        fun `OSC 4 updates palette color with standard hex`() {
+            assertEquals(
+                listOf("setPaletteColor:1:-16776961"),
+                dispatch("4;1;#0000ff").events,
+            )
+        }
+
+        @Test
+        fun `OSC 4 updates palette color with rgb colon format`() {
+            assertEquals(
+                listOf("setPaletteColor:2:-16711936"),
+                dispatch("4;2;rgb:00/ff/00").events,
+            )
+        }
+
+        @Test
+        fun `OSC 4 queries palette color`() {
+            assertEquals(
+                listOf("queryPaletteColor:5"),
+                dispatch("4;5;?").events,
+            )
+        }
+
+        @Test
+        fun `OSC 4 handles multiple updates and queries`() {
+            assertEquals(
+                listOf(
+                    "setPaletteColor:1:-16776961",
+                    "queryPaletteColor:2",
+                    "setPaletteColor:3:-65536"
+                ),
+                dispatch("4;1;#0000ff;2;?;3;#ff0000").events,
+            )
+        }
+
+        @Test
+        fun `OSC 10 sets dynamic foreground color`() {
+            assertEquals(
+                listOf("setDynamicColor:10:-1"),
+                dispatch("10;#ffffff").events,
+            )
+        }
+
+        @Test
+        fun `OSC 10 queries dynamic foreground color`() {
+            assertEquals(
+                listOf("queryDynamicColor:10"),
+                dispatch("10;?").events,
+            )
+        }
+
+        @Test
+        fun `OSC 10 cascades to target 11 and 12`() {
+            assertEquals(
+                listOf(
+                    "setDynamicColor:10:-1",
+                    "setDynamicColor:11:-16777216",
+                    "queryDynamicColor:12"
+                ),
+                dispatch("10;#ffffff;#000000;?").events,
+            )
+        }
+    }
+
+    @Nested
     @DisplayName("ignored payloads")
     inner class IgnoredPayloads {
         @Test
