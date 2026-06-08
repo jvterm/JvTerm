@@ -528,7 +528,10 @@ class ActionEngineTest {
             sinkCalls += "endHyperlink"
         }
 
-        override fun setPaletteColor(index: Int, color: Int) {
+        override fun setPaletteColor(
+            index: Int,
+            color: Int,
+        ) {
             sinkCalls += "setPaletteColor:$index:$color"
         }
 
@@ -536,7 +539,10 @@ class ActionEngineTest {
             sinkCalls += "queryPaletteColor:$index"
         }
 
-        override fun setDynamicColor(target: Int, color: Int) {
+        override fun setDynamicColor(
+            target: Int,
+            color: Int,
+        ) {
             sinkCalls += "setDynamicColor:$target:$color"
         }
 

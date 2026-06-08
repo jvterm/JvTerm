@@ -125,7 +125,7 @@ class OscDispatcherTest {
                 listOf(
                     "setPaletteColor:1:-16776961",
                     "queryPaletteColor:2",
-                    "setPaletteColor:3:-65536"
+                    "setPaletteColor:3:-65536",
                 ),
                 dispatch("4;1;#0000ff;2;?;3;#ff0000").events,
             )
@@ -153,7 +153,7 @@ class OscDispatcherTest {
                 listOf(
                     "setDynamicColor:10:-1",
                     "setDynamicColor:11:-16777216",
-                    "queryDynamicColor:12"
+                    "queryDynamicColor:12",
                 ),
                 dispatch("10;#ffffff;#000000;?").events,
             )

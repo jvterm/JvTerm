@@ -185,7 +185,10 @@ interface TerminalModeController {
      * @param index the color index in range `0..255`.
      * @param color the packed ARGB color value.
      */
-    fun setPaletteColor(index: Int, color: Int)
+    fun setPaletteColor(
+        index: Int,
+        color: Int,
+    )
 
     /**
      * Updates a dynamic target color (foreground, background, or cursor color).
@@ -193,5 +196,8 @@ interface TerminalModeController {
      * @param target the target code (10 for foreground, 11 for background, 12 for cursor).
      * @param color the packed ARGB color value.
      */
-    fun setDynamicColor(target: Int, color: Int)
+    fun setDynamicColor(
+        target: Int,
+        color: Int,
+    )
 }

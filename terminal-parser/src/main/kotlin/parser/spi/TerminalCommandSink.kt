@@ -408,13 +408,19 @@ interface TerminalCommandSink {
     fun endHyperlink()
 
     /** Sets a specific ANSI indexed color. */
-    fun setPaletteColor(index: Int, color: Int)
+    fun setPaletteColor(
+        index: Int,
+        color: Int,
+    )
 
     /** Queries an individual color in the active 256-color palette. */
     fun queryPaletteColor(index: Int)
 
     /** Sets a dynamic color (foreground, background, or cursor color). */
-    fun setDynamicColor(target: Int, color: Int)
+    fun setDynamicColor(
+        target: Int,
+        color: Int,
+    )
 
     /** Queries a dynamic color (foreground, background, or cursor color). */
     fun queryDynamicColor(target: Int)

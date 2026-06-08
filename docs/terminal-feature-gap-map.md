@@ -175,7 +175,7 @@ Missing:
 
 - `TODO(policy)`: OSC 52 clipboard support. This needs an explicit permission
   and security policy before implementation.
-- `TODO(parser)`: OSC 4 / 10 / 11 / 12 color palette queries and updates.
+- `DONE(parser/core/integration/host)`: OSC 4 / 10 / 11 / 12 color palette queries and updates.
 - `TODO(parser)`: OSC 7 current directory.
 - `TODO(parser)`: OSC 9 / 9;9 desktop notifications, if desired.
 - `TODO(parser)`: OSC 777 desktop notifications. Common in shell integrations
@@ -261,7 +261,7 @@ Missing:
 - `DONE(render-api/host)`: renderer-facing effective color calculation for
   default/indexed/RGB foreground and background, reverse video, conceal, and
   bold-as-bright policy.
-- `TODO(parser/integration/host)`: OSC palette query/update protocols and host
+- `DONE(parser/core/integration/host)`: OSC palette query/update protocols and host
   policy for mutating or reporting palette state.
 
 ### Reset and Mode Semantics
@@ -475,9 +475,9 @@ Planned Kitty Keyboard Protocol scope:
       push/pop controls are parsed, a bounded mode stack. The stack must
       eventually respect kitty's main-screen and alternate-screen separation
       rule; do not fake this in integration.
-    - `terminal-integration`: maps active flag application controls to core
-      APIs, with explicit no-op/TODO behavior for stack controls until core
-      owns stack state and for unsupported query responses until policy exists.
+    - `terminal-integration`: maps active flag application and stack controls
+      to core APIs, with explicit no-op/TODO behavior for unsupported query
+      responses until policy exists.
     - `terminal-input`: add a dedicated Kitty encoder branch selected from core
       mode bits. Do not mix Kitty progressive-enhancement flags into the xterm
       legacy/modifyOtherKeys branch.
@@ -495,7 +495,7 @@ Planned Kitty Keyboard Protocol scope:
     - support push/pop controls with a small bounded stack:
         - `CSI > flags u`: push current flags, then apply supplied flags
         - `CSI < number u`: pop one or more stack entries, defaulting to one
-      - `TODO(core)`: add bounded stack state when parser/integration starts
+      - `DONE(core)`: add bounded stack state when parser/integration starts
         routing push/pop controls.
     - encode only key press events at first; report repeat/release events only
       after UI event vocabulary exposes them distinctly.

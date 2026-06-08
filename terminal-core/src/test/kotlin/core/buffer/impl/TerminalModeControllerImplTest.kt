@@ -376,10 +376,11 @@ class TerminalModeControllerImplTest {
         val state = TerminalState(4, 3, 2)
         val modeController = TerminalModeControllerImpl(state, CursorEngine(state))
 
-        val themePalette = com.gagik.terminal.render.api.TerminalColorPalette(
-            defaultForeground = 0xFF111111.toInt(),
-            defaultBackground = 0xFF222222.toInt(),
-        )
+        val themePalette =
+            com.gagik.terminal.render.api.TerminalColorPalette(
+                defaultForeground = 0xFF111111.toInt(),
+                defaultBackground = 0xFF222222.toInt(),
+            )
         modeController.setThemePalette(themePalette)
 
         assertEquals(themePalette, state.themePalette)

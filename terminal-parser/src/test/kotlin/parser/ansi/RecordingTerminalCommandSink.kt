@@ -402,7 +402,10 @@ internal class RecordingTerminalCommandSink : TerminalCommandSink {
         events += "endHyperlink"
     }
 
-    override fun setPaletteColor(index: Int, color: Int) {
+    override fun setPaletteColor(
+        index: Int,
+        color: Int,
+    ) {
         events += "setPaletteColor:$index:$color"
     }
 
@@ -410,7 +413,10 @@ internal class RecordingTerminalCommandSink : TerminalCommandSink {
         events += "queryPaletteColor:$index"
     }
 
-    override fun setDynamicColor(target: Int, color: Int) {
+    override fun setDynamicColor(
+        target: Int,
+        color: Int,
+    ) {
         events += "setDynamicColor:$target:$color"
     }
 

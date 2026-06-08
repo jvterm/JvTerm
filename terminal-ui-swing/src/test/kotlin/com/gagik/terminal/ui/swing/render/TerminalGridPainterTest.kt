@@ -44,7 +44,7 @@ class TerminalGridPainterTest {
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 2, rows = 1)
-        cache.updateFrom(TextFrame(text = "ii", cursorVisible = false))
+        cache.updateFrom(TextFrame(text = "ii", cursorVisible = false, palette = settings.palette))
 
         TerminalGridPainter().paint(
             g = g,
@@ -90,7 +90,7 @@ class TerminalGridPainterTest {
                 cursorStrokeWidth = 1,
             )
         val cache = TerminalRenderCache(columns = 2, rows = 1)
-        cache.updateFrom(TextFrame(text = "ii", cursorVisible = false))
+        cache.updateFrom(TextFrame(text = "ii", cursorVisible = false, palette = settings.palette))
 
         TerminalGridPainter().paint(
             g = g,
@@ -131,7 +131,7 @@ class TerminalGridPainterTest {
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 1, rows = 1)
-        cache.updateFrom(TextFrame(text = "A", cursorVisible = true))
+        cache.updateFrom(TextFrame(text = "A", cursorVisible = true, palette = settings.palette))
 
         TerminalGridPainter().paint(
             g = g,
@@ -167,7 +167,7 @@ class TerminalGridPainterTest {
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 1, rows = 1)
-        cache.updateFrom(TextFrame(text = "\u03A9", cursorVisible = false))
+        cache.updateFrom(TextFrame(text = "\u03A9", cursorVisible = false, palette = settings.palette))
 
         TerminalGridPainter().paint(
             g = g,
@@ -213,7 +213,7 @@ class TerminalGridPainterTest {
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 1, rows = 1)
-        cache.updateFrom(TextFrame(text = "\u03A9", cursorVisible = true))
+        cache.updateFrom(TextFrame(text = "\u03A9", cursorVisible = true, palette = settings.palette))
 
         TerminalGridPainter().paint(
             g = g,
@@ -266,6 +266,7 @@ class TerminalGridPainterTest {
                         ),
                         TerminalRenderExtraAttrs.pack(overline = true),
                     ),
+                palette = settings.palette,
             ),
         )
 
@@ -320,6 +321,7 @@ class TerminalGridPainterTest {
                             underlineColorValue = 0x0000FF,
                         ),
                     ),
+                palette = settings.palette,
             ),
         )
 
@@ -355,7 +357,7 @@ class TerminalGridPainterTest {
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 2, rows = 1)
-        cache.updateFrom(TextFrame(text = "AB", cursorVisible = false))
+        cache.updateFrom(TextFrame(text = "AB", cursorVisible = false, palette = settings.palette))
 
         TerminalGridPainter().paint(
             g = g,
@@ -412,6 +414,7 @@ class TerminalGridPainterTest {
         cursorVisible: Boolean,
         private val attrs: LongArray = LongArray(text.length) { TerminalRenderAttrs.DEFAULT },
         private val extraAttrs: LongArray = LongArray(text.length) { TerminalRenderExtraAttrs.DEFAULT },
+        override val palette: TerminalColorPalette = TerminalColorPalette(),
     ) : TerminalRenderFrameReader,
         TerminalRenderFrame {
         override val columns: Int = text.length

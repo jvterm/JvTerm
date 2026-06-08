@@ -171,27 +171,39 @@ internal object OscDispatcher {
         val len = spec.length - 1
         return when (len) {
             3 -> {
-                val r = parseHexDigit(spec[1]); if (r < 0) return null
-                val g = parseHexDigit(spec[2]); if (g < 0) return null
-                val b = parseHexDigit(spec[3]); if (b < 0) return null
+                val r = parseHexDigit(spec[1])
+                if (r < 0) return null
+                val g = parseHexDigit(spec[2])
+                if (g < 0) return null
+                val b = parseHexDigit(spec[3])
+                if (b < 0) return null
                 0xFF000000.toInt() or (((r shl 4) or r) shl 16) or (((g shl 4) or g) shl 8) or ((b shl 4) or b)
             }
             6 -> {
-                val r = parseHex(spec, 1, 3); if (r < 0) return null
-                val g = parseHex(spec, 3, 5); if (g < 0) return null
-                val b = parseHex(spec, 5, 7); if (b < 0) return null
+                val r = parseHex(spec, 1, 3)
+                if (r < 0) return null
+                val g = parseHex(spec, 3, 5)
+                if (g < 0) return null
+                val b = parseHex(spec, 5, 7)
+                if (b < 0) return null
                 0xFF000000.toInt() or (r shl 16) or (g shl 8) or b
             }
             9 -> {
-                val r = parseHex(spec, 1, 4); if (r < 0) return null
-                val g = parseHex(spec, 4, 7); if (g < 0) return null
-                val b = parseHex(spec, 7, 10); if (b < 0) return null
+                val r = parseHex(spec, 1, 4)
+                if (r < 0) return null
+                val g = parseHex(spec, 4, 7)
+                if (g < 0) return null
+                val b = parseHex(spec, 7, 10)
+                if (b < 0) return null
                 0xFF000000.toInt() or ((r ushr 4) shl 16) or ((g ushr 4) shl 8) or (b ushr 4)
             }
             12 -> {
-                val r = parseHex(spec, 1, 5); if (r < 0) return null
-                val g = parseHex(spec, 5, 9); if (g < 0) return null
-                val b = parseHex(spec, 9, 13); if (b < 0) return null
+                val r = parseHex(spec, 1, 5)
+                if (r < 0) return null
+                val g = parseHex(spec, 5, 9)
+                if (g < 0) return null
+                val b = parseHex(spec, 9, 13)
+                if (b < 0) return null
                 0xFF000000.toInt() or ((r ushr 8) shl 16) or ((g ushr 8) shl 8) or (b ushr 8)
             }
             else -> null
@@ -224,16 +236,19 @@ internal object OscDispatcher {
         }
     }
 
-    private fun parseHexDigit(c: Char): Int {
-        return when (c) {
+    private fun parseHexDigit(c: Char): Int =
+        when (c) {
             in '0'..'9' -> c - '0'
             in 'a'..'f' -> c - 'a' + 10
             in 'A'..'F' -> c - 'A' + 10
             else -> -1
         }
-    }
 
-    private fun parseHex(s: String, start: Int, endExclusive: Int): Int {
+    private fun parseHex(
+        s: String,
+        start: Int,
+        endExclusive: Int,
+    ): Int {
         var value = 0
         for (i in start until endExclusive) {
             val d = parseHexDigit(s[i])
@@ -243,7 +258,5 @@ internal object OscDispatcher {
         return value
     }
 
-    private fun parseHex(s: String): Int {
-        return parseHex(s, 0, s.length)
-    }
+    private fun parseHex(s: String): Int = parseHex(s, 0, s.length)
 }

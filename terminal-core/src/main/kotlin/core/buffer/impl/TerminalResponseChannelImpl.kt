@@ -164,12 +164,13 @@ internal class TerminalResponseChannelImpl(
     }
 
     override fun queryDynamicColor(target: Int) {
-        val color = when (target) {
-            10 -> state.palette.defaultForeground
-            11 -> state.palette.defaultBackground
-            12 -> state.palette.cursorBackground
-            else -> return
-        }
+        val color =
+            when (target) {
+                10 -> state.palette.defaultForeground
+                11 -> state.palette.defaultBackground
+                12 -> state.palette.cursorBackground
+                else -> return
+            }
         enqueueOscPrefix()
         state.hostResponses.enqueuePositiveDecimal(target)
         state.hostResponses.enqueueByte(';'.code)

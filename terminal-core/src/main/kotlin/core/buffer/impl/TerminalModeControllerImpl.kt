@@ -189,7 +189,10 @@ internal class TerminalModeControllerImpl(
         }
     }
 
-    override fun setPaletteColor(index: Int, color: Int) {
+    override fun setPaletteColor(
+        index: Int,
+        color: Int,
+    ) {
         if (index !in 0..255) return
         mutateMode {
             val newIndexed = state.palette.toIndexedColorsArray()
@@ -199,14 +202,18 @@ internal class TerminalModeControllerImpl(
         }
     }
 
-    override fun setDynamicColor(target: Int, color: Int) {
+    override fun setDynamicColor(
+        target: Int,
+        color: Int,
+    ) {
         mutateMode {
-            state.palette = when (target) {
-                10 -> state.palette.copy(defaultForeground = color)
-                11 -> state.palette.copy(defaultBackground = color)
-                12 -> state.palette.copy(cursorBackground = color)
-                else -> state.palette
-            }
+            state.palette =
+                when (target) {
+                    10 -> state.palette.copy(defaultForeground = color)
+                    11 -> state.palette.copy(defaultBackground = color)
+                    12 -> state.palette.copy(cursorBackground = color)
+                    else -> state.palette
+                }
             state.markVisibleLinesChanged()
         }
     }

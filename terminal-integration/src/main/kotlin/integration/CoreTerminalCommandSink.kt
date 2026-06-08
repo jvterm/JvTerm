@@ -682,7 +682,10 @@ class CoreTerminalCommandSink(
         terminal.setHyperlinkId(0)
     }
 
-    override fun setPaletteColor(index: Int, color: Int) {
+    override fun setPaletteColor(
+        index: Int,
+        color: Int,
+    ) {
         terminal.setPaletteColor(index, color)
     }
 
@@ -690,7 +693,10 @@ class CoreTerminalCommandSink(
         terminal.queryPaletteColor(index)
     }
 
-    override fun setDynamicColor(target: Int, color: Int) {
+    override fun setDynamicColor(
+        target: Int,
+        color: Int,
+    ) {
         terminal.setDynamicColor(target, color)
     }
 
