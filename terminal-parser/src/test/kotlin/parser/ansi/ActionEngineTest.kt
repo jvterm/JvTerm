@@ -527,6 +527,22 @@ class ActionEngineTest {
         override fun endHyperlink() {
             sinkCalls += "endHyperlink"
         }
+
+        override fun setPaletteColor(index: Int, color: Int) {
+            sinkCalls += "setPaletteColor:$index:$color"
+        }
+
+        override fun queryPaletteColor(index: Int) {
+            sinkCalls += "queryPaletteColor:$index"
+        }
+
+        override fun setDynamicColor(target: Int, color: Int) {
+            sinkCalls += "setDynamicColor:$target:$color"
+        }
+
+        override fun queryDynamicColor(target: Int) {
+            sinkCalls += "queryDynamicColor:$target"
+        }
     }
 
     private fun dirtySequenceState(state: ParserState) {
