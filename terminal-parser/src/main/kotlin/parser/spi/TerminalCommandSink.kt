@@ -424,4 +424,10 @@ interface TerminalCommandSink {
 
     /** Queries a dynamic color (foreground, background, or cursor color). */
     fun queryDynamicColor(target: Int)
+
+    /** Queries a status string (DECRQSS). */
+    fun queryStatusString(query: String)
+
+    /** Queries terminfo capabilities (XTGETTCAP). */
+    fun queryTerminfo(rawPayload: String)
 }

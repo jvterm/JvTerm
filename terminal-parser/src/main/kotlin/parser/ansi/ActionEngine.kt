@@ -15,6 +15,7 @@
  */
 package com.gagik.parser.ansi
 
+import com.gagik.parser.ansi.dcs.DcsDispatcher
 import com.gagik.parser.ansi.osc.OscDispatcher
 import com.gagik.parser.runtime.ParserState
 import com.gagik.parser.spi.TerminalCommandSink
@@ -199,7 +200,12 @@ internal class ActionEngine(
             }
 
             FsmAction.DCS_END -> {
-                // Milestone A: DCS payload is bounded and discarded.
+                DcsDispatcher.dispatch(
+                    sink = sink,
+                    payload = state.payloadBuffer,
+                    length = state.payloadLength,
+                    overflowed = state.payloadOverflowed,
+                )
                 state.clearPayloadState()
                 state.clearSequenceState()
                 state.fsmState = nextState

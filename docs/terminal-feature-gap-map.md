@@ -194,9 +194,9 @@ Current state:
 
 Missing:
 
-- `TODO(parser)`: DCS dispatch policy and command router.
-- `TODO(parser)`: XTGETTCAP / XTSETTCAP terminal capability query/response.
-- `TODO(parser)`: DECRQSS request status string.
+- `DONE(parser)`: DCS dispatch policy and command router.
+- `DONE(parser)`: XTGETTCAP / XTSETTCAP terminal capability query/response with allowlist.
+- `DONE(parser)`: DECRQSS request status string.
 - `TODO(parser)`: Sixel graphics, if the emulator will support inline graphics.
 - `TODO(parser)`: Kitty graphics protocol, commonly sent as `ESC _ G ... ESC \`.
   This is more relevant to modern TUIs than many legacy graphics protocols.
@@ -609,7 +609,7 @@ professional emulator needs explicit contracts for it.
 ## Security and Policy Gaps
 
 - `TODO(policy)`: OSC 52 clipboard permission model.
-- `TODO(policy)`: DCS/OSC query response allowlist.
+- `DONE(policy)`: DCS/OSC query response allowlist.
 - `TODO(policy)`: richer hyperlink validation and display policy beyond
   integration resource limits and Swing's explicit-activation handler.
 - `DONE(parser)`: OSC/DCS string payload accumulation is bounded by parser

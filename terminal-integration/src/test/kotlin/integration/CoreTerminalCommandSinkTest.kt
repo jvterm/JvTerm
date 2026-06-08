@@ -1097,6 +1097,102 @@ class CoreTerminalCommandSinkTest {
         }
     }
 
+    @Nested
+    @DisplayName("DCS query pipeline")
+    inner class DcsQueryPipeline {
+        @Test
+        fun `DECRQSS SGR query returns default pen`() {
+            val f = Fixture()
+            f.acceptAscii("\u001BP\$qm\u001B\\")
+            f.end()
+            assertEquals("\u001BP1\$r0m\u001B\\", f.drainResponses())
+        }
+
+        @Test
+        fun `DECRQSS SGR query returns active attributes`() {
+            val f = Fixture()
+            // Set bold + red foreground
+            f.acceptAscii("\u001B[1;31m")
+            f.acceptAscii("\u001BP\$qm\u001B\\")
+            f.end()
+            assertEquals("\u001BP1\$r1;31m\u001B\\", f.drainResponses())
+        }
+
+        @Test
+        fun `DECRQSS scroll margins query returns current margins`() {
+            val f = Fixture()
+            f.acceptAscii("\u001BP\$qr\u001B\\")
+            f.end()
+            // Default: top=1, bottom=5 on a 10x5 terminal
+            assertEquals("\u001BP1\$r1;5r\u001B\\", f.drainResponses())
+        }
+
+        @Test
+        fun `DECRQSS horizontal margins query returns current margins`() {
+            val f = Fixture()
+            f.acceptAscii("\u001BP\$qs\u001B\\")
+            f.end()
+            // Default: left=1, right=10 on a 10x5 terminal
+            assertEquals("\u001BP1\$r1;10s\u001B\\", f.drainResponses())
+        }
+
+        @Test
+        fun `DECRQSS cursor style query returns current shape`() {
+            val f = Fixture()
+            f.acceptAscii("\u001BP\$qq\u001B\\")
+            f.end()
+            // Default: blinking block = 1
+            assertEquals("\u001BP1\$r1 q\u001B\\", f.drainResponses())
+        }
+
+        @Test
+        fun `DECRQSS unsupported query returns failure response`() {
+            val f = Fixture()
+            f.acceptAscii("\u001BP\$qx\u001B\\")
+            f.end()
+            assertEquals("\u001BP0\$rx\u001B\\", f.drainResponses())
+        }
+
+        @Test
+        fun `XTGETTCAP colors query returns 256`() {
+            val f = Fixture()
+            // Query colors (Co -> hex 436f)
+            f.acceptAscii("\u001BP+q436f\u001B\\")
+            f.end()
+            assertEquals("\u001BP1+r436f=323536\u001B\\", f.drainResponses())
+        }
+
+        @Test
+        fun `XTGETTCAP boolean capability RGB returns present without value`() {
+            val f = Fixture()
+            // Query RGB (hex 524742)
+            f.acceptAscii("\u001BP+q524742\u001B\\")
+            f.end()
+            assertEquals("\u001BP1+r524742\u001B\\", f.drainResponses())
+        }
+
+        @Test
+        fun `XTGETTCAP multi-cap query returns all matching`() {
+            val f = Fixture()
+            // Query Co (436f) and TN (544e)
+            f.acceptAscii("\u001BP+q436f;544e\u001B\\")
+            f.end()
+            assertEquals(
+                "\u001BP1+r436f=323536;544e=787465726d2d323536636f6c6f72\u001B\\",
+                f.drainResponses(),
+            )
+        }
+
+        @Test
+        fun `XTGETTCAP unsupported capability returns failure response`() {
+            val f = Fixture()
+            // Query "xx" (hex 7878) — not in the allowlist
+            f.acceptAscii("\u001BP+q7878\u001B\\")
+            f.end()
+            assertEquals("\u001BP0+r\u001B\\", f.drainResponses())
+        }
+    }
+
     private class RecordingHostEventSink : TerminalHostEventSink {
         var bells: Int = 0
         val iconTitles = mutableListOf<String>()

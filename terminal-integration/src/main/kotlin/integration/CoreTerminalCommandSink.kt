@@ -704,6 +704,14 @@ class CoreTerminalCommandSink(
         terminal.queryDynamicColor(target)
     }
 
+    override fun queryStatusString(query: String) {
+        terminal.queryStatusString(query)
+    }
+
+    override fun queryTerminfo(rawPayload: String) {
+        terminal.queryTerminfo(rawPayload)
+    }
+
     /**
      * Returns the OSC 8 URI associated with [hyperlinkId], or `null`.
      *

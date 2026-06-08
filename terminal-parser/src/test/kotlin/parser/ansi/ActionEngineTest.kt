@@ -549,6 +549,14 @@ class ActionEngineTest {
         override fun queryDynamicColor(target: Int) {
             sinkCalls += "queryDynamicColor:$target"
         }
+
+        override fun queryStatusString(query: String) {
+            sinkCalls += "queryStatusString:$query"
+        }
+
+        override fun queryTerminfo(rawPayload: String) {
+            sinkCalls += "queryTerminfo:$rawPayload"
+        }
     }
 
     private fun dirtySequenceState(state: ParserState) {

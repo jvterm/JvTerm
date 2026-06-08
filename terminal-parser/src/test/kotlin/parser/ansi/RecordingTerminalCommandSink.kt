@@ -423,4 +423,12 @@ internal class RecordingTerminalCommandSink : TerminalCommandSink {
     override fun queryDynamicColor(target: Int) {
         events += "queryDynamicColor:$target"
     }
+
+    override fun queryStatusString(query: String) {
+        events += "queryStatusString:$query"
+    }
+
+    override fun queryTerminfo(rawPayload: String) {
+        events += "queryTerminfo:$rawPayload"
+    }
 }
