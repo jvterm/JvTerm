@@ -196,6 +196,25 @@ private class CountingHostOutput : TerminalHostOutput {
     }
 
     override fun writeUtf8(text: String) {
-        count += text.encodeToByteArray().size
+        var byteLength = 0
+        var i = 0
+        val len = text.length
+        while (i < len) {
+            val c = text[i].code
+            if (c <= 0x7F) {
+                byteLength += 1
+                i++
+            } else if (c <= 0x7FF) {
+                byteLength += 2
+                i++
+            } else if (c in 0xD800..0xDBFF && i + 1 < len && text[i + 1].code in 0xDC00..0xDFFF) {
+                byteLength += 4
+                i += 2
+            } else {
+                byteLength += 3
+                i++
+            }
+        }
+        count += byteLength
     }
 }
