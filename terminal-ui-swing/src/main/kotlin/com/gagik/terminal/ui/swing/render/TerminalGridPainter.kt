@@ -74,7 +74,7 @@ internal class TerminalGridPainter {
         hoveredHyperlinkId: Int = 0,
         hyperlinkActivationHover: Boolean = false,
     ) {
-        val palette = settings.palette
+        val palette = cache.palette
         textPainter.updateSettings(settings)
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
         g.setRenderingHint(RenderingHints.KEY_TEXT_LCD_CONTRAST, TEXT_LCD_CONTRAST)

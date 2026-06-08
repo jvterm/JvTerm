@@ -370,4 +370,28 @@ class TerminalModeControllerImplTest {
         assertEquals(3, state.modes.kittyKeyboardFlags)
         assertEquals(3, state.activeBuffer.kittyKeyboardFlags)
     }
+
+    @Test
+    fun `sets theme palette and active colors correctly`() {
+        val state = TerminalState(4, 3, 2)
+        val modeController = TerminalModeControllerImpl(state, CursorEngine(state))
+
+        val themePalette = com.gagik.terminal.render.api.TerminalColorPalette(
+            defaultForeground = 0xFF111111.toInt(),
+            defaultBackground = 0xFF222222.toInt(),
+        )
+        modeController.setThemePalette(themePalette)
+
+        assertEquals(themePalette, state.themePalette)
+        assertEquals(themePalette, state.palette)
+
+        modeController.setPaletteColor(5, 0xFF555555.toInt())
+        assertEquals(0xFF555555.toInt(), state.palette.indexedColor(5))
+
+        modeController.setDynamicColor(10, 0xFFFFFFFF.toInt())
+        assertEquals(0xFFFFFFFF.toInt(), state.palette.defaultForeground)
+
+        modeController.setDynamicColor(11, 0xFF000000.toInt())
+        assertEquals(0xFF000000.toInt(), state.palette.defaultBackground)
+    }
 }
