@@ -19,8 +19,11 @@ import com.gagik.terminal.input.event.*
 import com.gagik.terminal.protocol.MouseTrackingMode
 import com.gagik.terminal.render.cache.TerminalRenderCache
 import com.gagik.terminal.session.TerminalSession
+import com.gagik.terminal.ui.shared.render.TerminalCanvasPainter
 import com.gagik.terminal.ui.swing.input.TerminalSwingKeyMapper
-import com.gagik.terminal.ui.swing.render.TerminalGridPainter
+import com.gagik.terminal.ui.swing.render.SwingRenderCacheSnapshot
+import com.gagik.terminal.ui.swing.render.SwingTerminalPlatformDriver
+import com.gagik.terminal.ui.swing.render.toRenderSettings
 import com.gagik.terminal.ui.swing.settings.TerminalClipboardAction
 import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
@@ -74,7 +77,9 @@ class TerminalSwingTerminal(
     private val renderPending = AtomicBoolean(false)
     private val visibleGridSizeSnapshot = AtomicLong(packVisibleGridSize(1, 1))
 
-    private val painter = TerminalGridPainter()
+    private val platformDriver = SwingTerminalPlatformDriver()
+    private val painter = TerminalCanvasPainter(platformDriver.driver)
+    private val renderSnapshot = SwingRenderCacheSnapshot()
     private val repaintPlanner = TerminalSwingRepaintPlanner()
     private val scrollModel = TerminalSwingScrollModel()
     private val keyMapper = TerminalSwingKeyMapper()
@@ -166,6 +171,7 @@ class TerminalSwingTerminal(
         font = settings.font
         background = Color(settings.palette.defaultBackground, true)
         foreground = Color(settings.palette.defaultForeground, true)
+        platformDriver.updateSettings(settings)
         isOpaque = true
         isFocusable = true
         focusTraversalKeysEnabled = false
@@ -254,16 +260,18 @@ class TerminalSwingTerminal(
         try {
             val publisher = session?.publisher
             if (publisher == null) {
-                painter.clear(g, settings.palette, width, height)
+                platformDriver.updatePalette(settings.palette)
+                painter.clear(g, width, height)
                 return
             }
 
             val painted =
                 publisher.readCurrent { cache ->
-                    painter.paint(
+                    platformDriver.updatePalette(cache.palette)
+                    painter.paintViewport(
                         g = g,
-                        cache = cache,
-                        settings = settings,
+                        snapshot = renderSnapshot.wrap(cache),
+                        settings = settings.toRenderSettings(),
                         metrics = metrics,
                         width = width,
                         height = height,
@@ -275,7 +283,8 @@ class TerminalSwingTerminal(
                     )
                 }
             if (painted == null) {
-                painter.clear(g, settings.palette, width, height)
+                platformDriver.updatePalette(settings.palette)
+                painter.clear(g, width, height)
             }
         } finally {
             g.dispose()
@@ -320,6 +329,7 @@ class TerminalSwingTerminal(
         font = settings.font
         background = Color(settings.palette.defaultBackground, true)
         foreground = Color(settings.palette.defaultForeground, true)
+        platformDriver.updateSettings(settings)
         isOpaque = true
         metrics = buildMetrics(settings)
         preferredSize = preferredGridSize(settings.columns, settings.rows)

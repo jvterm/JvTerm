@@ -13,13 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.gagik.terminal.ui.swing.api
+package com.gagik.terminal.ui.shared.api
 
 import com.gagik.terminal.render.api.TerminalRenderCellFlags
-import com.gagik.terminal.render.cache.TerminalRenderCache
-import com.gagik.terminal.ui.shared.api.TerminalCellSelection
-import com.gagik.terminal.ui.shared.api.TerminalRenderSnapshot
-import com.gagik.terminal.ui.swing.api.CellSelection.Companion.NO_RANGE
+import com.gagik.terminal.ui.shared.api.CellSelection.Companion.NO_RANGE
 
 /**
  * Half-open terminal cell selection in visible render-cache coordinates.
@@ -65,13 +62,7 @@ data class CellSelection(
     fun packedColumnRange(
         row: Int,
         columns: Int,
-    ): Long = packedColumnRange(row, columns, cache = null as TerminalRenderSnapshot?)
-
-    fun packedColumnRange(
-        row: Int,
-        columns: Int,
-        cache: TerminalRenderCache?,
-    ): Long = packedColumnRange(row, columns, cache?.asSelectionSnapshot())
+    ): Long = packedColumnRange(row, columns, cache = null)
 
     override fun packedColumnRange(
         row: Int,
@@ -119,42 +110,6 @@ data class CellSelection(
         if (start >= end) return NO_RANGE
         return packRange(start, end)
     }
-
-    private fun TerminalRenderCache.asSelectionSnapshot(): TerminalRenderSnapshot =
-        object : TerminalRenderSnapshot {
-            override val columns: Int get() = this@asSelectionSnapshot.columns
-            override val rows: Int get() = this@asSelectionSnapshot.rows
-            override val historySize: Int get() = this@asSelectionSnapshot.historySize
-            override val scrollbackOffset: Int get() = this@asSelectionSnapshot.scrollbackOffset
-            override val discardedCount: Long get() = this@asSelectionSnapshot.discardedCount
-            override val codeWords: IntArray get() = this@asSelectionSnapshot.codeWords
-            override val attrWords: LongArray get() = this@asSelectionSnapshot.attrWords
-            override val flags: IntArray get() = this@asSelectionSnapshot.flags
-            override val extraAttrWords: LongArray get() = this@asSelectionSnapshot.extraAttrWords
-            override val hyperlinkIds: IntArray get() = this@asSelectionSnapshot.hyperlinkIds
-            override val clusterRefs: LongArray get() = this@asSelectionSnapshot.clusterRefs
-            override val clusterCodepoints: IntArray get() = this@asSelectionSnapshot.clusterCodepoints
-            override val lineGenerations: LongArray get() = this@asSelectionSnapshot.lineGenerations
-            override val lineWrapped: BooleanArray get() = this@asSelectionSnapshot.lineWrapped
-            override val frameGeneration: Long get() = this@asSelectionSnapshot.frameGeneration
-            override val structureGeneration: Long get() = this@asSelectionSnapshot.structureGeneration
-            override val activeBuffer get() = this@asSelectionSnapshot.activeBuffer
-            override val palette get() = this@asSelectionSnapshot.palette
-            override val cursorColumn: Int get() = this@asSelectionSnapshot.cursorColumn
-            override val cursorRow: Int get() = this@asSelectionSnapshot.cursorRow
-            override val cursorVisible: Boolean get() = this@asSelectionSnapshot.cursorVisible
-            override val cursorBlinking: Boolean get() = this@asSelectionSnapshot.cursorBlinking
-            override val cursorShape get() = this@asSelectionSnapshot.cursorShape
-            override val cursorGeneration: Long get() = this@asSelectionSnapshot.cursorGeneration
-            override val resizedOnLastUpdate: Boolean get() = this@asSelectionSnapshot.resizedOnLastUpdate
-            override val cursorChangedOnLastUpdate: Boolean get() = this@asSelectionSnapshot.cursorChangedOnLastUpdate
-
-            override fun rowOffset(row: Int): Int = this@asSelectionSnapshot.rowOffset(row)
-
-            override fun clusterOffset(ref: Long): Int = this@asSelectionSnapshot.clusterOffset(ref)
-
-            override fun clusterLength(ref: Long): Int = this@asSelectionSnapshot.clusterLength(ref)
-        }
 
     /**
      * First selected row after normalizing anchor and caret order.

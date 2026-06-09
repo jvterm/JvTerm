@@ -28,6 +28,7 @@ repositories {
 
 dependencies {
     api(project(":terminal-session"))
+    api(project(":terminal-ui-shared"))
     implementation(project(":terminal-input"))
     implementation(project(":terminal-render-api"))
     implementation(project(":terminal-render-cache"))

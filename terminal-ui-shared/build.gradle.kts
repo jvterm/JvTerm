@@ -13,11 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.gagik.terminal.ui.swing.viewport
 
-import com.gagik.terminal.ui.shared.viewport.TerminalViewportScrollModel
+plugins {
+    kotlin("jvm")
+}
 
-/**
- * Swing-compatible name for the shared scrollback viewport model.
- */
-internal typealias TerminalSwingScrollModel = TerminalViewportScrollModel
+group = "com.gagik"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation(project(":terminal-render-api"))
+
+    testImplementation(kotlin("test"))
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
