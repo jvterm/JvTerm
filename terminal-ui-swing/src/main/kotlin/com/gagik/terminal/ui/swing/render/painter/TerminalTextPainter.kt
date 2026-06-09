@@ -45,6 +45,13 @@ internal class TerminalTextPainter(
     private val asciiDrawChars = TerminalAsciiDrawCharsCache()
     private val cellPrimitives = TerminalCellPrimitivePainter()
     private val textRun = TerminalTextRunBuffer(INITIAL_TEXT_RUN_CAPACITY)
+    private val shapedTextRuns =
+        TerminalShapedTextRunPainter(
+            colorCache = colorCache,
+            decorationPainter = decorationPainter,
+            fontCache = fontCache,
+            complexTextLayouts = complexTextLayouts,
+        )
 
     /**
      * Updates font-dependent caches for a settings snapshot.
@@ -77,6 +84,22 @@ internal class TerminalTextPainter(
         hyperlinkActivationHover: Boolean = false,
         hyperlinkActivationForeground: Int = DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND,
     ) {
+        if (shapedTextRuns.cachedRowContainsStrongRtl(cache, row)) {
+            shapedTextRuns.paintBidiRow(
+                g = g,
+                cache = cache,
+                palette = palette,
+                metrics = metrics,
+                row = row,
+                fontRenderContext = fontRenderContext,
+                textBlinkVisible = textBlinkVisible,
+                hoveredHyperlinkId = hoveredHyperlinkId,
+                hyperlinkActivationHover = hyperlinkActivationHover,
+                hyperlinkActivationForeground = hyperlinkActivationForeground,
+            )
+            return
+        }
+
         val flagsPlane = cache.flags
         val attrWords = cache.attrWords
         val codeWords = cache.codeWords
@@ -99,36 +122,54 @@ internal class TerminalTextPainter(
 
             val codeWord = codeWords[index]
             column =
-                if (isFastAsciiCell(flags, codeWord)) {
-                    paintAsciiRun(
-                        g = g,
-                        cache = cache,
-                        palette = palette,
-                        metrics = metrics,
-                        row = row,
-                        startColumn = column,
-                        baselineY = baselineY,
-                        fontRenderContext = fontRenderContext,
-                        textBlinkVisible = textBlinkVisible,
-                        hoveredHyperlinkId = hoveredHyperlinkId,
-                        hyperlinkActivationHover = hyperlinkActivationHover,
-                        hyperlinkActivationForeground = hyperlinkActivationForeground,
-                    )
-                } else {
-                    paintComplexCell(
-                        g = g,
-                        cache = cache,
-                        palette = palette,
-                        metrics = metrics,
-                        row = row,
-                        column = column,
-                        baselineY = baselineY,
-                        fontRenderContext = fontRenderContext,
-                        textBlinkVisible = textBlinkVisible,
-                        hoveredHyperlinkId = hoveredHyperlinkId,
-                        hyperlinkActivationHover = hyperlinkActivationHover,
-                        hyperlinkActivationForeground = hyperlinkActivationForeground,
-                    )
+                when {
+                    isFastAsciiCell(flags, codeWord) ->
+                        paintAsciiRun(
+                            g = g,
+                            cache = cache,
+                            palette = palette,
+                            metrics = metrics,
+                            row = row,
+                            startColumn = column,
+                            baselineY = baselineY,
+                            fontRenderContext = fontRenderContext,
+                            textBlinkVisible = textBlinkVisible,
+                            hoveredHyperlinkId = hoveredHyperlinkId,
+                            hyperlinkActivationHover = hyperlinkActivationHover,
+                            hyperlinkActivationForeground = hyperlinkActivationForeground,
+                        )
+
+                    shapedTextRuns.isComplexShapingCell(cache, index) ->
+                        shapedTextRuns.paintComplexShapingRun(
+                            g = g,
+                            cache = cache,
+                            palette = palette,
+                            metrics = metrics,
+                            row = row,
+                            startColumn = column,
+                            baselineY = baselineY,
+                            fontRenderContext = fontRenderContext,
+                            textBlinkVisible = textBlinkVisible,
+                            hoveredHyperlinkId = hoveredHyperlinkId,
+                            hyperlinkActivationHover = hyperlinkActivationHover,
+                            hyperlinkActivationForeground = hyperlinkActivationForeground,
+                        )
+
+                    else ->
+                        paintComplexCell(
+                            g = g,
+                            cache = cache,
+                            palette = palette,
+                            metrics = metrics,
+                            row = row,
+                            column = column,
+                            baselineY = baselineY,
+                            fontRenderContext = fontRenderContext,
+                            textBlinkVisible = textBlinkVisible,
+                            hoveredHyperlinkId = hoveredHyperlinkId,
+                            hyperlinkActivationHover = hyperlinkActivationHover,
+                            hyperlinkActivationForeground = hyperlinkActivationForeground,
+                        )
                 }
         }
     }

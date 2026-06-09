@@ -600,6 +600,121 @@ class TerminalTextPainterTest {
             // Assert
             assertEquals(initialTransform, fixture.g.transform, "Complex glyph fitting leaked a Graphics2D transform")
         }
+
+        @Test
+        fun `complex Indic script run shapes as one clipped span and restores graphics state`() {
+            // Arrange
+            val text = "\u0928\u092E\u0938\u094D\u0924\u0947 \u0926\u0941\u0928\u093F\u092F\u093E"
+            val fixture = fixture(width = text.codePointCount(0, text.length) * 16 + 32)
+            val initialTransform = AffineTransform.getTranslateInstance(2.0, 3.0)
+            fixture.g.transform = initialTransform
+            val cache = renderCache(TestRenderFrame.text(text))
+
+            // Act
+            fixture.paintRow(cache)
+
+            // Assert
+            assertEquals(initialTransform, fixture.g.transform, "Complex-script run shaping leaked a Graphics2D transform")
+            val textEnd = cache.columns * fixture.metrics.cellWidth
+            assertTrue(
+                fixture.image.containsPaintedPixelInRange(0, textEnd, 0, fixture.metrics.cellHeight),
+                "Complex-script run did not paint any visible glyph pixels",
+            )
+            assertTrue(
+                !fixture.image.containsPaintedPixelInRange(
+                    textEnd + initialTransform.translateX.toInt(),
+                    fixture.image.width,
+                    0,
+                    fixture.metrics.cellHeight,
+                ),
+                "Complex-script run painted beyond the core-owned terminal columns",
+            )
+        }
+
+        @Test
+        fun `strong rtl row paints in visual order without changing logical cache order`() {
+            // Arrange
+            val fixture = fixture(foreground = TEST_WHITE, width = 120)
+            val cache =
+                renderCache(
+                    TestRenderFrame.text(
+                        text = "\u05D0\u05D1\u05D2",
+                        attrs =
+                            longArrayOf(
+                                TerminalRenderAttrs.pack(underlineStyle = TerminalRenderUnderline.SINGLE),
+                                TerminalRenderAttrs.pack(underlineStyle = TerminalRenderUnderline.SINGLE),
+                                TerminalRenderAttrs.pack(underlineStyle = TerminalRenderUnderline.SINGLE),
+                            ),
+                        extraAttrs =
+                            longArrayOf(
+                                underlineColor(TEST_RED),
+                                underlineColor(TEST_GREEN),
+                                underlineColor(TEST_BLUE),
+                            ),
+                    ),
+                )
+
+            // Act
+            fixture.paintRow(cache)
+
+            // Assert
+            assertEquals(0x05D0, cache.codeWords[0], "Core/cache storage must remain logical")
+            assertEquals(TEST_BLUE, fixture.image.getRGB(1, fixture.metrics.underlineY), "Last RTL cell should paint first visually")
+            assertEquals(
+                TEST_GREEN,
+                fixture.image.getRGB(fixture.metrics.cellWidth + 1, fixture.metrics.underlineY),
+                "Middle RTL cell should remain in the middle visually",
+            )
+            assertEquals(
+                TEST_RED,
+                fixture.image.getRGB(fixture.metrics.cellWidth * 2 + 1, fixture.metrics.underlineY),
+                "First RTL cell should paint last visually",
+            )
+        }
+
+        @Test
+        fun `mixed ltr and rtl row keeps ltr prefix and reverses rtl run visually`() {
+            // Arrange
+            val fixture = fixture(foreground = TEST_WHITE, width = 160)
+            val underlineAttr = TerminalRenderAttrs.pack(underlineStyle = TerminalRenderUnderline.SINGLE)
+            val cache =
+                renderCache(
+                    TestRenderFrame.text(
+                        text = "AB \u05D0\u05D1\u05D2",
+                        attrs = LongArray(6) { underlineAttr },
+                        extraAttrs =
+                            longArrayOf(
+                                underlineColor(TEST_RED),
+                                underlineColor(TEST_GREEN),
+                                underlineColor(TEST_WHITE),
+                                underlineColor(TEST_RED),
+                                underlineColor(TEST_GREEN),
+                                underlineColor(TEST_BLUE),
+                            ),
+                    ),
+                )
+
+            // Act
+            fixture.paintRow(cache)
+
+            // Assert
+            assertEquals(TEST_RED, fixture.image.getRGB(1, fixture.metrics.underlineY), "LTR prefix first cell moved")
+            assertEquals(
+                TEST_GREEN,
+                fixture.image.getRGB(fixture.metrics.cellWidth + 1, fixture.metrics.underlineY),
+                "LTR prefix second cell moved",
+            )
+            assertEquals(
+                TEST_BLUE,
+                fixture.image.getRGB(fixture.metrics.cellWidth * 3 + 1, fixture.metrics.underlineY),
+                "RTL run did not reverse after the LTR prefix",
+            )
+            assertEquals(
+                TEST_RED,
+                fixture.image.getRGB(fixture.metrics.cellWidth * 5 + 1, fixture.metrics.underlineY),
+                "RTL run first logical cell should paint at the visual run end",
+            )
+        }
     }
 
     @Nested
@@ -817,5 +932,11 @@ class TerminalTextPainterTest {
 
     private companion object {
         private const val ASTRAL_SMILE_CODE_POINT = 0x1F642
+
+        private fun underlineColor(rgb: Int): Long =
+            TerminalRenderExtraAttrs.pack(
+                underlineColorKind = TerminalRenderColorKind.RGB,
+                underlineColorValue = rgb and 0x00FF_FFFF,
+            )
     }
 }
