@@ -31,6 +31,7 @@ import com.gagik.terminal.ui.swing.viewport.TerminalSwingScrollModel
 import java.awt.*
 import java.awt.event.*
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
@@ -75,6 +76,11 @@ class TerminalSwingTerminal(
         }
     private val renderPending = AtomicBoolean(false)
     private val visibleGridSizeSnapshot = AtomicLong(packVisibleGridSize(1, 1))
+    private val viewportHistorySizeSnapshot = AtomicInteger(0)
+    private val viewportScrollbackOffsetSnapshot = AtomicLong(doubleToRawLongBits(0.0))
+    private val viewportRenderOffsetSnapshot = AtomicInteger(0)
+    private val viewportVisibleRowsSnapshot = AtomicInteger(1)
+    private val viewportRequestedRowsSnapshot = AtomicInteger(1)
     private val publishedFrameRunnable =
         Runnable {
             renderPending.set(false)
@@ -243,6 +249,73 @@ class TerminalSwingTerminal(
         return Dimension(unpackVisibleColumns(packed), unpackVisibleRows(packed))
     }
 
+    /**
+     * Returns the latest terminal-native scrollback viewport snapshot.
+     *
+     * This method may be called from any thread. EDT callers refresh the
+     * snapshot from live component and render-cache state before reading it;
+     * off-EDT callers read the last EDT-published snapshot without blocking.
+     *
+     * @return current scrollback viewport state.
+     */
+    fun viewportState(): TerminalViewportState {
+        if (SwingUtilities.isEventDispatchThread()) {
+            publishViewportState(currentHistorySizeOnEdt(), notifyListener = false)
+        }
+        return TerminalViewportState(
+            historySize = viewportHistorySizeSnapshot.get(),
+            scrollbackOffset = longBitsToDouble(viewportScrollbackOffsetSnapshot.get()),
+            renderOffset = viewportRenderOffsetSnapshot.get(),
+            visibleRows = viewportVisibleRowsSnapshot.get(),
+            requestedRows = viewportRequestedRowsSnapshot.get(),
+        )
+    }
+
+    /**
+     * Returns to the live terminal viewport.
+     *
+     * This method may be called from any thread; component state is updated
+     * asynchronously on the EDT.
+     */
+    fun scrollToLiveViewport() {
+        scrollToScrollbackOffset(0)
+    }
+
+    /**
+     * Scrolls to an absolute scrollback offset.
+     *
+     * The offset uses terminal-native coordinates: `0` is live output and
+     * larger values move farther back into scrollback history. Values beyond
+     * available history are clamped on the EDT.
+     *
+     * @param scrollbackOffset requested whole-row offset from live output.
+     */
+    fun scrollToScrollbackOffset(scrollbackOffset: Int) {
+        runOnEdt(
+            Runnable {
+                scrollViewportToOnEdt(scrollbackOffset.toDouble())
+            },
+        )
+    }
+
+    /**
+     * Applies a signed scrollback delta in terminal rows.
+     *
+     * Positive values move farther back into scrollback; negative values move
+     * toward the live viewport. Fractional values are preserved for smooth
+     * wheel and trackpad composition.
+     *
+     * @param deltaLines signed row delta.
+     */
+    fun scrollViewportBy(deltaLines: Double) {
+        require(!deltaLines.isNaN()) { "deltaLines must not be NaN" }
+        runOnEdt(
+            Runnable {
+                scrollViewportByOnEdt(deltaLines)
+            },
+        )
+    }
+
     override fun addNotify() {
         super.addNotify()
         cursorTimer.start()
@@ -306,6 +379,7 @@ class TerminalSwingTerminal(
         renderPending.set(false)
         clearHyperlinkHover()
         resizeSessionToVisibleGridOnEdt()
+        publishViewportState(currentHistorySizeOnEdt())
         repaint()
     }
 
@@ -320,6 +394,7 @@ class TerminalSwingTerminal(
         repaintPlanner.reset()
         renderPending.set(false)
         clearHyperlinkHover()
+        publishViewportState(0)
         repaint()
     }
 
@@ -336,6 +411,7 @@ class TerminalSwingTerminal(
         clearSelection()
         clearHyperlinkHover()
         resizeSessionToVisibleGridOnEdt()
+        publishViewportState(currentHistorySizeOnEdt())
         revalidate()
         repaint()
     }
@@ -371,17 +447,7 @@ class TerminalSwingTerminal(
         val delta = wheelScrollLines(event)
         if (delta == 0.0) return
 
-        val previousRequestedOffset = scrollModel.requestedOffset
-        val previousRequestedRows = requestedRenderRows()
-        if (!scrollModel.scrollBy(delta, historySize)) return
-
-        val nextRequestedOffset = scrollModel.requestedOffset
-        val nextRequestedRows = requestedRenderRows()
-        if (nextRequestedOffset != previousRequestedOffset || nextRequestedRows != previousRequestedRows) {
-            boundSession.requestRender(nextRequestedOffset, nextRequestedRows)
-        } else {
-            repaint()
-        }
+        scrollViewportByOnEdt(delta, historySize)
         event.consume()
     }
 
@@ -775,14 +841,41 @@ class TerminalSwingTerminal(
         boundSession: TerminalSession,
         delta: Double,
         historySize: Int,
+    ): Boolean = scrollViewportByOnEdt(delta, historySize, boundSession)
+
+    private fun scrollViewportByOnEdt(
+        delta: Double,
+        historySize: Int = currentHistorySizeOnEdt(),
+        boundSession: TerminalSession? = session,
     ): Boolean {
         val previousRequestedOffset = scrollModel.requestedOffset
         val previousRequestedRows = requestedRenderRows()
         if (!scrollModel.scrollBy(delta, historySize)) return false
+        publishViewportState(historySize)
 
         val nextRequestedOffset = scrollModel.requestedOffset
         val nextRequestedRows = requestedRenderRows()
-        if (nextRequestedOffset != previousRequestedOffset || nextRequestedRows != previousRequestedRows) {
+        if (boundSession != null && (nextRequestedOffset != previousRequestedOffset || nextRequestedRows != previousRequestedRows)) {
+            boundSession.requestRender(nextRequestedOffset, nextRequestedRows)
+        } else {
+            repaint()
+        }
+        return true
+    }
+
+    private fun scrollViewportToOnEdt(
+        offsetLines: Double,
+        historySize: Int = currentHistorySizeOnEdt(),
+        boundSession: TerminalSession? = session,
+    ): Boolean {
+        val previousRequestedOffset = scrollModel.requestedOffset
+        val previousRequestedRows = requestedRenderRows()
+        if (!scrollModel.scrollTo(offsetLines, historySize)) return false
+        publishViewportState(historySize)
+
+        val nextRequestedOffset = scrollModel.requestedOffset
+        val nextRequestedRows = requestedRenderRows()
+        if (boundSession != null && (nextRequestedOffset != previousRequestedOffset || nextRequestedRows != previousRequestedRows)) {
             boundSession.requestRender(nextRequestedOffset, nextRequestedRows)
         } else {
             repaint()
@@ -810,14 +903,17 @@ class TerminalSwingTerminal(
             resetCursorBlinkOnEdt(forceRepaint = false)
             when {
                 scrollModel.clamp(cache.historySize) -> {
+                    publishViewportState(cache.historySize)
                     boundSession.requestRender(scrollModel.requestedOffset, requestedRenderRows())
                 }
 
                 cache.scrollbackOffset != scrollModel.requestedOffset -> {
+                    publishViewportState(cache.historySize)
                     boundSession.requestRender(scrollModel.requestedOffset, requestedRenderRows())
                 }
 
                 else -> {
+                    publishViewportState(cache.historySize)
                     val yOffset = contentYOffset(cache)
                     repaintPlanner.requestFrameRepaint(
                         cache = cache,
@@ -870,6 +966,33 @@ class TerminalSwingTerminal(
         scrollModel.reset()
     }
 
+    private fun currentHistorySizeOnEdt(): Int = session?.publisher?.current()?.historySize ?: 0
+
+    private fun publishViewportState(
+        historySize: Int,
+        notifyListener: Boolean = true,
+    ) {
+        val visibleRows = visibleGridRows()
+        val requestedRows = scrollModel.requestedRows(visibleRows)
+        val scrollbackOffset = scrollModel.preciseScrollbackOffset
+        val renderOffset = scrollModel.requestedOffset
+
+        viewportHistorySizeSnapshot.set(historySize)
+        viewportScrollbackOffsetSnapshot.set(doubleToRawLongBits(scrollbackOffset))
+        viewportRenderOffsetSnapshot.set(renderOffset)
+        viewportVisibleRowsSnapshot.set(visibleRows)
+        viewportRequestedRowsSnapshot.set(requestedRows)
+        if (!notifyListener) return
+
+        hostServices.viewportListener.viewportChanged(
+            historySize = historySize,
+            scrollbackOffset = scrollbackOffset,
+            renderOffset = renderOffset,
+            visibleRows = visibleRows,
+            requestedRows = requestedRows,
+        )
+    }
+
     private fun preferredGridSize(
         columns: Int,
         rows: Int,
@@ -877,6 +1000,7 @@ class TerminalSwingTerminal(
 
     private fun resizeSessionToVisibleGridOnEdt() {
         val packedGridSize = updateVisibleGridSizeOnEdt()
+        publishViewportState(currentHistorySizeOnEdt())
         val boundSession = session ?: return
         if (width <= 0 || height <= 0) return
 
@@ -949,5 +1073,9 @@ class TerminalSwingTerminal(
         private fun unpackCellColumn(packed: Long): Int = (packed ushr 32).toInt()
 
         private fun unpackCellRow(packed: Long): Int = packed.toInt()
+
+        private fun doubleToRawLongBits(value: Double): Long = java.lang.Double.doubleToRawLongBits(value)
+
+        private fun longBitsToDouble(value: Long): Double = java.lang.Double.longBitsToDouble(value)
     }
 }

@@ -59,9 +59,12 @@ fun interface TerminalUiDispatcher {
  * @property clipboardHandler host clipboard adapter for copy and paste actions.
  * @property hyperlinkHandler host policy for explicit Ctrl-click hyperlink
  * activation.
+ * @property viewportListener host scrollbar adapter notified when the terminal
+ * scrollback viewport changes.
  */
 data class TerminalSwingHostServices(
     val uiDispatcher: TerminalUiDispatcher = TerminalUiDispatcher.SWING,
     val clipboardHandler: TerminalClipboardHandler = TerminalClipboardHandler.SYSTEM,
     val hyperlinkHandler: TerminalHyperlinkHandler = TerminalHyperlinkHandler.SYSTEM,
+    val viewportListener: TerminalViewportListener = TerminalViewportListener.NONE,
 )

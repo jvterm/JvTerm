@@ -47,6 +47,18 @@ class TerminalSwingScrollModelTest {
     }
 
     @Test
+    fun `absolute scroll preserves fractional offsets for host controls`() {
+        val model = TerminalSwingScrollModel()
+
+        assertTrue(model.scrollTo(2.5, historySize = 10))
+
+        assertEquals(2.5, model.preciseScrollbackOffset)
+        assertEquals(2, model.offset)
+        assertEquals(3, model.requestedOffset)
+        assertTrue(model.needsOverscan)
+    }
+
+    @Test
     fun `zero or clamped deltas report no movement`() {
         val model = TerminalSwingScrollModel()
 

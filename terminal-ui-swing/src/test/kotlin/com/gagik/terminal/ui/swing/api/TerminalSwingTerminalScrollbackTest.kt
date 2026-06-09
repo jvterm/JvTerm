@@ -34,6 +34,7 @@ import java.awt.event.MouseWheelEvent
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import javax.swing.JComponent
 import javax.swing.RepaintManager
 import javax.swing.SwingUtilities
@@ -190,6 +191,83 @@ class TerminalSwingTerminalScrollbackTest {
         session.close()
     }
 
+    @Test
+    fun `host scroll command requests absolute scrollback viewport`() {
+        val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
+        val renderReader = ScrollbackFrameReader()
+        val session =
+            TerminalSession(
+                terminal = terminal,
+                publisher = TerminalRenderPublisher(3, 1),
+                renderReader = renderReader,
+                responseReader = terminal,
+                connector = NoOpConnector,
+                parser = NoOpParser,
+                inputEncoder = NoOpInputEncoder,
+            )
+        val component = TerminalSwingTerminal()
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(30, 20)
+            component.bind(session)
+        }
+        session.requestRender(scrollbackOffset = 0)
+        assertTrue(awaitOffset(session, 0), "initial render was not published")
+
+        component.scrollToScrollbackOffset(4)
+
+        assertTrue(awaitOffset(session, 4), "absolute host scroll was not published")
+        drainEdt()
+        val state = component.viewportState()
+        assertEquals(4, renderReader.lastRequestedOffset)
+        assertEquals(5, state.historySize)
+        assertEquals(4.0, state.scrollbackOffset)
+        assertEquals(4, state.renderOffset)
+        session.close()
+    }
+
+    @Test
+    fun `host fractional scroll command publishes overscan viewport state`() {
+        val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
+        val listener = RecordingViewportListener()
+        val session =
+            TerminalSession(
+                terminal = terminal,
+                publisher = TerminalRenderPublisher(3, 1),
+                renderReader = ScrollbackFrameReader(),
+                responseReader = terminal,
+                connector = NoOpConnector,
+                parser = NoOpParser,
+                inputEncoder = NoOpInputEncoder,
+            )
+        val component =
+            TerminalSwingTerminal(
+                hostServices =
+                    TerminalSwingHostServices(
+                        viewportListener = listener,
+                    ),
+            )
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(30, 20)
+            component.bind(session)
+        }
+        session.requestRender(scrollbackOffset = 0)
+        assertTrue(awaitOffset(session, 0), "initial render was not published")
+
+        component.scrollViewportBy(0.25)
+
+        assertTrue(awaitOffset(session, 1), "fractional host scroll was not published")
+        drainEdt()
+        val state = component.viewportState()
+        assertEquals(0.25, state.scrollbackOffset)
+        assertEquals(1, state.renderOffset)
+        assertTrue(state.requestedRows > state.visibleRows)
+        assertEquals(0.25, listener.lastScrollbackOffset.get())
+        assertEquals(1, listener.lastRenderOffset.get())
+        session.close()
+    }
+
     private class CountingRepaintManager(
         private val target: JComponent,
     ) : RepaintManager() {
@@ -228,6 +306,22 @@ class TerminalSwingTerminalScrollbackTest {
         }
     }
 
+    private class RecordingViewportListener : TerminalViewportListener {
+        val lastScrollbackOffset = AtomicReference(0.0)
+        val lastRenderOffset = AtomicInteger()
+
+        override fun viewportChanged(
+            historySize: Int,
+            scrollbackOffset: Double,
+            renderOffset: Int,
+            visibleRows: Int,
+            requestedRows: Int,
+        ) {
+            lastScrollbackOffset.set(scrollbackOffset)
+            lastRenderOffset.set(renderOffset)
+        }
+    }
+
     private fun awaitOffset(
         session: TerminalSession,
         offset: Int,
@@ -238,6 +332,12 @@ class TerminalSwingTerminalScrollbackTest {
             Thread.sleep(10)
         }
         return false
+    }
+
+    private fun drainEdt() {
+        if (SwingUtilities.isEventDispatchThread()) return
+        SwingUtilities.invokeAndWait {
+        }
     }
 
     private class ScrollbackFrameReader : TerminalRenderFrameReader {
