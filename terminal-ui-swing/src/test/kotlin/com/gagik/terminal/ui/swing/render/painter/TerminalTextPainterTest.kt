@@ -621,7 +621,12 @@ class TerminalTextPainterTest {
                 "Complex-script run did not paint any visible glyph pixels",
             )
             assertTrue(
-                !fixture.image.containsPaintedPixelInRange(textEnd, fixture.image.width, 0, fixture.metrics.cellHeight),
+                !fixture.image.containsPaintedPixelInRange(
+                    textEnd + initialTransform.translateX.toInt(),
+                    fixture.image.width,
+                    0,
+                    fixture.metrics.cellHeight,
+                ),
                 "Complex-script run painted beyond the core-owned terminal columns",
             )
         }
