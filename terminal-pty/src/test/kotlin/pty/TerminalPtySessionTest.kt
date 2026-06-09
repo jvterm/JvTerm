@@ -15,6 +15,7 @@
  */
 package com.gagik.terminal.pty
 
+import com.gagik.terminal.input.event.TerminalKey
 import com.gagik.terminal.input.event.TerminalKeyEvent
 import com.gagik.terminal.session.TerminalSession
 import org.junit.jupiter.api.Assertions.*
@@ -75,6 +76,21 @@ class TerminalPtySessionTest {
         session.encodeKey(TerminalKeyEvent.codepoint('a'.code))
 
         assertEquals("a", process.outputText())
+    }
+
+    @Test
+    fun `default pty input policy sends Return as CR even when newline mode is active`() {
+        val process = FakeTerminalProcess.running()
+        val session =
+            TerminalPtySessions.start(
+                options = TerminalPtyOptions(command = listOf("fake"), columns = 10, rows = 3),
+                processFactory = FixedProcessFactory(process),
+            )
+
+        session.terminal.setNewLineMode(true)
+        session.encodeKey(TerminalKeyEvent.key(TerminalKey.ENTER))
+
+        assertEquals("\r", process.outputText())
     }
 
     @Test

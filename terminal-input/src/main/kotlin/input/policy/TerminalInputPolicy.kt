@@ -29,6 +29,8 @@ package com.gagik.terminal.input.policy
  * modifier combination has no supported encoding in the active protocol set.
  * @property altSendsEscapePrefix when true, Alt prefixes applicable legacy
  * encodings with ESC.
+ * @property enterNewLineModePolicy handling for unmodified Return/Enter when
+ * ANSI Line Feed/New Line mode is active.
  * @property mouseCoordinateLimitPolicy handling for legacy mouse coordinates
  * outside the bounded `ESC [ M` byte range.
  * @property pasteSanitizationPolicy handling for pasted text before optional
@@ -40,6 +42,7 @@ data class TerminalInputPolicy(
     val unsupportedModifiedKeyPolicy: UnsupportedModifiedKeyPolicy =
         UnsupportedModifiedKeyPolicy.SUPPRESS,
     val altSendsEscapePrefix: Boolean = true,
+    val enterNewLineModePolicy: EnterNewLineModePolicy = EnterNewLineModePolicy.SEND_CR_LF,
     val mouseCoordinateLimitPolicy: MouseCoordinateLimitPolicy =
         MouseCoordinateLimitPolicy.SUPPRESS_OUT_OF_RANGE,
     val pasteSanitizationPolicy: PasteSanitizationPolicy = PasteSanitizationPolicy.RAW,
@@ -93,6 +96,17 @@ enum class MouseCoordinateLimitPolicy {
 
     /** Clamp events whose one-based coordinate is greater than 223 to 223. */
     CLAMP_TO_MAX,
+}
+
+/**
+ * Policy for Return/Enter while ANSI Line Feed/New Line mode is active.
+ */
+enum class EnterNewLineModePolicy {
+    /** Send DEC-compatible CR LF when LNM is active. */
+    SEND_CR_LF,
+
+    /** Always send CR, leaving PTY/host line discipline to supply newline behavior. */
+    SEND_CR,
 }
 
 /**

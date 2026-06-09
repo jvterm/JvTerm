@@ -131,7 +131,8 @@ Guaranteed behavior:
 - special keys with xterm CSI modifier encodings may encode Meta as modifier
   parameter 9
 - Backspace byte selection follows `BackspacePolicy`
-- Enter follows newline mode for unmodified or policy-accepted events
+- Enter follows newline mode for unmodified or policy-accepted events unless
+  the active input policy forces CR-only Return for cooked PTY hosts
 - application cursor and application keypad modes are read from the per-event
   mode snapshot
 - PF1-PF4 are explicit terminal keys and are not permanently conflated with
@@ -264,6 +265,9 @@ These are intentional boundary choices, not accidental gaps:
 - input does not know raw mode bit positions
 - input does not convert pointer pixels to cells
 - input does not provide a thread-safe facade over host-bound byte ordering
+- local PTY hosts may configure Return to send CR even when LNM is active,
+  avoiding an extra newline when the host line discipline already translates
+  terminal carriage returns
 
 ## Pre-1.0 Change Surface
 
