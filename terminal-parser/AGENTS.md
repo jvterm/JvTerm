@@ -62,6 +62,8 @@ They require explicit policy before implementation:
 - window manipulation.
 - desktop notifications.
 
+When implementing or extending query/response features (such as `DECRQSS` or `XTGETTCAP`), or when creating new terminal features that can be queried, always update the explicit security allowlist of queried settings or capabilities in the core response channel, and reject unauthorized or unsupported queries with standard protocol-defined failure responses.
+
 Until policy exists, parse safely, bound payloads, and ignore or surface explicit
 TODOs. Do not silently implement insecure defaults.
 

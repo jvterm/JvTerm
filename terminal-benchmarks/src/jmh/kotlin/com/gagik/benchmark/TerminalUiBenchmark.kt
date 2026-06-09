@@ -41,7 +41,7 @@ import java.util.concurrent.TimeUnit
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
 open class TerminalLargeInputBenchmark {
-    @Param("ascii", "styled")
+    @Param("ascii", "styled", "cjk", "emoji")
     lateinit var workload: String
 
     private lateinit var bytes: ByteArray
@@ -55,6 +55,8 @@ open class TerminalLargeInputBenchmark {
             when (workload) {
                 "ascii" -> buildAsciiInput(LARGE_INPUT_LINES, LARGE_INPUT_COLUMNS)
                 "styled" -> buildStyledInput(LARGE_INPUT_LINES, LARGE_INPUT_COLUMNS)
+                "cjk" -> buildCjkInput(LARGE_INPUT_LINES, LARGE_INPUT_COLUMNS)
+                "emoji" -> buildEmojiInput(LARGE_INPUT_LINES, LARGE_INPUT_COLUMNS)
                 else -> error("unknown workload: $workload")
             }
     }
@@ -293,6 +295,49 @@ private fun writeStyledViewport(
         }
     }
     terminal.resetPen()
+}
+
+/** CJK 3-byte UTF-8 characters — wide char width calculation end-to-end. */
+private fun buildCjkInput(
+    lines: Int,
+    columns: Int,
+): ByteArray {
+    val sb = StringBuilder(lines * (columns + 2))
+    repeat(lines) { row ->
+        var col = 0
+        while (col < columns) {
+            val cp = 0x4E00 + (row + col) % (0x9FFF - 0x4E00)
+            sb.appendCodePoint(cp)
+            col++
+        }
+        sb.append('\r').append('\n')
+    }
+    return sb.toString().toByteArray(StandardCharsets.UTF_8)
+}
+
+/** Emoji with ZWJ sequences — grapheme segmenter and cluster store end-to-end. */
+private fun buildEmojiInput(
+    lines: Int,
+    columns: Int,
+): ByteArray {
+    val sb = StringBuilder(lines * (columns * 2 + 2))
+    repeat(lines) { row ->
+        var col = 0
+        while (col < columns) {
+            if ((row + col) % 8 == 0) {
+                sb.appendCodePoint(0x1F468)
+                sb.appendCodePoint(0x200D)
+                sb.appendCodePoint(0x1F469)
+                sb.appendCodePoint(0x200D)
+                sb.appendCodePoint(0x1F467)
+            } else {
+                sb.append(('a'.code + (row + col) % 26).toChar())
+            }
+            col++
+        }
+        sb.append('\r').append('\n')
+    }
+    return sb.toString().toByteArray(StandardCharsets.UTF_8)
 }
 
 private fun writeClusterViewport(

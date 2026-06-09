@@ -58,6 +58,20 @@ interface TerminalResponseChannel : TerminalHostResponseReader {
      */
     fun queryDynamicColor(target: Int)
 
+    /**
+     * Enqueues the response for a DCS DECRQSS request.
+     *
+     * @param query the target query parameter.
+     */
+    fun queryStatusString(query: String)
+
+    /**
+     * Enqueues the response for a DCS XTGETTCAP request.
+     *
+     * @param rawPayload the raw payload containing semicolon-separated hex capability names.
+     */
+    fun queryTerminfo(rawPayload: String)
+
     companion object {
         const val DEVICE_ATTRIBUTES_PRIMARY: Int = 0
         const val DEVICE_ATTRIBUTES_SECONDARY: Int = 1

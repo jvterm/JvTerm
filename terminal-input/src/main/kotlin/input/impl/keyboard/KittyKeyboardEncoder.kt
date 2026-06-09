@@ -22,6 +22,7 @@ import com.gagik.terminal.input.event.TerminalModifiers
 import com.gagik.terminal.input.impl.InputScratchBuffer
 import com.gagik.terminal.input.impl.TerminalSequences
 import com.gagik.terminal.input.policy.BackspacePolicy
+import com.gagik.terminal.input.policy.EnterNewLineModePolicy
 import com.gagik.terminal.input.policy.MetaKeyPolicy
 import com.gagik.terminal.input.policy.TerminalInputPolicy
 import com.gagik.terminal.protocol.ControlCode
@@ -87,7 +88,10 @@ internal class KittyKeyboardEncoder(
                     if (isDisambiguate || isReportAll || modifiers != TerminalModifiers.NONE) {
                         CsiWriter.writeCsiU(scratch, output, KittyKeyboardFunctionalKeyCode.ENTER, modifiers)
                     } else {
-                        if (TerminalInputState.isNewLineMode(modeBits)) {
+                        if (
+                            TerminalInputState.isNewLineMode(modeBits) &&
+                            policy.enterNewLineModePolicy == EnterNewLineModePolicy.SEND_CR_LF
+                        ) {
                             output.writeByte(ControlCode.CR)
                             output.writeByte(ControlCode.LF)
                         } else {

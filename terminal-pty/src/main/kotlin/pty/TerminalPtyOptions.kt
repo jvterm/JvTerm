@@ -15,6 +15,8 @@
  */
 package com.gagik.terminal.pty
 
+import com.gagik.terminal.input.policy.EnterNewLineModePolicy
+import com.gagik.terminal.input.policy.TerminalInputPolicy
 import java.nio.file.Path
 
 /**
@@ -29,6 +31,9 @@ import java.nio.file.Path
  * @param rows initial terminal height in rows.
  * @param treatAmbiguousAsWide whether East Asian Ambiguous codepoints occupy
  * two cells in the core width policy for future writes.
+ * @param inputPolicy host-bound input encoding policy. Local PTY sessions
+ * default Return/Enter to CR even when LNM is active, because contemporary PTY
+ * line disciplines can otherwise turn DEC CR LF into an extra newline.
  * @param maxHistory maximum scrollback lines retained by the core buffer.
  * @param readBufferSize buffer size used by the PTY stdout reader thread.
  * @param readerThreadName name for the daemon PTY stdout reader thread.
@@ -43,6 +48,7 @@ data class TerminalPtyOptions(
     val columns: Int = 80,
     val rows: Int = 24,
     val treatAmbiguousAsWide: Boolean = false,
+    val inputPolicy: TerminalInputPolicy = defaultInputPolicy(),
     val maxHistory: Int = 1000,
     val readBufferSize: Int = 8192,
     val readerThreadName: String = "terminal-pty-reader",
@@ -85,5 +91,14 @@ data class TerminalPtyOptions(
             env.putIfAbsent("COLORTERM", "truecolor")
             return env
         }
+
+        /**
+         * Returns the default input policy for local PTY-backed sessions.
+         */
+        @JvmStatic
+        fun defaultInputPolicy(): TerminalInputPolicy =
+            TerminalInputPolicy(
+                enterNewLineModePolicy = EnterNewLineModePolicy.SEND_CR,
+            )
     }
 }

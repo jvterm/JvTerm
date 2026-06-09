@@ -31,6 +31,7 @@ dependencies {
     implementation(project(":terminal-render-cache"))
     implementation(project(":terminal-protocol"))
     implementation(project(":terminal-session"))
+    implementation(project(":terminal-input"))
     implementation(project(":terminal-ui-swing"))
 
     implementation("org.openjdk.jmh:jmh-core:1.37")

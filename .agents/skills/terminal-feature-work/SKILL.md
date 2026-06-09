@@ -26,6 +26,7 @@ Use this skill for any new terminal protocol or behavior in this repository.
 - Do not parse ANSI/OSC/SGR in integration.
 - Keep hot paths primitive, table-shaped, and allocation-conscious.
 - Prefer existing module helpers and fixture style.
+- When implementing or extending query/response features (such as `DECRQSS` or `XTGETTCAP`), or when creating new terminal features that can be queried, always update the security allowlist of queried settings or capabilities in the response channel (`TerminalResponseChannel`), and reject unauthorized or unsupported queries with standard protocol-defined failure responses.
 
 ## Done
 

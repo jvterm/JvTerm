@@ -57,6 +57,7 @@ object TerminalPtySessions {
                 terminal = terminal,
                 connector = connector,
                 hostEvents = hostEventBridge,
+                inputPolicy = options.inputPolicy,
             )
         hostEventBridge.attach(session)
         session.start(options.columns, options.rows)

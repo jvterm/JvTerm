@@ -92,6 +92,7 @@ missing, intentionally deferred, and policy-gated features.
 ## Engineering Rules
 
 - Preserve strong SRP. A feature belongs in exactly one responsible layer.
+- When implementing or extending query/response features (such as `DECRQSS` or `XTGETTCAP`), or when creating new terminal features that can be queried, always update the explicit security allowlist of queried settings or capabilities, and reject unauthorized or unsupported queries with standard protocol-defined failure responses.
 - Prefer the existing module structure and local helper APIs over new patterns.
 - Keep hot paths allocation-free or allocation-minimal: primitive arrays,
   packed integers, generated-table-shaped lookups, and explicit buffers.

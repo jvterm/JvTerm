@@ -168,6 +168,47 @@ class TerminalResponseChannelTest {
         assertEquals("\u001B]10;rgb:ffff/ffff/ffff\u001B\\", drain(buffer))
     }
 
+    @Test
+    fun `queryStatusString returns valid or invalid status string responses`() {
+        val buffer = TerminalBuffers.create(width = 80, height = 24)
+
+        // Valid SGR (default pen)
+        buffer.queryStatusString("m")
+        assertEquals("\u001BP1\$r0m\u001B\\", drain(buffer))
+
+        // Valid margins
+        buffer.queryStatusString("r")
+        assertEquals("\u001BP1\$r1;24r\u001B\\", drain(buffer))
+
+        buffer.queryStatusString("s")
+        assertEquals("\u001BP1\$r1;80s\u001B\\", drain(buffer))
+
+        // Valid cursor style (default is blinking block -> 1)
+        buffer.queryStatusString("q")
+        assertEquals("\u001BP1\$r1 q\u001B\\", drain(buffer))
+
+        // Invalid query
+        buffer.queryStatusString("invalid")
+        assertEquals("\u001BP0\$rinvalid\u001B\\", drain(buffer))
+    }
+
+    @Test
+    fun `queryTerminfo returns matching capability or failure responses`() {
+        val buffer = TerminalBuffers.create(width = 80, height = 24)
+
+        // Querying colors ("Co" -> hex 436f) and name ("TN" -> hex 544e)
+        buffer.queryTerminfo("436f;544e")
+        assertEquals("\u001BP1+r436f=323536;544e=787465726d2d323536636f6c6f72\u001B\\", drain(buffer))
+
+        // Querying boolean RGB ("RGB" -> hex 524742)
+        buffer.queryTerminfo("524742")
+        assertEquals("\u001BP1+r524742\u001B\\", drain(buffer))
+
+        // Querying unsupported
+        buffer.queryTerminfo("invalid")
+        assertEquals("\u001BP0+r\u001B\\", drain(buffer))
+    }
+
     private fun drain(buffer: TerminalBufferApi): String {
         val destination = ByteArray(128)
         val count = buffer.readResponseBytes(destination)

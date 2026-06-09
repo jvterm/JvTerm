@@ -20,10 +20,7 @@ import com.gagik.terminal.input.event.TerminalKey
 import com.gagik.terminal.input.event.TerminalKeyEvent
 import com.gagik.terminal.input.event.TerminalModifiers
 import com.gagik.terminal.input.impl.keyboard.KeyboardEncoder
-import com.gagik.terminal.input.policy.BackspacePolicy
-import com.gagik.terminal.input.policy.MetaKeyPolicy
-import com.gagik.terminal.input.policy.TerminalInputPolicy
-import com.gagik.terminal.input.policy.UnsupportedModifiedKeyPolicy
+import com.gagik.terminal.input.policy.*
 import com.gagik.terminal.protocol.host.TerminalHostOutput
 import com.gagik.terminal.protocol.keyboard.FormatOtherKeysMode
 import com.gagik.terminal.protocol.keyboard.KittyKeyboardProgressiveFlag
@@ -228,6 +225,12 @@ class KeyboardEncoderTest {
     fun `encodes Enter by mode and modifier policy`() {
         assertBytes(bytes(0x0d), TerminalKeyEvent.key(TerminalKey.ENTER))
         assertBytes(bytes(0x0d, 0x0a), TerminalKeyEvent.key(TerminalKey.ENTER), TerminalModeBits.NEW_LINE_MODE)
+        assertBytes(
+            expected = bytes(0x0d),
+            event = TerminalKeyEvent.key(TerminalKey.ENTER),
+            modeBits = TerminalModeBits.NEW_LINE_MODE,
+            policy = TerminalInputPolicy(enterNewLineModePolicy = EnterNewLineModePolicy.SEND_CR),
+        )
         assertBytes(bytes(0x1b, 0x0d), TerminalKeyEvent.key(TerminalKey.ENTER, TerminalModifiers.ALT))
         assertBytes(bytes(), TerminalKeyEvent.key(TerminalKey.ENTER, TerminalModifiers.CTRL))
         assertBytes(
@@ -585,6 +588,13 @@ class KeyboardEncoderTest {
 
         // 4. Unmodified without disambiguation/report-all (fallback to legacy):
         assertBytes(bytes(0x0d), TerminalKeyEvent.key(TerminalKey.ENTER), bitsOther)
+        assertBytes(bytes(0x0d, 0x0a), TerminalKeyEvent.key(TerminalKey.ENTER), bitsOther or TerminalModeBits.NEW_LINE_MODE)
+        assertBytes(
+            expected = bytes(0x0d),
+            event = TerminalKeyEvent.key(TerminalKey.ENTER),
+            modeBits = bitsOther or TerminalModeBits.NEW_LINE_MODE,
+            policy = TerminalInputPolicy(enterNewLineModePolicy = EnterNewLineModePolicy.SEND_CR),
+        )
         assertBytes(bytes(0x09), TerminalKeyEvent.key(TerminalKey.TAB), bitsOther)
         assertBytes(bytes(0x1b), TerminalKeyEvent.key(TerminalKey.ESCAPE), bitsOther)
         assertBytes(bytes(0x7f), TerminalKeyEvent.key(TerminalKey.BACKSPACE), bitsOther)

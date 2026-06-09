@@ -24,6 +24,12 @@ import org.junit.jupiter.api.Test
 class TabStopsTest {
     // ----- Helpers ----------------------------------------------------------
 
+    private fun backingStops(ts: TabStops): BooleanArray {
+        val field = TabStops::class.java.getDeclaredField("stops")
+        field.isAccessible = true
+        return field.get(ts) as BooleanArray
+    }
+
     private fun stopsAt(
         ts: TabStops,
         vararg cols: Int,
@@ -315,6 +321,18 @@ class TabStopsTest {
                 { assertEquals(8, ts.getNextStop(0)) },
                 { assertEquals(16, ts.getNextStop(8)) },
             )
+        }
+
+        @Test
+        fun `reset_withSameWidth_reusesExistingStopTable`() {
+            val ts = TabStops(20)
+            val before = backingStops(ts)
+            ts.clearAll()
+
+            ts.reset(20)
+
+            assertSame(before, backingStops(ts))
+            assertEquals(8, ts.getNextStop(0))
         }
 
         @Test
