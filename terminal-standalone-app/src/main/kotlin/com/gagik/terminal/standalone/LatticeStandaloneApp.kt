@@ -41,9 +41,10 @@ private object LatticeStandaloneApp {
         val window = windowFactory.createWindow()
         val frame = window.frame
 
+        window.tabManager.openTab(profileRegistry.initialProfile(args))
         frame.pack()
         frame.setLocationRelativeTo(null)
         frame.isVisible = true
-        window.tabManager.openTab(profileRegistry.initialProfile(args))
+        window.tabManager.selectedPane?.requestFocus()
     }
 }

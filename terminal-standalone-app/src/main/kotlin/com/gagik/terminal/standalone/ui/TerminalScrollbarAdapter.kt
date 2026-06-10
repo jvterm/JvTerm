@@ -30,6 +30,7 @@ internal class TerminalScrollbarAdapter(
     private var terminal: TerminalSwingTerminal? = null
     private var updatingFromTerminal: Boolean = false
     private var historySize: Int = 0
+    private var publishedScrollbarValue: Int = 0
 
     init {
         scrollbar.addAdjustmentListener { event ->
@@ -50,15 +51,24 @@ internal class TerminalScrollbarAdapter(
     ) {
         this.historySize = historySize
         val safeVisibleRows = maxOf(1, visibleRows)
-        val value = (historySize - scrollbackOffset.toInt()).coerceIn(0, historySize)
-        val maximum = historySize + safeVisibleRows
+        val value =
+            TerminalScrollbarMapping.valueForViewport(
+                historySize = historySize,
+                renderOffset = renderOffset,
+            )
+        val maximum = TerminalScrollbarMapping.maximum(historySize, safeVisibleRows)
+        publishedScrollbarValue = value
 
         updatingFromTerminal = true
         try {
             scrollbar.isVisible = historySize > 0
-            scrollbar.visibleAmount = safeVisibleRows
-            scrollbar.maximum = maximum
-            scrollbar.value = value
+            scrollbar.model.setRangeProperties(
+                value,
+                safeVisibleRows,
+                0,
+                maximum,
+                false,
+            )
             scrollbar.blockIncrement = safeVisibleRows
         } finally {
             updatingFromTerminal = false
@@ -67,7 +77,30 @@ internal class TerminalScrollbarAdapter(
 
     private fun handleAdjustment(event: AdjustmentEvent) {
         if (updatingFromTerminal || event.valueIsAdjusting) return
-        val targetOffset = (historySize - event.value).coerceIn(0, historySize)
+        if (event.value == publishedScrollbarValue) return
+        val targetOffset = TerminalScrollbarMapping.offsetForValue(historySize, event.value)
+        publishedScrollbarValue = event.value.coerceIn(0, historySize)
         terminal?.scrollToScrollbackOffset(targetOffset)
     }
+}
+
+/**
+ * Pure conversion between terminal-native bottom-origin scrollback offsets and
+ * Swing's top-origin integer scrollbar model.
+ */
+internal object TerminalScrollbarMapping {
+    fun valueForViewport(
+        historySize: Int,
+        renderOffset: Int,
+    ): Int = (historySize - renderOffset).coerceIn(0, historySize)
+
+    fun offsetForValue(
+        historySize: Int,
+        value: Int,
+    ): Int = (historySize - value).coerceIn(0, historySize)
+
+    fun maximum(
+        historySize: Int,
+        visibleRows: Int,
+    ): Int = historySize + maxOf(1, visibleRows)
 }
