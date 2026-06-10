@@ -17,7 +17,6 @@ package com.gagik.core.model
 
 import com.gagik.core.model.TerminalConstants.EMPTY
 
-
 /**
  * Sentinel values stored directly in a [Line]'s raw codepoint array.
  *

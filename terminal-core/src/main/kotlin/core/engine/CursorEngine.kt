@@ -279,7 +279,7 @@ internal class CursorEngine(
      * The no-save path uses [setCursorAbsolute], so it deliberately ignores
      * DECOM and DECLRMM when homing.
      */
-    fun restoreCursor() =
+    fun restoreCursor(): Unit =
         cursorMutation {
             if (!state.savedCursor.isSaved) {
                 setCursorAbsolute(0, 0)

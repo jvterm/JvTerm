@@ -53,6 +53,9 @@ internal object TerminalResizer {
         val absoluteOldCursorRow =
             (buffer.ring.size - oldHeight).coerceAtLeast(0) + buffer.cursor.row
         val oldLiveScreenTop = (buffer.ring.size - oldHeight).coerceAtLeast(0)
+        val oldTrailingBlankRows = countTrailingBlankRows(buffer, oldLiveScreenTop, oldHeight)
+        val oldTrailingBlankStart = oldLiveScreenTop + oldHeight - oldTrailingBlankRows
+        val shouldPreserveViewportTop = newWidth >= oldWidth || oldTrailingBlankRows > 0
 
         var newAbsoluteCursorRow = 0
         var newCursorCol = 0
@@ -125,6 +128,9 @@ internal object TerminalResizer {
                 }
                 newLiveScreenTop = newRing.size
             }
+            if (i >= oldTrailingBlankStart && i < oldLiveScreenTop + oldHeight) {
+                continue
+            }
 
             val oldLine = buffer.ring[i]
             val logicalLen = getLogicalLength(oldLine)
@@ -163,7 +169,12 @@ internal object TerminalResizer {
             flushBuilder()
         }
 
-        val minimumRingSize = minOf(newLiveScreenTop, buffer.maxHistory) + newHeight
+        val minimumRingSize =
+            if (shouldPreserveViewportTop) {
+                minOf(newLiveScreenTop, buffer.maxHistory) + newHeight
+            } else {
+                newHeight
+            }
         while (newRing.size < minimumRingSize) {
             newRing.push().clear(0, 0)
         }
@@ -198,6 +209,20 @@ internal object TerminalResizer {
     }
 
     private fun isTrimmedResizeBlank(raw: Int): Boolean = raw == TerminalConstants.EMPTY || raw == TerminalConstants.WIDE_CHAR_PADDING
+
+    private fun countTrailingBlankRows(
+        buffer: ScreenBuffer,
+        liveScreenTop: Int,
+        viewportHeight: Int,
+    ): Int {
+        var count = 0
+        var row = minOf(buffer.ring.size, liveScreenTop + viewportHeight) - 1
+        while (row >= liveScreenTop && getLogicalLength(buffer.ring[row]) == 0) {
+            count++
+            row--
+        }
+        return count
+    }
 }
 
 /**

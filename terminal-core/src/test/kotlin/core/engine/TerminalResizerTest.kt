@@ -220,6 +220,69 @@ class TerminalResizerTest {
                 { assertEquals("DDD", state.ring[newTop + 4].toTextTrimmed()) },
             )
         }
+
+        @Test
+        fun `shrinking without trailing blank rows keeps bottom content at viewport bottom`() {
+            val state = buildState(cols = 6, rows = 3)
+            state.writeLine(0, "top")
+            state.writeLine(1, "mid")
+            state.writeLine(2, "abcdef")
+            state.cursor.row = 2
+
+            resizeState(state, 3, 3)
+
+            assertAll(
+                { assertEquals("mid", state.screenLines()[0]) },
+                { assertEquals("abc", state.screenLines()[1]) },
+                { assertEquals("def", state.screenLines()[2]) },
+                { assertEquals(2, state.cursor.row) },
+            )
+        }
+
+        @Test
+        fun `shrinking with trailing blank rows consumes blanks before bottom anchoring`() {
+            val state = buildState(cols = 6, rows = 4)
+            state.writeLine(0, "T")
+            state.writeLine(1, "abcdef")
+            state.cursor.row = 1
+
+            resizeState(state, 3, 4)
+
+            assertAll(
+                { assertEquals("T", state.screenLines()[0]) },
+                { assertEquals("abc", state.screenLines()[1]) },
+                { assertEquals("def", state.screenLines()[2]) },
+                { assertEquals("", state.screenLines()[3]) },
+            )
+
+            resizeState(state, 2, 4)
+
+            assertAll(
+                { assertEquals("T", state.screenLines()[0]) },
+                { assertEquals("ab", state.screenLines()[1]) },
+                { assertEquals("cd", state.screenLines()[2]) },
+                { assertEquals("ef", state.screenLines()[3]) },
+            )
+        }
+
+        @Test
+        fun `widening after shrink preserves viewport top and creates bottom blanks`() {
+            val state = buildState(cols = 6, rows = 3)
+            state.writeLine(0, "top")
+            state.writeLine(1, "mid")
+            state.writeLine(2, "abcdef")
+            state.cursor.row = 2
+
+            resizeState(state, 3, 3)
+            resizeState(state, 6, 3)
+
+            assertAll(
+                { assertEquals("mid", state.screenLines()[0]) },
+                { assertEquals("abcdef", state.screenLines()[1]) },
+                { assertEquals("", state.screenLines()[2]) },
+                { assertEquals(1, state.cursor.row) },
+            )
+        }
     }
 
     // =========================================================================
