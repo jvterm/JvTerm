@@ -113,6 +113,7 @@ internal object LatticeTabLayoutCalculator {
         componentWidth: Int,
         preferredWidths: List<Int>,
         previousScrollOffset: Int,
+        editingIndex: Int = -1,
     ): LatticeTabLayout {
         if (preferredWidths.isEmpty()) {
             return LatticeTabLayout(
@@ -124,7 +125,7 @@ internal object LatticeTabLayoutCalculator {
             )
         }
 
-        val tabWidths = allocateTabWidths(componentWidth, preferredWidths)
+        val tabWidths = allocateTabWidths(componentWidth, preferredWidths, editingIndex)
         val totalWidth = LatticeTabLayout.totalTabContentWidth(tabWidths)
         val availableWithoutScroll = spaceWithoutScrollButtons(componentWidth)
         val preferredTotal = LatticeTabLayout.totalTabContentWidth(preferredWidths)
@@ -160,9 +161,45 @@ internal object LatticeTabLayoutCalculator {
     private fun allocateTabWidths(
         componentWidth: Int,
         preferredWidths: List<Int>,
+        editingIndex: Int,
     ): List<Int> {
         val count = preferredWidths.size
         val availableWithoutScroll = spaceWithoutScrollButtons(componentWidth)
+
+        if (editingIndex in preferredWidths.indices) {
+            val editPref = preferredWidths[editingIndex]
+            val otherCount = count - 1
+            if (otherCount <= 0) {
+                return listOf(minOf(editPref, availableWithoutScroll))
+            }
+            val otherGaps = otherCount * LatticeTabMetrics.TAB_GAP + LatticeTabMetrics.TAB_GAP
+            val remainingSpaceForOthers = availableWithoutScroll - editPref - otherGaps
+            val minSpaceForOthers = otherCount * LatticeTabMetrics.MIN_TAB_WIDTH
+
+            if (remainingSpaceForOthers >= minSpaceForOthers) {
+                val widths = IntArray(count)
+                widths[editingIndex] = editPref
+
+                val otherIndices = preferredWidths.indices.filter { it != editingIndex }
+                val sortedOtherIndices = otherIndices.sortedBy { preferredWidths[it] }
+                var spaceToDistribute = remainingSpaceForOthers
+                var remainingOthers = otherCount
+                for (idx in sortedOtherIndices) {
+                    val pref = preferredWidths[idx]
+                    val fairShare = spaceToDistribute / remainingOthers
+                    val w = minOf(pref, fairShare).coerceAtLeast(LatticeTabMetrics.MIN_TAB_WIDTH)
+                    widths[idx] = w
+                    spaceToDistribute -= w
+                    remainingOthers--
+                }
+                return widths.toList()
+            } else {
+                return List(count) { index ->
+                    if (index == editingIndex) editPref else LatticeTabMetrics.MIN_TAB_WIDTH
+                }
+            }
+        }
+
         val totalPreferred = LatticeTabLayout.totalTabContentWidth(preferredWidths)
         if (totalPreferred <= availableWithoutScroll) return preferredWidths
 

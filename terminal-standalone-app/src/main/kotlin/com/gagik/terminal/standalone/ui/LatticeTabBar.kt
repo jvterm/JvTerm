@@ -249,12 +249,12 @@ internal class LatticeTabBar(
             entries.mapIndexed { i, entry ->
                 val basePref = preferredTabWidth(entry, fm)
                 if (i == editingIndex) {
-                    maxOf(basePref, 180) // Expand the tab being renamed
+                    maxOf(basePref, 220) // Expand the tab being renamed
                 } else {
                     basePref
                 }
             }
-        layout = LatticeTabLayoutCalculator.compute(width, prefWidths, scrollOffset)
+        layout = LatticeTabLayoutCalculator.compute(width, prefWidths, scrollOffset, editingIndex)
         tabWidths = layout.tabWidths
         scrollOffset = layout.scrollOffset
         maxScrollOffset = layout.maxScrollOffset
