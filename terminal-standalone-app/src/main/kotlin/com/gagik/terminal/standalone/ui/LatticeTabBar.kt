@@ -47,6 +47,7 @@ internal class LatticeTabBar(
     private val onNewTab: () -> Unit,
     private val onMenuClick: (x: Int, y: Int) -> Unit,
     private val onTabColorChanged: (id: String, colorHex: String?) -> Unit,
+    private val onTabRenameRequested: (id: String, newName: String?) -> Unit,
 ) : JPanel() {
     private val entries = mutableListOf<TabEntry>()
     private var selectedId: String? = null
@@ -59,6 +60,10 @@ internal class LatticeTabBar(
     private var scrollOffset = 0
     private var maxScrollOffset = 0
     private var layout = LatticeTabLayoutCalculator.compute(0, emptyList(), 0)
+
+    // Editing state
+    private var editingIndex = -1
+    private var renameTextField: javax.swing.JTextField? = null
 
     // Hover state
     private var closeHoverIndex = -1
@@ -78,6 +83,7 @@ internal class LatticeTabBar(
     private var fadeTimer: Timer? = null
 
     init {
+        setLayout(null)
         isOpaque = false
         alignmentY = BOTTOM_ALIGNMENT
         cursor = Cursor.getDefaultCursor()
@@ -114,6 +120,7 @@ internal class LatticeTabBar(
     }
 
     fun removeTab(id: String) {
+        val activeEditId = if (editingIndex in entries.indices) entries[editingIndex].id else null
         entries.removeIf { it.id == id }
         if (selectedId == id) {
             selectedId = entries.lastOrNull()?.id
@@ -124,6 +131,11 @@ internal class LatticeTabBar(
             fadingOutId = null
             fadingInId = null
             fadeProgress = 1.0f
+        }
+        if (activeEditId == id) {
+            cancelEditing()
+        } else if (activeEditId != null) {
+            editingIndex = entries.indexOfFirst { it.id == activeEditId }
         }
         revalidate()
         repaint()
@@ -233,7 +245,15 @@ internal class LatticeTabBar(
     override fun getMaximumSize(): Dimension = Dimension(preferredSize.width, 32767)
 
     private fun updateLayout(fm: FontMetrics) {
-        val prefWidths = entries.map { preferredTabWidth(it, fm) }
+        val prefWidths =
+            entries.mapIndexed { i, entry ->
+                val basePref = preferredTabWidth(entry, fm)
+                if (i == editingIndex) {
+                    maxOf(basePref, 180) // Expand the tab being renamed
+                } else {
+                    basePref
+                }
+            }
         layout = LatticeTabLayoutCalculator.compute(width, prefWidths, scrollOffset)
         tabWidths = layout.tabWidths
         scrollOffset = layout.scrollOffset
@@ -258,6 +278,7 @@ internal class LatticeTabBar(
 
             val fm = g2.getFontMetrics(font.deriveFont(13f))
             updateLayout(fm)
+            updateRenameTextFieldBounds(fm)
 
             paintTabs(g2, fm)
             paintActionButtons(g2)
@@ -460,7 +481,7 @@ internal class LatticeTabBar(
             }
         g2.color = titleFg
         val labelMaxWidth = w - TAB_LABEL_PADDING_LEFT - ICON_TEXT_GAP - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN_RIGHT - 4
-        if (labelMaxWidth > 10) {
+        if (index != editingIndex && labelMaxWidth > 10) {
             val labelX = x + TAB_LABEL_PADDING_LEFT + ICON_TEXT_GAP
             val clipped = clipText(entry.title, labelMaxWidth, fm)
             g2.drawString(clipped, labelX, iconY)
@@ -800,7 +821,9 @@ internal class LatticeTabBar(
                                 is HitResult.TabClose -> onTabClose(entries[hit.index].id)
                                 is HitResult.Tab -> {
                                     val id = entries[hit.index].id
-                                    if (id != selectedId) {
+                                    if (e.clickCount == 2) {
+                                        triggerRenameDialog(hit.index)
+                                    } else if (id != selectedId) {
                                         val oldId = selectedId
                                         selectedId = id
                                         startSelectionFade(oldId, id)
@@ -951,6 +974,12 @@ internal class LatticeTabBar(
         menu.add(colorMenu)
         menu.addSeparator()
 
+        val renameItem = javax.swing.JMenuItem("Rename Tab...")
+        renameItem.addActionListener {
+            triggerRenameDialog(index)
+        }
+        menu.add(renameItem)
+
         val closeItem = javax.swing.JMenuItem("Close Tab")
         closeItem.addActionListener {
             onTabClose(tabId)
@@ -958,6 +987,115 @@ internal class LatticeTabBar(
         menu.add(closeItem)
 
         menu.show(this, x, y)
+    }
+
+    private fun triggerRenameDialog(index: Int) {
+        startEditing(index)
+    }
+
+    private fun startEditing(index: Int) {
+        val entry = entries.getOrNull(index) ?: return
+        editingIndex = index
+
+        fadeTimer?.stop()
+        fadeTimer = null
+        fadingOutId = null
+        fadingInId = null
+        fadeProgress = 1.0f
+
+        renameTextField?.let { remove(it) }
+
+        val fm = getFontMetrics(font.deriveFont(13f))
+        updateLayout(fm)
+        scrollToVisible(index)
+        revalidate()
+        repaint()
+
+        val tf = javax.swing.JTextField(entry.title)
+        tf.font = font.deriveFont(13f)
+        tf.foreground = LatticeChrome.textPrimary
+        tf.caretColor = LatticeChrome.textPrimary
+        tf.background = LatticeChrome.tabSelectedBackground
+        tf.border =
+            javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(LatticeChrome.accent, 1),
+                javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4),
+            )
+
+        tf.addActionListener {
+            commitEditing()
+        }
+        tf.addKeyListener(
+            object : KeyAdapter() {
+                override fun keyPressed(e: KeyEvent) {
+                    if (e.keyCode == KeyEvent.VK_ESCAPE) {
+                        cancelEditing()
+                    }
+                }
+            },
+        )
+
+        tf.addFocusListener(
+            object : FocusAdapter() {
+                override fun focusLost(e: FocusEvent) {
+                    commitEditing()
+                }
+            },
+        )
+
+        renameTextField = tf
+        add(tf)
+        tf.requestFocusInWindow()
+        tf.selectAll()
+
+        updateRenameTextFieldBounds(fm)
+    }
+
+    private fun commitEditing() {
+        val index = editingIndex
+        val tf = renameTextField
+        if (index in entries.indices && tf != null) {
+            val trimmed = tf.text.trim()
+            val newTitle = trimmed.ifEmpty { null }
+            onTabRenameRequested(entries[index].id, newTitle)
+        }
+        cancelEditing()
+    }
+
+    private fun cancelEditing() {
+        val tf = renameTextField
+        if (tf != null) {
+            remove(tf)
+            renameTextField = null
+        }
+        editingIndex = -1
+        revalidate()
+        repaint()
+    }
+
+    private fun updateRenameTextFieldBounds(fm: FontMetrics) {
+        val tf = renameTextField ?: return
+        val index = editingIndex
+        if (index !in entries.indices) {
+            cancelEditing()
+            return
+        }
+        val w = tabWidths[index]
+        val x = layout.tabX(index)
+        val y = TAB_TOP_PADDING
+        val h = height - TAB_TOP_PADDING
+
+        val labelX = x + TAB_LABEL_PADDING_LEFT + ICON_TEXT_GAP
+        val labelMaxWidth = w - TAB_LABEL_PADDING_LEFT - ICON_TEXT_GAP - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN_RIGHT - 4
+
+        val tfX = labelX - scrollOffset
+        val tfY = y + 2
+        val tfW = labelMaxWidth
+        val tfH = h - 4
+
+        if (tf.x != tfX || tf.y != tfY || tf.width != tfW || tf.height != tfH) {
+            tf.setBounds(tfX, tfY, tfW, tfH)
+        }
     }
 
     private class ColorIcon(

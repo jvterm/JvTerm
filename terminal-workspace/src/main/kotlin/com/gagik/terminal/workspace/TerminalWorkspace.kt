@@ -79,6 +79,7 @@ class TerminalWorkspace(
                 title = profile.displayName,
                 session = session,
                 onColorChanged = { t, color -> listener.colorChanged(t, color) },
+                onTitleChanged = { t, titleText -> listener.titleChanged(t, titleText) },
             )
         tabs += tab
         selectTab(id)
@@ -157,8 +158,7 @@ class TerminalWorkspace(
             ) {
                 val nextTitle = title.ifBlank { profile.displayName }
                 val tab = tabById(tabId) ?: return
-                tab.title = nextTitle
-                listener.titleChanged(tab, nextTitle)
+                tab.updateDynamicTitle(nextTitle)
             }
 
             override fun listenerFailed(
@@ -211,12 +211,35 @@ class TerminalWorkspaceTab internal constructor(
     title: String,
     val session: TerminalSession,
     private val onColorChanged: (TerminalWorkspaceTab, String?) -> Unit,
+    private val onTitleChanged: (TerminalWorkspaceTab, String) -> Unit,
 ) {
+    private var dynamicTitle: String = title
+
     /**
      * Current host-visible title for this tab.
      */
-    var title: String = title
-        internal set
+    val title: String
+        get() = customTitle ?: dynamicTitle
+
+    /**
+     * Optional custom title set by the user. If null, falls back to the dynamic PTY title.
+     */
+    var customTitle: String? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                onTitleChanged(this, title)
+            }
+        }
+
+    internal fun updateDynamicTitle(nextTitle: String) {
+        if (dynamicTitle != nextTitle) {
+            dynamicTitle = nextTitle
+            if (customTitle == null) {
+                onTitleChanged(this, nextTitle)
+            }
+        }
+    }
 
     /**
      * Optional custom color representation for this tab (e.g. hex string "#3b82f6").

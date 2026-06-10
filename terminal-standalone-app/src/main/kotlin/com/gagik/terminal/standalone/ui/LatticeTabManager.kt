@@ -135,6 +135,18 @@ internal class LatticeTabManager(
         tab.color = colorHex
     }
 
+    /**
+     * Updates the custom title of the corresponding workspace tab.
+     * Called by [LatticeTabBar] when a user renames a tab.
+     */
+    fun onTabRenameRequested(
+        id: String,
+        newName: String?,
+    ) {
+        val tab = panes.find { it.tab.id == id }?.tab ?: return
+        tab.customTitle = newName
+    }
+
     // -------------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------------
