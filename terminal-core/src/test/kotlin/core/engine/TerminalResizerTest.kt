@@ -624,6 +624,41 @@ class TerminalResizerTest {
     @DisplayName("Scrollback history")
     inner class ScrollbackTests {
         @Test
+        fun `widening preserves live viewport top instead of pulling history into freed rows`() {
+            val state = buildState(cols = 3, rows = 3, history = 5)
+            state.ring.clear()
+            state.ring.push().apply {
+                clear(0, 0)
+                "old".forEachIndexed { i, c -> setCell(i, c.code, 0) }
+            }
+            state.ring.push().apply {
+                clear(0, 0)
+                "aaa".forEachIndexed { i, c -> setCell(i, c.code, 0) }
+                wrapped = true
+            }
+            state.ring.push().apply {
+                clear(0, 0)
+                "bbb".forEachIndexed { i, c -> setCell(i, c.code, 0) }
+                wrapped = false
+            }
+            state.ring.push().apply {
+                clear(0, 0)
+                setCell(0, 's'.code, 0)
+            }
+            state.cursor.row = 2
+
+            resizeState(state, 9, 3)
+
+            assertAll(
+                { assertEquals("old", state.ring[0].toTextTrimmed()) },
+                { assertEquals("aaabbb", state.screenLines()[0]) },
+                { assertEquals("s", state.screenLines()[1]) },
+                { assertEquals("", state.screenLines()[2]) },
+                { assertEquals(1, state.cursor.row) },
+            )
+        }
+
+        @Test
         fun `history lines are preserved after resize`() {
             val state = buildState(cols = 10, rows = 3, history = 5)
             for (r in 0 until 3) state.writeLine(r, "Row$r")

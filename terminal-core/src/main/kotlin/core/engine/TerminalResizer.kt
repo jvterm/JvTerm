@@ -52,10 +52,12 @@ internal object TerminalResizer {
 
         val absoluteOldCursorRow =
             (buffer.ring.size - oldHeight).coerceAtLeast(0) + buffer.cursor.row
+        val oldLiveScreenTop = (buffer.ring.size - oldHeight).coerceAtLeast(0)
 
         var newAbsoluteCursorRow = 0
         var newCursorCol = 0
         var cursorPlaced = false
+        var newLiveScreenTop = 0
 
         fun flushBuilder() {
             if (builder.size == 0) {
@@ -113,6 +115,14 @@ internal object TerminalResizer {
         }
 
         for (i in 0 until buffer.ring.size) {
+            if (i == oldLiveScreenTop) {
+                if (builder.size > 0) {
+                    flushBuilder()
+                    builder.clear()
+                }
+                newLiveScreenTop = newRing.size
+            }
+
             val oldLine = buffer.ring[i]
             val logicalLen = getLogicalLength(oldLine)
             val dataLength = if (oldLine.wrapped && logicalLen > 0) oldWidth else logicalLen
@@ -149,7 +159,8 @@ internal object TerminalResizer {
             flushBuilder()
         }
 
-        while (newRing.size < newHeight) {
+        val minimumRingSize = newLiveScreenTop + newHeight
+        while (newRing.size < minimumRingSize) {
             newRing.push().clear(0, 0)
         }
 
