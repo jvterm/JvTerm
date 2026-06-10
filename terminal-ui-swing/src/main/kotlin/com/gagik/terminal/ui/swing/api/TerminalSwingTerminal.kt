@@ -721,6 +721,7 @@ class TerminalSwingTerminal(
 
     private fun handleSearchShortcut(event: KeyEvent): Boolean {
         if (event.keyCode != KeyEvent.VK_F) return false
+        if (!event.isShiftDown) return false
         if (!event.isControlDown && !event.isMetaDown) return false
         openSearchOnEdt()
         event.consume()

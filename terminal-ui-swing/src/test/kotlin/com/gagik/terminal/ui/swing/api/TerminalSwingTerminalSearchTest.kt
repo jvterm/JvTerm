@@ -38,7 +38,7 @@ import javax.swing.SwingUtilities
 
 class TerminalSwingTerminalSearchTest {
     @Test
-    fun `ctrl f opens search overlay without sending terminal input`() {
+    fun `ctrl shift f opens search overlay without sending terminal input`() {
         val input = RecordingInputEncoder()
         val reader = SearchFrameReader()
         val session = testSession(reader, input)
@@ -97,7 +97,7 @@ class TerminalSwingTerminalSearchTest {
             component,
             KeyEvent.KEY_PRESSED,
             System.currentTimeMillis(),
-            InputEvent.CTRL_DOWN_MASK,
+            InputEvent.CTRL_DOWN_MASK or InputEvent.SHIFT_DOWN_MASK,
             KeyEvent.VK_F,
             KeyEvent.CHAR_UNDEFINED,
         )
