@@ -104,7 +104,7 @@ class LineTest {
 
             // The freed slot must be reused by the next alloc
             val handle = store.alloc(intArrayOf(99))
-            assertEquals(-3, handle, "Freed cluster slot must be reused")
+            assertEquals(-2, handle, "Freed cluster slot must be reused")
         }
     }
 
@@ -301,8 +301,8 @@ class LineTest {
             val h2 = store.alloc(intArrayOf(2))
             // Freelist is LIFO: slot 1 freed last → reused first
             assertAll(
-                { assertEquals(-4, h1, "First freed-slot reuse") },
-                { assertEquals(-3, h2, "Second freed-slot reuse") },
+                { assertEquals(-3, h1, "First freed-slot reuse") },
+                { assertEquals(-2, h2, "Second freed-slot reuse") },
             )
         }
     }
@@ -368,7 +368,7 @@ class LineTest {
             l.clearFromColumn(3, 0)
 
             val h = store.alloc(intArrayOf(1))
-            assertEquals(-3, h, "Cluster handle in cleared range must be freed")
+            assertEquals(-2, h, "Cluster handle in cleared range must be freed")
         }
     }
 
@@ -433,7 +433,7 @@ class LineTest {
             l.clearToColumn(2, 0)
 
             val h = store.alloc(intArrayOf(1))
-            assertEquals(-3, h, "Cluster handle in cleared range must be freed")
+            assertEquals(-2, h, "Cluster handle in cleared range must be freed")
         }
     }
 
@@ -477,8 +477,8 @@ class LineTest {
             val h2 = store.alloc(intArrayOf(2))
             // Both cluster slots freed; new allocs reuse them
             assertAll(
-                { assertEquals(-4, h1) },
-                { assertEquals(-3, h2) },
+                { assertEquals(-3, h1) },
+                { assertEquals(-2, h2) },
             )
         }
     }
@@ -520,7 +520,7 @@ class LineTest {
 
             // Cluster at col 2 was shifted off and freed
             val h = store.alloc(intArrayOf(99))
-            assertEquals(-3, h, "Cluster shifted off the edge must be freed")
+            assertEquals(-2, h, "Cluster shifted off the edge must be freed")
         }
 
         @Test
@@ -691,26 +691,26 @@ class LineTest {
             val store = store()
             val l = Line(5, store)
             l.setCell(0, 'A'.code, 0)
-            l.setCluster(1, intArrayOf(0x1F600, 0x200D), 2, 0)
+            l.setCluster(1, intArrayOf(0x1F600, 0x200D), 2, 0) // handle -2
 
             l.deleteCells(col = 1, count = 1, defaultAttr = 0)
 
             val reused = store.alloc(intArrayOf(1234))
-            assertEquals(-3, reused, "Deleted cluster handle must be returned to free list")
+            assertEquals(-2, reused, "Deleted cluster handle must be returned to free list")
         }
 
         @Test
         fun `shifted cluster handle remains live after delete`() {
             val store = store()
             val l = Line(5, store)
-            l.setCluster(1, intArrayOf(0xAAAA), 1, 0)
-            l.setCluster(3, intArrayOf(0xBBBB, 0x200D), 2, 0)
+            l.setCluster(1, intArrayOf(0xAAAA), 1, 0) // handle -2 (to be deleted)
+            l.setCluster(3, intArrayOf(0xBBBB, 0x200D), 2, 0) // handle -3 (should shift left)
 
             l.deleteCells(col = 1, count = 1, defaultAttr = 0)
 
             // Deleted handle is reusable.
             val first = store.alloc(intArrayOf(1))
-            assertEquals(-3, first)
+            assertEquals(-2, first)
 
             // Shifted handle remains readable at its new column.
             val shiftedCol = 2

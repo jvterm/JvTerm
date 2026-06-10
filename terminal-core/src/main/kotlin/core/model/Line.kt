@@ -54,7 +54,7 @@ internal class Line(
         require(width > 0) { "Line width must be positive, got $width" }
     }
 
-    /** Raw storage array. May contain codepoints, sentinels, or cluster handles. */
+    /** Raw storage array. May contain codepoints, EMPTY, WIDE_CHAR_SPACER, or cluster handles. */
     private val codepoints = IntArray(width) { TerminalConstants.EMPTY }
 
     /** Primary packed cell attributes, parallel to [codepoints]. */
@@ -70,6 +70,15 @@ internal class Line(
     var wrapped: Boolean = false
 
     /**
+     * True when resize reflow inserted an artificial trailing blank cell to keep
+     * a wide character from being split across physical rows.
+     *
+     * The marker is line-scoped because resize padding can only occupy the last
+     * cell of a wrapped physical row. Normal line mutation clears it.
+     */
+    var endsWithResizePadding: Boolean = false
+
+    /**
      * Visual generation for this physical line.
      *
      * Updated by terminal state mutation helpers when content, attributes,
@@ -83,8 +92,7 @@ internal class Line(
     /**
      * Returns the raw value stored at [col] without any decoding.
      * May return a plain codepoint, [TerminalConstants.EMPTY],
-     * [TerminalConstants.WIDE_CHAR_SPACER], [TerminalConstants.WIDE_CHAR_PADDING],
-     * or a cluster handle.
+     * [TerminalConstants.WIDE_CHAR_SPACER], or a cluster handle (<= -2).
      *
      * @param col Column index.
      */
@@ -123,11 +131,7 @@ internal class Line(
      */
     override fun getCodepoint(col: Int): Int {
         val raw = codepoints[col]
-        return when {
-            raw == TerminalConstants.WIDE_CHAR_PADDING -> TerminalConstants.EMPTY
-            raw <= TerminalConstants.CLUSTER_HANDLE_MAX -> store.baseCodepoint(raw)
-            else -> raw
-        }
+        return if (raw <= TerminalConstants.CLUSTER_HANDLE_MAX) store.baseCodepoint(raw) else raw
     }
 
     /**
@@ -177,6 +181,7 @@ internal class Line(
         attr: Long,
         extendedAttr: Long = 0L,
     ) {
+        endsWithResizePadding = false
         freeHandleAt(col)
         codepoints[col] = codepoint
         attrs[col] = attr
@@ -200,6 +205,7 @@ internal class Line(
         attr: Long,
         extendedAttr: Long = 0L,
     ) {
+        endsWithResizePadding = false
         freeHandleAt(col)
         codepoints[col] = store.alloc(cps, 0, cpLen)
         attrs[col] = attr
@@ -219,6 +225,7 @@ internal class Line(
         attrs.fill(defaultAttr)
         extendedAttrs.fill(defaultExtendedAttr)
         wrapped = false
+        endsWithResizePadding = false
     }
 
     /**
@@ -232,6 +239,7 @@ internal class Line(
     ) {
         val from = startCol.coerceAtLeast(0)
         if (from >= width) return
+        endsWithResizePadding = false
         store.freeRange(codepoints, from, width)
         codepoints.fill(TerminalConstants.EMPTY, from, width)
         attrs.fill(attr, from, width)
@@ -249,6 +257,7 @@ internal class Line(
     ) {
         val to = (endCol + 1).coerceAtMost(width)
         if (to <= 0) return
+        endsWithResizePadding = false
         store.freeRange(codepoints, 0, to)
         codepoints.fill(TerminalConstants.EMPTY, 0, to)
         attrs.fill(attr, 0, to)
@@ -268,6 +277,7 @@ internal class Line(
         val from = startCol.coerceIn(0, width)
         val to = endExclusive.coerceIn(0, width)
         if (from >= to) return
+        endsWithResizePadding = false
         store.freeRange(codepoints, from, to)
         codepoints.fill(TerminalConstants.EMPTY, from, to)
         attrs.fill(attr, from, to)
@@ -301,6 +311,7 @@ internal class Line(
         defaultExtendedAttr: Long = 0L,
     ) {
         if (isInvalidRange(col, count, rightInclusive)) return
+        endsWithResizePadding = false
 
         val safeCount = count.coerceAtMost(rightInclusive - col + 1)
         val shiftCount = rightInclusive - col + 1 - safeCount
@@ -352,6 +363,7 @@ internal class Line(
         defaultExtendedAttr: Long = 0L,
     ) {
         if (isInvalidRange(col, count, rightInclusive)) return
+        endsWithResizePadding = false
 
         val safeCount = count.coerceAtMost(rightInclusive - col + 1)
         val shiftCount = rightInclusive - col + 1 - safeCount
@@ -384,6 +396,7 @@ internal class Line(
         attr: Long,
         extendedAttr: Long = 0L,
     ) {
+        endsWithResizePadding = false
         store.freeRange(codepoints, 0, width)
         codepoints.fill(codepoint)
         attrs.fill(attr)
@@ -412,7 +425,7 @@ internal class Line(
      */
     fun toTextTrimmed(): String {
         var last = width - 1
-        while (last >= 0 && isTrimmedBlank(codepoints[last])) last--
+        while (last >= 0 && codepoints[last] == TerminalConstants.EMPTY) last--
         if (last < 0) return ""
         return buildString(last + 1) {
             for (col in 0..last) appendCell(col)
@@ -431,7 +444,6 @@ internal class Line(
         val raw = codepoints[col]
         when {
             raw == TerminalConstants.EMPTY -> append(' ')
-            raw == TerminalConstants.WIDE_CHAR_PADDING -> append(' ')
             raw == TerminalConstants.WIDE_CHAR_SPACER -> Unit // skip; leader already appended
             raw <= TerminalConstants.CLUSTER_HANDLE_MAX -> {
                 val len = store.length(raw)
@@ -446,8 +458,6 @@ internal class Line(
         val raw = codepoints[col]
         if (raw <= TerminalConstants.CLUSTER_HANDLE_MAX) store.free(raw)
     }
-
-    private fun isTrimmedBlank(raw: Int): Boolean = raw == TerminalConstants.EMPTY || raw == TerminalConstants.WIDE_CHAR_PADDING
 
     @Suppress("NOTHING_TO_INLINE")
     private inline fun isInvalidRange(

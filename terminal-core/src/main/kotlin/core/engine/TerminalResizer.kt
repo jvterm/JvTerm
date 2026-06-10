@@ -114,7 +114,7 @@ internal object TerminalResizer {
                     }
                 }
                 if (chunkLength < newWidth && offset + chunkLength < builder.size) {
-                    newLine.setRawCell(chunkLength, TerminalConstants.WIDE_CHAR_PADDING, 0, 0)
+                    newLine.endsWithResizePadding = true
                 }
                 offset += chunkLength
             }
@@ -145,7 +145,7 @@ internal object TerminalResizer {
                 }
 
             for (col in 0 until readLength) {
-                if (oldLine.rawCodepoint(col) == TerminalConstants.WIDE_CHAR_PADDING) continue
+                if (oldLine.endsWithResizePadding && col == oldLine.width - 1) continue
                 val isCursor = hasCursor && col == buffer.cursor.col
                 builder.append(
                     oldLine.rawCodepoint(col),
@@ -204,11 +204,10 @@ internal object TerminalResizer {
      */
     private fun getLogicalLength(line: Line): Int {
         var len = line.width
-        while (len > 0 && isTrimmedResizeBlank(line.rawCodepoint(len - 1))) len--
+        while (len > 0 && line.rawCodepoint(len - 1) == TerminalConstants.EMPTY) len--
+        if (line.endsWithResizePadding && len == line.width) len--
         return len
     }
-
-    private fun isTrimmedResizeBlank(raw: Int): Boolean = raw == TerminalConstants.EMPTY || raw == TerminalConstants.WIDE_CHAR_PADDING
 
     private fun countTrailingBlankRows(
         buffer: ScreenBuffer,

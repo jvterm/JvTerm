@@ -48,16 +48,16 @@ class ClusterStoreTest {
     @DisplayName("alloc()")
     inner class AllocationTests {
         @Test
-        fun `alloc returns negative handles starting from -3`() {
+        fun `alloc returns negative handles starting from -2`() {
             val store = ClusterStore()
             val h0 = store.alloc(intArrayOf('A'.code))
             val h1 = store.alloc(intArrayOf('B'.code))
             val h2 = store.alloc(intArrayOf('C'.code))
 
             assertAll(
-                { assertEquals(-3, h0, "First handle must be -3") },
-                { assertEquals(-4, h1, "Second handle must be -4") },
-                { assertEquals(-5, h2, "Third handle must be -5") },
+                { assertEquals(-2, h0, "First handle must be -2") },
+                { assertEquals(-3, h1, "Second handle must be -3") },
+                { assertEquals(-4, h2, "Third handle must be -4") },
             )
         }
 
@@ -71,19 +71,6 @@ class ClusterStoreTest {
                     TerminalConstants.WIDE_CHAR_SPACER,
                     h,
                     "Handle $h collides with WIDE_CHAR_SPACER sentinel",
-                )
-            }
-        }
-
-        @Test
-        fun `alloc never returns -2 which is reserved for WIDE_CHAR_PADDING`() {
-            val store = ClusterStore()
-            val handles = (0 until 10).map { store.alloc(intArrayOf(it)) }
-            handles.forEach { h ->
-                assertNotEquals(
-                    TerminalConstants.WIDE_CHAR_PADDING,
-                    h,
-                    "Handle $h collides with WIDE_CHAR_PADDING sentinel",
                 )
             }
         }
@@ -215,21 +202,14 @@ class ClusterStoreTest {
         fun `free is no-op for EMPTY`() {
             val store = ClusterStore()
             store.free(TerminalConstants.EMPTY)
-            assertEquals(-3, store.alloc(intArrayOf(1)), "Store state must be pristine after no-op free")
+            assertEquals(-2, store.alloc(intArrayOf(1)), "Store state must be pristine after no-op free")
         }
 
         @Test
         fun `free is no-op for WIDE_CHAR_SPACER`() {
             val store = ClusterStore()
             store.free(TerminalConstants.WIDE_CHAR_SPACER)
-            assertEquals(-3, store.alloc(intArrayOf(1)))
-        }
-
-        @Test
-        fun `free is no-op for WIDE_CHAR_PADDING`() {
-            val store = ClusterStore()
-            store.free(TerminalConstants.WIDE_CHAR_PADDING)
-            assertEquals(-3, store.alloc(intArrayOf(1)))
+            assertEquals(-2, store.alloc(intArrayOf(1)))
         }
 
         @Test
@@ -237,7 +217,7 @@ class ClusterStoreTest {
             val store = ClusterStore()
             store.free('A'.code)
             store.free(0x1F600)
-            assertEquals(-3, store.alloc(intArrayOf(1)))
+            assertEquals(-2, store.alloc(intArrayOf(1)))
         }
 
         @Test
@@ -305,10 +285,10 @@ class ClusterStoreTest {
             // Re-alloc 5 — must reuse freed slots, not grow
             val reallocs = IntArray(5) { store.alloc(intArrayOf(100 + it)) }
 
-            // Next fresh slot should still be at high-water mark 5: handle -(5 + 3) = -8.
+            // Next fresh slot should still be at high-water mark 5 → handle -(5+2) = -7
             val nextFresh = store.alloc(intArrayOf(999))
             assertEquals(
-                -8,
+                -7,
                 nextFresh,
                 "Slot table must not have grown beyond high-water mark of 5",
             )
@@ -336,7 +316,7 @@ class ClusterStoreTest {
             assertAll(
                 { assertEquals(h1, r1, "Last freed (h1) must be reused first") },
                 { assertEquals(h0, r2, "Then h0 must be reused") },
-                { assertEquals(-6, nextFresh, "Next fresh slot must follow high-water mark") },
+                { assertEquals(-5, nextFresh, "Next fresh slot must follow high-water mark") },
                 { assertCluster(store, r1, intArrayOf(901)) },
                 { assertCluster(store, r2, intArrayOf(902)) },
                 { assertCluster(store, h2, intArrayOf(300)) }, // h2 untouched
@@ -360,7 +340,7 @@ class ClusterStoreTest {
             assertAll(
                 { assertEquals(h1, r1) },
                 { assertEquals(h0, r2) },
-                { assertEquals(-6, r3, "r3 must be a fresh slot since h2 was not freed") },
+                { assertEquals(-5, r3, "r3 must be a fresh slot since h2 was not freed") },
                 { assertCluster(store, h2, intArrayOf(3)) },
             )
         }
@@ -411,7 +391,6 @@ class ClusterStoreTest {
                 intArrayOf(
                     TerminalConstants.EMPTY,
                     TerminalConstants.WIDE_CHAR_SPACER,
-                    TerminalConstants.WIDE_CHAR_PADDING,
                     'A'.code,
                     0x1F600,
                 )
@@ -421,7 +400,7 @@ class ClusterStoreTest {
             // h was never in arr, must still be live
             assertCluster(store, h, intArrayOf(1))
             // Next alloc must NOT reuse a slot (nothing was freed)
-            assertEquals(-4, store.alloc(intArrayOf(2)))
+            assertEquals(-3, store.alloc(intArrayOf(2)))
         }
 
         @Test
@@ -445,10 +424,10 @@ class ClusterStoreTest {
                 assertCluster(store, reallocs[i], intArrayOf(100 + i))
             }
 
-            // No slot table growth: next fresh slot must be at high-water mark 20, handle -(20 + 3) = -23.
+            // No slot table growth — next fresh slot must be at high-water mark 20 → handle -(20+2) = -22
             val nextFresh = store.alloc(intArrayOf(999))
             assertEquals(
-                -23,
+                -22,
                 nextFresh,
                 "Slot table must not have grown beyond high-water mark of 20",
             )
@@ -497,14 +476,6 @@ class ClusterStoreTest {
             val store = ClusterStore()
             assertThrows(IndexOutOfBoundsException::class.java) {
                 store.baseCodepoint(TerminalConstants.WIDE_CHAR_SPACER)
-            }
-        }
-
-        @Test
-        fun `accessors throw for WIDE_CHAR_PADDING (-2)`() {
-            val store = ClusterStore()
-            assertThrows(IndexOutOfBoundsException::class.java) {
-                store.baseCodepoint(TerminalConstants.WIDE_CHAR_PADDING)
             }
         }
 
@@ -635,8 +606,8 @@ class ClusterStoreTest {
             val handles = IntArray(130) { store.alloc(intArrayOf(1000 + it)) }
 
             assertAll(
-                { assertEquals(-3, handles.first(), "First handle must be -3") },
-                { assertEquals(-(handles.lastIndex + 3), handles.last(), "Last handle encoding must be correct") },
+                { assertEquals(-2, handles.first(), "First handle must be -2") },
+                { assertEquals(-(handles.lastIndex + 2), handles.last(), "Last handle encoding must be correct") },
             )
             for (i in handles.indices) {
                 assertCluster(store, handles[i], intArrayOf(1000 + i))

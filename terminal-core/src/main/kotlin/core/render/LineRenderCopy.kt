@@ -64,7 +64,6 @@ internal fun Line.copyToRenderAbi(
 
         when {
             raw == TerminalConstants.EMPTY ||
-                raw == TerminalConstants.WIDE_CHAR_PADDING ||
                 raw == TerminalConstants.WIDE_CHAR_SPACER -> {
                 codeWords[codeOffset + col] = 0
             }
@@ -88,8 +87,7 @@ private fun Line.cellFlags(
     raw: Int,
 ): Int =
     when {
-        raw == TerminalConstants.EMPTY ||
-            raw == TerminalConstants.WIDE_CHAR_PADDING -> TerminalRenderCellFlags.EMPTY
+        raw == TerminalConstants.EMPTY -> TerminalRenderCellFlags.EMPTY
         raw == TerminalConstants.WIDE_CHAR_SPACER -> TerminalRenderCellFlags.WIDE_TRAILING
         raw <= TerminalConstants.CLUSTER_HANDLE_MAX -> {
             var flags = TerminalRenderCellFlags.CLUSTER

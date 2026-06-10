@@ -15,17 +15,16 @@
  */
 package com.gagik.core.model
 
-import com.gagik.core.model.TerminalConstants.EMPTY
-
 /**
- * Sentinel values stored directly in a [Line]'s raw codepoint array.
+ * Sentinel values stored directly in a Line's raw codepoint array.
  *
- * Cell value encoding contract:
- * - value > 0: codepoint
- * - value == 0: empty
- * - value == -1: wide trailing spacer
- * - value == -2: resize-only wide-boundary padding
- * - value <= -3: cluster handle
+ * Cell value encoding contract (all values are Ints):
+ * The gap between SPACER (-1) and the first valid cluster handle (-2) is intentional.
+ * It lets any consumer distinguish the three cases with a single comparison:
+ *   value > 0 → codepoint
+ *   value == 0 → empty
+ *   value == -1 → spacer
+ *   value <= -2 → cluster handle
  */
 internal object TerminalConstants {
     /** A blank, unwritten cell. */
@@ -38,18 +37,8 @@ internal object TerminalConstants {
     const val WIDE_CHAR_SPACER: Int = -1
 
     /**
-     * Transient empty cell inserted when resize reflow must avoid splitting a
-     * wide cell across a physical row boundary.
-     *
-     * Readers and renderers treat this as [EMPTY]. Resize reconstruction drops
-     * it so artificial boundary padding does not become durable logical content
-     * across repeated width changes.
-     */
-    const val WIDE_CHAR_PADDING: Int = -2
-
-    /**
      * All cluster handles are <= this value.
      * Using `rawValue <= CLUSTER_HANDLE_MAX` reliably detects any handle.
      */
-    const val CLUSTER_HANDLE_MAX: Int = -3
+    const val CLUSTER_HANDLE_MAX: Int = -2
 }

@@ -21,14 +21,14 @@ import com.gagik.core.store.ClusterStore.Companion.NO_FREE
 /**
  * A buffer-scoped arena allocator for multi-codepoint grapheme cluster payloads.
  *
- * - The cell's [IntArray] slot holds a negative **handle** (`<= -3`).
- * - The handle encodes a slot index: `slot = -(handle + 3)`.
+ * - The cell's [IntArray] slot holds a negative **handle** (`<= -2`).
+ * - The handle encodes a slot index: `slot = -(handle + 2)`.
  * - This store maps slot → a contiguous run of codepoints in a flat data pool.
  *
  * ## Memory layout
  *
  * clusterData : [ cp0 | cp1 | cp2 | cp0 | cp1 | cp2 | cp3 | ... ]
- *                 \____slot 0____/  \______slot 1_________/
+ *                 \_slot 0_/        \______slot 1_________/
  * slotStarts  : [ 0,  3, ... ]
  * slotLengths : [ 3,  4, ... ]
  *
@@ -66,9 +66,9 @@ internal class ClusterStore {
         /**
          * Handle encoding bias.
          * handle = -(slot + 2)  →  slot = -(handle + 2)
-         * First valid handle is -3, keeping -1 and -2 free for non-cluster sentinels.
+         * First valid handle is -2, keeping -1 free for WIDE_CHAR_SPACER.
          */
-        private const val BIAS = 3
+        private const val BIAS = 2
     }
 
     // Slot metadata — parallel arrays, indexed by slot number
@@ -120,7 +120,7 @@ internal class ClusterStore {
      * @param codepoints Source array of codepoints.
      * @param offset     Index of the first codepoint in [codepoints].
      * @param length     Number of codepoints to copy. Must be >= 1.
-     * @return A negative handle (`<= -3`) encoding the allocated slot.
+     * @return A negative handle (`<= -2`) encoding the allocated slot.
      */
     fun alloc(
         codepoints: IntArray,
