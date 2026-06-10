@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.awt.Font
 import java.awt.Graphics2D
+import java.awt.Insets
 import java.awt.Rectangle
 import java.awt.RenderingHints
 import java.awt.geom.AffineTransform
@@ -878,6 +879,7 @@ class TerminalTextPainterTest {
             palette = defaultTestSettings(foreground = TEST_RED, background = TEST_BLACK).palette,
             textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
             fractionalMetrics = RenderingHints.VALUE_FRACTIONALMETRICS_ON,
+            padding = Insets(0, 0, 0, 0),
         )
 
     private fun createMismatchFixture(settings: TerminalSwingSettings): Triple<BufferedImage, TerminalSwingMetrics, TerminalTextPainter> {

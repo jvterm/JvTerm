@@ -19,6 +19,7 @@ import com.gagik.terminal.render.api.TerminalColorPalette
 import com.gagik.terminal.ui.swing.api.TerminalSwingTerminal
 import java.awt.Font
 import java.awt.GraphicsEnvironment
+import java.awt.Insets
 import java.awt.RenderingHints
 import java.util.*
 
@@ -29,6 +30,12 @@ import java.util.*
  * [TerminalSwingTerminal.reloadSettings] to rebuild metrics and repaint.
  *
  * @property font primary terminal font.
+ * @property fallbackFonts ordered fonts used by the complex-text renderer when
+ * [font] cannot display a Unicode scalar cell or grapheme cluster.
+ * @property useSystemFallbackFonts whether the complex-text renderer may use
+ * installed system fonts after [fallbackFonts] fail. System font discovery is
+ * asynchronous and disabled by default to keep Swing startup and painting
+ * responsive.
  * @property palette resolved terminal color palette.
  * @property columns initial preferred column count.
  * @property rows initial preferred row count.
@@ -42,12 +49,7 @@ import java.util.*
  * linked span currently under Ctrl-hover.
  * @property selectionBackground packed ARGB overlay used for visible terminal
  * selection ranges.
- * @property fallbackFonts ordered fonts used by the complex-text renderer when
- * [font] cannot display a Unicode scalar cell or grapheme cluster.
- * @property useSystemFallbackFonts whether the complex-text renderer may use
- * installed system fonts after [fallbackFonts] fail. System font discovery is
- * asynchronous and disabled by default to keep Swing startup and painting
- * responsive.
+ * @property padding internal margins around the terminal grid in pixels.
  */
 data class TerminalSwingSettings(
     val font: Font = defaultTerminalFont(),
@@ -63,6 +65,7 @@ data class TerminalSwingSettings(
     val clipboardShortcuts: TerminalClipboardShortcuts = TerminalClipboardShortcuts.platformDefault(),
     val hyperlinkActivationForeground: Int = DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND,
     val selectionBackground: Int = DEFAULT_SELECTION_BACKGROUND,
+    val padding: Insets = Insets(12, 12, 12, 12),
 ) {
     init {
         require(columns > 0) { "columns must be > 0, was $columns" }

@@ -691,9 +691,10 @@ class TerminalSwingTerminal(
         y: Int,
         cache: TerminalRenderCache,
     ): Long {
-        val column = (x / metrics.cellWidth).coerceIn(0, cache.columns - 1)
+        val padding = settings.padding
+        val column = ((x - padding.left) / metrics.cellWidth).coerceIn(0, cache.columns - 1)
         val row =
-            ((y - contentYOffset(cache)) / metrics.cellHeight)
+            ((y - padding.top - contentYOffset(cache)) / metrics.cellHeight)
                 .toInt()
                 .coerceIn(0, cache.rows - 1)
         return packCell(column, row)
@@ -782,18 +783,20 @@ class TerminalSwingTerminal(
         }
     }
 
-    private fun selectionAutoscrollDelta(y: Int): Double =
-        when {
-            y < 0 -> {
-                val distance = -y
+    private fun selectionAutoscrollDelta(y: Int): Double {
+        val padding = settings.padding
+        return when {
+            y < padding.top -> {
+                val distance = padding.top - y
                 kotlin.math.floor(1.0 + (distance / 20.0))
             }
-            y >= height -> {
-                val distance = y - height
+            y >= height - padding.bottom -> {
+                val distance = y - (height - padding.bottom)
                 -kotlin.math.floor(1.0 + (distance / 20.0))
             }
             else -> 0.0
         }
+    }
 
     private fun handleSelectionAutoscrollTick() {
         if (!selectingWithMouse) {
@@ -921,6 +924,7 @@ class TerminalSwingTerminal(
                         componentWidth = width,
                         componentHeight = height,
                         contentYOffset = yOffset,
+                        padding = settings.padding,
                         repaintSink = repaintSink,
                     )
                 }
@@ -938,6 +942,7 @@ class TerminalSwingTerminal(
                 componentWidth = width,
                 componentHeight = height,
                 contentYOffset = yOffset,
+                padding = settings.padding,
                 repaintSink = repaintSink,
             )
             repaintPlanner.requestBlinkingTextRepaint(
@@ -946,6 +951,7 @@ class TerminalSwingTerminal(
                 componentWidth = width,
                 componentHeight = height,
                 contentYOffset = yOffset,
+                padding = settings.padding,
                 repaintSink = repaintSink,
             )
         }
@@ -996,7 +1002,13 @@ class TerminalSwingTerminal(
     private fun preferredGridSize(
         columns: Int,
         rows: Int,
-    ): Dimension = Dimension(columns * metrics.cellWidth, rows * metrics.cellHeight)
+    ): Dimension {
+        val padding = settings.padding
+        return Dimension(
+            columns * metrics.cellWidth + padding.left + padding.right,
+            rows * metrics.cellHeight + padding.top + padding.bottom,
+        )
+    }
 
     private fun resizeSessionToVisibleGridOnEdt() {
         val packedGridSize = updateVisibleGridSizeOnEdt()
@@ -1014,8 +1026,9 @@ class TerminalSwingTerminal(
     }
 
     private fun updateVisibleGridSizeOnEdt(): Long {
-        val columns = maxOf(1, width / metrics.cellWidth)
-        val rows = maxOf(1, height / metrics.cellHeight)
+        val padding = settings.padding
+        val columns = maxOf(1, (width - padding.left - padding.right) / metrics.cellWidth)
+        val rows = maxOf(1, (height - padding.top - padding.bottom) / metrics.cellHeight)
         val packed = packVisibleGridSize(columns, rows)
         visibleGridSizeSnapshot.set(packed)
         return packed
@@ -1028,7 +1041,10 @@ class TerminalSwingTerminal(
             else -> -event.preciseWheelRotation
         }
 
-    private fun visibleGridRows(): Int = maxOf(1, height / metrics.cellHeight)
+    private fun visibleGridRows(): Int {
+        val padding = settings.padding
+        return maxOf(1, (height - padding.top - padding.bottom) / metrics.cellHeight)
+    }
 
     private fun requestedRenderRows(): Int = scrollModel.requestedRows(visibleGridRows())
 

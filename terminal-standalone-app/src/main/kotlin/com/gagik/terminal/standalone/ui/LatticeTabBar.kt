@@ -28,7 +28,6 @@ import java.awt.event.ComponentEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
-import java.awt.geom.RoundRectangle2D
 import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
@@ -121,15 +120,6 @@ internal class LatticeTabBar(
         repaint()
     }
 
-    fun selectTab(id: String) {
-        selectedId = id
-        val index = entries.indexOfFirst { it.id == id }
-        if (index != -1) {
-            scrollToVisible(index)
-        }
-        repaint()
-    }
-
     fun selectedId(): String? = selectedId
 
     fun selectedTitle(): String? = entries.find { it.id == selectedId }?.title
@@ -166,11 +156,22 @@ internal class LatticeTabBar(
         val fm = getFontMetrics(font.deriveFont(13f))
         val totalTabWidth = entries.sumOf { preferredTabWidth(it, fm) + TAB_GAP }
         val staticWidth = TAB_START_X + NEW_TAB_BUTTON_WIDTH + MENU_BUTTON_WIDTH + TRAILING_SPACE
-        return Dimension(totalTabWidth + staticWidth, TAB_BAR_HEIGHT)
+        val prefW = totalTabWidth + staticWidth
+
+        val window = SwingUtilities.getWindowAncestor(this)
+        if (window != null) {
+            val maxW = window.width - 150
+            if (prefW > maxW) {
+                return Dimension(maxW, TAB_BAR_HEIGHT)
+            }
+        }
+        return Dimension(prefW, TAB_BAR_HEIGHT)
     }
 
     override fun getMinimumSize(): Dimension =
         Dimension(TAB_START_X + SCROLL_BUTTON_WIDTH * 2 + NEW_TAB_BUTTON_WIDTH + MENU_BUTTON_WIDTH + TRAILING_SPACE, TAB_BAR_HEIGHT)
+
+    override fun getMaximumSize(): Dimension = preferredSize
 
     private fun updateLayout(fm: FontMetrics) {
         val count = entries.size
@@ -234,8 +235,9 @@ internal class LatticeTabBar(
         entry: TabEntry,
         fm: FontMetrics,
     ): Int {
+        val iconWidth = fm.stringWidth(">_ ")
         val textWidth = fm.stringWidth(entry.title).coerceIn(MIN_LABEL_TEXT_WIDTH, MAX_LABEL_TEXT_WIDTH)
-        return TAB_LABEL_PADDING_LEFT + textWidth + CLOSE_BUTTON_SIZE + CLOSE_BUTTON_MARGIN_RIGHT + TAB_PADDING_RIGHT
+        return TAB_LABEL_PADDING_LEFT + iconWidth + textWidth + CLOSE_BUTTON_SIZE + CLOSE_BUTTON_MARGIN_RIGHT + TAB_PADDING_RIGHT
     }
 
     // -------------------------------------------------------------------------
@@ -296,18 +298,12 @@ internal class LatticeTabBar(
         fm: FontMetrics,
     ) {
         val y = TAB_TOP_PADDING
-        val h = height - TAB_TOP_PADDING - TAB_BOTTOM_PADDING
+        val h = height - TAB_TOP_PADDING
 
         val isTabPressed = activePressedResult == HitResult.Tab(index)
         val bg =
             when {
-                selected -> {
-                    if (isTabPressed) {
-                        Color(0x2E, 0x3B, 0x52)
-                    } else {
-                        LatticeChrome.TAB_SELECTED_BG
-                    }
-                }
+                selected -> LatticeChrome.TAB_SELECTED_BG
                 index == tabHoverIndex -> {
                     if (isTabPressed) {
                         LatticeChrome.CONTROL_PRESSED
@@ -319,19 +315,66 @@ internal class LatticeTabBar(
             }
         if (bg.alpha > 0) {
             g2.color = bg
-            g2.fill(RoundRectangle2D.Float(x.toFloat(), y.toFloat(), w.toFloat(), h.toFloat(), CORNER_RADIUS, CORNER_RADIUS))
+            // Draw top rounded corners only (radius CORNER_RADIUS) using a Path2D
+            val path =
+                java.awt.geom.Path2D
+                    .Float()
+            path.moveTo(x.toFloat(), (y + h).toFloat())
+            path.lineTo(x.toFloat(), y + CORNER_RADIUS)
+            path.quadTo(x.toFloat(), y.toFloat(), x + CORNER_RADIUS, y.toFloat())
+            path.lineTo(x + w - CORNER_RADIUS, y.toFloat())
+            path.quadTo((x + w).toFloat(), y.toFloat(), (x + w).toFloat(), y + CORNER_RADIUS)
+            path.lineTo((x + w).toFloat(), (y + h).toFloat())
+            path.closePath()
+            g2.fill(path)
+        }
+
+        if (selected) {
+            // Draw active tab outline border (top-rounded only)
+            g2.color = LatticeChrome.BORDER
+            g2.stroke = BasicStroke(1f)
+            val borderPath =
+                java.awt.geom.Path2D
+                    .Float()
+            borderPath.moveTo(x.toFloat(), (y + h).toFloat())
+            borderPath.lineTo(x.toFloat(), y + CORNER_RADIUS)
+            borderPath.quadTo(x.toFloat(), y.toFloat(), x + CORNER_RADIUS, y.toFloat())
+            borderPath.lineTo(x + w - CORNER_RADIUS, y.toFloat())
+            borderPath.quadTo((x + w).toFloat(), y.toFloat(), (x + w).toFloat(), y + CORNER_RADIUS)
+            borderPath.lineTo((x + w).toFloat(), (y + h).toFloat())
+            g2.draw(borderPath)
+
+            // Draw horizontal bottom accent line (brand blue indicator)
+            g2.color = LatticeChrome.ACCENT
+            g2.fillRect(x, y + h - 3, w, 3)
+        }
+
+        // Draw vertical divider between inactive tabs
+        val nextSelected = entries.getOrNull(index + 1)?.id == selectedId
+        if (!selected && !nextSelected && index < entries.size - 1) {
+            g2.color = LatticeChrome.BORDER
+            g2.stroke = BasicStroke(1f)
+            val divX = x + w + TAB_GAP / 2
+            g2.drawLine(divX, y + 6, divX, y + h - 6)
         }
 
         g2.font = font.deriveFont(13f)
+        val icon = ">_"
+        val iconWidth = fm.stringWidth("$icon ")
+        val iconY = y + (h + fm.ascent - fm.descent) / 2
+
+        // Draw prompt icon in brand accent blue
+        g2.color = if (selected) LatticeChrome.ACCENT else Color(0x4D, 0xA3, 0xFF, 130)
+        g2.drawString(icon, x + TAB_LABEL_PADDING_LEFT, iconY)
+
+        // Draw text
         val titleFg = if (selected) LatticeChrome.TEXT_PRIMARY else LatticeChrome.TEXT_SECONDARY
         g2.color = titleFg
-
-        val labelMaxWidth = w - TAB_LABEL_PADDING_LEFT - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN_RIGHT - 4
+        val labelMaxWidth = w - TAB_LABEL_PADDING_LEFT - iconWidth - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN_RIGHT - 4
         if (labelMaxWidth > 10) {
-            val labelX = x + TAB_LABEL_PADDING_LEFT
+            val labelX = x + TAB_LABEL_PADDING_LEFT + iconWidth
             val clipped = clipText(entry.title, labelMaxWidth, fm)
-            val textY = y + (h + fm.ascent - fm.descent) / 2
-            g2.drawString(clipped, labelX, textY)
+            g2.drawString(clipped, labelX, iconY)
         }
 
         val closeBtnX = x + w - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN_RIGHT
@@ -353,7 +396,7 @@ internal class LatticeTabBar(
             if (hovered) {
                 val isPressed = activePressedResult == HitResult.TabClose(index)
                 g2.color = if (isPressed) LatticeChrome.CONTROL_PRESSED else LatticeChrome.CONTROL_HOVER
-                g2.fillRoundRect(x, y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 4, 4)
+                g2.fillRoundRect(x, y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 3, 3)
             }
             g2.color = if (hovered) LatticeChrome.TEXT_PRIMARY else LatticeChrome.TEXT_SECONDARY
             g2.stroke = BasicStroke(1.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
@@ -373,14 +416,17 @@ internal class LatticeTabBar(
 
         var currentX = TAB_START_X + if (maxScrollOffset > 0) availableForTabs else (tabWidths.sum() + maxOf(0, entries.size - 1) * TAB_GAP)
         val y = TAB_TOP_PADDING
-        val h = height - TAB_TOP_PADDING - TAB_BOTTOM_PADDING
+        val h = height - TAB_TOP_PADDING
 
         if (maxScrollOffset > 0) {
             // < button
             val isPressedL = activePressedResult == HitResult.ScrollLeft
             if (scrollLeftHovered || isPressedL) {
                 g2.color = if (isPressedL) LatticeChrome.CONTROL_PRESSED else LatticeChrome.TAB_HOVER_BG
-                g2.fill(RoundRectangle2D.Float(currentX.toFloat(), y.toFloat(), SCROLL_BUTTON_WIDTH.toFloat(), h.toFloat(), 6f, 6f))
+                val size = 24
+                val cx = currentX + SCROLL_BUTTON_WIDTH / 2
+                val cy = y + h / 2
+                g2.fillRoundRect(cx - size / 2, cy - size / 2, size, size, 3, 3)
             }
             g2.color =
                 if (scrollOffset > 0) {
@@ -399,7 +445,10 @@ internal class LatticeTabBar(
             val isPressedR = activePressedResult == HitResult.ScrollRight
             if (scrollRightHovered || isPressedR) {
                 g2.color = if (isPressedR) LatticeChrome.CONTROL_PRESSED else LatticeChrome.TAB_HOVER_BG
-                g2.fill(RoundRectangle2D.Float(currentX.toFloat(), y.toFloat(), SCROLL_BUTTON_WIDTH.toFloat(), h.toFloat(), 6f, 6f))
+                val size = 24
+                val cx2 = currentX + SCROLL_BUTTON_WIDTH / 2
+                val cy2 = y + h / 2
+                g2.fillRoundRect(cx2 - size / 2, cy2 - size / 2, size, size, 3, 3)
             }
             g2.color =
                 if (scrollOffset < maxScrollOffset) {
@@ -417,7 +466,10 @@ internal class LatticeTabBar(
         val isPressedNew = activePressedResult == HitResult.NewTab
         if (newTabHovered || isPressedNew) {
             g2.color = if (isPressedNew) LatticeChrome.CONTROL_PRESSED else LatticeChrome.TAB_HOVER_BG
-            g2.fill(RoundRectangle2D.Float(currentX.toFloat(), y.toFloat(), NEW_TAB_BUTTON_WIDTH.toFloat(), h.toFloat(), 6f, 6f))
+            val size = 24
+            val plusCx = currentX + NEW_TAB_BUTTON_WIDTH / 2
+            val plusCy = y + h / 2
+            g2.fillRoundRect(plusCx - size / 2, plusCy - size / 2, size, size, 3, 3)
         }
         g2.color = if (newTabHovered || isPressedNew) LatticeChrome.TEXT_PRIMARY else LatticeChrome.TEXT_SECONDARY
         g2.stroke = BasicStroke(1.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
@@ -429,11 +481,20 @@ internal class LatticeTabBar(
 
         currentX += NEW_TAB_BUTTON_WIDTH
 
+        // Draw vertical divider between + and v buttons
+        g2.color = LatticeChrome.BORDER
+        g2.stroke = BasicStroke(1f)
+        val divX = currentX - 2
+        g2.drawLine(divX, y + 6, divX, y + h - 6)
+
         // v button
         val isPressedMenu = activePressedResult is HitResult.Menu
         if (menuHovered || isPressedMenu) {
             g2.color = if (isPressedMenu) LatticeChrome.CONTROL_PRESSED else LatticeChrome.TAB_HOVER_BG
-            g2.fill(RoundRectangle2D.Float(currentX.toFloat(), y.toFloat(), MENU_BUTTON_WIDTH.toFloat(), h.toFloat(), 6f, 6f))
+            val size = 24
+            val vCx = currentX + MENU_BUTTON_WIDTH / 2
+            val vCy = y + h / 2
+            g2.fillRoundRect(vCx - size / 2, vCy - size / 2, size, size, 3, 3)
         }
         g2.color = if (menuHovered || isPressedMenu) LatticeChrome.TEXT_PRIMARY else LatticeChrome.TEXT_SECONDARY
         val vCx = currentX + MENU_BUTTON_WIDTH / 2
@@ -683,7 +744,7 @@ internal class LatticeTabBar(
     private companion object {
         private const val TAB_BAR_HEIGHT = 40
         private const val TAB_TOP_PADDING = 8
-        private const val TAB_BOTTOM_PADDING = 6
+        private const val TAB_BOTTOM_PADDING = 0
         private const val TAB_START_X = 8
         private const val TAB_GAP = 4
         private const val TAB_LABEL_PADDING_LEFT = 12
@@ -694,9 +755,9 @@ internal class LatticeTabBar(
         private const val NEW_TAB_BUTTON_WIDTH = 28
         private const val MENU_BUTTON_WIDTH = 24
         private const val TRAILING_SPACE = 8
-        private const val CORNER_RADIUS = 8f
+        private const val CORNER_RADIUS = 10f
         private const val MIN_LABEL_TEXT_WIDTH = 50
         private const val MAX_LABEL_TEXT_WIDTH = 160
-        private const val MIN_TAB_WIDTH = 90
+        private const val MIN_TAB_WIDTH = 100
     }
 }

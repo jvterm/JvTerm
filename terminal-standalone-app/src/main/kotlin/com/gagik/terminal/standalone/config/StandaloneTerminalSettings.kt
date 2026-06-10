@@ -26,7 +26,7 @@ import com.gagik.terminal.ui.swing.settings.TerminalTheme
  * the user changes a menu setting.
  */
 internal class StandaloneTerminalSettings {
-    var theme: TerminalTheme = TerminalTheme.CAMPBELL
+    var theme: TerminalTheme = TerminalTheme.ONE_DARK
     var treatAmbiguousAsWide: Boolean = false
 
     fun current(): TerminalSwingSettings =

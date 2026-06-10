@@ -18,6 +18,7 @@ package com.gagik.terminal.ui.swing.settings
 import com.gagik.terminal.ui.swing.api.TerminalSwingTerminal
 import java.awt.Canvas
 import java.awt.Font
+import java.awt.Insets
 import java.awt.RenderingHints
 import javax.swing.SwingUtilities
 import kotlin.test.Test
@@ -58,6 +59,13 @@ class TerminalSwingSettingsTest {
         assertEquals(false, settings.useSystemFallbackFonts)
         assertEquals(false, settings.treatAmbiguousAsWide)
         assertEquals(0xFF4DA3FF.toInt(), settings.hyperlinkActivationForeground)
+        assertEquals(Insets(12, 12, 12, 12), settings.padding)
+    }
+
+    @Test
+    fun settingsAcceptCustomPadding() {
+        val settings = TerminalSwingSettings(padding = Insets(4, 8, 4, 8))
+        assertEquals(Insets(4, 8, 4, 8), settings.padding)
     }
 
     @Test

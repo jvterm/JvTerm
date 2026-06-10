@@ -38,8 +38,7 @@ internal class LatticeScrollBarUi : BasicScrollBarUI() {
         component: JComponent,
         trackBounds: Rectangle,
     ) {
-        graphics.color = trackColor
-        graphics.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height)
+        // Do not paint track background to keep it completely transparent and blended
     }
 
     override fun paintThumb(

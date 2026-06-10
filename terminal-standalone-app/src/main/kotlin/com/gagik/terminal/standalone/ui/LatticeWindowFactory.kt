@@ -31,7 +31,6 @@ import javax.swing.JMenuBar
 import javax.swing.JPanel
 import javax.swing.JRadioButtonMenuItem
 import javax.swing.WindowConstants
-import javax.swing.border.EmptyBorder
 
 /**
  * Creates and wires the standalone terminal window.
@@ -110,7 +109,7 @@ internal class LatticeWindowFactory(
         frame.jMenuBar =
             JMenuBar().apply {
                 isOpaque = false
-                border = EmptyBorder(0, 0, 0, 0)
+                border = javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, LatticeChrome.BORDER)
                 add(tabBar)
                 add(Box.createHorizontalGlue())
             }

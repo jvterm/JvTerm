@@ -36,6 +36,7 @@ import com.gagik.terminal.ui.swing.settings.TerminalHyperlinkHandler
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import java.awt.Insets
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
@@ -48,7 +49,7 @@ class TerminalSwingTerminalSelectionTest {
     fun `single click clears selection without selecting the clicked cell`() {
         val frame = TestRenderFrame.text("hello")
         val session = testSession(frame = frame)
-        val component = TerminalSwingTerminal()
+        val component = TerminalSwingTerminal(settingsProvider = { TerminalSwingSettings(padding = Insets(0, 0, 0, 0)) })
 
         SwingUtilities.invokeAndWait {
             component.setSize(300, 80)
@@ -65,7 +66,7 @@ class TerminalSwingTerminalSelectionTest {
     fun `drag after single click creates selection`() {
         val frame = TestRenderFrame.text("hello")
         val session = testSession(frame = frame)
-        val component = TerminalSwingTerminal()
+        val component = TerminalSwingTerminal(settingsProvider = { TerminalSwingSettings(padding = Insets(0, 0, 0, 0)) })
 
         SwingUtilities.invokeAndWait {
             component.setSize(300, 80)
@@ -87,7 +88,7 @@ class TerminalSwingTerminalSelectionTest {
                 frame = ScrollbackFrame(scrollbackOffset = 0, rows = 1),
                 renderReader = renderReader,
             )
-        val component = TerminalSwingTerminal()
+        val component = TerminalSwingTerminal(settingsProvider = { TerminalSwingSettings(padding = Insets(0, 0, 0, 0)) })
 
         SwingUtilities.invokeAndWait {
             component.setSize(60, 20)
@@ -113,7 +114,7 @@ class TerminalSwingTerminalSelectionTest {
     fun `alt drag creates rectangular block selection`() {
         val frame = TestRenderFrame.text("hello world")
         val session = testSession(frame = frame)
-        val component = TerminalSwingTerminal()
+        val component = TerminalSwingTerminal(settingsProvider = { TerminalSwingSettings(padding = Insets(0, 0, 0, 0)) })
 
         SwingUtilities.invokeAndWait {
             component.setSize(300, 80)
@@ -201,6 +202,7 @@ class TerminalSwingTerminalSelectionTest {
                 settingsProvider = {
                     TerminalSwingSettings(
                         clipboardShortcuts = TerminalClipboardShortcuts.windows(),
+                        padding = Insets(0, 0, 0, 0),
                     )
                 },
                 hostServices =
@@ -231,6 +233,7 @@ class TerminalSwingTerminalSelectionTest {
                 settingsProvider = {
                     TerminalSwingSettings(
                         clipboardShortcuts = TerminalClipboardShortcuts.linuxAndUnix(),
+                        padding = Insets(0, 0, 0, 0),
                     )
                 },
                 hostServices =
@@ -264,6 +267,7 @@ class TerminalSwingTerminalSelectionTest {
                 settingsProvider = {
                     TerminalSwingSettings(
                         clipboardShortcuts = TerminalClipboardShortcuts.windows(),
+                        padding = Insets(0, 0, 0, 0),
                     )
                 },
                 hostServices =
@@ -294,6 +298,7 @@ class TerminalSwingTerminalSelectionTest {
                 settingsProvider = {
                     TerminalSwingSettings(
                         clipboardShortcuts = TerminalClipboardShortcuts.windows(),
+                        padding = Insets(0, 0, 0, 0),
                     )
                 },
                 hostServices =
@@ -339,6 +344,7 @@ class TerminalSwingTerminalSelectionTest {
             )
         val component =
             TerminalSwingTerminal(
+                settingsProvider = { TerminalSwingSettings(padding = Insets(0, 0, 0, 0)) },
                 hostServices =
                     TerminalSwingHostServices(
                         hyperlinkHandler =
@@ -385,6 +391,7 @@ class TerminalSwingTerminalSelectionTest {
             )
         val component =
             TerminalSwingTerminal(
+                settingsProvider = { TerminalSwingSettings(padding = Insets(0, 0, 0, 0)) },
                 hostServices =
                     TerminalSwingHostServices(
                         hyperlinkHandler =

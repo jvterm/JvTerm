@@ -29,7 +29,7 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
 
         frame.setRow(2, "WXYZ")
         cache.updateFrom(frame.reader)
@@ -41,6 +41,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -54,7 +55,7 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
 
         frame.setRow(1, "BBBB")
         frame.setRow(2, "CCCC")
@@ -67,6 +68,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -81,7 +83,7 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         paintedCache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(paintedCache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
+        planner.requestFrameRepaint(paintedCache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
 
         frame.setRow(1, "BBBB")
         skippedCache.updateFrom(frame.reader)
@@ -95,6 +97,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -109,7 +112,7 @@ class TerminalSwingRepaintPlannerTest {
 
         frame.cursor = cursor(column = 1, row = 0, generation = 1)
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
 
         frame.cursor = cursor(column = 3, row = 2, generation = 2)
         frame.frameGeneration++
@@ -122,6 +125,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -143,7 +147,7 @@ class TerminalSwingRepaintPlannerTest {
 
         frame.cursor = cursor(column = 0, row = 0, generation = 1)
         paintedCache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(paintedCache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
+        planner.requestFrameRepaint(paintedCache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
 
         frame.cursor = cursor(column = 3, row = 2, generation = 2)
         frame.frameGeneration++
@@ -158,6 +162,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -184,6 +189,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -205,6 +211,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -226,6 +233,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -239,7 +247,7 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
 
         frame.setRow(1, "BBBB")
         cache.updateFrom(frame.reader)
@@ -251,6 +259,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = -12.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -264,7 +273,7 @@ class TerminalSwingRepaintPlannerTest {
         val planner = TerminalSwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
 
         frame.setRow(0, "BBBB")
         cache.updateFrom(frame.reader)
@@ -276,6 +285,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = -12.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -296,6 +306,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = -12.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -317,6 +328,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -336,6 +348,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -356,6 +369,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = -12.0,
+            padding = PADDING,
             repaintSink = repaintSink,
         )
 
@@ -377,6 +391,7 @@ class TerminalSwingRepaintPlannerTest {
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
             contentYOffset = 0.0,
+            padding = PADDING,
             repaintSink =
                 object : TerminalRepaintSink {
                     override fun requestFullRepaint() {
@@ -528,6 +543,7 @@ class TerminalSwingRepaintPlannerTest {
     }
 
     private companion object {
+        private val PADDING = java.awt.Insets(0, 0, 0, 0)
         private const val CELL_WIDTH = 8
         private const val CELL_HEIGHT = 16
         private const val WIDTH = 120

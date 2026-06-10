@@ -41,6 +41,7 @@ internal class LatticeTerminalPane private constructor(
 
     fun reloadSettings() {
         terminal.reloadSettings()
+        component.background = terminal.background
     }
 
     fun close() {
@@ -81,7 +82,7 @@ internal class LatticeTerminalPane private constructor(
             scrollbar: JScrollBar,
         ): JPanel =
             JPanel(BorderLayout()).apply {
-                background = LatticeChrome.TERMINAL_BACKGROUND
+                background = terminal.background
                 border = null
                 terminal.border = null
                 add(terminal, BorderLayout.CENTER)
@@ -95,6 +96,7 @@ internal class LatticeTerminalPane private constructor(
             scrollbar.ui = LatticeScrollBarUi()
             scrollbar.isVisible = false
             scrollbar.isFocusable = false
+            scrollbar.isOpaque = false
         }
     }
 }

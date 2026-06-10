@@ -65,5 +65,8 @@ internal object StandaloneLookAndFeel {
         UIManager.put("TitlePane.foreground", LatticeChrome.TEXT_PRIMARY)
         UIManager.put("TitlePane.inactiveBackground", LatticeChrome.TOP_BAR_BACKGROUND)
         UIManager.put("TitlePane.inactiveForeground", LatticeChrome.TEXT_SECONDARY)
+        UIManager.put("TitlePane.buttonSize", java.awt.Dimension(40, 40))
+        UIManager.put("TitlePane.buttonMinimumWidth", 40)
+        UIManager.put("TitlePane.buttonMaximizedHeight", 40)
     }
 }

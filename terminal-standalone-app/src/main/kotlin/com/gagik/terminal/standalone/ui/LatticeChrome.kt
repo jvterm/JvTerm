@@ -32,18 +32,18 @@ internal object LatticeChrome {
     val SURFACE: Color = Color(0x181818)
 
     /** Title bar and tab strip background. */
-    val TOP_BAR_BACKGROUND: Color = Color(0x181818)
+    val TOP_BAR_BACKGROUND: Color = Color(0x20, 0x20, 0x24)
 
     /** Active terminal content background. */
     val TERMINAL_BACKGROUND: Color = Color(0x181818)
 
     // ── Tab states ────────────────────────────────────────────────────────────
 
-    /** Background of the selected tab — a distinct muted blue pill. */
-    val TAB_SELECTED_BG: Color = Color(0x3B4C68)
+    /** Background of the selected tab — a solid dark charcoal grey. */
+    val TAB_SELECTED_BG: Color = Color(0x18, 0x18, 0x18)
 
     /** Background shown when hovering over an unselected tab. */
-    val TAB_HOVER_BG: Color = Color(0x2D2D2D)
+    val TAB_HOVER_BG: Color = Color(0x2B, 0x2D, 0x30)
 
     // ── Controls ──────────────────────────────────────────────────────────────
 
@@ -67,7 +67,7 @@ internal object LatticeChrome {
 
     // ── Borders ───────────────────────────────────────────────────────────────
 
-    val BORDER: Color = Color(0x3A3A3A)
+    val BORDER: Color = Color(0x2B, 0x2D, 0x30)
 
     // ── Scrollbar ─────────────────────────────────────────────────────────────
 
