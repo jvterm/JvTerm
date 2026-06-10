@@ -48,7 +48,7 @@ internal class LatticeTabBar(
     private val entries = mutableListOf<TabEntry>()
     private var selectedId: String? = null
     private val tabShape = Path2D.Float()
-    private val profileIconPainter = LatticeProfileIconPainter()
+    private val profileIcons = LatticeProfileIcons()
 
     // Layout state
     private var tabWidths: List<Int> = emptyList()
@@ -288,7 +288,7 @@ internal class LatticeTabBar(
         val iconX = x + TAB_LABEL_PADDING_LEFT
         val iconH = 12
         val iconDrawY = y + (h - iconH) / 2
-        profileIconPainter.paint(
+        profileIcons.paint(
             g2 = g2,
             profileKind = entry.profileKind,
             x = iconX,

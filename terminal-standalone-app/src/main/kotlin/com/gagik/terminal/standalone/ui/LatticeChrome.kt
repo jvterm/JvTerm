@@ -21,8 +21,59 @@ import java.awt.Dimension
 import javax.swing.UIManager
 import kotlin.math.pow
 
+private data class LatticeChromeColors(
+    val surface: Color,
+    val topBarBackground: Color,
+    val terminalBackground: Color,
+    val tabSelectedBackground: Color,
+    val tabHoverBackground: Color,
+    val popupBackground: Color,
+    val controlBackground: Color,
+    val controlHover: Color,
+    val controlPressed: Color,
+    val textPrimary: Color,
+    val textHover: Color,
+    val textSecondary: Color,
+    val controlText: Color,
+    val controlTextDisabled: Color,
+    val accent: Color,
+    val border: Color,
+    val divider: Color,
+    val scrollbarTrack: Color,
+    val scrollbarThumb: Color,
+    val scrollbarThumbHover: Color,
+    val scrollbarThumbPressed: Color,
+) {
+    companion object {
+        fun fallback(): LatticeChromeColors =
+            LatticeChromeColors(
+                surface = Color(0x18, 0x18, 0x18),
+                topBarBackground = Color(0x18, 0x18, 0x18),
+                terminalBackground = Color(0x18, 0x18, 0x18),
+                tabSelectedBackground = Color(0x18, 0x18, 0x18),
+                tabHoverBackground = Color(0x2B, 0x2D, 0x30),
+                popupBackground = Color(0x2B, 0x2B, 0x2B),
+                controlBackground = Color(0x3C, 0x3C, 0x3C),
+                controlHover = Color(0x4A, 0x4A, 0x4A),
+                controlPressed = Color(0x55, 0x55, 0x55),
+                textPrimary = Color.WHITE,
+                textHover = Color(0xDF, 0xE1, 0xE5),
+                textSecondary = Color(0xAA, 0xAA, 0xAA),
+                controlText = Color(0xCF, 0xD2, 0xD6),
+                controlTextDisabled = Color(0x5E, 0x63, 0x6B),
+                accent = Color(0x4D, 0xA3, 0xFF),
+                border = Color(0x2B, 0x2D, 0x30),
+                divider = Color(0xFF, 0xFF, 0xFF, 60),
+                scrollbarTrack = Color(0x18, 0x18, 0x18),
+                scrollbarThumb = Color(0x55, 0x55, 0x55),
+                scrollbarThumbHover = Color(0x70, 0x70, 0x70),
+                scrollbarThumbPressed = Color(0x90, 0x90, 0x90),
+            )
+    }
+}
+
 /**
- * Palette-derived visual constants for the standalone Swing host.
+ * Palette-derived visual tokens for the standalone Swing host.
  *
  * The reusable terminal component owns terminal rendering. This host object
  * owns only standalone chrome colors such as tab states, menus, and scrollbars.
@@ -31,70 +82,93 @@ internal object LatticeChrome {
     const val APP_TITLE = "Lattice"
 
     /** Root window background and deep surface. */
-    var surface: Color = Color(0x18, 0x18, 0x18)
+    val surface: Color
+        get() = colors.surface
 
     /** Title bar and tab strip background. */
-    var topBarBackground: Color = surface
+    val topBarBackground: Color
+        get() = colors.topBarBackground
 
     /** Active terminal content background. */
-    var terminalBackground: Color = Color(0x18, 0x18, 0x18)
+    val terminalBackground: Color
+        get() = colors.terminalBackground
 
     /** Background of the selected tab. */
-    var tabSelectedBackground: Color = terminalBackground
+    val tabSelectedBackground: Color
+        get() = colors.tabSelectedBackground
 
     /** Background shown when hovering over an unselected tab. */
-    var tabHoverBackground: Color = Color(0x2B, 0x2D, 0x30)
+    val tabHoverBackground: Color
+        get() = colors.tabHoverBackground
 
     /** Popup menu and menu item background. */
-    var popupBackground: Color = Color(0x2B, 0x2B, 0x2B)
+    val popupBackground: Color
+        get() = colors.popupBackground
 
     /** Resting background for compact chrome controls. */
-    var controlBackground: Color = Color(0x3C, 0x3C, 0x3C)
+    val controlBackground: Color
+        get() = colors.controlBackground
 
     /** Hover background for compact chrome controls. */
-    var controlHover: Color = Color(0x4A, 0x4A, 0x4A)
+    val controlHover: Color
+        get() = colors.controlHover
 
     /** Pressed background for compact chrome controls. */
-    var controlPressed: Color = Color(0x55, 0x55, 0x55)
+    val controlPressed: Color
+        get() = colors.controlPressed
 
     /** Primary text used for selected tab labels and active UI elements. */
-    var textPrimary: Color = Color.WHITE
+    val textPrimary: Color
+        get() = colors.textPrimary
 
     /** Hover text used for inactive tabs and controls under the pointer. */
-    var textHover: Color = Color(0xDF, 0xE1, 0xE5)
+    val textHover: Color
+        get() = colors.textHover
 
     /** Secondary text used for unselected tab labels. */
-    var textSecondary: Color = Color(0xAA, 0xAA, 0xAA)
+    val textSecondary: Color
+        get() = colors.textSecondary
 
     /** Text used for enabled compact action icons. */
-    var controlText: Color = Color(0xCF, 0xD2, 0xD6)
+    val controlText: Color
+        get() = colors.controlText
 
     /** Text used for disabled compact action icons. */
-    var controlTextDisabled: Color = Color(0x5E, 0x63, 0x6B)
+    val controlTextDisabled: Color
+        get() = colors.controlTextDisabled
 
     /** Brand accent. */
-    var accent: Color = Color(0x4D, 0xA3, 0xFF)
+    val accent: Color
+        get() = colors.accent
 
     /** Outline and separator color. */
-    var border: Color = Color(0x2B, 0x2D, 0x30)
+    val border: Color
+        get() = colors.border
 
     /** Subtle divider color for adjacent inactive controls. */
-    var divider: Color = Color(0xFF, 0xFF, 0xFF, 60)
+    val divider: Color
+        get() = colors.divider
 
     /** Scrollbar track color. */
-    var scrollbarTrack: Color = Color(0x18, 0x18, 0x18)
+    val scrollbarTrack: Color
+        get() = colors.scrollbarTrack
 
     /** Scrollbar thumb color. */
-    var scrollbarThumb: Color = Color(0x55, 0x55, 0x55)
+    val scrollbarThumb: Color
+        get() = colors.scrollbarThumb
 
     /** Scrollbar thumb hover color. */
-    var scrollbarThumbHover: Color = Color(0x70, 0x70, 0x70)
+    val scrollbarThumbHover: Color
+        get() = colors.scrollbarThumbHover
 
     /** Scrollbar thumb pressed color. */
-    var scrollbarThumbPressed: Color = Color(0x90, 0x90, 0x90)
+    val scrollbarThumbPressed: Color
+        get() = colors.scrollbarThumbPressed
 
     /** Preferred scrollbar width. */
     val scrollbarSize: Dimension = Dimension(10, 1)
+
+    private var colors = LatticeChromeColors.fallback()
 
     /**
      * Derives standalone chrome colors from [palette] and updates Swing defaults.
@@ -105,44 +179,57 @@ internal object LatticeChrome {
         val isDark = isDarkColor(bg)
         val surfaceTarget = if (isDark) fg else Color.WHITE
 
-        surface = blendColors(bg, surfaceTarget, if (isDark) 0.09f else 0.10f)
-        topBarBackground = surface
-        terminalBackground = bg
-        tabSelectedBackground = bg
-        tabHoverBackground = blendColors(surface, fg, if (isDark) 0.11f else 0.08f)
-        border = blendColors(surface, fg, if (isDark) 0.22f else 0.26f)
-        divider = withAlpha(border, if (isDark) 150 else 190)
+        val surface = blendColors(bg, surfaceTarget, if (isDark) 0.09f else 0.10f)
+        val tabHoverBackground = blendColors(surface, fg, if (isDark) 0.11f else 0.08f)
+        val border = blendColors(surface, fg, if (isDark) 0.22f else 0.26f)
+        val textPrimary = ensureContrast(fg, bg, MINIMUM_TEXT_CONTRAST)
 
-        textPrimary = ensureContrast(fg, tabSelectedBackground, MINIMUM_TEXT_CONTRAST)
-        textHover = ensureContrast(blendColors(surface, textPrimary, 0.86f), tabHoverBackground, MINIMUM_TEXT_CONTRAST)
-        textSecondary = ensureContrast(blendColors(surface, textPrimary, 0.62f), surface, MINIMUM_TEXT_CONTRAST)
-        controlText = ensureContrast(blendColors(surface, textPrimary, 0.78f), surface, MINIMUM_TEXT_CONTRAST)
-        controlTextDisabled = blendColors(surface, textPrimary, 0.32f)
-        accent = Color(palette.selectionBackground, true)
+        colors =
+            LatticeChromeColors(
+                surface = surface,
+                topBarBackground = surface,
+                terminalBackground = bg,
+                tabSelectedBackground = bg,
+                tabHoverBackground = tabHoverBackground,
+                popupBackground = blendColors(surface, fg, 0.10f),
+                controlBackground = blendColors(surface, fg, 0.14f),
+                controlHover = blendColors(surface, fg, 0.22f),
+                controlPressed = blendColors(surface, fg, 0.30f),
+                textPrimary = textPrimary,
+                textHover = ensureContrast(blendColors(surface, textPrimary, 0.86f), tabHoverBackground, MINIMUM_TEXT_CONTRAST),
+                textSecondary = ensureContrast(blendColors(surface, textPrimary, 0.62f), surface, MINIMUM_TEXT_CONTRAST),
+                controlText = ensureContrast(blendColors(surface, textPrimary, 0.78f), surface, MINIMUM_TEXT_CONTRAST),
+                controlTextDisabled = blendColors(surface, textPrimary, 0.32f),
+                accent = Color(palette.selectionBackground, true),
+                border = border,
+                divider = withAlpha(border, if (isDark) 150 else 190),
+                scrollbarTrack = bg,
+                scrollbarThumb = blendColors(bg, fg, 0.25f),
+                scrollbarThumbHover = blendColors(bg, fg, 0.35f),
+                scrollbarThumbPressed = blendColors(bg, fg, 0.45f),
+            )
 
-        popupBackground = blendColors(surface, fg, 0.10f)
-        controlBackground = blendColors(surface, fg, 0.14f)
-        controlHover = blendColors(surface, fg, 0.22f)
-        controlPressed = blendColors(surface, fg, 0.30f)
+        applySwingDefaults()
+    }
 
-        scrollbarTrack = bg
-        scrollbarThumb = blendColors(bg, fg, 0.25f)
-        scrollbarThumbHover = blendColors(bg, fg, 0.35f)
-        scrollbarThumbPressed = blendColors(bg, fg, 0.45f)
-
-        UIManager.put("TitlePane.background", topBarBackground)
-        UIManager.put("TitlePane.foreground", textPrimary)
-        UIManager.put("TitlePane.inactiveBackground", topBarBackground)
-        UIManager.put("TitlePane.inactiveForeground", textSecondary)
-        UIManager.put("Panel.background", surface)
-        UIManager.put("Separator.foreground", border)
-        UIManager.put("Button.background", controlBackground)
-        UIManager.put("Button.hoverBackground", controlHover)
-        UIManager.put("Button.pressedBackground", controlPressed)
-        UIManager.put("Button.foreground", textPrimary)
-        UIManager.put("PopupMenu.background", popupBackground)
-        UIManager.put("MenuItem.selectionBackground", controlHover)
-        UIManager.put("MenuItem.selectionForeground", textPrimary)
+    /**
+     * Applies the current chrome tokens to FlatLaf/Swing defaults.
+     */
+    fun applySwingDefaults() {
+        val current = colors
+        UIManager.put("TitlePane.background", current.topBarBackground)
+        UIManager.put("TitlePane.foreground", current.textPrimary)
+        UIManager.put("TitlePane.inactiveBackground", current.topBarBackground)
+        UIManager.put("TitlePane.inactiveForeground", current.textSecondary)
+        UIManager.put("Panel.background", current.surface)
+        UIManager.put("Separator.foreground", current.border)
+        UIManager.put("Button.background", current.controlBackground)
+        UIManager.put("Button.hoverBackground", current.controlHover)
+        UIManager.put("Button.pressedBackground", current.controlPressed)
+        UIManager.put("Button.foreground", current.textPrimary)
+        UIManager.put("PopupMenu.background", current.popupBackground)
+        UIManager.put("MenuItem.selectionBackground", current.controlHover)
+        UIManager.put("MenuItem.selectionForeground", current.textPrimary)
     }
 
     /**

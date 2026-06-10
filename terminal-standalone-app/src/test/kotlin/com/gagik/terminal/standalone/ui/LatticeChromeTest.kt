@@ -16,7 +16,9 @@
 package com.gagik.terminal.standalone.ui
 
 import com.gagik.terminal.ui.swing.settings.TerminalTheme
+import javax.swing.UIManager
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class LatticeChromeTest {
@@ -69,6 +71,17 @@ class LatticeChromeTest {
                 "${theme.name} border contrast was $borderContrast",
             )
         }
+    }
+
+    @Test
+    fun applyPalettePublishesChromeTokensToSwingDefaults() {
+        LatticeChrome.applyPalette(TerminalTheme.entries.first().createPalette())
+
+        assertEquals(LatticeChrome.topBarBackground, UIManager.getColor("TitlePane.background"))
+        assertEquals(LatticeChrome.textPrimary, UIManager.getColor("TitlePane.foreground"))
+        assertEquals(LatticeChrome.surface, UIManager.getColor("Panel.background"))
+        assertEquals(LatticeChrome.border, UIManager.getColor("Separator.foreground"))
+        assertEquals(LatticeChrome.controlHover, UIManager.getColor("MenuItem.selectionBackground"))
     }
 
     private fun assertContrast(
