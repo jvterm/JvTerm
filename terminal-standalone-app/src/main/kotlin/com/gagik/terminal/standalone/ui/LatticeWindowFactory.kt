@@ -23,6 +23,7 @@ import java.awt.Dimension
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import javax.swing.*
+import javax.swing.border.EmptyBorder
 
 /**
  * Creates and wires the standalone terminal window.
@@ -91,7 +92,7 @@ internal class LatticeWindowFactory(
         frame.jMenuBar =
             JMenuBar().apply {
                 isOpaque = false
-                border = null
+                border = EmptyBorder(0, 0, 0, 0)
                 add(tabBar)
                 add(Box.createHorizontalGlue())
             }

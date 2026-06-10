@@ -164,7 +164,7 @@ internal class LatticeTabBar(
     override fun getMinimumSize(): Dimension =
         Dimension(TAB_START_X + SCROLL_BUTTON_WIDTH * 2 + NEW_TAB_BUTTON_WIDTH + MENU_BUTTON_WIDTH + TRAILING_SPACE, TAB_BAR_HEIGHT)
 
-    override fun getMaximumSize(): Dimension = preferredSize
+    override fun getMaximumSize(): Dimension = Dimension(preferredSize.width, 32767)
 
     private fun updateLayout(fm: FontMetrics) {
         val prefWidths = entries.map { preferredTabWidth(it, fm) }
