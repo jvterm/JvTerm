@@ -30,6 +30,8 @@ dependencies {
     implementation("com.formdev:flatlaf:3.6.1")
     implementation(project(":terminal-pty"))
     implementation(project(":terminal-ui-swing"))
+
+    testImplementation(kotlin("test"))
 }
 
 kotlin {
@@ -38,4 +40,8 @@ kotlin {
 
 application {
     mainClass.set("com.gagik.terminal.standalone.LatticeStandaloneAppKt")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

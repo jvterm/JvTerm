@@ -15,15 +15,9 @@
  */
 package com.gagik.terminal.standalone
 
-import com.gagik.terminal.pty.TerminalPtyOptions
-import com.gagik.terminal.pty.TerminalPtySessions
 import com.gagik.terminal.standalone.config.StandaloneTerminalSettings
-import com.gagik.terminal.standalone.pty.StandalonePtyEventListener
-import com.gagik.terminal.standalone.shell.StandaloneShellCommand
+import com.gagik.terminal.standalone.profile.StandaloneTerminalProfileRegistry
 import com.gagik.terminal.standalone.ui.LatticeWindowFactory
-import com.gagik.terminal.ui.swing.api.TerminalSwingHostServices
-import com.gagik.terminal.ui.swing.api.TerminalSwingTerminal
-import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
 
 /**
@@ -36,52 +30,18 @@ fun main(args: Array<String>) {
 }
 
 private object LatticeStandaloneApp {
-    private const val INITIAL_COLUMNS = 100
-    private const val INITIAL_ROWS = 30
-
     fun start(args: List<String>) {
         StandaloneLookAndFeel.install()
 
         val settings = StandaloneTerminalSettings()
-        val windowFactory = LatticeWindowFactory(settings)
-        val terminal =
-            TerminalSwingTerminal(
-                settingsProvider = { settings.current() },
-                hostServices =
-                    TerminalSwingHostServices(
-                        viewportListener = windowFactory.viewportListener,
-                    ),
-            )
-        val frame = windowFactory.createFrame(terminal)
-        val eventListener = StandalonePtyEventListener(frame)
+        val profileRegistry = StandaloneTerminalProfileRegistry()
+        val windowFactory = LatticeWindowFactory(settings, profileRegistry.availableProfiles())
+        val window = windowFactory.createWindow()
+        val frame = window.frame
 
-        val session =
-            try {
-                TerminalPtySessions.start(
-                    TerminalPtyOptions(
-                        command = StandaloneShellCommand.resolve(args),
-                        columns = INITIAL_COLUMNS,
-                        rows = INITIAL_ROWS,
-                        treatAmbiguousAsWide = settings.current().treatAmbiguousAsWide,
-                        eventListener = eventListener,
-                    ),
-                )
-            } catch (exception: Exception) {
-                JOptionPane.showMessageDialog(
-                    frame,
-                    exception.message ?: exception.javaClass.name,
-                    "Unable to start terminal",
-                    JOptionPane.ERROR_MESSAGE,
-                )
-                return
-            }
-
-        windowFactory.attachSession(frame, terminal, session)
-        terminal.bind(session)
         frame.pack()
         frame.setLocationRelativeTo(null)
         frame.isVisible = true
-        terminal.requestFocusInWindow()
-        session.notifyRenderDirty()
+        window.tabManager.openTab(profileRegistry.initialProfile(args))
     }
 }

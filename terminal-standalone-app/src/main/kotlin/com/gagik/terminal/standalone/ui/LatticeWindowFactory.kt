@@ -15,16 +15,13 @@
  */
 package com.gagik.terminal.standalone.ui
 
-import com.gagik.terminal.session.TerminalSession
 import com.gagik.terminal.standalone.config.StandaloneTerminalSettings
-import com.gagik.terminal.ui.swing.api.TerminalSwingTerminal
-import java.awt.Adjustable
+import com.gagik.terminal.standalone.profile.StandaloneTerminalProfile
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import javax.swing.*
-import javax.swing.border.CompoundBorder
 import javax.swing.border.EmptyBorder
 
 /**
@@ -32,58 +29,47 @@ import javax.swing.border.EmptyBorder
  */
 internal class LatticeWindowFactory(
     private val settings: StandaloneTerminalSettings,
+    private val profiles: List<StandaloneTerminalProfile>,
 ) {
-    private val scrollbar = JScrollBar(Adjustable.VERTICAL)
-    private val scrollbarAdapter = TerminalScrollbarAdapter(scrollbar)
-    val viewportListener = scrollbarAdapter
+    private val tabPane = JTabbedPane()
 
-    fun createFrame(terminal: TerminalSwingTerminal): JFrame {
-        scrollbarAdapter.attach(terminal)
-        configureScrollbar()
-
-        return JFrame(LatticeChrome.APP_TITLE).apply {
-            defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
-            contentPane = terminalPanel(terminal)
-            background = LatticeChrome.SURFACE
-            minimumSize = Dimension(720, 420)
-            rootPane.putClientProperty("JRootPane.titleBarBackground", LatticeChrome.SURFACE_RAISED)
-            rootPane.putClientProperty("JRootPane.titleBarForeground", LatticeChrome.TITLE_FOREGROUND)
-        }
-    }
-
-    fun attachSession(
-        frame: JFrame,
-        terminal: TerminalSwingTerminal,
-        session: TerminalSession,
-    ) {
-        frame.jMenuBar = LatticeMenuBarFactory(settings).create(terminal, session)
+    fun createWindow(): LatticeWindow {
+        val frame =
+            JFrame(LatticeChrome.APP_TITLE).apply {
+                defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
+                contentPane = windowPanel()
+                background = LatticeChrome.SURFACE
+                minimumSize = Dimension(720, 420)
+                rootPane.putClientProperty("JRootPane.titleBarBackground", LatticeChrome.SURFACE_RAISED)
+                rootPane.putClientProperty("JRootPane.titleBarForeground", LatticeChrome.TITLE_FOREGROUND)
+            }
+        val tabManager = LatticeTabManager(frame, tabPane, settings)
+        frame.jMenuBar = LatticeMenuBarFactory(settings, tabManager, profiles).create()
         frame.addWindowListener(
             object : WindowAdapter() {
                 override fun windowClosed(event: WindowEvent) {
-                    session.close()
+                    tabManager.closeAllTabs()
                 }
             },
         )
+        return LatticeWindow(frame, tabManager)
     }
 
-    private fun terminalPanel(terminal: TerminalSwingTerminal): JPanel =
+    private fun windowPanel(): JPanel =
         JPanel(BorderLayout()).apply {
             background = LatticeChrome.SURFACE
-            border =
-                CompoundBorder(
-                    EmptyBorder(10, 12, 12, 12),
-                    BorderFactory.createLineBorder(LatticeChrome.BORDER),
-                )
-            add(terminal, BorderLayout.CENTER)
-            add(scrollbar, BorderLayout.EAST)
+            border = EmptyBorder(0, 0, 0, 0)
+            tabPane.background = LatticeChrome.SURFACE
+            tabPane.foreground = LatticeChrome.TITLE_FOREGROUND
+            tabPane.isFocusable = false
+            add(tabPane, BorderLayout.CENTER)
         }
-
-    private fun configureScrollbar() {
-        scrollbar.unitIncrement = 1
-        scrollbar.blockIncrement = 8
-        scrollbar.preferredSize = LatticeChrome.SCROLLBAR_SIZE
-        scrollbar.ui = LatticeScrollBarUi()
-        scrollbar.isVisible = false
-        scrollbar.isFocusable = false
-    }
 }
+
+/**
+ * Standalone window and its terminal tab controller.
+ */
+internal data class LatticeWindow(
+    val frame: JFrame,
+    val tabManager: LatticeTabManager,
+)
