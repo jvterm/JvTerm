@@ -30,6 +30,7 @@ internal data class TabEntry(
     val id: String,
     var title: String,
     val profileKind: TerminalProfileKind,
+    var color: Color? = null,
 )
 
 /**
@@ -335,28 +336,56 @@ internal class LatticeTabBar(
                 else -> TRANSPARENT_COLOR
             }
 
+        val bounds = TabShapeBounds(x, y, w, h)
         val useSelectedShape = selected || entry.id == fadingOutId
         if (bg.alpha > 0) {
             g2.color = bg
-            resetTabShape(tabFillShape, x, y, w, h, useSelectedShape, closePath = true)
+            resetTabShape(tabFillShape, bounds, useSelectedShape, closePath = true)
             g2.fill(tabFillShape)
             if (useSelectedShape) {
                 g2.fillRect(x, height - SELECTED_TAB_JOIN_OVERLAP, w, SELECTED_TAB_JOIN_OVERLAP)
             }
         }
 
+        val tabColor = entry.color
+        if (tabColor != null) {
+            val isFadingIn = entry.id == selectedId && entry.id == fadingInId && fadeProgress < 1.0f
+            val isFadingOut = entry.id == fadingOutId
+            val lineAlpha =
+                when {
+                    isFadingIn -> 0.63f + 0.37f * fadeProgress
+                    isFadingOut -> 1.0f - 0.37f * fadeProgress
+                    entry.id == selectedId -> 1.0f
+                    else -> 0.63f
+                }
+            g2.color =
+                Color(
+                    tabColor.red,
+                    tabColor.green,
+                    tabColor.blue,
+                    (tabColor.alpha * lineAlpha).toInt().coerceIn(0, 255),
+                )
+            g2.stroke = BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
+            val stripePath = Path2D.Double()
+            stripePath.moveTo(bounds.left, bounds.top + bounds.corner)
+            stripePath.quadTo(bounds.left, bounds.top, bounds.left + bounds.corner, bounds.top)
+            stripePath.lineTo(bounds.right - bounds.corner, bounds.top)
+            stripePath.quadTo(bounds.right, bounds.top, bounds.right, bounds.top + bounds.corner)
+            g2.draw(stripePath)
+        }
+
         val drawBorder = index == tabHoverIndex
         if (drawBorder) {
             val borderAlpha =
-                when (entry.id) {
-                    selectedId -> {
+                when {
+                    entry.id == selectedId -> {
                         if (entry.id == fadingInId && fadeProgress < 1.0f) {
                             1.0f - fadeProgress
                         } else {
                             0.0f
                         }
                     }
-                    fadingOutId -> {
+                    entry.id == fadingOutId -> {
                         fadeProgress
                     }
                     else -> 1.0f
@@ -371,7 +400,7 @@ internal class LatticeTabBar(
                         (baseBorderColor.alpha * borderAlpha).toInt().coerceIn(0, 255),
                     )
                 g2.stroke = HAIRLINE_STROKE
-                resetTabShape(tabBorderShape, x, y, w, h, useSelectedShape, closePath = false)
+                resetTabShape(tabBorderShape, bounds, useSelectedShape, closePath = false)
                 g2.draw(tabBorderShape)
             }
         }
@@ -494,14 +523,10 @@ internal class LatticeTabBar(
 
     private fun resetTabShape(
         shape: Path2D.Double,
-        x: Int,
-        y: Int,
-        w: Int,
-        h: Int,
+        bounds: TabShapeBounds,
         selected: Boolean,
         closePath: Boolean,
     ) {
-        val bounds = TabShapeBounds(x, y, w, h)
         shape.reset()
         appendTabStart(shape, bounds, selected)
         appendTabTop(shape, bounds)
