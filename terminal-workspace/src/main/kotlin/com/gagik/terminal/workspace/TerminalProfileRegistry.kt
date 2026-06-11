@@ -19,7 +19,7 @@ import com.gagik.terminal.pty.TerminalPtyOptions
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-import java.util.Locale
+import java.util.*
 
 /**
  * Discovers built-in local terminal launch profiles.
@@ -54,6 +54,42 @@ class TerminalProfileRegistry(
                 ),
             )
         }
+
+    /**
+     * Builds a [TerminalProfile] from a user-configured shell path.
+     *
+     * This is the bridge between the persisted `shellPath` setting and the
+     * PTY launch pipeline. It is called at settings-apply time (never on the
+     * hot render/input path) and therefore may perform path resolution work.
+     *
+     * Display name resolution priority:
+     * 1. If [shellPath] matches the primary executable of a known built-in
+     *    profile (by basename, case-insensitive), that profile's polished
+     *    display name is used.
+     * 2. Otherwise the basename of [shellPath] is used.
+     *
+     * [TerminalProfileKind] is always derived from the command so that UI icons
+     * remain correct for all recognised shells.
+     *
+     * @param shellPath raw shell path from the persisted configuration (e.g.
+     *   `"powershell.exe"`, `"C:\\tools\\nu.exe"`, `"/bin/zsh"`).
+     * @param workingDirectory initial PTY working directory, or `null` for the
+     *   platform default.
+     * @return launch profile ready for use by the PTY session.
+     */
+    fun configuredProfile(
+        shellPath: String,
+        workingDirectory: java.nio.file.Path? = null,
+    ): TerminalProfile {
+        val command = listOf(shellPath)
+        val displayName = resolveDisplayName(shellPath)
+        return TerminalProfile(
+            id = CONFIGURED_SHELL_ID,
+            displayName = displayName,
+            command = command,
+            workingDirectory = workingDirectory,
+        )
+    }
 
     /**
      * Returns the initial profile. Explicit command-line arguments are preserved
@@ -187,7 +223,40 @@ class TerminalProfileRegistry(
 
     private fun isWindows(): Boolean = osName.lowercase(Locale.ROOT).contains("windows")
 
+    /**
+     * Resolves a human-readable display name for a configured shell path.
+     *
+     * Checks whether the basename of [shellPath] matches the primary executable
+     * of any built-in profile (case-insensitive). When matched, the built-in
+     * profile's polished display name is returned. Otherwise the basename of the
+     * path is used as a reasonable fallback.
+     */
+    private fun resolveDisplayName(shellPath: String): String {
+        val basename =
+            try {
+                Path.of(shellPath).fileName?.toString() ?: shellPath
+            } catch (_: RuntimeException) {
+                shellPath.substringAfterLast('\\').substringAfterLast('/')
+            }
+        val basenameLower = basename.lowercase(Locale.ROOT)
+        val builtIn =
+            availableProfiles().firstOrNull { profile ->
+                val profileExec =
+                    try {
+                        Path.of(profile.command.first()).fileName?.toString()
+                    } catch (_: RuntimeException) {
+                        profile.command
+                            .first()
+                            .substringAfterLast('\\')
+                            .substringAfterLast('/')
+                    }
+                profileExec?.lowercase(Locale.ROOT) == basenameLower
+            }
+        return builtIn?.displayName ?: basename
+    }
+
     private companion object {
         private const val WINDOWS_PROFILE_CAPACITY = 5
+        private const val CONFIGURED_SHELL_ID = "configured-shell"
     }
 }

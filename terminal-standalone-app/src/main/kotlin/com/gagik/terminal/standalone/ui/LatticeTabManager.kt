@@ -29,13 +29,17 @@ import javax.swing.*
  * [tabContentPanel] (holds one [LatticeTerminalPane] per tab via [CardLayout]),
  * and the backing [TerminalWorkspace]. All session lifecycle decisions live
  * here; reusable UI components remain policy-free.
+ *
+ * @property defaultProfileProvider supplier invoked each time a new default tab
+ *   or split pane is opened. Queried at open time — not cached — so that changes
+ *   to the configured shell take effect immediately on the next new tab.
  */
 internal class LatticeTabManager(
     private val frame: JFrame,
     val tabBar: LatticeTabBar,
     private val tabContentPanel: JPanel,
     private val settings: StandaloneTerminalSettings,
-    private val defaultProfile: TerminalProfile,
+    private val defaultProfileProvider: () -> TerminalProfile,
 ) {
     private val panes = ArrayList<LatticeTerminalPane>(INITIAL_TAB_CAPACITY)
     private val workspace = TerminalWorkspace(StandaloneWorkspaceListener())
@@ -79,7 +83,7 @@ internal class LatticeTabManager(
                         when (keyCode) {
                             KeyEvent.VK_T -> {
                                 if (!isShiftPressed) {
-                                    openTab(defaultProfile)
+                                    openTab(defaultProfileProvider())
                                     return@KeyEventDispatcher true
                                 }
                             }
@@ -107,7 +111,7 @@ internal class LatticeTabManager(
                     if (isCtrlPressed && isShiftPressed && !hasAlt) {
                         when (keyCode) {
                             KeyEvent.VK_T -> {
-                                openTab(defaultProfile)
+                                openTab(defaultProfileProvider())
                                 return@KeyEventDispatcher true
                             }
                             KeyEvent.VK_W -> {
@@ -302,7 +306,7 @@ internal class LatticeTabManager(
         val tabId = tabBar.selectedId() ?: return
         val root = tabRoots[tabId] ?: return
 
-        val profile = defaultProfile
+        val profile = defaultProfileProvider()
         val workspaceTab =
             try {
                 workspace.openTab(

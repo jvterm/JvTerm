@@ -131,4 +131,75 @@ class TerminalProfileRegistryTest {
             TerminalProfileKind.classify("custom", "Custom", listOf("custom-shell.exe")),
         )
     }
+
+    @Test
+    fun configuredProfileInheritsDisplayNameFromKnownWindowsShell() {
+        val registry =
+            TerminalProfileRegistry(
+                osName = "Windows 11",
+                environment =
+                    mapOf(
+                        "SystemRoot" to "C:\\Windows",
+                        "COMSPEC" to "C:\\Windows\\System32\\cmd.exe",
+                    ),
+                pathSeparator = ";",
+                executableExists = { path ->
+                    path == Path.of("C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe")
+                },
+            )
+
+        val profile = registry.configuredProfile("powershell.exe")
+
+        assertEquals("configured-shell", profile.id)
+        assertEquals("Windows PowerShell", profile.displayName)
+        assertEquals(listOf("powershell.exe"), profile.command)
+        assertEquals(TerminalProfileKind.POWERSHELL, profile.kind)
+    }
+
+    @Test
+    fun configuredProfileUsesBasenameForUnknownCustomShell() {
+        val registry =
+            TerminalProfileRegistry(
+                osName = "Windows 11",
+                environment = mapOf("COMSPEC" to "cmd.exe"),
+                pathSeparator = ";",
+                executableExists = { false },
+            )
+
+        val profile = registry.configuredProfile("C:\\tools\\nu.exe")
+
+        assertEquals("configured-shell", profile.id)
+        assertEquals("nu.exe", profile.displayName)
+        assertEquals(listOf("C:\\tools\\nu.exe"), profile.command)
+        assertEquals(TerminalProfileKind.DEFAULT, profile.kind)
+    }
+
+    @Test
+    fun configuredProfileClassifiesUnixShellCorrectly() {
+        val registry =
+            TerminalProfileRegistry(
+                osName = "Linux",
+                environment = emptyMap(),
+            )
+
+        val profile = registry.configuredProfile("/bin/zsh")
+
+        assertEquals("configured-shell", profile.id)
+        assertEquals(TerminalProfileKind.UNIX_SHELL, profile.kind)
+        assertEquals(listOf("/bin/zsh"), profile.command)
+    }
+
+    @Test
+    fun configuredProfileForwardsWorkingDirectory() {
+        val registry =
+            TerminalProfileRegistry(
+                osName = "Linux",
+                environment = emptyMap(),
+            )
+        val dir = Path.of("/home/user/projects")
+
+        val profile = registry.configuredProfile("/bin/bash", workingDirectory = dir)
+
+        assertEquals(dir, profile.workingDirectory)
+    }
 }

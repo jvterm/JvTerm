@@ -153,10 +153,8 @@ class TerminalWorkspaceConfigManager(
 
         [shell]
         # Command or path to the shell executable to run
-        # TODO(shell): support custom shell paths when starting PTY sessions
         path = "${config.shellPath}"
         # Initial working directory when opening a new tab
-        # TODO(shell): support custom start directories when starting PTY sessions
         start_directory = "${config.startDirectory}"
 
         [window]

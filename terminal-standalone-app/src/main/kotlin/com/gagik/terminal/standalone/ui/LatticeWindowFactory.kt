@@ -16,11 +16,12 @@
 package com.gagik.terminal.standalone.ui
 
 import com.gagik.terminal.standalone.config.StandaloneTerminalSettings
-import com.gagik.terminal.workspace.TerminalProfile
+import com.gagik.terminal.workspace.TerminalProfileRegistry
 import java.awt.CardLayout
 import java.awt.Dimension
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
+import java.nio.file.Path
 import javax.swing.*
 import javax.swing.border.EmptyBorder
 
@@ -32,10 +33,12 @@ import javax.swing.border.EmptyBorder
  * are active. We place [LatticeTabBar] at the left of the menu bar and the
  * action buttons at the right, with a horizontal glue in between.
  *
+ * @property profileRegistry source of available shell profiles for the new-tab
+ *   dropdown menu and the default-profile provider lambda.
  */
 internal class LatticeWindowFactory(
     private val settings: StandaloneTerminalSettings,
-    private val profiles: List<TerminalProfile>,
+    private val profileRegistry: TerminalProfileRegistry,
 ) {
     fun createWindow(): LatticeWindow {
         val frame =
@@ -55,17 +58,32 @@ internal class LatticeWindowFactory(
         lateinit var tabManager: LatticeTabManager
         lateinit var tabBar: LatticeTabBar
 
+        val availableProfiles = profileRegistry.availableProfiles()
+
+        // Builds a fresh configured profile from the current settings each time
+        // a new default tab or split is opened. This means shell changes in the
+        // Settings dialog take effect on the very next new tab without a restart.
+        val defaultProfileProvider: () -> com.gagik.terminal.workspace.TerminalProfile = {
+            profileRegistry.configuredProfile(
+                shellPath = settings.shellPath,
+                workingDirectory =
+                    settings.startDirectory
+                        .takeIf { it.isNotBlank() }
+                        ?.let { runCatching { Path.of(it) }.getOrNull() },
+            )
+        }
+
         tabBar =
             LatticeTabBar(
                 onTabSelected = { id -> tabManager.onTabSelected(id) },
                 onTabClose = { id -> tabManager.closeTab(id) },
-                onNewTab = { tabManager.openTab(profiles.first()) },
-                onMenuClick = { x, y -> showDropdownMenu(frame, tabBar, x, y, profiles, tabManager) },
+                onNewTab = { tabManager.openTab(defaultProfileProvider()) },
+                onMenuClick = { x, y -> showDropdownMenu(frame, tabBar, x, y, availableProfiles, tabManager, defaultProfileProvider) },
                 onTabColorChanged = { id, color -> tabManager.onTabColorChanged(id, color) },
                 onTabRenameRequested = { id, newName -> tabManager.onTabRenameRequested(id, newName) },
             )
 
-        tabManager = LatticeTabManager(frame, tabBar, tabContentPanel, settings, profiles.first())
+        tabManager = LatticeTabManager(frame, tabBar, tabContentPanel, settings, defaultProfileProvider)
 
         installMenuBar(frame, tabBar)
         styleTitleBar(frame)
@@ -104,8 +122,9 @@ internal class LatticeWindowFactory(
         invoker: java.awt.Component,
         x: Int,
         y: Int,
-        profiles: List<TerminalProfile>,
+        profiles: List<com.gagik.terminal.workspace.TerminalProfile>,
         tabManager: LatticeTabManager,
+        defaultProfileProvider: () -> com.gagik.terminal.workspace.TerminalProfile,
     ) {
         val popup =
             JPopupMenu().apply {

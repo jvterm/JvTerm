@@ -37,7 +37,7 @@ private object LatticeStandaloneApp {
         com.gagik.terminal.standalone.ui.LatticeChrome
             .applyPalette(settings.current().palette)
         val profileRegistry = TerminalProfileRegistry()
-        val windowFactory = LatticeWindowFactory(settings, profileRegistry.availableProfiles())
+        val windowFactory = LatticeWindowFactory(settings, profileRegistry)
         val window = windowFactory.createWindow()
         val frame = window.frame
 
