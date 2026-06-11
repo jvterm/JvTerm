@@ -22,11 +22,11 @@
             fill: url(#Unbenannter_Verlauf_37);
             }
         </style>
-        <linearGradient id="Unbenannter_Verlauf_13" data-name="Unbenannter Verlauf 13" x1="20.89856" y1="28.70122" x2="160.51789" y2="270.52899" gradientUnits="userSpaceOnUse">
+        <linearGradient id="Unbenannter_Verlauf_13">
             <stop offset="0" stop-color="#0078d3"/>
             <stop offset="1" stop-color="#0c5aa5"/>
         </linearGradient>
-        <radialGradient id="Unbenannter_Verlauf_25" data-name="Unbenannter Verlauf 25" cx="96.61321" cy="162.92136" fx="96.61321" fy="162.92136" r="40.58323" gradientTransform="translate(-28.32862 259.53456) rotate(-90) scale(1 .76688)" gradientUnits="userSpaceOnUse">
+        <radialGradient id="Unbenannter_Verlauf_25">
             <stop offset="0" stop-color="#c86508"/>
             <stop offset="1" stop-color="#bf6009"/>
         </radialGradient>
@@ -35,18 +35,17 @@
             <feGaussianBlur result="blur" stdDeviation="8"/>
             <feFlood flood-color="#000" flood-opacity=".4"/>
             <feComposite in2="blur" operator="in"/>
-            <feComposite in="SourceGraphic"/>
         </filter>
-        <radialGradient id="Unbenannter_Verlauf_20" data-name="Unbenannter Verlauf 20" cx="96.5" cy="154.76035" fx="96.5" fy="154.76035" r="40.36821" gradientTransform="translate(-2.6625 251.26035) rotate(-90) scale(1 .64075)" gradientUnits="userSpaceOnUse">
+        <radialGradient id="Unbenannter_Verlauf_20">
             <stop offset="0" stop-color="#ef8506"/>
             <stop offset="1" stop-color="#ed7e03"/>
         </radialGradient>
-        <radialGradient id="Unbenannter_Verlauf_37" data-name="Unbenannter Verlauf 37" cx="96.95112" cy="129.9307" fx="96.95112" fy="129.9307" r="103.07409" gradientTransform="translate(-11.25307 226.88182) rotate(-90) scale(1 .83279)" gradientUnits="userSpaceOnUse">
+        <radialGradient id="Unbenannter_Verlauf_37">
             <stop offset=".0784" stop-color="#ffc700"/>
             <stop offset="1" stop-color="#ffc700"/>
         </radialGradient>
     </defs>
-    <g id="Ebene_1-2" data-name="Ebene 1">
+    <g id="Ebene_1-2">
         <path class="cls-4" d="M96.49981,0h.00019C149.7598,0,193,43.2402,193,96.5v149.5c0,5.51915-4.48085,10-10,10H10C4.48085,256,0,251.51915,0,246V96.49981C0,43.24011,43.24011,0,96.49981,0Z"/>
         <circle class="cls-2" cx="56.5" cy="87.11" r="32"/>
         <circle class="cls-2" cx="136.5" cy="87.11" r="32"/>
