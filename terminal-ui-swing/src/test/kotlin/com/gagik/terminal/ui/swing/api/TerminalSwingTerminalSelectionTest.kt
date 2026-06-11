@@ -285,6 +285,112 @@ class TerminalSwingTerminalSelectionTest {
     }
 
     @Test
+    fun `middle click with pasteOnMiddleClick enabled pastes clipboard text`() {
+        val clipboard = RecordingClipboard(readValue = "middle click pasted text")
+        val input = RecordingInputEncoder()
+        val frame = TestRenderFrame.text("ready")
+        val session = testSession(frame = frame, inputEncoder = input)
+        val component =
+            TerminalSwingTerminal(
+                settingsProvider = {
+                    TerminalSwingSettings(
+                        pasteOnMiddleClick = true,
+                        padding = Insets(0, 0, 0, 0),
+                    )
+                },
+                hostServices =
+                    TerminalSwingHostServices(
+                        clipboardHandler = clipboard,
+                    ),
+            )
+
+        session.start(columns = 5, rows = 1)
+        SwingUtilities.invokeAndWait {
+            component.setSize(300, 80)
+            component.bind(session)
+            component.mouseListeners.forEach {
+                it.mousePressed(mousePressedMiddle(component, x = 8, y = 8, clickCount = 1))
+            }
+        }
+
+        assertEquals("middle click pasted text", input.pasteText.get())
+        session.close()
+    }
+
+    @Test
+    fun `middle click with pasteOnMiddleClick disabled does not paste clipboard text`() {
+        val clipboard = RecordingClipboard(readValue = "middle click pasted text")
+        val input = RecordingInputEncoder()
+        val frame = TestRenderFrame.text("ready")
+        val session = testSession(frame = frame, inputEncoder = input)
+        val component =
+            TerminalSwingTerminal(
+                settingsProvider = {
+                    TerminalSwingSettings(
+                        pasteOnMiddleClick = false,
+                        padding = Insets(0, 0, 0, 0),
+                    )
+                },
+                hostServices =
+                    TerminalSwingHostServices(
+                        clipboardHandler = clipboard,
+                    ),
+            )
+
+        session.start(columns = 5, rows = 1)
+        SwingUtilities.invokeAndWait {
+            component.setSize(300, 80)
+            component.bind(session)
+            component.mouseListeners.forEach {
+                it.mousePressed(mousePressedMiddle(component, x = 8, y = 8, clickCount = 1))
+            }
+        }
+
+        assertNull(input.pasteText.get())
+        session.close()
+    }
+
+    @Test
+    fun `middle click when mouse tracking is active is encoded and does not paste`() {
+        val clipboard = RecordingClipboard(readValue = "middle click pasted text")
+        val input = RecordingInputEncoder()
+        val frame = TestRenderFrame.text("ready")
+        val session = testSession(frame = frame, inputEncoder = input)
+        val component =
+            TerminalSwingTerminal(
+                settingsProvider = {
+                    TerminalSwingSettings(
+                        pasteOnMiddleClick = true,
+                        padding = Insets(0, 0, 0, 0),
+                    )
+                },
+                hostServices =
+                    TerminalSwingHostServices(
+                        clipboardHandler = clipboard,
+                    ),
+            )
+
+        session.start(columns = 5, rows = 1)
+        session.terminal.setMouseTrackingMode(com.gagik.terminal.protocol.MouseTrackingMode.NORMAL)
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(300, 80)
+            component.bind(session)
+            component.mouseListeners.forEach {
+                it.mousePressed(mousePressedMiddle(component, x = 8, y = 8, clickCount = 1))
+            }
+        }
+
+        assertNull(input.pasteText.get())
+        val mouseEvent = input.lastMouseEvent.get()
+        assertNotNull(mouseEvent)
+        assertEquals(com.gagik.terminal.input.event.TerminalMouseButton.MIDDLE, mouseEvent!!.button)
+        assertEquals(com.gagik.terminal.input.event.TerminalMouseEventType.PRESS, mouseEvent.type)
+
+        session.close()
+    }
+
+    @Test
     fun `copy shortcut without selection falls through to terminal input`() {
         val clipboard = RecordingClipboard()
         val input = RecordingInputEncoder()
@@ -451,6 +557,41 @@ class TerminalSwingTerminalSelectionTest {
             clickCount,
             false,
             MouseEvent.BUTTON1,
+        )
+
+    private fun mousePressedMiddle(
+        component: TerminalSwingTerminal,
+        x: Int,
+        y: Int,
+        clickCount: Int,
+    ): MouseEvent =
+        MouseEvent(
+            component,
+            MouseEvent.MOUSE_PRESSED,
+            System.currentTimeMillis(),
+            InputEvent.BUTTON2_DOWN_MASK,
+            x,
+            y,
+            clickCount,
+            false,
+            MouseEvent.BUTTON2,
+        )
+
+    private fun mouseReleasedMiddle(
+        component: TerminalSwingTerminal,
+        x: Int,
+        y: Int,
+    ): MouseEvent =
+        MouseEvent(
+            component,
+            MouseEvent.MOUSE_RELEASED,
+            System.currentTimeMillis(),
+            InputEvent.BUTTON2_DOWN_MASK,
+            x,
+            y,
+            1,
+            false,
+            MouseEvent.BUTTON2,
         )
 
     private fun mouseDragged(
@@ -678,6 +819,7 @@ class TerminalSwingTerminalSelectionTest {
 
     private class RecordingInputEncoder : TerminalInputEncoder {
         val pasteText = AtomicReference<String?>()
+        val lastMouseEvent = AtomicReference<TerminalMouseEvent?>()
         var keyCount: Int = 0
             private set
 
@@ -691,7 +833,9 @@ class TerminalSwingTerminalSelectionTest {
 
         override fun encodeFocus(event: TerminalFocusEvent) = Unit
 
-        override fun encodeMouse(event: TerminalMouseEvent) = Unit
+        override fun encodeMouse(event: TerminalMouseEvent) {
+            lastMouseEvent.set(event)
+        }
     }
 
     private object NoOpConnector : TerminalConnector {

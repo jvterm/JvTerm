@@ -142,6 +142,7 @@ internal class StandaloneTerminalSettings(
             treatAmbiguousAsWide = config.treatAmbiguousAsWide,
             cursorBlinkMillis = config.cursorBlinkMillis,
             useSystemFallbackFonts = config.useSystemFallbackFonts,
+            pasteOnMiddleClick = config.pasteOnMiddleClick,
         )
 
     private fun updateConfig(newConfig: TerminalConfig) {

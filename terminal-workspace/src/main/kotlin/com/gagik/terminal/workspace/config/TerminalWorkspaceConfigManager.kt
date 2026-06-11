@@ -196,7 +196,6 @@ class TerminalWorkspaceConfigManager(
         # TODO(parser/core/integration): in-band BEL (\u0007) byte recognition and dispatch
         audible_bell = ${config.audibleBell}
         # Automatically paste clipboard contents when the middle mouse button is clicked
-        # TODO(input): implement middle click paste in the UI event handler
         paste_on_middle_click = ${config.pasteOnMiddleClick}
         """.trimIndent()
 

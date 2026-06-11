@@ -54,6 +54,7 @@ import java.util.*
  * @property searchActiveMatchBackground packed ARGB overlay used for the active
  * search result.
  * @property padding internal margins around the terminal grid in pixels.
+ * @property pasteOnMiddleClick whether middle mouse button click triggers a clipboard paste.
  */
 data class TerminalSwingSettings(
     val font: Font = defaultTerminalFont(),
@@ -72,6 +73,7 @@ data class TerminalSwingSettings(
     val searchMatchBackground: Int = DEFAULT_SEARCH_MATCH_BACKGROUND,
     val searchActiveMatchBackground: Int = DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND,
     val padding: Insets = Insets(12, 12, 12, 12),
+    val pasteOnMiddleClick: Boolean = true,
 ) {
     init {
         require(columns > 0) { "columns must be > 0, was $columns" }

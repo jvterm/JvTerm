@@ -620,7 +620,7 @@ professional emulator needs explicit contracts for it.
   dispatch through the parser/core/integration pipeline to the host event sink.
   Currently the host listener fires correctly from the PTY process exit path
   but the in-band BEL control character is not yet parsed and dispatched.
-- `TODO(input)`: middle click paste in the UI event handler.
+- `DONE(host/swing)`: middle-click paste is now supported, governed by `settings.pasteOnMiddleClick`.
 - `TODO(host)`: UI scrollback controls, scrollbar policy, selection behavior
   while scrolled, and auto-follow/offset-retention policy.
 - `TODO(host)`: accessibility/export APIs.

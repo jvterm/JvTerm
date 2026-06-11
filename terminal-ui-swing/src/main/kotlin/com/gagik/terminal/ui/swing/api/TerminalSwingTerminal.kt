@@ -233,7 +233,15 @@ class TerminalSwingTerminal(
     private val selectionMouseListener =
         object : MouseAdapter() {
             override fun mousePressed(event: MouseEvent) {
+                if (handleMouseTracking(event, TerminalMouseEventType.PRESS)) return
                 if (hyperlinkController.handleMousePressed(event)) return
+                if (SwingUtilities.isMiddleMouseButton(event)) {
+                    if (settings.pasteOnMiddleClick) {
+                        pasteClipboardText()
+                        event.consume()
+                        return
+                    }
+                }
                 selectionController.handleSelectionMousePressed(event)
             }
 
