@@ -56,10 +56,14 @@ internal data class TerminalSwingMetrics(
          * @return stable metrics for terminal grid painting.
          */
         @JvmStatic
-        fun from(fontMetrics: FontMetrics): TerminalSwingMetrics {
+        fun from(
+            fontMetrics: FontMetrics,
+            lineHeight: Float = 1.0f,
+        ): TerminalSwingMetrics {
             val cellWidth = maxOf(1, fontMetrics.charWidth('W'))
-            val cellHeight = maxOf(1, fontMetrics.height)
-            val baseline = fontMetrics.ascent
+            val originalHeight = fontMetrics.height
+            val cellHeight = maxOf(1, (originalHeight * lineHeight).toInt())
+            val baseline = (fontMetrics.ascent + (cellHeight - originalHeight) / 2).coerceIn(0, cellHeight)
             val underlineY = minOf(cellHeight - 1, baseline + 1)
             val strikethroughY = maxOf(0, baseline - fontMetrics.ascent / 3)
             return TerminalSwingMetrics(

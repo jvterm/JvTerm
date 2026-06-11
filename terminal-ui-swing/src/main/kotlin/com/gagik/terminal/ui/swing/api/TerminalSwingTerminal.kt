@@ -1023,7 +1023,7 @@ class TerminalSwingTerminal(
 
     private fun buildMetrics(settings: TerminalSwingSettings): TerminalSwingMetrics {
         val metricsSource: FontMetrics = getFontMetrics(settings.font)
-        return TerminalSwingMetrics.from(metricsSource)
+        return TerminalSwingMetrics.from(metricsSource, settings.lineHeight)
     }
 
     private fun runOnEdt(action: Runnable) {

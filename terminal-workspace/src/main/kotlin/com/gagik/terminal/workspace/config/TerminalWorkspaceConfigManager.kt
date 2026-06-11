@@ -173,7 +173,6 @@ class TerminalWorkspaceConfigManager(
         # Font size in points
         size = ${config.fontSize}
         # Line height multiplier
-        # TODO(typography): support custom line spacing metrics in the text renderer
         line_height = ${config.lineHeight}
         # Whether the complex-text renderer may use installed system fonts as fallback
         use_system_fallback_fonts = ${config.useSystemFallbackFonts}

@@ -58,6 +58,7 @@ import java.util.*
  * @property pasteOnMiddleClick whether middle mouse button click triggers a clipboard paste.
  * @property cursorShape default cursor shape configured for the session.
  * @property scrollbackLines maximum scrollback lines retained by the terminal.
+ * @property lineHeight vertical line height scaling factor.
  */
 data class TerminalSwingSettings(
     val font: Font = defaultTerminalFont(),
@@ -79,6 +80,7 @@ data class TerminalSwingSettings(
     val pasteOnMiddleClick: Boolean = true,
     val cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK,
     val scrollbackLines: Int = 1000,
+    val lineHeight: Float = 1.0f,
 ) {
     init {
         require(columns > 0) { "columns must be > 0, was $columns" }
@@ -88,6 +90,9 @@ data class TerminalSwingSettings(
         }
         require(scrollbackLines >= 0) {
             "scrollbackLines must be >= 0, was $scrollbackLines"
+        }
+        require(lineHeight > 0f) {
+            "lineHeight must be > 0, was $lineHeight"
         }
     }
 

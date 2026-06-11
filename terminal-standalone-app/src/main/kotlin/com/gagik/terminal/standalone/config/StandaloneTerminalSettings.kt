@@ -146,6 +146,7 @@ internal class StandaloneTerminalSettings(
             pasteOnMiddleClick = config.pasteOnMiddleClick,
             cursorShape = parseCursorShape(config.cursorShape),
             scrollbackLines = config.scrollbackLines,
+            lineHeight = config.lineHeight,
         )
 
     private fun parseCursorShape(shape: String): TerminalRenderCursorShape =
