@@ -57,7 +57,10 @@ class TerminalSwingTerminal(
     private var session: TerminalSession? = null
     private var settings: TerminalSwingSettings = settingsProvider.currentSettings()
     private var metrics: TerminalSwingMetrics = buildMetrics(settings)
+    private var terminalFocused: Boolean = false
     internal var cursorBlinkVisible: Boolean = true
+    internal val cursorPresentationEnabled: Boolean
+        get() = terminalFocused
     private var lastResizedColumns: Int = NO_RESIZE_DIMENSION
     private var lastResizedRows: Int = NO_RESIZE_DIMENSION
     private var searchQuery: String = ""
@@ -208,6 +211,20 @@ class TerminalSwingTerminal(
             }
         }
 
+    private val terminalFocusListener =
+        object : FocusAdapter() {
+            override fun focusGained(event: FocusEvent) {
+                terminalFocused = true
+                resetCursorBlinkOnEdt(forceRepaint = false)
+                repaintCursorState()
+            }
+
+            override fun focusLost(event: FocusEvent) {
+                terminalFocused = false
+                repaintCursorState()
+            }
+        }
+
     private val viewportWheelListener =
         MouseWheelListener { event ->
             handleMouseWheel(event)
@@ -260,6 +277,7 @@ class TerminalSwingTerminal(
         isOpaque = true
         isFocusable = true
         focusTraversalKeysEnabled = false
+        addFocusListener(terminalFocusListener)
         addKeyListener(inputKeyListener)
         addMouseListener(selectionMouseListener)
         addMouseMotionListener(selectionMouseMotionListener)
@@ -396,10 +414,12 @@ class TerminalSwingTerminal(
 
     override fun addNotify() {
         super.addNotify()
+        terminalFocused = isFocusOwner
         cursorTimer.start()
     }
 
     override fun removeNotify() {
+        terminalFocused = false
         cursorTimer.stop()
         selectionController.stopSelectionDrag()
         super.removeNotify()
@@ -435,6 +455,7 @@ class TerminalSwingTerminal(
                 metrics = metrics,
                 width = width,
                 height = height,
+                cursorVisible = cursorPresentationEnabled,
                 cursorBlinkVisible = cursorBlinkVisible,
                 textBlinkVisible = cursorBlinkVisible,
                 contentYOffset = contentYOffset(renderCache),
@@ -745,7 +766,18 @@ class TerminalSwingTerminal(
     private fun repaintBlinkState() {
         if (session == null) return
         val yOffset = contentYOffset(renderCache)
-        repaintPlanner.requestCursorBlinkRepaint(
+        if (terminalFocused) {
+            repaintPlanner.requestCursorBlinkRepaint(
+                cache = renderCache,
+                metrics = metrics,
+                componentWidth = width,
+                componentHeight = height,
+                contentYOffset = yOffset,
+                padding = settings.padding,
+                repaintSink = repaintSink,
+            )
+        }
+        repaintPlanner.requestBlinkingTextRepaint(
             cache = renderCache,
             metrics = metrics,
             componentWidth = width,
@@ -754,7 +786,12 @@ class TerminalSwingTerminal(
             padding = settings.padding,
             repaintSink = repaintSink,
         )
-        repaintPlanner.requestBlinkingTextRepaint(
+    }
+
+    private fun repaintCursorState() {
+        if (session == null) return
+        val yOffset = contentYOffset(renderCache)
+        repaintPlanner.requestCursorRepaint(
             cache = renderCache,
             metrics = metrics,
             componentWidth = width,

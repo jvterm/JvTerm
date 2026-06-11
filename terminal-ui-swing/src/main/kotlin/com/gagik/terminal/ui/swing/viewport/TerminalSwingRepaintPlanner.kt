@@ -168,6 +168,37 @@ internal class TerminalSwingRepaintPlanner {
     }
 
     /**
+     * Requests a repaint for the current cursor cell regardless of blink mode.
+     */
+    fun requestCursorRepaint(
+        cache: TerminalRenderCache,
+        metrics: TerminalSwingMetrics,
+        componentWidth: Int,
+        componentHeight: Int,
+        contentYOffset: Double,
+        padding: java.awt.Insets,
+        repaintSink: TerminalRepaintSink,
+    ) {
+        if (!cache.cursorVisible) return
+
+        repaintCursorIfNeeded(
+            known = true,
+            column = cache.cursorColumn,
+            row = cache.cursorRow,
+            visible = true,
+            cache = cache,
+            metrics = metrics,
+            componentWidth = componentWidth,
+            componentHeight = componentHeight,
+            visibleRows = visibleRows(cache, metrics, componentHeight, padding.top, padding.bottom),
+            contentYOffset = contentYOffset,
+            padding = padding,
+            skipChangedRows = false,
+            repaintSink = repaintSink,
+        )
+    }
+
+    /**
      * Requests repaints for visible rows containing SGR blinking text.
      */
     fun requestBlinkingTextRepaint(

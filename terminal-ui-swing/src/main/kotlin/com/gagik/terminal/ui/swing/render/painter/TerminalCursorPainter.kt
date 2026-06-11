@@ -43,8 +43,9 @@ internal class TerminalCursorPainter(
         cursorBlinkVisible: Boolean,
         textBlinkVisible: Boolean,
         fontRenderContext: FontRenderContext,
+        cursorVisible: Boolean = true,
     ) {
-        if (!cache.cursorVisible || (cache.cursorBlinking && !cursorBlinkVisible)) return
+        if (!cursorVisible || !cache.cursorVisible || (cache.cursorBlinking && !cursorBlinkVisible)) return
         if (cache.cursorColumn !in 0 until cache.columns || cache.cursorRow !in 0 until cache.rows) return
 
         val cursorIndex = cache.rowOffset(cache.cursorRow) + cache.cursorColumn

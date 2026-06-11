@@ -72,6 +72,7 @@ internal class TerminalGridPainter {
         height: Int,
         cursorBlinkVisible: Boolean,
         textBlinkVisible: Boolean = true,
+        cursorVisible: Boolean = true,
         contentYOffset: Double = 0.0,
         selection: CellSelection? = null,
         searchHighlights: TerminalSearchViewportHighlights? = null,
@@ -125,7 +126,16 @@ internal class TerminalGridPainter {
                 row++
             }
 
-            cursorPainter.paint(g, cache, palette, metrics, cursorBlinkVisible, textBlinkVisible, fontRenderContext)
+            cursorPainter.paint(
+                g,
+                cache,
+                palette,
+                metrics,
+                cursorBlinkVisible,
+                textBlinkVisible,
+                fontRenderContext,
+                cursorVisible = cursorVisible,
+            )
         } finally {
             g.translate(-padding.left.toDouble(), -(padding.top.toDouble() + contentYOffset))
         }

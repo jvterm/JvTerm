@@ -55,6 +55,15 @@ class TerminalCursorPainterTest {
         }
 
         @Test
+        fun `does not paint cursor when presentation is disabled`() {
+            val fixture = fixture(cursor(blinking = false))
+
+            fixture.paint(cursorVisible = false)
+
+            assertTrue(!fixture.image.containsColor(TEST_BLUE, fixture.metrics.cellWidth, fixture.metrics.cellHeight))
+        }
+
+        @Test
         fun `ignores cursor outside cache bounds`() {
             val fixture = fixture(cursor(column = 2))
 
@@ -155,11 +164,21 @@ class TerminalCursorPainterTest {
         fun paint(
             cursorBlinkVisible: Boolean = true,
             textBlinkVisible: Boolean = true,
+            cursorVisible: Boolean = true,
         ) {
             textPainter.updateSettings(settings)
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, settings.textAntialiasing)
             g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, settings.fractionalMetrics)
-            painter.paint(g, cache, settings.palette, metrics, cursorBlinkVisible, textBlinkVisible, g.fontRenderContext)
+            painter.paint(
+                g,
+                cache,
+                settings.palette,
+                metrics,
+                cursorBlinkVisible,
+                textBlinkVisible,
+                g.fontRenderContext,
+                cursorVisible = cursorVisible,
+            )
         }
     }
 
