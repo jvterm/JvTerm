@@ -92,13 +92,6 @@ class TerminalWorkspaceConfigManager(
                     min = TerminalConfig.ROWS_MIN,
                     max = TerminalConfig.ROWS_MAX,
                 )
-            val windowOpacity =
-                parseFloatSetting(
-                    raw = window["opacity"],
-                    defaultValue = default.windowOpacity,
-                    min = TerminalConfig.WINDOW_OPACITY_MIN,
-                    max = TerminalConfig.WINDOW_OPACITY_MAX,
-                )
             val cursorBlinkMillis =
                 parseIntSetting(
                     raw = behavior["cursor_blink_millis"],
@@ -140,7 +133,6 @@ class TerminalWorkspaceConfigManager(
                 pasteOnMiddleClick = pasteOnMiddleClick,
                 scrollbackLines = scrollbackLines,
                 lineHeight = lineHeight,
-                windowOpacity = windowOpacity,
             )
         } catch (e: Exception) {
             try {
@@ -193,9 +185,6 @@ class TerminalWorkspaceConfigManager(
         rows = ${config.rows}
         # Maximum number of lines to retain in the scrollback buffer
         scrollback_lines = ${config.scrollbackLines}
-        # Window opacity (1.0 = fully opaque, 0.1 = mostly transparent)
-        # TODO(opacity): support translucent Swing windows in the UI host
-        opacity = ${config.windowOpacity}
 
         [font]
         # Primary monospace font family

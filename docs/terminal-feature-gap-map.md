@@ -612,7 +612,6 @@ professional emulator needs explicit contracts for it.
   `TerminalProfileRegistry.configuredProfile()` and stamped onto all tab-open
   paths (new tab, split, initial tab, and dropdown profile picker).
 - `TODO(host)`: custom line spacing/height metrics in the renderer.
-- `TODO(host)`: translucent window opacity support in Swing.
 - `DONE(host)`: audible bell setting (`audibleBell`) is now respected — the
   standalone app guards `Toolkit.beep()` with the current `settings.audibleBell`
   value, read live on each bell event.

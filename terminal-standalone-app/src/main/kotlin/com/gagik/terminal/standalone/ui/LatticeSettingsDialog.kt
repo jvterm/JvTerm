@@ -126,14 +126,6 @@ internal class LatticeSettingsDialog(
         createSpinner(settings.rows, TerminalConfig.ROWS_MIN, TerminalConfig.ROWS_MAX, 1, 80)
     private val scrollbackSpinner =
         createSpinner(settings.scrollbackLines, TerminalConfig.SCROLLBACK_MIN, TerminalConfig.SCROLLBACK_MAX, 100, 80)
-    private val windowOpacitySpinner =
-        createFloatSpinner(
-            settings.windowOpacity,
-            TerminalConfig.WINDOW_OPACITY_MIN.toDouble(),
-            TerminalConfig.WINDOW_OPACITY_MAX.toDouble(),
-            0.05,
-            80,
-        )
     private val themeCombo = createComboBox(TerminalTheme.entries.map { it.name }.toTypedArray(), settings.theme.name, 220)
 
     // Form Controls - Behavior
@@ -309,7 +301,6 @@ internal class LatticeSettingsDialog(
         val windowSection = createSectionPanel()
         addFormRow(windowSection, 0, "Columns:", columnsSpinner, "Rows:", rowsSpinner)
         addFormRow(windowSection, 1, "Scrollback lines:", scrollbackSpinner)
-        addFormRow(windowSection, 2, "Window opacity:", windowOpacitySpinner)
         panel.add(windowSection)
 
         return panel
@@ -496,7 +487,6 @@ internal class LatticeSettingsDialog(
         settings.pasteOnMiddleClick = pasteOnMiddleClickCheckbox.isSelected
         settings.scrollbackLines = scrollbackSpinner.value as Int
         settings.lineHeight = (lineHeightSpinner.value as Double).toFloat()
-        settings.windowOpacity = (windowOpacitySpinner.value as Double).toFloat()
 
         settings.fontFamily = fontFamilyCombo.selectedItem as String
         settings.fontSize = fontSizeSpinner.value as Int

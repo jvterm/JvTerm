@@ -163,7 +163,6 @@ class TerminalConfigTest {
             columns = 999999
             rows = -42
             scrollback_lines = 999999999999999999999999
-            opacity = 12.5
 
             [font]
             family = "JetBrains Mono"
@@ -184,7 +183,6 @@ class TerminalConfigTest {
         assertEquals(TerminalConfig.COLUMNS_MAX, loaded.columns)
         assertEquals(TerminalConfig.ROWS_MIN, loaded.rows)
         assertEquals(TerminalConfig.SCROLLBACK_MAX, loaded.scrollbackLines)
-        assertEquals(TerminalConfig.WINDOW_OPACITY_MAX, loaded.windowOpacity)
         assertEquals(TerminalConfig.FONT_SIZE_MIN, loaded.fontSize)
         assertEquals(TerminalConfig.LINE_HEIGHT_MIN, loaded.lineHeight)
         assertEquals(TerminalConfig.CURSOR_BLINK_MAX, loaded.cursorBlinkMillis)

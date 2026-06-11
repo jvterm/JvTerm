@@ -42,7 +42,6 @@ package com.gagik.terminal.workspace.config
  * @property pasteOnMiddleClick whether middle mouse click should paste clipboard text.
  * @property scrollbackLines maximum retained scrollback lines.
  * @property lineHeight font metric line-height multiplier.
- * @property windowOpacity requested host window opacity.
  */
 data class TerminalConfig(
     val theme: String = "one-dark",
@@ -60,7 +59,6 @@ data class TerminalConfig(
     val pasteOnMiddleClick: Boolean = true,
     val scrollbackLines: Int = 1000,
     val lineHeight: Float = 1.0f,
-    val windowOpacity: Float = 1.0f,
 ) {
     init {
         require(columns in COLUMNS_MIN..COLUMNS_MAX) {
@@ -84,9 +82,6 @@ data class TerminalConfig(
         }
         require(lineHeight in LINE_HEIGHT_MIN..LINE_HEIGHT_MAX) {
             "lineHeight must be in ${LINE_HEIGHT_MIN}..${LINE_HEIGHT_MAX}, was $lineHeight"
-        }
-        require(windowOpacity in WINDOW_OPACITY_MIN..WINDOW_OPACITY_MAX) {
-            "windowOpacity must be in ${WINDOW_OPACITY_MIN}..${WINDOW_OPACITY_MAX}, was $windowOpacity"
         }
     }
 
@@ -120,8 +115,5 @@ data class TerminalConfig(
 
         const val LINE_HEIGHT_MIN: Float = 0.7f
         const val LINE_HEIGHT_MAX: Float = 1.5f
-
-        const val WINDOW_OPACITY_MIN: Float = 0.1f
-        const val WINDOW_OPACITY_MAX: Float = 1.0f
     }
 }

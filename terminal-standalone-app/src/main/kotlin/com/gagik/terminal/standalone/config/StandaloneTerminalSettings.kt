@@ -128,12 +128,6 @@ internal class StandaloneTerminalSettings(
             updateConfig(config.copy(lineHeight = value))
         }
 
-    var windowOpacity: Float
-        get() = config.windowOpacity
-        set(value) {
-            updateConfig(config.copy(windowOpacity = value))
-        }
-
     fun current(): TerminalSwingSettings =
         TerminalSwingSettings(
             font = Font(config.fontFamily, Font.PLAIN, config.fontSize),
