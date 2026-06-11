@@ -17,28 +17,51 @@ package com.gagik.terminal.standalone.config
 
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import com.gagik.terminal.ui.swing.settings.TerminalTheme
+import com.gagik.terminal.workspace.config.TerminalConfig
+import com.gagik.terminal.workspace.config.TerminalWorkspaceConfigManager
+import java.awt.Font
+import java.util.*
 
 /**
- * Mutable standalone application settings model.
+ * Standalone application settings model integrated with TOML configuration.
  *
- * The reusable Swing terminal still consumes immutable settings snapshots. This
- * host model owns the mutable app preferences and creates fresh snapshots when
- * the user changes a menu setting.
+ * It acts as the bridge between host-neutral persisted [TerminalConfig] and
+ * host-specific Swing settings. Changes to configuration parameters are immediately
+ * saved to disk.
  */
-internal class StandaloneTerminalSettings {
-    var theme: TerminalTheme = TerminalTheme.ONE_DARK
-    var treatAmbiguousAsWide: Boolean = false
+internal class StandaloneTerminalSettings(
+    private val configManager: TerminalWorkspaceConfigManager = TerminalWorkspaceConfigManager.getDefault(),
+) {
+    private var config: TerminalConfig = configManager.load()
+
+    var theme: TerminalTheme
+        get() =
+            TerminalTheme.entries.firstOrNull {
+                it.name.lowercase(Locale.ROOT).replace('_', '-') == config.theme
+            } ?: TerminalTheme.ONE_DARK
+        set(value) {
+            updateConfig(config.copy(theme = value.name.lowercase(Locale.ROOT).replace('_', '-')))
+        }
+
+    var treatAmbiguousAsWide: Boolean
+        get() = config.treatAmbiguousAsWide
+        set(value) {
+            updateConfig(config.copy(treatAmbiguousAsWide = value))
+        }
 
     fun current(): TerminalSwingSettings =
         TerminalSwingSettings(
-            columns = INITIAL_COLUMNS,
-            rows = INITIAL_ROWS,
+            font = Font(config.fontFamily, Font.PLAIN, config.fontSize),
+            columns = config.columns,
+            rows = config.rows,
             palette = theme.createPalette(),
-            treatAmbiguousAsWide = treatAmbiguousAsWide,
+            treatAmbiguousAsWide = config.treatAmbiguousAsWide,
+            cursorBlinkMillis = config.cursorBlinkMillis,
+            useSystemFallbackFonts = config.useSystemFallbackFonts,
         )
 
-    private companion object {
-        private const val INITIAL_COLUMNS = 100
-        private const val INITIAL_ROWS = 30
+    private fun updateConfig(newConfig: TerminalConfig) {
+        config = newConfig
+        configManager.save(newConfig)
     }
 }
