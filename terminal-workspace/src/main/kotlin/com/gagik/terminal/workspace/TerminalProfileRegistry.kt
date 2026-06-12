@@ -75,25 +75,16 @@ class TerminalProfileRegistry(
         shellPath: String,
         workingDirectory: Path? = null,
     ): TerminalProfile {
-        val basename =
-            try {
-                Path.of(shellPath).fileName?.toString() ?: shellPath
-            } catch (_: RuntimeException) {
-                shellPath.substringAfterLast('\\').substringAfterLast('/')
-            }
+        val basename = shellPath.substringAfterLast('\\').substringAfterLast('/')
         val basenameLower = basename.lowercase(Locale.ROOT)
         val builtIn =
             availableProfiles().firstOrNull { profile ->
                 val profileExec =
-                    try {
-                        Path.of(profile.command.first()).fileName?.toString()
-                    } catch (_: RuntimeException) {
-                        profile.command
-                            .first()
-                            .substringAfterLast('\\')
-                            .substringAfterLast('/')
-                    }
-                profileExec?.lowercase(Locale.ROOT) == basenameLower
+                    profile.command
+                        .first()
+                        .substringAfterLast('\\')
+                        .substringAfterLast('/')
+                profileExec.lowercase(Locale.ROOT) == basenameLower
             }
         val command =
             if (builtIn != null) {

@@ -15,8 +15,7 @@
  */
 package com.gagik.terminal.workspace
 
-import java.nio.file.Path
-import java.util.Locale
+import java.util.*
 
 /**
  * Stable presentation category for a terminal launch profile.
@@ -198,13 +197,8 @@ enum class TerminalProfileKind {
         private fun isUnixShell(executable: String): Boolean = executable in unixShellExecutables
 
         private fun executableName(command: String): String {
-            val fileName =
-                try {
-                    Path.of(command).fileName?.toString()
-                } catch (_: RuntimeException) {
-                    command.substringAfterLast('\\').substringAfterLast('/')
-                }
-            return (fileName ?: command).lowercase(Locale.ROOT)
+            val clean = command.substringAfterLast('\\').substringAfterLast('/')
+            return clean.lowercase(Locale.ROOT)
         }
 
         private val gitBashExecutables = setOf("bash.exe", "sh.exe")

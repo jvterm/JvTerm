@@ -43,9 +43,13 @@ class TerminalProfileRegistryTest {
         val profiles = registry.availableProfiles()
 
         assertEquals(listOf("windows-powershell", "powershell", "cmd"), profiles.map { it.id })
-        assertEquals(listOf("C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "-NoLogo"), profiles[0].command)
-        assertEquals(listOf("C:\\Program Files\\PowerShell\\7\\pwsh.exe", "-NoLogo"), profiles[1].command)
-        assertEquals(listOf("C:\\Windows\\System32\\cmd.exe"), profiles[2].command)
+        val expectedPowerShell = Path.of("C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe").toString()
+        val expectedPwsh = Path.of("C:\\Program Files\\PowerShell\\7", "pwsh.exe").toString()
+        val expectedCmd = Path.of("C:\\Windows", "System32", "cmd.exe").toString()
+
+        assertEquals(listOf(expectedPowerShell, "-NoLogo"), profiles[0].command)
+        assertEquals(listOf(expectedPwsh, "-NoLogo"), profiles[1].command)
+        assertEquals(listOf(expectedCmd), profiles[2].command)
         assertEquals(
             listOf(
                 TerminalProfileKind.POWERSHELL,
@@ -115,11 +119,15 @@ class TerminalProfileRegistryTest {
 
         assertEquals(listOf("windows-powershell", "powershell", "git-bash", "wsl", "ubuntu", "cmd"), profiles.map { it.id })
         assertEquals(TerminalProfileKind.GIT_BASH, profiles[2].kind)
-        assertEquals(listOf("C:\\Program Files\\Git\\bin\\bash.exe", "--login", "-i"), profiles[2].command)
+        val expectedGitBash = Path.of("C:\\Program Files\\Git\\bin\\bash.exe").toString()
+        val expectedWsl = Path.of("C:\\Windows", "System32", "wsl.exe").toString()
+        val expectedUbuntu = Path.of("C:\\Users\\me\\AppData\\Local\\Microsoft\\WindowsApps", "ubuntu.exe").toString()
+
+        assertEquals(listOf(expectedGitBash, "--login", "-i"), profiles[2].command)
         assertEquals(TerminalProfileKind.WSL, profiles[3].kind)
-        assertEquals(listOf("C:\\Windows\\System32\\wsl.exe"), profiles[3].command)
+        assertEquals(listOf(expectedWsl), profiles[3].command)
         assertEquals(TerminalProfileKind.UBUNTU, profiles[4].kind)
-        assertEquals(listOf("C:\\Users\\me\\AppData\\Local\\Microsoft\\WindowsApps\\ubuntu.exe"), profiles[4].command)
+        assertEquals(listOf(expectedUbuntu), profiles[4].command)
     }
 
     @Test
@@ -234,7 +242,8 @@ class TerminalProfileRegistryTest {
         assertEquals(listOf("powershell.exe", "-NoLogo"), pwshProfile.command)
 
         val gitBashProfile = registry.configuredProfile("C:\\Program Files\\Git\\bin\\bash.exe")
-        assertEquals(listOf("C:\\Program Files\\Git\\bin\\bash.exe", "--login", "-i"), gitBashProfile.command)
+        val expectedGitBash = Path.of("C:\\Program Files\\Git\\bin\\bash.exe").toString()
+        assertEquals(listOf(expectedGitBash, "--login", "-i"), gitBashProfile.command)
     }
 
     @Test
@@ -299,7 +308,8 @@ class TerminalProfileRegistryTest {
         val profiles = registry.availableProfiles()
         val gitBash = profiles.firstOrNull { it.id == "git-bash" }
         assertNotNull(gitBash)
-        assertEquals(listOf("C:\\Program Files\\Git\\git-bash.exe"), gitBash.command)
+        val expectedGitBash = Path.of("C:\\Program Files\\Git\\git-bash.exe").toString()
+        assertEquals(listOf(expectedGitBash), gitBash.command)
     }
 
     @Test
