@@ -48,6 +48,7 @@ class LatticeSettingsModelTest {
         assertEquals(settings.fontSize, state.fontSize)
         assertEquals(settings.columns, state.columns)
         assertEquals(settings.shellPath, state.shellPath)
+        assertEquals(settings.shellRequestResizeWindow, state.shellRequestResizeWindow)
         assertFalse(model.hasChanges(state))
     }
 
@@ -68,7 +69,7 @@ class LatticeSettingsModelTest {
     @Test
     fun testApplyChangesSavesToSettingsAndUpdatesSnapshot() {
         val state = model.getSettingsState()
-        val modifiedState = state.copy(fontSize = 22, columns = 120)
+        val modifiedState = state.copy(fontSize = 22, columns = 120, shellRequestResizeWindow = true)
 
         assertTrue(model.hasChanges(modifiedState))
 
@@ -80,6 +81,7 @@ class LatticeSettingsModelTest {
         assertTrue(applied)
         assertEquals(22, settings.fontSize)
         assertEquals(120, settings.columns)
+        assertTrue(settings.shellRequestResizeWindow)
 
         // Snapshot should be updated, so it shouldn't show changes against modified state anymore
         assertFalse(model.hasChanges(modifiedState))

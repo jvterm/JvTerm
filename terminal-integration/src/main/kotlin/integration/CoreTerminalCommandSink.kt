@@ -495,6 +495,13 @@ class CoreTerminalCommandSink(
         terminal.requestWindowReport(mode)
     }
 
+    override fun resizeWindow(
+        rows: Int,
+        columns: Int,
+    ) {
+        hostEvents.resizeWindow(rows, columns)
+    }
+
     override fun pushTitleStack(scope: Int) {
         when (scope) {
             0 -> {

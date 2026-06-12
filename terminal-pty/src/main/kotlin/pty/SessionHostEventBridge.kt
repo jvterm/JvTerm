@@ -42,6 +42,13 @@ internal class SessionHostEventBridge(
         safeDispatch { session -> listener.windowTitleChanged(session, title) }
     }
 
+    override fun resizeWindow(
+        rows: Int,
+        columns: Int,
+    ) {
+        safeDispatch { session -> listener.resizeWindow(session, rows, columns) }
+    }
+
     private inline fun safeDispatch(block: (TerminalSession) -> Unit) {
         val session =
             checkNotNull(attachedSession) {

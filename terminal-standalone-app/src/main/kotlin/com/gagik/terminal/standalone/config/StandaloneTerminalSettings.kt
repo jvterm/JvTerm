@@ -128,6 +128,12 @@ internal class StandaloneTerminalSettings(
             updateConfig(config.copy(lineHeight = value))
         }
 
+    var shellRequestResizeWindow: Boolean
+        get() = config.shellRequestResizeWindow
+        set(value) {
+            updateConfig(config.copy(shellRequestResizeWindow = value))
+        }
+
     fun current(): TerminalSwingSettings =
         TerminalSwingSettings(
             font = Font(config.fontFamily, Font.PLAIN, config.fontSize),
@@ -141,6 +147,7 @@ internal class StandaloneTerminalSettings(
             cursorShape = parseCursorShape(config.cursorShape),
             scrollbackLines = config.scrollbackLines,
             lineHeight = config.lineHeight,
+            shellRequestResizeWindow = config.shellRequestResizeWindow,
         )
 
     private fun parseCursorShape(shape: String): TerminalRenderCursorShape =

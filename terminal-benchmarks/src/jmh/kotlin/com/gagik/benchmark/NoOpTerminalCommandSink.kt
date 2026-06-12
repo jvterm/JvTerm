@@ -171,6 +171,11 @@ internal class NoOpTerminalCommandSink : TerminalCommandSink {
 
     override fun requestWindowReport(mode: Int) {}
 
+    override fun resizeWindow(
+        rows: Int,
+        columns: Int,
+    ) {}
+
     override fun pushTitleStack(scope: Int) {}
 
     override fun popTitleStack(scope: Int) {}

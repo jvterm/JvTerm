@@ -1230,5 +1230,12 @@ class CoreTerminalCommandSinkTest {
         override fun windowTitleChanged(title: String) {
             windowTitles += title
         }
+
+        override fun resizeWindow(
+            rows: Int,
+            columns: Int,
+        ) {
+            // No-op for tests unless assertions need it
+        }
     }
 }

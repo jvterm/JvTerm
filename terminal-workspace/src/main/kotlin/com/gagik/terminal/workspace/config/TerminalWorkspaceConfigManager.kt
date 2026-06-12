@@ -105,6 +105,8 @@ class TerminalWorkspaceConfigManager(
             val cursorShape = behavior["cursor_shape"] ?: default.cursorShape
             val audibleBell = behavior["audible_bell"]?.toBooleanStrictOrNull() ?: default.audibleBell
             val pasteOnMiddleClick = behavior["paste_on_middle_click"]?.toBooleanStrictOrNull() ?: default.pasteOnMiddleClick
+            val shellRequestResizeWindow =
+                behavior["shell_request_resize_window"]?.toBooleanStrictOrNull() ?: default.shellRequestResizeWindow
             val scrollbackLines =
                 parseIntSetting(
                     raw = window["scrollback_lines"],
@@ -133,6 +135,7 @@ class TerminalWorkspaceConfigManager(
                 pasteOnMiddleClick = pasteOnMiddleClick,
                 scrollbackLines = scrollbackLines,
                 lineHeight = lineHeight,
+                shellRequestResizeWindow = shellRequestResizeWindow,
             )
         } catch (e: Exception) {
             try {
@@ -212,6 +215,8 @@ class TerminalWorkspaceConfigManager(
         audible_bell = ${config.audibleBell}
         # Automatically paste clipboard contents when the middle mouse button is clicked
         paste_on_middle_click = ${config.pasteOnMiddleClick}
+        # Whether terminal window should resize when the shell requests a grid resize
+        shell_request_resize_window = ${config.shellRequestResizeWindow}
         """.trimIndent()
 
     private fun parseIntSetting(

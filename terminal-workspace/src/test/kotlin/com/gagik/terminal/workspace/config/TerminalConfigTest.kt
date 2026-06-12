@@ -120,6 +120,7 @@ class TerminalConfigTest {
         assertEquals(600, config.cursorBlinkMillis)
         assertFalse(config.useSystemFallbackFonts)
         assertEquals("block", config.cursorShape)
+        assertFalse(config.shellRequestResizeWindow)
 
         // Clean up
         Files.deleteIfExists(configFile)
@@ -143,6 +144,7 @@ class TerminalConfigTest {
                 cursorBlinkMillis = 500,
                 useSystemFallbackFonts = true,
                 cursorShape = "beam",
+                shellRequestResizeWindow = true,
             )
 
         manager.save(customConfig)

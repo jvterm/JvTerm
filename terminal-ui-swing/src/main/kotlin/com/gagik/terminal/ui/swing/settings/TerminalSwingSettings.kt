@@ -82,6 +82,7 @@ data class TerminalSwingSettings(
     val cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK,
     val scrollbackLines: Int = 1000,
     val lineHeight: Float = 1.0f,
+    val shellRequestResizeWindow: Boolean = false,
 ) {
     init {
         require(columns > 0) { "columns must be > 0, was $columns" }

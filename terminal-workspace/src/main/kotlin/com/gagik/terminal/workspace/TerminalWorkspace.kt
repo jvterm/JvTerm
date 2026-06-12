@@ -162,6 +162,14 @@ class TerminalWorkspace(
                 tab.updateDynamicTitle(nextTitle)
             }
 
+            override fun resizeWindow(
+                session: TerminalSession,
+                rows: Int,
+                columns: Int,
+            ) {
+                tabBySession(session)?.let { listener.resizeWindow(it, rows, columns) }
+            }
+
             override fun listenerFailed(
                 session: TerminalSession,
                 exception: Exception,
@@ -298,6 +306,19 @@ interface TerminalWorkspaceListener {
      * @param tab tab that emitted the bell.
      */
     fun bell(tab: TerminalWorkspaceTab) = Unit
+
+    /**
+     * Called when a tab requests a window/grid resize.
+     *
+     * @param tab tab requesting resize.
+     * @param rows target row count.
+     * @param columns target column count.
+     */
+    fun resizeWindow(
+        tab: TerminalWorkspaceTab,
+        rows: Int,
+        columns: Int,
+    ) = Unit
 
     /**
      * Called when a tab title changes.

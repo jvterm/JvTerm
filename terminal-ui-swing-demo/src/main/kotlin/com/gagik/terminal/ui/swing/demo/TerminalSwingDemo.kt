@@ -217,6 +217,12 @@ private class DemoPtyEventListener(
         }
     }
 
+    override fun resizeWindow(
+        session: TerminalSession,
+        rows: Int,
+        columns: Int,
+    ) = Unit
+
     override fun listenerFailed(
         session: TerminalSession,
         exception: Exception,

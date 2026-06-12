@@ -44,6 +44,7 @@ internal class LatticeSettingsModel(
             pasteOnMiddleClick = settings.pasteOnMiddleClick,
             scrollbackLines = settings.scrollbackLines,
             lineHeight = settings.lineHeight.toDouble(),
+            shellRequestResizeWindow = settings.shellRequestResizeWindow,
         )
 
     fun hasChanges(uiState: SettingsState): Boolean = uiState != initialUiState
@@ -67,6 +68,7 @@ internal class LatticeSettingsModel(
         settings.pasteOnMiddleClick = uiState.pasteOnMiddleClick
         settings.scrollbackLines = uiState.scrollbackLines
         settings.lineHeight = uiState.lineHeight.toFloat()
+        settings.shellRequestResizeWindow = uiState.shellRequestResizeWindow
 
         settings.fontFamily = uiState.fontFamily
         settings.fontSize = uiState.fontSize
@@ -100,4 +102,5 @@ internal data class SettingsState(
     val pasteOnMiddleClick: Boolean,
     val scrollbackLines: Int,
     val lineHeight: Double,
+    val shellRequestResizeWindow: Boolean,
 )

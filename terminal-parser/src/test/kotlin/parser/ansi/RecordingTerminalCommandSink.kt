@@ -279,6 +279,13 @@ internal class RecordingTerminalCommandSink : TerminalCommandSink {
         events += "requestWindowReport:$mode"
     }
 
+    override fun resizeWindow(
+        rows: Int,
+        columns: Int,
+    ) {
+        events += "resizeWindow:$rows:$columns"
+    }
+
     override fun pushTitleStack(scope: Int) {
         events += "pushTitleStack:$scope"
     }

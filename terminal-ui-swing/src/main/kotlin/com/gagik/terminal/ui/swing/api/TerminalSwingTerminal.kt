@@ -971,7 +971,7 @@ class TerminalSwingTerminal(
         )
     }
 
-    private fun preferredGridSize(
+    fun preferredGridSize(
         columns: Int,
         rows: Int,
     ): Dimension {

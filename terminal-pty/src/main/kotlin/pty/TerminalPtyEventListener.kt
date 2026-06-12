@@ -68,6 +68,19 @@ interface TerminalPtyEventListener {
         exception: Exception,
     )
 
+    /**
+     * Called when the shell requests a window resize.
+     *
+     * @param session session that received the event.
+     * @param rows target row count.
+     * @param columns target column count.
+     */
+    fun resizeWindow(
+        session: TerminalSession,
+        rows: Int,
+        columns: Int,
+    )
+
     companion object {
         /**
          * Listener used when the host does not need PTY callbacks.
@@ -85,6 +98,12 @@ interface TerminalPtyEventListener {
                 override fun windowTitleChanged(
                     session: TerminalSession,
                     title: String,
+                ) = Unit
+
+                override fun resizeWindow(
+                    session: TerminalSession,
+                    rows: Int,
+                    columns: Int,
                 ) = Unit
 
                 override fun listenerFailed(

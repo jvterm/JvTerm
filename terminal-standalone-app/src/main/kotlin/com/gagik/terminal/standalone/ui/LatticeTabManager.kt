@@ -592,6 +592,31 @@ internal class LatticeTabManager(
                 updateTabColor(tab.id, color)
             }
         }
+
+        override fun resizeWindow(
+            tab: TerminalWorkspaceTab,
+            rows: Int,
+            columns: Int,
+        ) {
+            if (settings.shellRequestResizeWindow) {
+                // Resize the session synchronously so that subsequent query reports (e.g. vttest CSI 18 t)
+                // return the updated size immediately.
+                tab.session.resize(columns, rows)
+
+                SwingUtilities.invokeLater {
+                    val pane = panes.firstOrNull { it.tab == tab } ?: return@invokeLater
+                    val terminal = pane.terminal
+                    val targetSize = terminal.preferredGridSize(columns, rows)
+                    val currentSize = terminal.size
+                    val deltaWidth = targetSize.width - currentSize.width
+                    val deltaHeight = targetSize.height - currentSize.height
+
+                    terminal.preferredSize = targetSize
+                    frame.setSize(frame.width + deltaWidth, frame.height + deltaHeight)
+                    frame.revalidate()
+                }
+            }
+        }
     }
 
     private companion object {

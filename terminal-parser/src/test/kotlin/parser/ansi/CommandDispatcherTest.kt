@@ -505,9 +505,10 @@ class CommandDispatcherTest {
         }
 
         @Test
-        fun `CSI t dispatches only safe window reports and title stack operations`() {
+        fun `CSI t dispatches safe window reports, title stack, and window resize operations`() {
             assertEquals(listOf("requestWindowReport:14"), dispatchCsi('t', params = listOf(14)).events)
             assertEquals(listOf("requestWindowReport:18"), dispatchCsi('t', params = listOf(18)).events)
+            assertEquals(listOf("resizeWindow:40:120"), dispatchCsi('t', params = listOf(8, 40, 120)).events)
             assertEquals(listOf("pushTitleStack:0"), dispatchCsi('t', params = listOf(22)).events)
             assertEquals(listOf("pushTitleStack:1"), dispatchCsi('t', params = listOf(22, 1)).events)
             assertEquals(listOf("pushTitleStack:2"), dispatchCsi('t', params = listOf(22, 2)).events)
@@ -520,7 +521,6 @@ class CommandDispatcherTest {
         fun `unsafe or malformed CSI t operations are ignored`() {
             assertTrue(dispatchCsi('t').events.isEmpty())
             assertTrue(dispatchCsi('t', params = listOf(3)).events.isEmpty())
-            assertTrue(dispatchCsi('t', params = listOf(8, 40, 120)).events.isEmpty())
             assertTrue(dispatchCsi('t', params = listOf(22, 3)).events.isEmpty())
             assertTrue(dispatchCsi('t', params = listOf(23, 3)).events.isEmpty())
         }
