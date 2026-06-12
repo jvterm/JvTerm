@@ -112,7 +112,7 @@ class TerminalProfileRegistry(
                 command = windowsPowerShellCommand(),
             )
 
-        val pwsh = executableOnPath("pwsh.exe")
+        val pwsh = pwshExecutable()
         if (pwsh != null) {
             profiles +=
                 TerminalProfile(
@@ -164,7 +164,7 @@ class TerminalProfileRegistry(
     private fun unixProfiles(): List<TerminalProfile> {
         val profiles = ArrayList<TerminalProfile>(5)
 
-        val zsh = executableOnPath("zsh")
+        val zsh = unixShellExecutable("zsh")
         if (zsh != null) {
             profiles +=
                 TerminalProfile(
@@ -174,7 +174,7 @@ class TerminalProfileRegistry(
                 )
         }
 
-        val bash = executableOnPath("bash")
+        val bash = unixShellExecutable("bash")
         if (bash != null) {
             profiles +=
                 TerminalProfile(
@@ -184,7 +184,7 @@ class TerminalProfileRegistry(
                 )
         }
 
-        val fish = executableOnPath("fish")
+        val fish = unixShellExecutable("fish")
         if (fish != null) {
             profiles +=
                 TerminalProfile(
@@ -194,7 +194,7 @@ class TerminalProfileRegistry(
                 )
         }
 
-        val nu = executableOnPath("nu")
+        val nu = unixShellExecutable("nu")
         if (nu != null) {
             profiles +=
                 TerminalProfile(
@@ -204,7 +204,7 @@ class TerminalProfileRegistry(
                 )
         }
 
-        val sh = executableOnPath("sh")
+        val sh = unixShellExecutable("sh")
         if (sh != null) {
             profiles +=
                 TerminalProfile(
@@ -259,6 +259,24 @@ class TerminalProfileRegistry(
         }
         return null
     }
+
+    private fun pwshExecutable(): Path? =
+        executableOnPath("pwsh.exe")
+            ?: firstExistingPath(
+                programFilesPath("PowerShell", "7", "pwsh.exe"),
+                programFilesPath("PowerShell", "6", "pwsh.exe"),
+                programFilesX86Path("PowerShell", "7", "pwsh.exe"),
+                programFilesX86Path("PowerShell", "6", "pwsh.exe"),
+            )
+
+    private fun unixShellExecutable(name: String): Path? =
+        executableOnPath(name)
+            ?: firstExistingPath(
+                Path.of("/usr/bin", name),
+                Path.of("/bin", name),
+                Path.of("/usr/local/bin", name),
+                Path.of("/opt/homebrew/bin", name),
+            )
 
     private fun gitBashExecutable(): Path? =
         executableOnPath("git-bash.exe")
