@@ -75,7 +75,7 @@ class TerminalConfigTest {
         // Windows resolution
         val winEnv = mapOf("APPDATA" to "C:\\Users\\User\\AppData\\Roaming")
         val winPath = TerminalWorkspaceConfigManager.getDefaultPath(osName = "Windows 11", env = winEnv)
-        assertEquals("C:/Users/User/AppData/Roaming/Lattice/config.toml", winPath.toString().replace('\\', '/'))
+        assertEquals(Path.of("C:\\Users\\User\\AppData\\Roaming", "Lattice", "config.toml"), winPath)
 
         // Mac resolution
         val macPath = TerminalWorkspaceConfigManager.getDefaultPath(osName = "macOS Big Sur", userHome = "/Users/username")
