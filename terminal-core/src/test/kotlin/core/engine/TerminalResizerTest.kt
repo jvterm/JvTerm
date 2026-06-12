@@ -47,6 +47,42 @@ private fun resizeState(
     state.tabStops.resize(newWidth)
 }
 
+/**
+ * Resizes the state and returns the new scrollback offset calculated by the resizer.
+ */
+private fun resizeStateReturningOffset(
+    state: TerminalState,
+    newWidth: Int,
+    newHeight: Int,
+    oldScrollbackOffset: Int,
+): Int {
+    val oldWidth = state.dimensions.width
+    val oldHeight = state.dimensions.height
+    val newOffset =
+        TerminalResizer.resizeBuffer(
+            state.primaryBuffer,
+            oldWidth,
+            oldHeight,
+            newWidth,
+            newHeight,
+            oldScrollbackOffset,
+        )
+    state.dimensions.width = newWidth
+    state.dimensions.height = newHeight
+    state.tabStops.resize(newWidth)
+    return newOffset
+}
+
+/**
+ * Returns the trimmed text of the ring row that sits at the top of the viewport
+ * when the user is scrolled back by [offset] lines from the live screen.
+ */
+private fun TerminalState.viewportTopLine(offset: Int): String {
+    val liveTop = (ring.size - dimensions.height).coerceAtLeast(0)
+    val idx = (liveTop - offset).coerceAtLeast(0)
+    return ring[idx].toTextTrimmed()
+}
+
 private fun TerminalState.writeLine(
     screenRow: Int,
     text: String,
@@ -875,6 +911,178 @@ class TerminalResizerTest {
                 state.primaryBuffer.store,
                 "clusterStore must be a new instance after resize",
             )
+        }
+    }
+
+    // =========================================================================
+    // Scrollback viewport anchoring
+    // =========================================================================
+
+    @Nested
+    @DisplayName("Scrollback viewport anchoring")
+    inner class ScrollbackViewportAnchoringTests {
+        /**
+         * Builds a state with [historyRows] history rows followed by [screenRows] live-screen
+         * rows. History rows are filled with the text in [historyContent]; screen rows are filled
+         * with [screenContent]. All content strings are padded/trimmed to [cols].
+         */
+        private fun buildScrolledState(
+            cols: Int,
+            height: Int,
+            historyContent: List<String>,
+            screenContent: List<String>,
+            history: Int = 100,
+        ): TerminalState {
+            require(screenContent.size == height) { "screenContent.size must equal height" }
+            val state = buildState(cols, height, history)
+            state.ring.clear()
+            for (text in historyContent) {
+                state.ring.push().apply {
+                    clear(0, 0)
+                    text.take(cols).forEachIndexed { i, c -> setCell(i, c.code, 0) }
+                }
+            }
+            for (text in screenContent) {
+                state.ring.push().apply {
+                    clear(0, 0)
+                    text.take(cols).forEachIndexed { i, c -> setCell(i, c.code, 0) }
+                }
+            }
+            // Place cursor at the last screen row so that "shouldPreserveViewportTop" logic
+            // does not skip trailing-blank counting in a way that obscures the assertions.
+            state.cursor.row = height - 1
+            return state
+        }
+
+        @Test
+        fun `zero offset always returns zero regardless of resize direction`() {
+            val state =
+                buildScrolledState(
+                    cols = 5,
+                    height = 3,
+                    historyContent = listOf("hist0", "hist1"),
+                    screenContent = listOf("scr0 ", "scr1 ", "scr2 "),
+                )
+
+            val widenOffset = resizeStateReturningOffset(state, 10, 3, oldScrollbackOffset = 0)
+            assertEquals(0, widenOffset, "offset must be 0 when not scrolled back")
+        }
+
+        @Test
+        fun `widen while scrolled back keeps viewport top line visible`() {
+            // History: ["aaa", "bbb"]  |  Screen: ["c0", "c1", "c2"]
+            // scrolled back by 1 → viewing: bbb | c0 | c1
+            val state =
+                buildScrolledState(
+                    cols = 5,
+                    height = 3,
+                    historyContent = listOf("aaa", "bbb"),
+                    screenContent = listOf("c0", "c1", "c2"),
+                )
+            val oldViewportTop = state.viewportTopLine(offset = 1)
+            assertEquals("bbb", oldViewportTop)
+
+            val newOffset = resizeStateReturningOffset(state, 10, 3, oldScrollbackOffset = 1)
+
+            // The returned offset must place the same logical line at the top of the viewport.
+            val newViewportTop = state.viewportTopLine(newOffset)
+            assertEquals(
+                "bbb",
+                newViewportTop,
+                "viewport top must stay on the same content after widening",
+            )
+        }
+
+        @Test
+        fun `narrow while scrolled back keeps viewport top line visible`() {
+            // Short content that does not wrap when narrowed, so the ring structure stays the same.
+            val state =
+                buildScrolledState(
+                    cols = 8,
+                    height = 3,
+                    historyContent = listOf("aa", "BB"),
+                    screenContent = listOf("s0", "s1", "s2"),
+                )
+            val oldViewportTop = state.viewportTopLine(offset = 1)
+            assertEquals("BB", oldViewportTop)
+
+            val newOffset = resizeStateReturningOffset(state, 4, 3, oldScrollbackOffset = 1)
+
+            val newViewportTop = state.viewportTopLine(newOffset)
+            assertEquals(
+                "BB",
+                newViewportTop,
+                "viewport top must stay on the same content after narrowing",
+            )
+        }
+
+        @Test
+        fun `narrow while scrolled back, viewport-top line wraps, offset increases to match`() {
+            // "ABCDEFGH" is the viewport-top history line (full width = 8).
+            // After narrowing to 4 it becomes two physical lines: "ABCD"(wrapped) + "EFGH".
+            // The new offset must point to the FIRST physical chunk of the reflowed line.
+            val state =
+                buildScrolledState(
+                    cols = 8,
+                    height = 3,
+                    historyContent = listOf("prev", "ABCDEFGH"),
+                    screenContent = listOf("s0", "s1", "s2"),
+                )
+            assertEquals("ABCDEFGH", state.viewportTopLine(offset = 1))
+
+            val newOffset = resizeStateReturningOffset(state, 4, 3, oldScrollbackOffset = 1)
+
+            val newViewportTop = state.viewportTopLine(newOffset)
+            assertEquals(
+                "ABCD",
+                newViewportTop,
+                "viewport top must be the first physical chunk of the reflowed logical line",
+            )
+        }
+
+        @Test
+        fun `offset scrolled all the way back is clamped to new history size`() {
+            // Offset that exceeds history after reflow must be clamped, not negative-index.
+            val state =
+                buildScrolledState(
+                    cols = 10,
+                    height = 3,
+                    historyContent = listOf("only"),
+                    screenContent = listOf("s0", "s1", "s2"),
+                )
+            // Pass an offset larger than available history.
+            val newOffset = resizeStateReturningOffset(state, 10, 3, oldScrollbackOffset = 99)
+
+            val newLiveTop = (state.ring.size - 3).coerceAtLeast(0)
+            assertTrue(
+                newOffset in 0..newLiveTop,
+                "clamped offset $newOffset must be in [0, newHistorySize=$newLiveTop]",
+            )
+        }
+
+        @Test
+        fun `multiple resizes while scrolled back maintain viewport stability`() {
+            // Widen then narrow then widen again; each time the viewport top should
+            // track the same logical content ("anchor" line).
+            val state =
+                buildScrolledState(
+                    cols = 6,
+                    height = 3,
+                    historyContent = listOf("before", "anchor"),
+                    screenContent = listOf("s0", "s1", "s2"),
+                )
+            assertEquals("anchor", state.viewportTopLine(offset = 1))
+
+            val off1 = resizeStateReturningOffset(state, 12, 3, oldScrollbackOffset = 1)
+            assertEquals("anchor", state.viewportTopLine(off1), "after widen")
+
+            val off2 = resizeStateReturningOffset(state, 4, 3, oldScrollbackOffset = off1)
+            // "anchor" is 6 chars which fits in 4 only as two chunks: "anch"(wrapped)+"or".
+            // viewport top must be the first chunk.
+            assertEquals("anch", state.viewportTopLine(off2), "after narrow")
+
+            val off3 = resizeStateReturningOffset(state, 12, 3, oldScrollbackOffset = off2)
+            assertEquals("anchor", state.viewportTopLine(off3), "after widen again")
         }
     }
 }
