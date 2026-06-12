@@ -122,13 +122,13 @@ class TerminalProfileRegistry(
                 )
         }
 
-        val gitBash = gitBashExecutable()
-        if (gitBash != null) {
+        val gitBashCmd = gitBashCommand()
+        if (gitBashCmd != null) {
             profiles +=
                 TerminalProfile(
                     id = "git-bash",
                     displayName = "Git Bash",
-                    command = listOf(gitBash.toString()),
+                    command = gitBashCmd,
                 )
         }
 
@@ -277,6 +277,18 @@ class TerminalProfileRegistry(
                 Path.of("/usr/local/bin", name),
                 Path.of("/opt/homebrew/bin", name),
             )
+
+    private fun gitBashCommand(): List<String>? {
+        val launcher = gitBashExecutable() ?: return null
+        val gitRoot = launcher.parent
+        if (gitRoot != null) {
+            val bash = gitRoot.resolve(Path.of("bin", "bash.exe"))
+            if (executableExists(bash)) {
+                return listOf(bash.toString(), "--login", "-i")
+            }
+        }
+        return listOf(launcher.toString())
+    }
 
     private fun gitBashExecutable(): Path? =
         executableOnPath("git-bash.exe")
