@@ -48,3 +48,10 @@ application {
 tasks.test {
     useJUnitPlatform()
 }
+
+tasks.processResources {
+    inputs.property("version", project.version)
+    filesMatching("**/version.properties") {
+        expand(mapOf("version" to project.version))
+    }
+}

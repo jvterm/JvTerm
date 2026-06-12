@@ -181,6 +181,9 @@ internal class LatticeWindowFactory(
             JMenuItem("About").apply {
                 background = LatticeChrome.popupBackground
                 foreground = LatticeChrome.textPrimary
+                addActionListener {
+                    LatticeAboutDialog(frame).isVisible = true
+                }
             }
         popup.add(aboutItem)
 
