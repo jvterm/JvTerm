@@ -30,6 +30,7 @@ import com.gagik.terminal.input.event.TerminalPasteEvent
 import com.gagik.terminal.input.impl.DefaultTerminalInputEncoder
 import com.gagik.terminal.input.policy.TerminalInputPolicy
 import com.gagik.terminal.render.api.TerminalColorPalette
+import com.gagik.terminal.render.api.TerminalRenderCursorShape
 import com.gagik.terminal.render.api.TerminalRenderFrameConsumer
 import com.gagik.terminal.render.api.TerminalRenderFrameReader
 import com.gagik.terminal.render.cache.TerminalRenderCache
@@ -37,10 +38,7 @@ import com.gagik.terminal.render.cache.TerminalRenderPublisher
 import com.gagik.terminal.transport.TerminalConnector
 import com.gagik.terminal.transport.TerminalConnectorListener
 import com.gagik.terminal.transport.checkBounds
-import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
@@ -87,14 +85,32 @@ class TerminalSession(
             Thread(r, "terminal-render-worker-${SESSION_COUNTER.getAndIncrement()}").apply { isDaemon = true }
         }
 
+    private val dirtyListeners = CopyOnWriteArrayList<() -> Unit>()
+
+    @Volatile
+    private var legacyOnDirty: (() -> Unit)? = null
+
     /**
      * Optional callback invoked after a render frame is published.
      *
      * UI components should use this to trigger a repaint. The callback is
      * invoked from the [renderWorker] thread.
      */
-    @Volatile
-    var onDirty: (() -> Unit)? = null
+    var onDirty: (() -> Unit)?
+        get() = legacyOnDirty ?: dirtyListeners.firstOrNull()
+        set(value) {
+            legacyOnDirty = value
+        }
+
+    /** Registers a listener to be notified when the session needs a render repaint. */
+    fun addDirtyListener(listener: () -> Unit) {
+        dirtyListeners.add(listener)
+    }
+
+    /** Unregisters a previously registered render repaint listener. */
+    fun removeDirtyListener(listener: () -> Unit) {
+        dirtyListeners.remove(listener)
+    }
 
     /**
      * Remote process exit code after [onClosed] receives one.
@@ -144,19 +160,27 @@ class TerminalSession(
 
     /**
      * Resizes core, publisher, and the active connector.
+     *
+     * @param oldScrollbackOffset The scrollback offset that was active in the UI before this resize.
+     *   Pass 0 if the viewport was at the live screen (no scrollback).
+     * @return A [Pair] of (newScrollbackOffset, newHistorySize) that the UI should apply to
+     *   re-anchor the viewport to the same logical content after reflow.
      */
     fun resize(
         columns: Int,
         rows: Int,
-    ) {
+        oldScrollbackOffset: Int = 0,
+    ): Pair<Int, Int> {
         require(columns > 0) { "columns must be positive, got $columns" }
         require(rows > 0) { "rows must be positive, got $rows" }
 
+        val result: Pair<Int, Int>
         synchronized(mutationLock) {
-            terminal.resize(columns, rows)
+            result = terminal.resize(columns, rows, oldScrollbackOffset)
         }
         connector.resize(columns, rows)
         notifyRenderDirty()
+        return result
     }
 
     /**
@@ -182,6 +206,16 @@ class TerminalSession(
     fun setThemePalette(palette: TerminalColorPalette) {
         synchronized(mutationLock) {
             terminal.setThemePalette(palette)
+        }
+    }
+
+    /**
+     * Updates the current and default cursor shape for the session.
+     */
+    fun setCursorShape(shape: TerminalRenderCursorShape) {
+        synchronized(mutationLock) {
+            terminal.setDefaultCursorShape(shape)
+            terminal.setCursorShape(shape)
         }
     }
 
@@ -363,7 +397,10 @@ class TerminalSession(
                 }
 
                 try {
-                    onDirty?.invoke()
+                    legacyOnDirty?.invoke()
+                    for (listener in dirtyListeners) {
+                        listener.invoke()
+                    }
                 } catch (e: Exception) {
                     // UI notification failure must not invalidate an already-published frame.
                 }

@@ -23,7 +23,6 @@ import com.gagik.core.engine.TerminalResizer
 import com.gagik.core.model.SavedCursorState
 import com.gagik.core.render.CoreTerminalRenderFrame
 import com.gagik.core.state.TerminalState
-import com.gagik.terminal.render.api.TerminalRenderCursorShape
 import com.gagik.terminal.render.api.TerminalRenderFrameConsumer
 import com.gagik.terminal.render.api.TerminalRenderFrameReader
 
@@ -90,11 +89,16 @@ internal class TerminalBuffer private constructor(
      * Reflows the primary screen, recreates the alternate screen, updates global
      * dimensions and tab stops, then restores invariants that must hold even for
      * the currently inactive buffer.
+     *
+     * @return A [Pair] of (newScrollbackOffset, newHistorySize), allowing the caller to
+     *   re-anchor a scrollback viewport that was active at [oldScrollbackOffset] before
+     *   the reflow. The offset is 0 when the caller was not scrolled back.
      */
     override fun resize(
         newWidth: Int,
         newHeight: Int,
-    ) {
+        oldScrollbackOffset: Int,
+    ): Pair<Int, Int> {
         require(newWidth > 0) { "newWidth must be > 0, was $newWidth" }
         require(newHeight > 0) { "newHeight must be > 0, was $newHeight" }
 
@@ -103,9 +107,12 @@ internal class TerminalBuffer private constructor(
         val oldCursorCol = state.cursor.col
         val oldCursorRow = state.cursor.row
 
-        if (newWidth == oldWidth && newHeight == oldHeight) return
+        if (newWidth == oldWidth && newHeight == oldHeight) {
+            return Pair(oldScrollbackOffset.coerceIn(0, state.historySize), state.historySize)
+        }
 
-        TerminalResizer.resizeBuffer(state.primaryBuffer, oldWidth, oldHeight, newWidth, newHeight)
+        val newScrollbackOffset =
+            TerminalResizer.resizeBuffer(state.primaryBuffer, oldWidth, oldHeight, newWidth, newHeight, oldScrollbackOffset)
         state.altBuffer.replaceStorage(newWidth, newHeight, state.pen.blankAttr, state.pen.blankExtendedAttr)
 
         state.dimensions.width = newWidth
@@ -126,6 +133,7 @@ internal class TerminalBuffer private constructor(
         if (state.cursor.col != oldCursorCol || state.cursor.row != oldCursorRow) {
             state.markCursorChanged()
         }
+        return Pair(newScrollbackOffset, state.historySize)
     }
 
     override fun reset() {
@@ -141,7 +149,7 @@ internal class TerminalBuffer private constructor(
         state.hostResponses.clear()
         state.modes.reset()
         state.tabStops.resetToDefault()
-        state.cursorShape = TerminalRenderCursorShape.BLOCK
+        state.cursorShape = state.defaultCursorShape
         state.palette = state.themePalette
         state.markStructureChanged()
         state.markCursorChanged()
@@ -163,7 +171,7 @@ internal class TerminalBuffer private constructor(
         state.altBuffer.cursor.pendingWrap = false
         resetSavedCursorToHome(state.primaryBuffer.savedCursor)
         resetSavedCursorToHome(state.altBuffer.savedCursor)
-        state.cursorShape = TerminalRenderCursorShape.BLOCK
+        state.cursorShape = state.defaultCursorShape
         if (wasReverseVideo != state.modes.isReverseVideo) {
             state.markVisibleLinesChanged()
         }
@@ -176,7 +184,7 @@ internal class TerminalBuffer private constructor(
         val primarySaved = SavedCursorSnapshot.from(state.primaryBuffer.savedCursor)
         val altSaved = SavedCursorSnapshot.from(state.altBuffer.savedCursor)
 
-        resize(newWidth, state.dimensions.height)
+        resize(newWidth, state.dimensions.height) // oldScrollbackOffset=0: DECCOLM wipes the buffer
         components.mutationEngine.deccolmReset(newWidth)
 
         primarySaved.restoreInto(state.primaryBuffer.savedCursor)

@@ -77,6 +77,7 @@ internal class TerminalSwingRepaintPlanner {
         componentWidth: Int,
         componentHeight: Int,
         contentYOffset: Double,
+        padding: java.awt.Insets,
         repaintSink: TerminalRepaintSink,
     ) {
         if (requiresFullRepaint(cache)) {
@@ -86,7 +87,7 @@ internal class TerminalSwingRepaintPlanner {
             return
         }
 
-        val visibleRows = visibleRows(cache, metrics, componentHeight)
+        val visibleRows = visibleRows(cache, metrics, componentHeight, padding.top, padding.bottom)
         repaintChangedRows(
             cache = cache,
             metrics = metrics,
@@ -94,6 +95,7 @@ internal class TerminalSwingRepaintPlanner {
             componentHeight = componentHeight,
             visibleRows = visibleRows,
             contentYOffset = contentYOffset,
+            padding = padding,
             repaintSink = repaintSink,
         )
 
@@ -109,6 +111,7 @@ internal class TerminalSwingRepaintPlanner {
                 componentHeight = componentHeight,
                 visibleRows = visibleRows,
                 contentYOffset = contentYOffset,
+                padding = padding,
                 skipChangedRows = true,
                 repaintSink = repaintSink,
             )
@@ -123,6 +126,7 @@ internal class TerminalSwingRepaintPlanner {
                 componentHeight = componentHeight,
                 visibleRows = visibleRows,
                 contentYOffset = contentYOffset,
+                padding = padding,
                 skipChangedRows = true,
                 repaintSink = repaintSink,
             )
@@ -141,6 +145,7 @@ internal class TerminalSwingRepaintPlanner {
         componentWidth: Int,
         componentHeight: Int,
         contentYOffset: Double,
+        padding: java.awt.Insets,
         repaintSink: TerminalRepaintSink,
     ) {
         if (!cache.cursorVisible || !cache.cursorBlinking) return
@@ -154,8 +159,40 @@ internal class TerminalSwingRepaintPlanner {
             metrics = metrics,
             componentWidth = componentWidth,
             componentHeight = componentHeight,
-            visibleRows = visibleRows(cache, metrics, componentHeight),
+            visibleRows = visibleRows(cache, metrics, componentHeight, padding.top, padding.bottom),
             contentYOffset = contentYOffset,
+            padding = padding,
+            skipChangedRows = false,
+            repaintSink = repaintSink,
+        )
+    }
+
+    /**
+     * Requests a repaint for the current cursor cell regardless of blink mode.
+     */
+    fun requestCursorRepaint(
+        cache: TerminalRenderCache,
+        metrics: TerminalSwingMetrics,
+        componentWidth: Int,
+        componentHeight: Int,
+        contentYOffset: Double,
+        padding: java.awt.Insets,
+        repaintSink: TerminalRepaintSink,
+    ) {
+        if (!cache.cursorVisible) return
+
+        repaintCursorIfNeeded(
+            known = true,
+            column = cache.cursorColumn,
+            row = cache.cursorRow,
+            visible = true,
+            cache = cache,
+            metrics = metrics,
+            componentWidth = componentWidth,
+            componentHeight = componentHeight,
+            visibleRows = visibleRows(cache, metrics, componentHeight, padding.top, padding.bottom),
+            contentYOffset = contentYOffset,
+            padding = padding,
             skipChangedRows = false,
             repaintSink = repaintSink,
         )
@@ -170,11 +207,12 @@ internal class TerminalSwingRepaintPlanner {
         componentWidth: Int,
         componentHeight: Int,
         contentYOffset: Double,
+        padding: java.awt.Insets,
         repaintSink: TerminalRepaintSink,
     ) {
         if (!cache.hasBlinkingText) return
 
-        val visibleRows = visibleRows(cache, metrics, componentHeight)
+        val visibleRows = visibleRows(cache, metrics, componentHeight, padding.top, padding.bottom)
         var row = 0
         while (row < visibleRows) {
             if (!cache.lineHasBlinkingText[row]) {
@@ -195,6 +233,7 @@ internal class TerminalSwingRepaintPlanner {
                 componentWidth = componentWidth,
                 componentHeight = componentHeight,
                 contentYOffset = contentYOffset,
+                padding = padding,
                 repaintSink = repaintSink,
             )
         }
@@ -207,6 +246,7 @@ internal class TerminalSwingRepaintPlanner {
         componentHeight: Int,
         visibleRows: Int,
         contentYOffset: Double,
+        padding: java.awt.Insets,
         repaintSink: TerminalRepaintSink,
     ) {
         var row = 0
@@ -229,6 +269,7 @@ internal class TerminalSwingRepaintPlanner {
                 componentWidth = componentWidth,
                 componentHeight = componentHeight,
                 contentYOffset = contentYOffset,
+                padding = padding,
                 repaintSink = repaintSink,
             )
         }
@@ -245,6 +286,7 @@ internal class TerminalSwingRepaintPlanner {
         componentHeight: Int,
         visibleRows: Int,
         contentYOffset: Double,
+        padding: java.awt.Insets,
         skipChangedRows: Boolean,
         repaintSink: TerminalRepaintSink,
     ): Boolean {
@@ -255,13 +297,13 @@ internal class TerminalSwingRepaintPlanner {
         val flags = cache.flags[cache.rowOffset(row) + column]
         val startColumn = visualCellRangeStart(flags, column)
         val columnSpan = visualCellRangeSpan(flags, column, cache.columns)
-        val x = startColumn * metrics.cellWidth
+        val x = startColumn * metrics.cellWidth + padding.left
         if (x >= componentWidth) return false
         val regionWidth = minOf(columnSpan * metrics.cellWidth, componentWidth - x)
         if (regionWidth <= 0) return false
 
-        val y = rowTop(row, metrics.cellHeight, contentYOffset)
-        val bottom = rowBottom(row + 1, metrics.cellHeight, contentYOffset)
+        val y = rowTop(row, metrics.cellHeight, contentYOffset) + padding.top
+        val bottom = rowBottom(row + 1, metrics.cellHeight, contentYOffset) + padding.top
         if (bottom <= 0 || y >= componentHeight) return false
         val clippedY = maxOf(0, y)
         val clippedBottom = minOf(componentHeight, bottom)
@@ -284,12 +326,13 @@ internal class TerminalSwingRepaintPlanner {
         componentWidth: Int,
         componentHeight: Int,
         contentYOffset: Double,
+        padding: java.awt.Insets,
         repaintSink: TerminalRepaintSink,
     ) {
         if (componentWidth <= 0 || componentHeight <= 0) return
 
-        val y = rowTop(startRow, metrics.cellHeight, contentYOffset)
-        val bottom = rowBottom(endRow, metrics.cellHeight, contentYOffset)
+        val y = rowTop(startRow, metrics.cellHeight, contentYOffset) + padding.top
+        val bottom = rowBottom(endRow, metrics.cellHeight, contentYOffset) + padding.top
         if (bottom <= 0 || y >= componentHeight) return
 
         val clippedY = maxOf(0, y)
@@ -326,7 +369,9 @@ internal class TerminalSwingRepaintPlanner {
         cache: TerminalRenderCache,
         metrics: TerminalSwingMetrics,
         componentHeight: Int,
-    ): Int = minOf(cache.rows, componentHeight / metrics.cellHeight + 1)
+        paddingTop: Int,
+        paddingBottom: Int,
+    ): Int = minOf(cache.rows, maxOf(1, (componentHeight - paddingTop - paddingBottom) / metrics.cellHeight) + 1)
 
     private fun rowChanged(
         cache: TerminalRenderCache,

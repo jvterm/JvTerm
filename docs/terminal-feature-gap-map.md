@@ -288,6 +288,8 @@ Missing:
   advanced through integration metadata, published through render generation,
   and surfaced to hosts through `TerminalHostEventSink`.
 - `DONE(integration/host)`: BEL is surfaced through `TerminalHostEventSink`.
+- `DONE(parser/core/integration/host)`: DEC private modes 1042 (`bellIsUrgent`) and 1043 (`popOnBell`) parsed, routed, and mapped to Taskbar attention request and window raise features in the UI.
+
 - `TODO(core/host)`: richer event API for hyperlink metadata, palette changes,
   terminal notifications, and any future host-observable state that should not
   be read from render frames.
@@ -595,12 +597,31 @@ professional emulator needs explicit contracts for it.
   render-cache hyperlink ids outside the paint loop, resolves metadata through
   `TerminalSession`, changes the hover cursor over resolvable links, and opens
   links only through the configured `TerminalHyperlinkHandler`.
+- `DONE(host/ui)`: Swing terminal buffer search is available through
+  Ctrl/Cmd+F and public component methods. It scans retained scrollback plus the
+  live grid from primitive render-cache snapshots, joins soft-wrapped rows for
+  logical-line matching, highlights visible matches through precomputed
+  primitive viewport ranges, scrolls the active match into view, and cycles
+  results with Enter/Shift+Enter or previous/next controls.
 - `DONE(render-api/core/cache/session)`: caller-owned scrollback viewport
   offsets can be requested per render-frame read, clamped by core, copied by
   the primitive render cache, and forwarded through session synchronization.
 - `DONE(swing)`: mouse-wheel scrollback updates are owned by the Swing
   component and request offset-specific render-cache publications through the
   session render worker.
+- `DONE(host)`: custom shell path and start directory in PTY session initialization.
+  `shellPath` and `startDirectory` settings are now read at tab-open time via
+  `TerminalProfileRegistry.configuredProfile()` and stamped onto all tab-open
+  paths (new tab, split, initial tab, and dropdown profile picker).
+- `TODO(host)`: custom line spacing/height metrics in the renderer.
+- `DONE(host)`: audible bell setting (`audibleBell`) is now respected — the
+  standalone app guards `Toolkit.beep()` with the current `settings.audibleBell`
+  value, read live on each bell event.
+- `DONE(parser/core/integration)`: BEL (`\u0007`) byte recognition and
+  dispatch through the parser/core/integration pipeline to the host event sink.
+
+- `DONE(host/swing)`: middle-click paste is now supported, governed by `settings.pasteOnMiddleClick`.
+- `DONE(host)`: cursor shape configuration (`cursorShape`) mapping. Configured cursor shapes (block, underline, beam) are parsed and propagated to the terminal session to serve as the default shape on resets.
 - `TODO(host)`: UI scrollback controls, scrollbar policy, selection behavior
   while scrolled, and auto-follow/offset-retention policy.
 - `TODO(host)`: accessibility/export APIs.

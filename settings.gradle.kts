@@ -14,6 +14,8 @@ include(
     ":terminal-transport-api",
     ":terminal-session",
     ":terminal-testkit",
+    ":terminal-workspace",
+    ":terminal-standalone-app",
     ":terminal-ui-swing",
     ":terminal-ui-swing-demo",
     ":terminal-benchmarks",

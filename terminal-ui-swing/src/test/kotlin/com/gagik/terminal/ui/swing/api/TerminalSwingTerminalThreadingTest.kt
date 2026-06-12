@@ -63,6 +63,30 @@ class TerminalSwingTerminalThreadingTest {
     }
 
     @Test
+    fun `off EDT lifecycle work uses injected UI dispatcher`() {
+        val session = testSession()
+        val dispatcher = RecordingDispatcher()
+        val component =
+            TerminalSwingTerminal(
+                hostServices =
+                    TerminalSwingHostServices(
+                        uiDispatcher = dispatcher,
+                    ),
+            )
+
+        runOffEdt {
+            component.bind(session)
+            component.reloadSettings()
+            component.unbind()
+        }
+        drainEdt()
+
+        assertEquals(3, dispatcher.dispatchCount.get())
+        assertNull(session.onDirty)
+        session.close()
+    }
+
+    @Test
     fun `bind called off EDT does not wait for EDT execution`() {
         val session = testSession()
         val component = TerminalSwingTerminal()
@@ -109,7 +133,7 @@ class TerminalSwingTerminalThreadingTest {
         val reloadCalledOnEdt = AtomicBoolean(false)
         val calls = AtomicInteger()
         val component =
-            TerminalSwingTerminal {
+            TerminalSwingTerminal(settingsProvider = {
                 if (calls.incrementAndGet() > 1) {
                     reloadCalledOnEdt.set(SwingUtilities.isEventDispatchThread())
                 }
@@ -118,7 +142,7 @@ class TerminalSwingTerminalThreadingTest {
                     columns = 100,
                     rows = 30,
                 )
-            }
+            })
 
         runOffEdt {
             component.reloadSettings()
@@ -203,9 +227,9 @@ class TerminalSwingTerminalThreadingTest {
     fun `bind applies ambiguous width setting to session core`() {
         val session = testSession()
         val component =
-            TerminalSwingTerminal {
+            TerminalSwingTerminal(settingsProvider = {
                 TerminalSwingSettings(treatAmbiguousAsWide = true)
-            }
+            })
 
         component.bind(session)
         drainEdt()
@@ -219,9 +243,9 @@ class TerminalSwingTerminalThreadingTest {
         val session = testSession()
         var ambiguousAsWide = false
         val component =
-            TerminalSwingTerminal {
+            TerminalSwingTerminal(settingsProvider = {
                 TerminalSwingSettings(treatAmbiguousAsWide = ambiguousAsWide)
-            }
+            })
 
         component.bind(session)
         drainEdt()
@@ -327,6 +351,15 @@ class TerminalSwingTerminalThreadingTest {
         ) = Unit
 
         override fun close() = Unit
+    }
+
+    private class RecordingDispatcher : TerminalUiDispatcher {
+        val dispatchCount = AtomicInteger()
+
+        override fun dispatch(runnable: Runnable) {
+            dispatchCount.incrementAndGet()
+            SwingUtilities.invokeLater(runnable)
+        }
     }
 
     private class RecordingConnector : TerminalConnector {

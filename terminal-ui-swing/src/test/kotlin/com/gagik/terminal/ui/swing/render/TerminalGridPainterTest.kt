@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.awt.Font
+import java.awt.Insets
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 
@@ -41,6 +42,7 @@ class TerminalGridPainterTest {
                         defaultBackground = BLACK,
                     ),
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 2, rows = 1)
@@ -77,6 +79,7 @@ class TerminalGridPainterTest {
                     ),
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
                 fractionalMetrics = RenderingHints.VALUE_FRACTIONALMETRICS_ON,
+                padding = Insets(0, 0, 0, 0),
             )
         val fontMetrics = g.getFontMetrics(settings.font)
         val metrics =
@@ -128,6 +131,7 @@ class TerminalGridPainterTest {
                         cursorBackground = BLUE,
                     ),
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 1, rows = 1)
@@ -164,6 +168,7 @@ class TerminalGridPainterTest {
                         defaultBackground = BLACK,
                     ),
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 1, rows = 1)
@@ -210,6 +215,7 @@ class TerminalGridPainterTest {
                         cursorBackground = BLUE,
                     ),
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 1, rows = 1)
@@ -246,6 +252,7 @@ class TerminalGridPainterTest {
                         defaultBackground = BLACK,
                     ),
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 2, rows = 1)
@@ -298,6 +305,7 @@ class TerminalGridPainterTest {
                         defaultBackground = BLACK,
                     ),
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 2, rows = 1)
@@ -354,6 +362,7 @@ class TerminalGridPainterTest {
                     ),
                 selectionBackground = RED,
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
             )
         val metrics = TerminalSwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 2, rows = 1)

@@ -27,14 +27,68 @@ import com.gagik.terminal.render.cache.TerminalRenderPublisher
 import com.gagik.terminal.session.TerminalSession
 import com.gagik.terminal.transport.TerminalConnector
 import com.gagik.terminal.transport.TerminalConnectorListener
+import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.awt.event.FocusEvent
 import java.awt.event.KeyEvent
 import javax.swing.JFrame
 import javax.swing.SwingUtilities
 
 class TerminalSwingTerminalCursorBlinkTest {
+    @Test
+    fun `cursor presentation follows terminal focus`() {
+        val component = TerminalSwingTerminal()
+
+        SwingUtilities.invokeAndWait {
+            component.cursorBlinkVisible = true
+        }
+        assertFalse(component.cursorPresentationEnabled)
+
+        SwingUtilities.invokeAndWait {
+            val focusEvent = FocusEvent(component, FocusEvent.FOCUS_GAINED)
+            for (listener in component.focusListeners) {
+                listener.focusGained(focusEvent)
+            }
+        }
+        assertTrue(component.cursorPresentationEnabled)
+
+        SwingUtilities.invokeAndWait {
+            val focusEvent = FocusEvent(component, FocusEvent.FOCUS_LOST)
+            for (listener in component.focusListeners) {
+                listener.focusLost(focusEvent)
+            }
+        }
+        assertFalse(component.cursorPresentationEnabled)
+    }
+
+    @Test
+    fun `zero cursor blink setting keeps timer stopped and cursor visible`() {
+        val component =
+            TerminalSwingTerminal(
+                settingsProvider = {
+                    TerminalSwingSettings(cursorBlinkMillis = 0)
+                },
+            )
+        val frame = JFrame()
+
+        try {
+            SwingUtilities.invokeAndWait {
+                component.cursorBlinkVisible = false
+                frame.add(component)
+                frame.pack()
+            }
+
+            assertFalse(component.cursorTimer.isRunning)
+            assertTrue(component.cursorBlinkVisible)
+        } finally {
+            SwingUtilities.invokeAndWait {
+                frame.dispose()
+            }
+        }
+    }
+
     @Test
     fun `key events and frame updates reset cursor blinking timer`() {
         val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)

@@ -46,6 +46,8 @@ class TerminalModesTest {
             { assertEquals(0, modes.formatOtherKeysMode) },
             { assertEquals(0, modes.kittyKeyboardFlags) },
             { assertFalse(modes.isSynchronizedOutput) },
+            { assertFalse(modes.isBellIsUrgent) },
+            { assertFalse(modes.isPopOnBell) },
         )
     }
 
@@ -71,6 +73,8 @@ class TerminalModesTest {
         modes.formatOtherKeysMode = 1
         modes.kittyKeyboardFlags = KittyKeyboardProgressiveFlag.SUPPORTED_MASK
         modes.isSynchronizedOutput = true
+        modes.isBellIsUrgent = true
+        modes.isPopOnBell = true
 
         modes.reset()
 
@@ -94,6 +98,8 @@ class TerminalModesTest {
             { assertEquals(0, modes.formatOtherKeysMode) },
             { assertEquals(0, modes.kittyKeyboardFlags) },
             { assertFalse(modes.isSynchronizedOutput) },
+            { assertFalse(modes.isBellIsUrgent) },
+            { assertFalse(modes.isPopOnBell) },
         )
     }
 
@@ -113,6 +119,8 @@ class TerminalModesTest {
             KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES or
             KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES
         modes.isSynchronizedOutput = true
+        modes.isBellIsUrgent = true
+        modes.isPopOnBell = true
 
         val bits = modes.getModeBitsSnapshot()
         val snapshot = modes.getModeSnapshot()
@@ -135,6 +143,8 @@ class TerminalModesTest {
                 )
             },
             { assertTrue(snapshot.isSynchronizedOutput) },
+            { assertTrue(snapshot.isBellIsUrgent) },
+            { assertTrue(snapshot.isPopOnBell) },
         )
     }
 
@@ -169,6 +179,8 @@ class TerminalModesTest {
         modes.formatOtherKeysMode = 1
         modes.kittyKeyboardFlags = KittyKeyboardProgressiveFlag.SUPPORTED_MASK
         modes.isSynchronizedOutput = true
+        modes.isBellIsUrgent = true
+        modes.isPopOnBell = true
 
         modes.softReset()
 
@@ -192,6 +204,8 @@ class TerminalModesTest {
             { assertEquals(0, modes.formatOtherKeysMode) },
             { assertEquals(0, modes.kittyKeyboardFlags) },
             { assertFalse(modes.isSynchronizedOutput) },
+            { assertFalse(modes.isBellIsUrgent) },
+            { assertFalse(modes.isPopOnBell) },
         )
     }
 }

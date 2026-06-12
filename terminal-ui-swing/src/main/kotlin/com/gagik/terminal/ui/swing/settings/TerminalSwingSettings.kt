@@ -16,9 +16,11 @@
 package com.gagik.terminal.ui.swing.settings
 
 import com.gagik.terminal.render.api.TerminalColorPalette
+import com.gagik.terminal.render.api.TerminalRenderCursorShape
 import com.gagik.terminal.ui.swing.api.TerminalSwingTerminal
 import java.awt.Font
 import java.awt.GraphicsEnvironment
+import java.awt.Insets
 import java.awt.RenderingHints
 import java.util.*
 
@@ -29,52 +31,70 @@ import java.util.*
  * [TerminalSwingTerminal.reloadSettings] to rebuild metrics and repaint.
  *
  * @property font primary terminal font.
- * @property palette resolved terminal color palette.
- * @property columns initial preferred column count.
- * @property rows initial preferred row count.
- * @property treatAmbiguousAsWide whether future East Asian Ambiguous
- * codepoints should occupy two terminal cells in core width policy.
- * @property cursorBlinkMillis cursor blink period in milliseconds.
- * @property textAntialiasing text antialiasing hint used during painting.
- * @property fractionalMetrics fractional font metrics hint used during painting.
- * @property clipboardHandler host clipboard adapter for copy and paste actions.
- * @property clipboardShortcuts platform clipboard key bindings.
- * @property hyperlinkHandler host policy for explicit Ctrl-click hyperlink
- * activation.
- * @property hyperlinkActivationForeground packed ARGB foreground used for the
- * linked span currently under Ctrl-hover.
- * @property selectionBackground packed ARGB overlay used for visible terminal
- * selection ranges.
  * @property fallbackFonts ordered fonts used by the complex-text renderer when
  * [font] cannot display a Unicode scalar cell or grapheme cluster.
  * @property useSystemFallbackFonts whether the complex-text renderer may use
  * installed system fonts after [fallbackFonts] fail. System font discovery is
  * asynchronous and disabled by default to keep Swing startup and painting
  * responsive.
+ * @property palette resolved terminal color palette.
+ * @property columns initial preferred column count.
+ * @property rows initial preferred row count.
+ * @property treatAmbiguousAsWide whether future East Asian Ambiguous
+ * codepoints should occupy two terminal cells in core width policy.
+ * @property cursorBlinkMillis cursor blink period in milliseconds. A value of
+ * zero disables cursor blinking and keeps the cursor visible.
+ * @property textAntialiasing text antialiasing hint used during painting.
+ * @property fractionalMetrics fractional font metrics hint used during painting.
+ * @property clipboardShortcuts platform clipboard key bindings.
+ * @property hyperlinkActivationForeground packed ARGB foreground used for the
+ * linked span currently under Ctrl-hover.
+ * @property selectionBackground packed ARGB overlay used for visible terminal
+ * selection ranges.
+ * @property searchMatchBackground packed ARGB overlay used for non-active
+ * search result ranges.
+ * @property searchActiveMatchBackground packed ARGB overlay used for the active
+ * search result.
+ * @property padding internal margins around the terminal grid in pixels.
+ * @property pasteOnMiddleClick whether middle mouse button click triggers a clipboard paste.
+ * @property cursorShape default cursor shape configured for the session.
+ * @property scrollbackLines maximum scrollback lines retained by the terminal.
+ * @property lineHeight vertical line height scaling factor.
  */
 data class TerminalSwingSettings(
     val font: Font = defaultTerminalFont(),
     val fallbackFonts: List<Font> = defaultFallbackFonts(),
     val useSystemFallbackFonts: Boolean = false,
-    val theme: TerminalTheme = TerminalTheme.CAMPBELL,
-    val palette: TerminalColorPalette = theme.createPalette(),
+    val palette: TerminalColorPalette = defaultPalette(),
     val columns: Int = 80,
     val rows: Int = 24,
     val treatAmbiguousAsWide: Boolean = false,
     val cursorBlinkMillis: Int = 600,
     val textAntialiasing: Any = RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB,
     val fractionalMetrics: Any = RenderingHints.VALUE_FRACTIONALMETRICS_OFF,
-    val clipboardHandler: TerminalClipboardHandler = TerminalClipboardHandler.SYSTEM,
     val clipboardShortcuts: TerminalClipboardShortcuts = TerminalClipboardShortcuts.platformDefault(),
-    val hyperlinkHandler: TerminalHyperlinkHandler = TerminalHyperlinkHandler.SYSTEM,
     val hyperlinkActivationForeground: Int = DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND,
     val selectionBackground: Int = DEFAULT_SELECTION_BACKGROUND,
+    val searchMatchBackground: Int = DEFAULT_SEARCH_MATCH_BACKGROUND,
+    val searchActiveMatchBackground: Int = DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND,
+    val padding: Insets = Insets(12, 12, 12, 12),
+    val pasteOnMiddleClick: Boolean = true,
+    val cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK,
+    val scrollbackLines: Int = 1000,
+    val lineHeight: Float = 1.0f,
+    val shellRequestResizeWindow: Boolean = false,
 ) {
     init {
         require(columns > 0) { "columns must be > 0, was $columns" }
         require(rows > 0) { "rows must be > 0, was $rows" }
-        require(cursorBlinkMillis > 0) {
-            "cursorBlinkMillis must be > 0, was $cursorBlinkMillis"
+        require(cursorBlinkMillis >= 0) {
+            "cursorBlinkMillis must be >= 0, was $cursorBlinkMillis"
+        }
+        require(scrollbackLines >= 0) {
+            "scrollbackLines must be >= 0, was $scrollbackLines"
+        }
+        require(lineHeight > 0f) {
+            "lineHeight must be > 0, was $lineHeight"
         }
     }
 
@@ -82,6 +102,8 @@ data class TerminalSwingSettings(
         private const val DEFAULT_FONT_SIZE = 16
         private const val DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND = 0xFF4DA3FF.toInt()
         private const val DEFAULT_SELECTION_BACKGROUND = 0x66FFFFFF
+        private const val DEFAULT_SEARCH_MATCH_BACKGROUND = 0x55FFD54F
+        private const val DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND = 0xAAFF8C00.toInt()
         private val preferredDefaultFontFamilies =
             arrayOf(
                 "Cascadia Mono",

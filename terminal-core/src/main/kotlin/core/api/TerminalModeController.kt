@@ -116,6 +116,9 @@ interface TerminalModeController {
     /** Sets the cursor shape/style. */
     fun setCursorShape(shape: TerminalRenderCursorShape)
 
+    /** Sets the default cursor shape/style restored on reset. */
+    fun setDefaultCursorShape(shape: TerminalRenderCursorShape)
+
     /**
      * Controls how East Asian Ambiguous codepoints are measured for future writes.
      *
@@ -200,4 +203,10 @@ interface TerminalModeController {
         target: Int,
         color: Int,
     )
+
+    /** Toggles urgent bell mode (?1042). */
+    fun setBellIsUrgent(enabled: Boolean)
+
+    /** Toggles pop on bell mode (?1043). */
+    fun setPopOnBell(enabled: Boolean)
 }

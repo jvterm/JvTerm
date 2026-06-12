@@ -405,6 +405,13 @@ class ActionEngineTest {
             sinkCalls += "requestWindowReport:$mode"
         }
 
+        override fun resizeWindow(
+            rows: Int,
+            columns: Int,
+        ) {
+            sinkCalls += "resizeWindow:$rows:$columns"
+        }
+
         override fun pushTitleStack(scope: Int) {
             sinkCalls += "pushTitleStack:$scope"
         }

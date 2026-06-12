@@ -53,10 +53,10 @@ private object TerminalSwingDemo {
             TerminalSwingSettings(
                 columns = INITIAL_COLUMNS,
                 rows = INITIAL_ROWS,
-                theme = currentTheme,
+                palette = currentTheme.createPalette(),
             )
 
-        val terminal = TerminalSwingTerminal { currentSettings }
+        val terminal = TerminalSwingTerminal(settingsProvider = { currentSettings })
 
         val frame = JFrame("Terminal Swing Demo")
 
@@ -74,7 +74,6 @@ private object TerminalSwingDemo {
                 currentTheme = theme
                 currentSettings =
                     currentSettings.copy(
-                        theme = currentTheme,
                         palette = currentTheme.createPalette(),
                     )
                 terminal.reloadSettings()
@@ -217,6 +216,12 @@ private class DemoPtyEventListener(
                 }
         }
     }
+
+    override fun resizeWindow(
+        session: TerminalSession,
+        rows: Int,
+        columns: Int,
+    ) = Unit
 
     override fun listenerFailed(
         session: TerminalSession,

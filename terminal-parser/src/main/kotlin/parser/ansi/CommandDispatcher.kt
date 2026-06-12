@@ -292,6 +292,11 @@ internal object AnsiCommandDispatcher : CommandDispatcher {
         state: ParserState,
     ) {
         when (modeParam(state, 0)) {
+            8 -> {
+                val rows = modeParam(state, 1)
+                val cols = modeParam(state, 2)
+                sink.resizeWindow(rows = rows, columns = cols)
+            }
             14, 18 -> sink.requestWindowReport(modeParam(state, 0))
             22 -> {
                 val scope = titleStackScopeParam(state)

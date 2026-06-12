@@ -130,7 +130,7 @@ internal class CursorEngine(
      * movement stops at scrollTop. If the cursor is above the scroll region
      * (i.e., outside it entirely), it clamps to row 0.
      */
-    fun cursorUp(n: Int) =
+    fun cursorUp(n: Int): Unit =
         cursorMutation {
             if (n <= 0) return
             state.cancelPendingWrap()
@@ -145,7 +145,7 @@ internal class CursorEngine(
      * movement stops at scrollBottom. If the cursor is below the scroll region,
      * it clamps to height - 1.
      */
-    fun cursorDown(n: Int) =
+    fun cursorDown(n: Int): Unit =
         cursorMutation {
             if (n <= 0) return
             state.cancelPendingWrap()
@@ -156,7 +156,7 @@ internal class CursorEngine(
     /**
      * Moves the cursor left by [n] columns, clamped to column 0 (CUB).
      */
-    fun cursorLeft(n: Int) =
+    fun cursorLeft(n: Int): Unit =
         cursorMutation {
             if (n <= 0) return
             state.cancelPendingWrap()
@@ -166,7 +166,7 @@ internal class CursorEngine(
     /**
      * Moves the cursor right by [n] columns, clamped to width - 1 (CUF).
      */
-    fun cursorRight(n: Int) =
+    fun cursorRight(n: Int): Unit =
         cursorMutation {
             if (n <= 0) return
             state.cancelPendingWrap()
@@ -279,7 +279,7 @@ internal class CursorEngine(
      * The no-save path uses [setCursorAbsolute], so it deliberately ignores
      * DECOM and DECLRMM when homing.
      */
-    fun restoreCursor() =
+    fun restoreCursor(): Unit =
         cursorMutation {
             if (!state.savedCursor.isSaved) {
                 setCursorAbsolute(0, 0)

@@ -70,6 +70,15 @@ internal class Line(
     var wrapped: Boolean = false
 
     /**
+     * True when resize reflow inserted an artificial trailing blank cell to keep
+     * a wide character from being split across physical rows.
+     *
+     * The marker is line-scoped because resize padding can only occupy the last
+     * cell of a wrapped physical row. Normal line mutation clears it.
+     */
+    var endsWithResizePadding: Boolean = false
+
+    /**
      * Visual generation for this physical line.
      *
      * Updated by terminal state mutation helpers when content, attributes,
@@ -172,6 +181,7 @@ internal class Line(
         attr: Long,
         extendedAttr: Long = 0L,
     ) {
+        endsWithResizePadding = false
         freeHandleAt(col)
         codepoints[col] = codepoint
         attrs[col] = attr
@@ -195,6 +205,7 @@ internal class Line(
         attr: Long,
         extendedAttr: Long = 0L,
     ) {
+        endsWithResizePadding = false
         freeHandleAt(col)
         codepoints[col] = store.alloc(cps, 0, cpLen)
         attrs[col] = attr
@@ -214,6 +225,7 @@ internal class Line(
         attrs.fill(defaultAttr)
         extendedAttrs.fill(defaultExtendedAttr)
         wrapped = false
+        endsWithResizePadding = false
     }
 
     /**
@@ -227,6 +239,7 @@ internal class Line(
     ) {
         val from = startCol.coerceAtLeast(0)
         if (from >= width) return
+        endsWithResizePadding = false
         store.freeRange(codepoints, from, width)
         codepoints.fill(TerminalConstants.EMPTY, from, width)
         attrs.fill(attr, from, width)
@@ -244,6 +257,7 @@ internal class Line(
     ) {
         val to = (endCol + 1).coerceAtMost(width)
         if (to <= 0) return
+        endsWithResizePadding = false
         store.freeRange(codepoints, 0, to)
         codepoints.fill(TerminalConstants.EMPTY, 0, to)
         attrs.fill(attr, 0, to)
@@ -263,6 +277,7 @@ internal class Line(
         val from = startCol.coerceIn(0, width)
         val to = endExclusive.coerceIn(0, width)
         if (from >= to) return
+        endsWithResizePadding = false
         store.freeRange(codepoints, from, to)
         codepoints.fill(TerminalConstants.EMPTY, from, to)
         attrs.fill(attr, from, to)
@@ -296,6 +311,7 @@ internal class Line(
         defaultExtendedAttr: Long = 0L,
     ) {
         if (isInvalidRange(col, count, rightInclusive)) return
+        endsWithResizePadding = false
 
         val safeCount = count.coerceAtMost(rightInclusive - col + 1)
         val shiftCount = rightInclusive - col + 1 - safeCount
@@ -347,6 +363,7 @@ internal class Line(
         defaultExtendedAttr: Long = 0L,
     ) {
         if (isInvalidRange(col, count, rightInclusive)) return
+        endsWithResizePadding = false
 
         val safeCount = count.coerceAtMost(rightInclusive - col + 1)
         val shiftCount = rightInclusive - col + 1 - safeCount
@@ -379,6 +396,7 @@ internal class Line(
         attr: Long,
         extendedAttr: Long = 0L,
     ) {
+        endsWithResizePadding = false
         store.freeRange(codepoints, 0, width)
         codepoints.fill(codepoint)
         attrs.fill(attr)

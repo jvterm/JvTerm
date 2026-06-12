@@ -42,6 +42,17 @@ interface TerminalHostEventSink {
      */
     fun windowTitleChanged(title: String)
 
+    /**
+     * Called when the shell requests a window resize.
+     *
+     * @param rows target row count.
+     * @param columns target column count.
+     */
+    fun resizeWindow(
+        rows: Int,
+        columns: Int,
+    )
+
     companion object {
         /**
          * Event sink used when the host does not need metadata callbacks.
@@ -54,6 +65,11 @@ interface TerminalHostEventSink {
                 override fun iconTitleChanged(title: String) = Unit
 
                 override fun windowTitleChanged(title: String) = Unit
+
+                override fun resizeWindow(
+                    rows: Int,
+                    columns: Int,
+                ) = Unit
             }
     }
 }

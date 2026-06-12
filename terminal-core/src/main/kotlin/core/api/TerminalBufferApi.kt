@@ -55,7 +55,8 @@ interface TerminalBufferApi :
     fun resize(
         newWidth: Int,
         newHeight: Int,
-    )
+        oldScrollbackOffset: Int = 0,
+    ): Pair<Int, Int>
 
     /**
      * Performs a full terminal reset (RIS, `ESC c`).

@@ -21,6 +21,7 @@ import com.gagik.terminal.render.cache.TerminalRenderCache
 import com.gagik.terminal.session.TerminalSession
 import com.gagik.terminal.ui.swing.input.TerminalSwingKeyMapper
 import com.gagik.terminal.ui.swing.render.TerminalGridPainter
+import com.gagik.terminal.ui.swing.search.*
 import com.gagik.terminal.ui.swing.settings.TerminalClipboardAction
 import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
@@ -31,6 +32,7 @@ import com.gagik.terminal.ui.swing.viewport.TerminalSwingScrollModel
 import java.awt.*
 import java.awt.event.*
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
@@ -45,40 +47,122 @@ import javax.swing.Timer
  * connector choice outside this component.
  *
  * @param settingsProvider provider for immutable settings snapshots.
+ * @param hostServices host-provided non-render services.
  */
 class TerminalSwingTerminal(
     private val settingsProvider: TerminalSwingSettingsProvider =
         TerminalSwingSettingsProvider { TerminalSwingSettings() },
+    private val hostServices: TerminalSwingHostServices = TerminalSwingHostServices(),
 ) : JComponent() {
     private var session: TerminalSession? = null
     private var settings: TerminalSwingSettings = settingsProvider.currentSettings()
     private var metrics: TerminalSwingMetrics = buildMetrics(settings)
+    private var terminalFocused: Boolean = false
     internal var cursorBlinkVisible: Boolean = true
+    internal val cursorPresentationEnabled: Boolean
+        get() = terminalFocused
     private var lastResizedColumns: Int = NO_RESIZE_DIMENSION
     private var lastResizedRows: Int = NO_RESIZE_DIMENSION
-    private var selectionAnchorAbsoluteRow: Long? = null
-    private var selectionAnchorColumn: Int = 0
-    private var selectionAnchorRow: Int = 0
-    private var selectionCaretAbsoluteRow: Long? = null
-    private var selectionCaretColumn: Int = 0
-    private var selectingWithMouse: Boolean = false
-    private var selectionIsBlock: Boolean = false
-    private var lastSelectionDragX: Int = 0
-    private var lastSelectionDragY: Int = 0
-    private var hoveredHyperlinkId: Int = NO_HYPERLINK_ID
-    private var hyperlinkActivationHover: Boolean = false
-    private val selectionAutoscrollTimer =
-        Timer(50) {
-            handleSelectionAutoscrollTick()
-        }
+    private var searchQuery: String = ""
+    private var searchHighlights: TerminalSearchHighlights? = null
+    private var searchIgnoreCase: Boolean = true
     private val renderPending = AtomicBoolean(false)
     private val visibleGridSizeSnapshot = AtomicLong(packVisibleGridSize(1, 1))
+    private val viewportHistorySizeSnapshot = AtomicInteger(0)
+    private val viewportScrollbackOffsetSnapshot = AtomicLong(doubleToRawLongBits(0.0))
+    private val viewportRenderOffsetSnapshot = AtomicInteger(0)
+    private val viewportVisibleRowsSnapshot = AtomicInteger(1)
+    private val viewportRequestedRowsSnapshot = AtomicInteger(1)
+    private val publishedFrameRunnable =
+        Runnable {
+            renderPending.set(false)
+            handlePublishedFrame()
+        }
+    private val unbindRunnable = Runnable { unbindOnEdt() }
+    private val reloadSettingsRunnable = Runnable { reloadSettingsOnEdt() }
 
     private val painter = TerminalGridPainter()
     private val repaintPlanner = TerminalSwingRepaintPlanner()
     private val scrollModel = TerminalSwingScrollModel()
+    private val renderCache = TerminalRenderCache(settings.columns, settings.rows)
+    private val searchCache = TerminalRenderCache(settings.columns, settings.rows)
     private val keyMapper = TerminalSwingKeyMapper()
-    private val selectionTextExtractor = TerminalSelectionTextExtractor()
+    private val searchModel = TerminalSearchModel()
+    private val searchViewportHighlights = TerminalSearchViewportHighlights()
+
+    private val selectionController =
+        TerminalSelectionController(
+            object : TerminalSelectionHost {
+                override val settings: TerminalSwingSettings get() = this@TerminalSwingTerminal.settings
+                override val metrics: TerminalSwingMetrics get() = this@TerminalSwingTerminal.metrics
+                override val renderCache: TerminalRenderCache get() = this@TerminalSwingTerminal.renderCache
+                override val contentYOffset: Double get() =
+                    this@TerminalSwingTerminal.contentYOffset(
+                        this@TerminalSwingTerminal.renderCache,
+                    )
+                override val componentWidth: Int get() = this@TerminalSwingTerminal.width
+                override val componentHeight: Int get() = this@TerminalSwingTerminal.height
+
+                override fun cellAt(
+                    x: Int,
+                    y: Int,
+                ): Long = this@TerminalSwingTerminal.cellAt(x, y, this@TerminalSwingTerminal.renderCache)
+
+                override fun scrollViewportBy(
+                    delta: Double,
+                    historySize: Int,
+                ): Boolean = this@TerminalSwingTerminal.scrollViewportByOnEdt(delta, historySize)
+
+                override fun repaint() = this@TerminalSwingTerminal.repaint()
+
+                override fun requestFocusInWindow(): Boolean = this@TerminalSwingTerminal.requestFocusInWindow()
+            },
+        )
+
+    private val hyperlinkController =
+        TerminalHyperlinkController(
+            object : TerminalHyperlinkHost {
+                override val renderCache: TerminalRenderCache get() = this@TerminalSwingTerminal.renderCache
+                override val session: TerminalSession? get() = this@TerminalSwingTerminal.session
+                override val hostServices: TerminalSwingHostServices get() = this@TerminalSwingTerminal.hostServices
+                override var cursor: Cursor
+                    get() = this@TerminalSwingTerminal.cursor
+                    set(value) {
+                        this@TerminalSwingTerminal.cursor = value
+                    }
+
+                override fun cellAt(
+                    x: Int,
+                    y: Int,
+                ): Long = this@TerminalSwingTerminal.cellAt(x, y, this@TerminalSwingTerminal.renderCache)
+
+                override fun repaint() = this@TerminalSwingTerminal.repaint()
+            },
+        )
+    private val searchOverlay =
+        TerminalSearchOverlay(
+            object : SearchOverlayListener {
+                override fun onQueryChanged(query: String) {
+                    applySearchQueryOnEdt(query)
+                }
+
+                override fun onFindNext() {
+                    findNextOnEdt()
+                }
+
+                override fun onFindPrevious() {
+                    findPreviousOnEdt()
+                }
+
+                override fun onCloseSearch() {
+                    closeSearchOnEdt()
+                }
+
+                override fun onCaseSensitivityChanged(ignoreCase: Boolean) {
+                    searchIgnoreCase = ignoreCase
+                }
+            },
+        )
     private val repaintSink =
         object : TerminalRepaintSink {
             override fun requestFullRepaint() {
@@ -94,8 +178,10 @@ class TerminalSwingTerminal(
                 repaint(x, y, width, height)
             }
         }
+    private val dirtyListener = { schedulePublishedFrame() }
+
     internal val cursorTimer =
-        Timer(settings.cursorBlinkMillis) {
+        Timer(cursorTimerDelay(settings)) {
             cursorBlinkVisible = !cursorBlinkVisible
             repaintBlinkState()
         }
@@ -103,8 +189,9 @@ class TerminalSwingTerminal(
     private val inputKeyListener =
         object : KeyAdapter() {
             override fun keyPressed(event: KeyEvent) {
-                updateHyperlinkActivationHover(event.isControlDown)
+                hyperlinkController.updateHyperlinkActivationHover(event.isControlDown)
                 resetCursorBlinkOnEdt(forceRepaint = true)
+                if (handleSearchShortcut(event)) return
                 if (handleClipboardShortcut(event)) return
 
                 val keyEvent = keyMapper.keyPressed(event) ?: return
@@ -113,7 +200,7 @@ class TerminalSwingTerminal(
             }
 
             override fun keyReleased(event: KeyEvent) {
-                updateHyperlinkActivationHover(event.isControlDown)
+                hyperlinkController.updateHyperlinkActivationHover(event.isControlDown)
             }
 
             override fun keyTyped(event: KeyEvent) {
@@ -121,6 +208,20 @@ class TerminalSwingTerminal(
                 val keyEvent = keyMapper.keyTyped(event) ?: return
                 session?.encodeKey(keyEvent)
                 event.consume()
+            }
+        }
+
+    private val terminalFocusListener =
+        object : FocusAdapter() {
+            override fun focusGained(event: FocusEvent) {
+                terminalFocused = true
+                resetCursorBlinkOnEdt(forceRepaint = false)
+                repaintCursorState()
+            }
+
+            override fun focusLost(event: FocusEvent) {
+                terminalFocused = false
+                repaintCursorState()
             }
         }
 
@@ -132,26 +233,41 @@ class TerminalSwingTerminal(
     private val selectionMouseListener =
         object : MouseAdapter() {
             override fun mousePressed(event: MouseEvent) {
-                handleSelectionMousePressed(event)
+                if (handleMouseTracking(event, TerminalMouseEventType.PRESS)) return
+                if (hyperlinkController.handleMousePressed(event)) return
+                if (SwingUtilities.isMiddleMouseButton(event)) {
+                    if (settings.pasteOnMiddleClick) {
+                        pasteClipboardText()
+                        event.consume()
+                        return
+                    }
+                }
+                selectionController.handleSelectionMousePressed(event)
             }
 
             override fun mouseReleased(event: MouseEvent) {
-                handleSelectionMouseReleased(event)
+                if (handleMouseTracking(event, TerminalMouseEventType.RELEASE)) return
+                selectionController.handleSelectionMouseReleased(event)
             }
 
             override fun mouseExited(event: MouseEvent) {
-                clearHyperlinkHover()
+                hyperlinkController.handleMouseExited()
             }
         }
 
     private val selectionMouseMotionListener =
         object : MouseMotionAdapter() {
             override fun mouseDragged(event: MouseEvent) {
-                handleSelectionMouseDragged(event)
+                if (handleMouseTracking(event, TerminalMouseEventType.MOTION)) return
+                selectionController.handleSelectionMouseDragged(event)
             }
 
             override fun mouseMoved(event: MouseEvent) {
-                handleSelectionMouseMoved(event)
+                if (handleMouseTracking(event, TerminalMouseEventType.MOTION)) {
+                    hyperlinkController.clearHyperlinkHover()
+                    return
+                }
+                hyperlinkController.handleMouseMoved(event)
             }
         }
 
@@ -169,13 +285,17 @@ class TerminalSwingTerminal(
         isOpaque = true
         isFocusable = true
         focusTraversalKeysEnabled = false
+        addFocusListener(terminalFocusListener)
         addKeyListener(inputKeyListener)
         addMouseListener(selectionMouseListener)
         addMouseMotionListener(selectionMouseMotionListener)
         addMouseWheelListener(viewportWheelListener)
         addComponentListener(resizeListener)
+        add(searchOverlay)
+        searchOverlay.isVisible = false
         preferredSize = preferredGridSize(settings.columns, settings.rows)
         cursorTimer.isRepeats = true
+        configureCursorTimerOnEdt()
     }
 
     /**
@@ -188,9 +308,11 @@ class TerminalSwingTerminal(
      * @param session terminal session to display.
      */
     fun bind(session: TerminalSession) {
-        runOnEdt {
-            bindOnEdt(session)
-        }
+        runOnEdt(
+            Runnable {
+                bindOnEdt(session)
+            },
+        )
     }
 
     /**
@@ -200,9 +322,7 @@ class TerminalSwingTerminal(
      * asynchronously on the EDT.
      */
     fun unbind() {
-        runOnEdt {
-            unbindOnEdt()
-        }
+        runOnEdt(unbindRunnable)
     }
 
     /**
@@ -212,9 +332,7 @@ class TerminalSwingTerminal(
      * asynchronously on the EDT.
      */
     fun reloadSettings() {
-        runOnEdt {
-            reloadSettingsOnEdt()
-        }
+        runOnEdt(reloadSettingsRunnable)
     }
 
     /**
@@ -236,15 +354,97 @@ class TerminalSwingTerminal(
         return Dimension(unpackVisibleColumns(packed), unpackVisibleRows(packed))
     }
 
+    /**
+     * Returns the latest terminal-native scrollback viewport snapshot.
+     *
+     * This method may be called from any thread. EDT callers refresh the
+     * snapshot from live component and render-cache state before reading it;
+     * off-EDT callers read the last EDT-published snapshot without blocking.
+     *
+     * @return current scrollback viewport state.
+     */
+    fun viewportState(): TerminalViewportState {
+        if (SwingUtilities.isEventDispatchThread()) {
+            publishViewportState(renderCache.historySize, notifyListener = false)
+        }
+        return TerminalViewportState(
+            historySize = viewportHistorySizeSnapshot.get(),
+            scrollbackOffset = longBitsToDouble(viewportScrollbackOffsetSnapshot.get()),
+            renderOffset = viewportRenderOffsetSnapshot.get(),
+            visibleRows = viewportVisibleRowsSnapshot.get(),
+            requestedRows = viewportRequestedRowsSnapshot.get(),
+        )
+    }
+
+    /**
+     * Returns to the live terminal viewport.
+     *
+     * This method may be called from any thread; component state is updated
+     * asynchronously on the EDT.
+     */
+    fun scrollToLiveViewport() {
+        scrollToScrollbackOffset(0)
+    }
+
+    /**
+     * Scrolls to an absolute scrollback offset.
+     *
+     * The offset uses terminal-native coordinates: `0` is live output and
+     * larger values move farther back into scrollback history. Values beyond
+     * available history are clamped on the EDT.
+     *
+     * @param scrollbackOffset requested whole-row offset from live output.
+     */
+    fun scrollToScrollbackOffset(scrollbackOffset: Int) {
+        runOnEdt(
+            Runnable {
+                scrollViewportToOnEdt(scrollbackOffset.toDouble())
+            },
+        )
+    }
+
+    /**
+     * Applies a signed scrollback delta in terminal rows.
+     *
+     * Positive values move farther back into scrollback; negative values move
+     * toward the live viewport. Fractional values are preserved for smooth
+     * wheel and trackpad composition.
+     *
+     * @param deltaLines signed row delta.
+     */
+    fun scrollViewportBy(deltaLines: Double) {
+        require(!deltaLines.isNaN()) { "deltaLines must not be NaN" }
+        runOnEdt(
+            Runnable {
+                scrollViewportByOnEdt(deltaLines)
+            },
+        )
+    }
+
     override fun addNotify() {
         super.addNotify()
-        cursorTimer.start()
+        terminalFocused = isFocusOwner
+        configureCursorTimerOnEdt()
     }
 
     override fun removeNotify() {
+        terminalFocused = false
         cursorTimer.stop()
-        selectionAutoscrollTimer.stop()
+        selectionController.stopSelectionDrag()
         super.removeNotify()
+    }
+
+    override fun doLayout() {
+        super.doLayout()
+        val preferred = searchOverlay.preferredSize
+        val availableWidth = width - settings.padding.left - settings.padding.right
+        val overlayWidth = minOf(availableWidth, preferred.width).coerceAtLeast(0)
+        if (overlayWidth == 0) {
+            searchOverlay.setBounds(0, 0, 0, 0)
+            return
+        }
+        val x = maxOf(settings.padding.left, width - settings.padding.right - overlayWidth)
+        searchOverlay.setBounds(x, settings.padding.top, overlayWidth, preferred.height)
     }
 
     override fun paintComponent(graphics: Graphics) {
@@ -252,67 +452,65 @@ class TerminalSwingTerminal(
 
         val g = graphics.create() as Graphics2D
         try {
-            val publisher = session?.publisher
-            if (publisher == null) {
+            if (session == null) {
                 painter.clear(g, settings.palette, width, height)
                 return
             }
 
-            val painted =
-                publisher.readCurrent { cache ->
-                    painter.paint(
-                        g = g,
-                        cache = cache,
-                        settings = settings,
-                        metrics = metrics,
-                        width = width,
-                        height = height,
-                        cursorBlinkVisible = cursorBlinkVisible,
-                        textBlinkVisible = cursorBlinkVisible,
-                        contentYOffset = contentYOffset(cache),
-                        selection = getViewportSelection(cache),
-                        hoveredHyperlinkId = hoveredHyperlinkId,
-                        hyperlinkActivationHover = hyperlinkActivationHover,
-                    )
-                }
-            if (painted == null) {
-                painter.clear(g, settings.palette, width, height)
-            }
+            painter.paint(
+                g = g,
+                cache = renderCache,
+                settings = settings,
+                metrics = metrics,
+                width = width,
+                height = height,
+                cursorVisible = cursorPresentationEnabled,
+                cursorBlinkVisible = cursorBlinkVisible,
+                textBlinkVisible = cursorBlinkVisible,
+                contentYOffset = contentYOffset(renderCache),
+                selection = selectionController.getViewportSelection(renderCache),
+                searchHighlights = searchViewportHighlights,
+                hoveredHyperlinkId = hyperlinkController.hoveredHyperlinkId,
+                hyperlinkActivationHover = hyperlinkController.hyperlinkActivationHover,
+            )
         } finally {
             g.dispose()
         }
     }
 
     private fun bindOnEdt(session: TerminalSession) {
-        this.session?.onDirty = null
+        this.session?.removeDirtyListener(dirtyListener)
         this.session = session
         applySettingsToSession(session, settings)
-        session.onDirty = {
-            schedulePublishedFrame()
-        }
+        session.addDirtyListener(dirtyListener)
         resetScrollbackState()
-        clearSelection()
-        stopSelectionDrag()
+        selectionController.clearSelection()
+        clearSearch()
+        selectionController.stopSelectionDrag()
         lastResizedColumns = NO_RESIZE_DIMENSION
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
         renderPending.set(false)
-        clearHyperlinkHover()
+        hyperlinkController.clearHyperlinkHover()
         resizeSessionToVisibleGridOnEdt()
+        refreshRenderCacheFromSession(session)
+        publishViewportState(renderCache.historySize)
         repaint()
     }
 
     private fun unbindOnEdt() {
-        session?.onDirty = null
+        session?.removeDirtyListener(dirtyListener)
         session = null
         resetScrollbackState()
-        clearSelection()
-        stopSelectionDrag()
+        selectionController.clearSelection()
+        clearSearch()
+        selectionController.stopSelectionDrag()
         lastResizedColumns = NO_RESIZE_DIMENSION
         lastResizedRows = NO_RESIZE_DIMENSION
         repaintPlanner.reset()
         renderPending.set(false)
-        clearHyperlinkHover()
+        hyperlinkController.clearHyperlinkHover()
+        publishViewportState(0)
         repaint()
     }
 
@@ -324,11 +522,14 @@ class TerminalSwingTerminal(
         isOpaque = true
         metrics = buildMetrics(settings)
         preferredSize = preferredGridSize(settings.columns, settings.rows)
-        cursorTimer.delay = settings.cursorBlinkMillis
+        configureCursorTimerOnEdt()
         session?.let { applySettingsToSession(it, settings) }
-        clearSelection()
-        clearHyperlinkHover()
+        selectionController.clearSelection()
+        updateSearchViewportHighlights()
+        hyperlinkController.clearHyperlinkHover()
         resizeSessionToVisibleGridOnEdt()
+        session?.let { refreshRenderCacheFromSession(it) }
+        publishViewportState(renderCache.historySize)
         revalidate()
         repaint()
     }
@@ -343,9 +544,37 @@ class TerminalSwingTerminal(
      * @return current selection, or `null`.
      */
     fun currentSelection(): CellSelection? {
-        val pub = session?.publisher ?: return null
-        return pub.readCurrent { cache -> getViewportSelection(cache) }
+        if (session == null) return null
+        return selectionController.getViewportSelection(renderCache)
     }
+
+    /**
+     * Applies a literal terminal-buffer search query.
+     *
+     * The search covers retained scrollback plus the live grid snapshot exposed
+     * through the bound session's render-frame reader.
+     *
+     * @param query literal text to find.
+     */
+    fun search(query: String) {
+        runOnEdt(
+            Runnable {
+                searchOverlay.setQueryText(query)
+                applySearchQueryOnEdt(query)
+            },
+        )
+    }
+
+    /**
+     * Returns the current search UI and result snapshot.
+     */
+    fun currentSearchState(): TerminalSearchState =
+        TerminalSearchState(
+            visible = searchOverlay.isVisible,
+            query = searchQuery,
+            resultCount = searchHighlights?.resultCount ?: 0,
+            activeResultIndex = searchHighlights?.activeResultIndex ?: NO_ACTIVE_SEARCH_RESULT,
+        )
 
     private fun applySettingsToSession(
         session: TerminalSession,
@@ -353,28 +582,18 @@ class TerminalSwingTerminal(
     ) {
         session.setTreatAmbiguousAsWide(settings.treatAmbiguousAsWide)
         session.setThemePalette(settings.palette)
+        session.setCursorShape(settings.cursorShape)
     }
 
     private fun handleMouseWheel(event: MouseWheelEvent) {
         if (handleMouseTracking(event, TerminalMouseEventType.WHEEL)) return
-        val boundSession = session ?: return
-        val historySize = boundSession.publisher.readCurrent { cache -> cache.historySize } ?: return
+        val historySize = renderCache.historySize
         if (historySize == 0) return
 
         val delta = wheelScrollLines(event)
         if (delta == 0.0) return
 
-        val previousRequestedOffset = scrollModel.requestedOffset
-        val previousRequestedRows = requestedRenderRows()
-        if (!scrollModel.scrollBy(delta, historySize)) return
-
-        val nextRequestedOffset = scrollModel.requestedOffset
-        val nextRequestedRows = requestedRenderRows()
-        if (nextRequestedOffset != previousRequestedOffset || nextRequestedRows != previousRequestedRows) {
-            boundSession.requestRender(nextRequestedOffset, nextRequestedRows)
-        } else {
-            repaint()
-        }
+        scrollViewportByOnEdt(delta, historySize)
         event.consume()
     }
 
@@ -391,138 +610,39 @@ class TerminalSwingTerminal(
         val boundSession = session ?: return false
         if (!isMouseTrackingIntercepted(event)) return false
 
-        boundSession.publisher.readCurrent { cache ->
-            val cell = cellAt(event, cache)
-            val column = unpackCellColumn(cell)
-            val row = unpackCellRow(cell)
+        val cell = cellAt(event, renderCache)
+        val column = unpackCellColumn(cell)
+        val row = unpackCellRow(cell)
 
-            val button =
-                if (event is MouseWheelEvent) {
-                    if (event.wheelRotation < 0) TerminalMouseButton.WHEEL_UP else TerminalMouseButton.WHEEL_DOWN
-                } else {
-                    when {
-                        SwingUtilities.isLeftMouseButton(event) -> TerminalMouseButton.LEFT
-                        SwingUtilities.isMiddleMouseButton(event) -> TerminalMouseButton.MIDDLE
-                        SwingUtilities.isRightMouseButton(event) -> TerminalMouseButton.RIGHT
-                        else -> TerminalMouseButton.NONE
-                    }
-                }
-
-            var mods = TerminalModifiers.NONE
-            if (event.isShiftDown) mods = mods or TerminalModifiers.SHIFT
-            if (event.isAltDown) mods = mods or TerminalModifiers.ALT
-            if (event.isControlDown) mods = mods or TerminalModifiers.CTRL
-            if (event.isMetaDown) mods = mods or TerminalModifiers.META
-
-            val mouseEvent =
-                TerminalMouseEvent(
-                    column = column,
-                    row = row,
-                    button = button,
-                    type = type,
-                    modifiers = mods,
-                )
-            boundSession.encodeMouse(mouseEvent)
-        }
-        event.consume()
-        return true
-    }
-
-    private fun handleSelectionMouseMoved(event: MouseEvent) {
-        if (handleMouseTracking(event, TerminalMouseEventType.MOTION)) {
-            clearHyperlinkHover()
-            return
-        }
-        updateHyperlinkHover(resolvableHyperlinkIdAt(event), activationHover = event.isControlDown)
-    }
-
-    private fun handleSelectionMousePressed(event: MouseEvent) {
-        if (handleMouseTracking(event, TerminalMouseEventType.PRESS)) return
-        if (handleHyperlinkActivation(event)) return
-        if (!SwingUtilities.isLeftMouseButton(event)) return
-        requestFocusInWindow()
-
-        selectingWithMouse = true
-        selectionIsBlock = event.isAltDown
-        lastSelectionDragX = event.x
-        lastSelectionDragY = event.y
-
-        val publisher = session?.publisher ?: return
-        publisher.readCurrent { cache ->
-            val cell = cellAt(event, cache)
-            val column = unpackCellColumn(cell)
-            val row = unpackCellRow(cell)
-
-            when {
-                event.clickCount >= 3 -> {
-                    val absRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + row
-                    selectionAnchorAbsoluteRow = absRow
-                    selectionAnchorColumn = 0
-                    selectionCaretAbsoluteRow = absRow
-                    selectionCaretColumn = cache.columns
-                }
-
-                event.clickCount == 2 -> {
-                    val wordSel = selectionTextExtractor.wordSelectionAt(cache, row, column)
-                    if (wordSel != null) {
-                        selectionAnchorAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + wordSel.anchorRow
-                        selectionAnchorColumn = wordSel.anchorColumn
-                        selectionCaretAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + wordSel.caretRow
-                        selectionCaretColumn = wordSel.caretColumn
-                    } else {
-                        clearSelection()
-                    }
-                }
-
-                else -> {
-                    selectionAnchorColumn = column
-                    selectionAnchorRow = row
-                    selectionAnchorAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + row
-                    selectionCaretAbsoluteRow = null
+        val button =
+            if (event is MouseWheelEvent) {
+                if (event.wheelRotation < 0) TerminalMouseButton.WHEEL_UP else TerminalMouseButton.WHEEL_DOWN
+            } else {
+                when {
+                    SwingUtilities.isLeftMouseButton(event) -> TerminalMouseButton.LEFT
+                    SwingUtilities.isMiddleMouseButton(event) -> TerminalMouseButton.MIDDLE
+                    SwingUtilities.isRightMouseButton(event) -> TerminalMouseButton.RIGHT
+                    else -> TerminalMouseButton.NONE
                 }
             }
-        }
-        updateSelectionAutoscroll()
-        repaint()
+
+        var mods = TerminalModifiers.NONE
+        if (event.isShiftDown) mods = mods or TerminalModifiers.SHIFT
+        if (event.isAltDown) mods = mods or TerminalModifiers.ALT
+        if (event.isControlDown) mods = mods or TerminalModifiers.CTRL
+        if (event.isMetaDown) mods = mods or TerminalModifiers.META
+
+        val mouseEvent =
+            TerminalMouseEvent(
+                column = column,
+                row = row,
+                button = button,
+                type = type,
+                modifiers = mods,
+            )
+        boundSession.encodeMouse(mouseEvent)
         event.consume()
-    }
-
-    private fun handleSelectionMouseDragged(event: MouseEvent) {
-        if (handleMouseTracking(event, TerminalMouseEventType.MOTION)) return
-        if (event.modifiersEx and MouseEvent.BUTTON1_DOWN_MASK == 0) return
-
-        selectingWithMouse = true
-        selectionIsBlock = event.isAltDown
-        lastSelectionDragX = event.x
-        lastSelectionDragY = event.y
-
-        val publisher = session?.publisher ?: return
-        publisher.readCurrent { cache ->
-            val cell = cellAt(event, cache)
-            val column = unpackCellColumn(cell)
-            val row = unpackCellRow(cell)
-
-            val caretAbsRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + row
-            val anchorAbsRow =
-                selectionAnchorAbsoluteRow ?: (cache.discardedCount + cache.historySize - cache.scrollbackOffset + selectionAnchorRow)
-
-            val caretColumn =
-                if (
-                    caretAbsRow < anchorAbsRow ||
-                    (caretAbsRow == anchorAbsRow && column < selectionAnchorColumn)
-                ) {
-                    column
-                } else {
-                    column + 1
-                }
-
-            selectionAnchorAbsoluteRow = anchorAbsRow
-            selectionCaretAbsoluteRow = caretAbsRow
-            selectionCaretColumn = caretColumn
-        }
-        updateSelectionAutoscroll()
-        repaint()
-        event.consume()
+        return true
     }
 
     private fun handleClipboardShortcut(event: KeyEvent): Boolean {
@@ -538,74 +658,35 @@ class TerminalSwingTerminal(
         return true
     }
 
-    private fun copySelectionToClipboard(): Boolean {
-        val publisher = session?.publisher ?: return false
-        val selectedText =
-            publisher.readCurrent { cache ->
-                val currentSelection = getViewportSelection(cache) ?: return@readCurrent null
-                selectionTextExtractor.selectedText(cache, currentSelection)
-            } ?: return false
-        if (selectedText.isEmpty()) return false
-        settings.clipboardHandler.copyText(selectedText)
+    private fun handleSearchShortcut(event: KeyEvent): Boolean {
+        if (event.keyCode != KeyEvent.VK_F) return false
+        if (!event.isShiftDown) return false
+        if (!event.isControlDown && !event.isMetaDown) return false
+        openSearchOnEdt()
+        event.consume()
         return true
     }
 
-    private fun pasteClipboardText(): Boolean {
-        val text = settings.clipboardHandler.readText() ?: return false
+    fun copySelectionToClipboard(): Boolean {
+        if (session == null) return false
+        val selectedText = selectionController.getSelectedText(renderCache) ?: return false
+        hostServices.clipboardHandler.copyText(selectedText)
+        return true
+    }
+
+    fun pasteClipboardText(): Boolean {
+        val text = hostServices.clipboardHandler.readText() ?: return false
         if (text.isEmpty()) return false
         session?.encodePaste(TerminalPasteEvent(text))
         return true
     }
 
-    private fun clearSelection() {
-        selectionAnchorAbsoluteRow = null
-        selectionCaretAbsoluteRow = null
-    }
-
-    private fun getViewportSelection(cache: TerminalRenderCache?): CellSelection? {
-        val anchorAbsRow = selectionAnchorAbsoluteRow ?: return null
-        val caretAbsRow = selectionCaretAbsoluteRow ?: return null
-        val c = cache ?: return null
-
-        val isForward =
-            caretAbsRow > anchorAbsRow ||
-                (caretAbsRow == anchorAbsRow && selectionCaretColumn >= selectionAnchorColumn)
-
-        val startAbsRow = if (isForward) anchorAbsRow else caretAbsRow
-        val startCol = if (isForward) selectionAnchorColumn else selectionCaretColumn
-        val endAbsRow = if (isForward) caretAbsRow else anchorAbsRow
-        val endCol = if (isForward) selectionCaretColumn else selectionAnchorColumn
-
-        val startViewportRow = (startAbsRow - c.discardedCount - (c.historySize - c.scrollbackOffset)).toInt()
-        val endViewportRow = (endAbsRow - c.discardedCount - (c.historySize - c.scrollbackOffset)).toInt()
-
-        if (endViewportRow < 0 || startViewportRow >= c.rows) {
-            return null
-        }
-
-        val clampedStartRow = startViewportRow.coerceIn(0, c.rows - 1)
-        val clampedStartCol = if (startViewportRow < 0) 0 else startCol.coerceIn(0, c.columns)
-
-        val clampedEndRow = endViewportRow.coerceIn(0, c.rows - 1)
-        val clampedEndCol = if (endViewportRow >= c.rows) c.columns else endCol.coerceIn(0, c.columns)
-
-        return if (isForward) {
-            CellSelection(
-                anchorColumn = clampedStartCol,
-                anchorRow = clampedStartRow,
-                caretColumn = clampedEndCol,
-                caretRow = clampedEndRow,
-                isBlock = selectionIsBlock,
-            )
-        } else {
-            CellSelection(
-                anchorColumn = clampedEndCol,
-                anchorRow = clampedEndRow,
-                caretColumn = clampedStartCol,
-                caretRow = clampedStartRow,
-                isBlock = selectionIsBlock,
-            )
-        }
+    private fun clearSearch() {
+        searchQuery = ""
+        searchHighlights = null
+        searchViewportHighlights.reset(renderCache.rows)
+        searchOverlay.setQueryText("")
+        searchOverlay.updateResultCounter(0, NO_ACTIVE_SEARCH_RESULT)
     }
 
     private fun cellAt(
@@ -618,168 +699,42 @@ class TerminalSwingTerminal(
         y: Int,
         cache: TerminalRenderCache,
     ): Long {
-        val column = (x / metrics.cellWidth).coerceIn(0, cache.columns - 1)
+        val padding = settings.padding
+        val column = ((x - padding.left) / metrics.cellWidth).coerceIn(0, cache.columns - 1)
         val row =
-            ((y - contentYOffset(cache)) / metrics.cellHeight)
+            ((y - padding.top - contentYOffset(cache)) / metrics.cellHeight)
                 .toInt()
                 .coerceIn(0, cache.rows - 1)
         return packCell(column, row)
     }
 
-    private fun handleSelectionMouseReleased(event: MouseEvent) {
-        if (handleMouseTracking(event, TerminalMouseEventType.RELEASE)) return
-        if (SwingUtilities.isLeftMouseButton(event)) {
-            stopSelectionDrag()
-            event.consume()
+    private fun scrollViewportByOnEdt(
+        delta: Double,
+        historySize: Int = renderCache.historySize,
+        boundSession: TerminalSession? = session,
+    ): Boolean {
+        if (!scrollModel.scrollBy(delta, historySize)) return false
+        if (boundSession != null) {
+            refreshRenderCacheFromSession(boundSession)
         }
-    }
-
-    private fun stopSelectionDrag() {
-        selectingWithMouse = false
-        selectionAutoscrollTimer.stop()
-    }
-
-    private fun handleHyperlinkActivation(event: MouseEvent): Boolean {
-        if (!SwingUtilities.isLeftMouseButton(event) || !event.isControlDown) return false
-        val uri = hyperlinkUriAt(event) ?: return false
-        if (!settings.hyperlinkHandler.openHyperlink(uri)) return false
-        event.consume()
+        updateSearchViewportHighlights()
+        publishViewportState(renderCache.historySize)
+        repaint()
         return true
     }
 
-    private fun hyperlinkUriAt(event: MouseEvent): String? {
-        val boundSession = session ?: return null
-        return boundSession.publisher.readCurrent { cache ->
-            val hyperlinkId = hyperlinkIdAt(event, cache)
-            if (hyperlinkId == NO_HYPERLINK_ID) null else boundSession.hyperlinkUri(hyperlinkId)
-        }
-    }
-
-    private fun resolvableHyperlinkIdAt(event: MouseEvent): Int {
-        val boundSession = session ?: return NO_HYPERLINK_ID
-        return boundSession.publisher.readCurrent { cache ->
-            val hyperlinkId = hyperlinkIdAt(event, cache)
-            if (hyperlinkId != NO_HYPERLINK_ID && boundSession.hyperlinkUri(hyperlinkId) != null) {
-                hyperlinkId
-            } else {
-                NO_HYPERLINK_ID
-            }
-        } ?: NO_HYPERLINK_ID
-    }
-
-    private fun hyperlinkIdAt(
-        event: MouseEvent,
-        cache: TerminalRenderCache,
-    ): Int {
-        if (cache.columns <= 0 || cache.rows <= 0) return NO_HYPERLINK_ID
-        val cell = cellAt(event, cache)
-        val column = unpackCellColumn(cell)
-        val row = unpackCellRow(cell)
-        return cache.hyperlinkIds[cache.rowOffset(row) + column]
-    }
-
-    private fun updateHyperlinkActivationHover(active: Boolean) {
-        if (hoveredHyperlinkId == NO_HYPERLINK_ID || hyperlinkActivationHover == active) return
-        hyperlinkActivationHover = active
-        repaint()
-    }
-
-    private fun clearHyperlinkHover() {
-        updateHyperlinkHover(NO_HYPERLINK_ID, activationHover = false)
-    }
-
-    private fun updateHyperlinkHover(
-        hyperlinkId: Int,
-        activationHover: Boolean,
-    ) {
-        val normalizedActivationHover = hyperlinkId != NO_HYPERLINK_ID && activationHover
-        val changed = hoveredHyperlinkId != hyperlinkId || hyperlinkActivationHover != normalizedActivationHover
-        hoveredHyperlinkId = hyperlinkId
-        hyperlinkActivationHover = normalizedActivationHover
-        val nextCursor = if (hyperlinkId != NO_HYPERLINK_ID) HAND_CURSOR else DEFAULT_CURSOR
-        if (cursor !== nextCursor) cursor = nextCursor
-        if (changed) repaint()
-    }
-
-    private fun updateSelectionAutoscroll() {
-        if (selectingWithMouse && selectionAutoscrollDelta(lastSelectionDragY) != 0.0) {
-            if (!selectionAutoscrollTimer.isRunning) selectionAutoscrollTimer.start()
-        } else {
-            selectionAutoscrollTimer.stop()
-        }
-    }
-
-    private fun selectionAutoscrollDelta(y: Int): Double =
-        when {
-            y < 0 -> {
-                val distance = -y
-                kotlin.math.floor(1.0 + (distance / 20.0))
-            }
-            y >= height -> {
-                val distance = y - height
-                -kotlin.math.floor(1.0 + (distance / 20.0))
-            }
-            else -> 0.0
-        }
-
-    private fun handleSelectionAutoscrollTick() {
-        if (!selectingWithMouse) {
-            selectionAutoscrollTimer.stop()
-            return
-        }
-
-        val boundSession = session ?: return
-        val publisher = boundSession.publisher
-        publisher.readCurrent { cache ->
-            val delta = selectionAutoscrollDelta(lastSelectionDragY)
-            if (delta == 0.0) {
-                selectionAutoscrollTimer.stop()
-                return@readCurrent
-            }
-
-            val changed = scrollViewportBy(boundSession, delta, cache.historySize)
-            if (changed) {
-                val cell = cellAt(lastSelectionDragX, lastSelectionDragY, cache)
-                val column = unpackCellColumn(cell)
-                val row = unpackCellRow(cell)
-
-                val caretAbsRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset + row
-                val anchorAbsRow =
-                    selectionAnchorAbsoluteRow ?: (cache.discardedCount + cache.historySize - cache.scrollbackOffset + selectionAnchorRow)
-
-                val caretColumn =
-                    if (
-                        caretAbsRow < anchorAbsRow ||
-                        (caretAbsRow == anchorAbsRow && column < selectionAnchorColumn)
-                    ) {
-                        column
-                    } else {
-                        column + 1
-                    }
-
-                selectionAnchorAbsoluteRow = anchorAbsRow
-                selectionCaretAbsoluteRow = caretAbsRow
-                selectionCaretColumn = caretColumn
-            }
-        }
-    }
-
-    private fun scrollViewportBy(
-        boundSession: TerminalSession,
-        delta: Double,
-        historySize: Int,
+    private fun scrollViewportToOnEdt(
+        offsetLines: Double,
+        historySize: Int = renderCache.historySize,
+        boundSession: TerminalSession? = session,
     ): Boolean {
-        val previousRequestedOffset = scrollModel.requestedOffset
-        val previousRequestedRows = requestedRenderRows()
-        if (!scrollModel.scrollBy(delta, historySize)) return false
-
-        val nextRequestedOffset = scrollModel.requestedOffset
-        val nextRequestedRows = requestedRenderRows()
-        if (nextRequestedOffset != previousRequestedOffset || nextRequestedRows != previousRequestedRows) {
-            boundSession.requestRender(nextRequestedOffset, nextRequestedRows)
-        } else {
-            repaint()
+        if (!scrollModel.scrollTo(offsetLines, historySize)) return false
+        if (boundSession != null) {
+            refreshRenderCacheFromSession(boundSession)
         }
+        updateSearchViewportHighlights()
+        publishViewportState(renderCache.historySize)
+        repaint()
         return true
     }
 
@@ -794,71 +749,88 @@ class TerminalSwingTerminal(
     private fun schedulePublishedFrame() {
         if (!renderPending.compareAndSet(false, true)) return
 
-        SwingUtilities.invokeLater {
-            renderPending.set(false)
-            handlePublishedFrame()
-        }
+        hostServices.uiDispatcher.dispatch(publishedFrameRunnable)
     }
 
     private fun handlePublishedFrame() {
         val boundSession = session ?: return
-        boundSession.publisher.readCurrent { cache ->
-            resetCursorBlinkOnEdt(forceRepaint = false)
-            when {
-                scrollModel.clamp(cache.historySize) -> {
-                    boundSession.requestRender(scrollModel.requestedOffset, requestedRenderRows())
-                }
-
-                cache.scrollbackOffset != scrollModel.requestedOffset -> {
-                    boundSession.requestRender(scrollModel.requestedOffset, requestedRenderRows())
-                }
-
-                else -> {
-                    val yOffset = contentYOffset(cache)
-                    repaintPlanner.requestFrameRepaint(
-                        cache = cache,
-                        metrics = metrics,
-                        componentWidth = width,
-                        componentHeight = height,
-                        contentYOffset = yOffset,
-                        repaintSink = repaintSink,
-                    )
-                }
-            }
-        } ?: repaint()
+        resetCursorBlinkOnEdt(forceRepaint = false)
+        refreshRenderCacheFromSession(boundSession)
+        if (scrollModel.clamp(renderCache.historySize) || renderCache.scrollbackOffset != scrollModel.requestedOffset) {
+            refreshRenderCacheFromSession(boundSession)
+        }
+        refreshSearchForFrameOnEdt()
+        publishViewportState(renderCache.historySize)
+        val yOffset = contentYOffset(renderCache)
+        repaintPlanner.requestFrameRepaint(
+            cache = renderCache,
+            metrics = metrics,
+            componentWidth = width,
+            componentHeight = height,
+            contentYOffset = yOffset,
+            padding = settings.padding,
+            repaintSink = repaintSink,
+        )
     }
 
     private fun repaintBlinkState() {
-        val publisher = session?.publisher ?: return
-        publisher.readCurrent { cache ->
-            val yOffset = contentYOffset(cache)
+        if (session == null) return
+        val yOffset = contentYOffset(renderCache)
+        if (terminalFocused) {
             repaintPlanner.requestCursorBlinkRepaint(
-                cache = cache,
+                cache = renderCache,
                 metrics = metrics,
                 componentWidth = width,
                 componentHeight = height,
                 contentYOffset = yOffset,
-                repaintSink = repaintSink,
-            )
-            repaintPlanner.requestBlinkingTextRepaint(
-                cache = cache,
-                metrics = metrics,
-                componentWidth = width,
-                componentHeight = height,
-                contentYOffset = yOffset,
+                padding = settings.padding,
                 repaintSink = repaintSink,
             )
         }
+        repaintPlanner.requestBlinkingTextRepaint(
+            cache = renderCache,
+            metrics = metrics,
+            componentWidth = width,
+            componentHeight = height,
+            contentYOffset = yOffset,
+            padding = settings.padding,
+            repaintSink = repaintSink,
+        )
+    }
+
+    private fun repaintCursorState() {
+        if (session == null) return
+        val yOffset = contentYOffset(renderCache)
+        repaintPlanner.requestCursorRepaint(
+            cache = renderCache,
+            metrics = metrics,
+            componentWidth = width,
+            componentHeight = height,
+            contentYOffset = yOffset,
+            padding = settings.padding,
+            repaintSink = repaintSink,
+        )
     }
 
     private fun resetCursorBlinkOnEdt(forceRepaint: Boolean) {
-        if (cursorTimer.isRunning) {
-            val wasVisible = cursorBlinkVisible
-            cursorBlinkVisible = true
+        val wasVisible = cursorBlinkVisible
+        cursorBlinkVisible = true
+        if (settings.cursorBlinkMillis > 0) {
             cursorTimer.restart()
-            if (forceRepaint && !wasVisible) {
-                repaintBlinkState()
-            }
+        }
+        if (forceRepaint && !wasVisible) {
+            repaintBlinkState()
+        }
+    }
+
+    private fun configureCursorTimerOnEdt() {
+        cursorTimer.delay = cursorTimerDelay(settings)
+        cursorTimer.initialDelay = cursorTimer.delay
+        cursorBlinkVisible = true
+        if (isDisplayable && settings.cursorBlinkMillis > 0) {
+            cursorTimer.restart()
+        } else {
+            cursorTimer.stop()
         }
     }
 
@@ -866,13 +838,153 @@ class TerminalSwingTerminal(
         scrollModel.reset()
     }
 
-    private fun preferredGridSize(
+    private fun openSearchOnEdt() {
+        searchOverlay.isVisible = true
+        searchOverlay.setQueryText(searchQuery)
+        revalidate()
+        searchOverlay.focusQuery()
+        if (searchQuery.isNotEmpty()) {
+            refreshSearchForFrameOnEdt()
+        }
+        repaint()
+    }
+
+    private fun closeSearchOnEdt() {
+        searchOverlay.isVisible = false
+        searchHighlights = null
+        searchViewportHighlights.reset(renderCache.rows)
+        revalidate()
+        requestFocusInWindow()
+        repaint()
+    }
+
+    private fun applySearchQueryOnEdt(query: String) {
+        searchQuery = query
+        if (query.isEmpty()) {
+            searchHighlights = null
+            searchViewportHighlights.reset(renderCache.rows)
+            searchOverlay.updateResultCounter(0, NO_ACTIVE_SEARCH_RESULT)
+            repaint()
+            return
+        }
+
+        val boundSession = session ?: return
+        refreshSearchCache(boundSession)
+        searchHighlights = searchModel.search(searchCache, query, ignoreCase = searchIgnoreCase)
+        searchOverlay.updateResultCounter(
+            resultCount = searchHighlights?.resultCount ?: 0,
+            activeResultIndex = searchHighlights?.activeResultIndex ?: NO_ACTIVE_SEARCH_RESULT,
+        )
+        scrollToActiveSearchResult()
+        updateSearchViewportHighlights()
+        repaint()
+    }
+
+    private fun refreshSearchForFrameOnEdt() {
+        if (searchQuery.isEmpty()) {
+            updateSearchViewportHighlights()
+            return
+        }
+        val boundSession = session ?: return
+        val oldActive = searchHighlights?.activeResultIndex ?: NO_ACTIVE_SEARCH_RESULT
+        refreshSearchCache(boundSession)
+        val nextHighlights = searchModel.search(searchCache, searchQuery, ignoreCase = searchIgnoreCase)
+        if (oldActive in 0 until nextHighlights.resultCount) {
+            nextHighlights.activate(oldActive)
+        }
+        searchHighlights = nextHighlights
+        searchOverlay.updateResultCounter(nextHighlights.resultCount, nextHighlights.activeResultIndex)
+        updateSearchViewportHighlights()
+    }
+
+    private fun refreshSearchCache(boundSession: TerminalSession) {
+        val historySize = renderCache.historySize
+        searchCache.updateFrom(
+            reader = boundSession,
+            scrollbackOffset = historySize,
+            viewportRows = (historySize + visibleGridRows()).coerceAtLeast(1),
+        )
+    }
+
+    private fun findNextOnEdt(): Boolean = activateRelativeSearchResult(1)
+
+    private fun findPreviousOnEdt(): Boolean = activateRelativeSearchResult(-1)
+
+    private fun activateRelativeSearchResult(delta: Int): Boolean {
+        val highlights = searchHighlights ?: return false
+        if (highlights.resultCount == 0) return false
+        val current =
+            if (highlights.activeResultIndex in 0 until highlights.resultCount) {
+                highlights.activeResultIndex
+            } else {
+                0
+            }
+        val next = (current + delta + highlights.resultCount) % highlights.resultCount
+        highlights.activate(next)
+        searchOverlay.updateResultCounter(highlights.resultCount, highlights.activeResultIndex)
+        scrollToActiveSearchResult()
+        updateSearchViewportHighlights()
+        repaint()
+        return true
+    }
+
+    private fun scrollToActiveSearchResult() {
+        val highlights = searchHighlights ?: return
+        val activeRow = highlights.activeStartAbsoluteRow()
+        if (activeRow == NO_ACTIVE_SEARCH_ROW) return
+        val centerRow = visibleGridRows() / 2
+        val desiredOffset = renderCache.discardedCount + renderCache.historySize + centerRow - activeRow
+        scrollViewportToOnEdt(desiredOffset.toDouble())
+    }
+
+    private fun updateSearchViewportHighlights() {
+        val highlights = searchHighlights
+        if (highlights == null) {
+            searchViewportHighlights.reset(renderCache.rows)
+            return
+        }
+        highlights.buildViewportHighlights(renderCache, searchViewportHighlights)
+    }
+
+    private fun publishViewportState(
+        historySize: Int,
+        notifyListener: Boolean = true,
+    ) {
+        val visibleRows = visibleGridRows()
+        val requestedRows = scrollModel.requestedRows(visibleRows)
+        val scrollbackOffset = scrollModel.preciseScrollbackOffset
+        val renderOffset = scrollModel.requestedOffset
+
+        viewportHistorySizeSnapshot.set(historySize)
+        viewportScrollbackOffsetSnapshot.set(doubleToRawLongBits(scrollbackOffset))
+        viewportRenderOffsetSnapshot.set(renderOffset)
+        viewportVisibleRowsSnapshot.set(visibleRows)
+        viewportRequestedRowsSnapshot.set(requestedRows)
+        if (!notifyListener) return
+
+        hostServices.viewportListener.viewportChanged(
+            historySize = historySize,
+            scrollbackOffset = scrollbackOffset,
+            renderOffset = renderOffset,
+            visibleRows = visibleRows,
+            requestedRows = requestedRows,
+        )
+    }
+
+    fun preferredGridSize(
         columns: Int,
         rows: Int,
-    ): Dimension = Dimension(columns * metrics.cellWidth, rows * metrics.cellHeight)
+    ): Dimension {
+        val padding = settings.padding
+        return Dimension(
+            columns * metrics.cellWidth + padding.left + padding.right,
+            rows * metrics.cellHeight + padding.top + padding.bottom,
+        )
+    }
 
     private fun resizeSessionToVisibleGridOnEdt() {
         val packedGridSize = updateVisibleGridSizeOnEdt()
+        publishViewportState(renderCache.historySize)
         val boundSession = session ?: return
         if (width <= 0 || height <= 0) return
 
@@ -882,12 +994,26 @@ class TerminalSwingTerminal(
 
         lastResizedColumns = columns
         lastResizedRows = rows
-        boundSession.resize(columns, rows)
+
+        // Capture the integer scrollback offset and fractional sub-row position before
+        // reflow changes history size and line wrapping. The resizer uses the integer
+        // offset to locate the top visible logical line; we restore the fractional part
+        // afterwards so smooth-scroll state survives the resize.
+        val oldOffset = scrollModel.requestedOffset
+        val oldFraction = scrollModel.preciseScrollbackOffset - scrollModel.offset
+
+        val (newOffset, newHistorySize) = boundSession.resize(columns, rows, oldOffset)
+
+        // Re-anchor the scroll model to the reflowed position, preserving the
+        // fractional sub-row that was in-flight before the resize.
+        val newPrecise = (newOffset + oldFraction).coerceIn(0.0, newHistorySize.toDouble())
+        scrollModel.scrollTo(newPrecise, newHistorySize)
     }
 
     private fun updateVisibleGridSizeOnEdt(): Long {
-        val columns = maxOf(1, width / metrics.cellWidth)
-        val rows = maxOf(1, height / metrics.cellHeight)
+        val padding = settings.padding
+        val columns = maxOf(1, (width - padding.left - padding.right) / metrics.cellWidth)
+        val rows = maxOf(1, (height - padding.top - padding.bottom) / metrics.cellHeight)
         val packed = packVisibleGridSize(columns, rows)
         visibleGridSizeSnapshot.set(packed)
         return packed
@@ -900,9 +1026,20 @@ class TerminalSwingTerminal(
             else -> -event.preciseWheelRotation
         }
 
-    private fun visibleGridRows(): Int = maxOf(1, height / metrics.cellHeight)
+    private fun visibleGridRows(): Int {
+        val padding = settings.padding
+        return maxOf(1, (height - padding.top - padding.bottom) / metrics.cellHeight)
+    }
 
     private fun requestedRenderRows(): Int = scrollModel.requestedRows(visibleGridRows())
+
+    private fun refreshRenderCacheFromSession(session: TerminalSession) {
+        renderCache.updateFrom(
+            reader = session,
+            scrollbackOffset = scrollModel.requestedOffset,
+            viewportRows = requestedRenderRows(),
+        )
+    }
 
     private fun contentYOffset(cache: TerminalRenderCache): Double {
         if (cache.rows < requestedRenderRows()) return 0.0
@@ -911,22 +1048,24 @@ class TerminalSwingTerminal(
 
     private fun buildMetrics(settings: TerminalSwingSettings): TerminalSwingMetrics {
         val metricsSource: FontMetrics = getFontMetrics(settings.font)
-        return TerminalSwingMetrics.from(metricsSource)
+        return TerminalSwingMetrics.from(metricsSource, settings.lineHeight)
     }
 
-    private fun runOnEdt(action: () -> Unit) {
+    private fun runOnEdt(action: Runnable) {
         if (SwingUtilities.isEventDispatchThread()) {
-            action()
+            action.run()
         } else {
-            SwingUtilities.invokeLater(action)
+            hostServices.uiDispatcher.dispatch(action)
         }
     }
 
     private companion object {
         private const val NO_RESIZE_DIMENSION = -1
-        private const val NO_HYPERLINK_ID = 0
-        private val HAND_CURSOR: Cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
-        private val DEFAULT_CURSOR: Cursor = Cursor.getDefaultCursor()
+        private const val NO_ACTIVE_SEARCH_RESULT = -1
+        private const val NO_ACTIVE_SEARCH_ROW = Long.MIN_VALUE
+        private const val MIN_TIMER_DELAY_MILLIS = 1
+
+        private fun cursorTimerDelay(settings: TerminalSwingSettings): Int = maxOf(MIN_TIMER_DELAY_MILLIS, settings.cursorBlinkMillis)
 
         private fun packVisibleGridSize(
             columns: Int,
@@ -945,5 +1084,9 @@ class TerminalSwingTerminal(
         private fun unpackCellColumn(packed: Long): Int = (packed ushr 32).toInt()
 
         private fun unpackCellRow(packed: Long): Int = packed.toInt()
+
+        private fun doubleToRawLongBits(value: Double): Long = java.lang.Double.doubleToRawLongBits(value)
+
+        private fun longBitsToDouble(value: Long): Double = java.lang.Double.longBitsToDouble(value)
     }
 }

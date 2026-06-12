@@ -19,10 +19,12 @@
             <option value="$PROJECT_DIR$/terminal-render-api" />
             <option value="$PROJECT_DIR$/terminal-render-cache" />
             <option value="$PROJECT_DIR$/terminal-session" />
+            <option value="$PROJECT_DIR$/terminal-standalone-app" />
             <option value="$PROJECT_DIR$/terminal-testkit" />
             <option value="$PROJECT_DIR$/terminal-transport-api" />
             <option value="$PROJECT_DIR$/terminal-ui-swing" />
             <option value="$PROJECT_DIR$/terminal-ui-swing-demo" />
+            <option value="$PROJECT_DIR$/terminal-workspace" />
           </set>
         </option>
       </GradleProjectSettings>

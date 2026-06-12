@@ -18,6 +18,7 @@ package com.gagik.terminal.ui.swing.settings
 import com.gagik.terminal.ui.swing.api.TerminalSwingTerminal
 import java.awt.Canvas
 import java.awt.Font
+import java.awt.Insets
 import java.awt.RenderingHints
 import javax.swing.SwingUtilities
 import kotlin.test.Test
@@ -37,6 +38,13 @@ class TerminalSwingSettingsTest {
     }
 
     @Test
+    fun settingsAllowZeroCursorBlinkToDisableBlinking() {
+        val settings = TerminalSwingSettings(cursorBlinkMillis = 0)
+
+        assertEquals(0, settings.cursorBlinkMillis)
+    }
+
+    @Test
     fun metricsArePositiveForMonospacedFont() {
         val component = Canvas()
         val fontMetrics = component.getFontMetrics(Font(Font.MONOSPACED, Font.PLAIN, 14))
@@ -49,6 +57,68 @@ class TerminalSwingSettingsTest {
     }
 
     @Test
+    fun metricsScaleCellHeightAndBaselineWithLineHeightMultiplier() {
+        val component = Canvas()
+        val fontMetrics = component.getFontMetrics(Font(Font.MONOSPACED, Font.PLAIN, 14))
+        val unscaled = TerminalSwingMetrics.from(fontMetrics, 1.0f)
+        val scaled = TerminalSwingMetrics.from(fontMetrics, 1.5f)
+
+        val expectedHeight = (fontMetrics.height * 1.5f).toInt()
+        assertEquals(expectedHeight, scaled.cellHeight)
+
+        val expectedBaselineShift = (scaled.cellHeight - unscaled.cellHeight) / 2
+        assertEquals(unscaled.baseline + expectedBaselineShift, scaled.baseline)
+        assertEquals(unscaled.cellWidth, scaled.cellWidth)
+
+        // Verify that a very small line height (0.5f) does not crash and baseline is coerced
+        val tinyMetrics = TerminalSwingMetrics.from(fontMetrics, 0.5f)
+        assertTrue(tinyMetrics.cellHeight > 0)
+        assertTrue(tinyMetrics.baseline in 0..tinyMetrics.cellHeight)
+    }
+
+    @Test
+    fun metricsDoNotCrashForVariousFontsSizesAndLineHeights() {
+        val component = Canvas()
+        val families = arrayOf(Font.MONOSPACED, Font.SERIF, Font.SANS_SERIF, "Cascadia Mono", "Courier New", "Arial")
+        val sizes = intArrayOf(8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 48, 72)
+        val lineHeights = listOf(0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f, 1.1f, 1.2f, 1.5f, 2.0f, 2.5f, 3.0f)
+
+        for (family in families) {
+            for (size in sizes) {
+                val font = Font(family, Font.PLAIN, size)
+                val fontMetrics = component.getFontMetrics(font)
+                for (lh in lineHeights) {
+                    try {
+                        val metrics = TerminalSwingMetrics.from(fontMetrics, lh)
+                        assertTrue(metrics.cellWidth > 0, "Width <= 0 for $family $size lh=$lh")
+                        assertTrue(metrics.cellHeight > 0, "Height <= 0 for $family $size lh=$lh")
+                        assertTrue(metrics.baseline in 0..metrics.cellHeight, "Baseline $metrics out of bounds for $family $size lh=$lh")
+                    } catch (e: Exception) {
+                        kotlin.test.fail("Failed for $family $size lh=$lh: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun printMetricsForDebugging() {
+        val component = Canvas()
+        for (family in listOf("Cascadia Mono", Font.MONOSPACED)) {
+            val font = Font(family, Font.PLAIN, 16)
+            val fm = component.getFontMetrics(font)
+            println("=== FONT: $family 16 ===")
+            println("  height=${fm.height} ascent=${fm.ascent} descent=${fm.descent} leading=${fm.leading}")
+            for (lh in listOf(0.5f, 0.6f, 1.0f)) {
+                val m = TerminalSwingMetrics.from(fm, lh)
+                println(
+                    "  lh=$lh -> cellHeight=${m.cellHeight} baseline=${m.baseline} underlineY=${m.underlineY} strikethroughY=${m.strikethroughY}",
+                )
+            }
+        }
+    }
+
+    @Test
     fun settingsDefaultToHighQualityGridSafeTextHints() {
         val settings = TerminalSwingSettings()
 
@@ -58,6 +128,13 @@ class TerminalSwingSettingsTest {
         assertEquals(false, settings.useSystemFallbackFonts)
         assertEquals(false, settings.treatAmbiguousAsWide)
         assertEquals(0xFF4DA3FF.toInt(), settings.hyperlinkActivationForeground)
+        assertEquals(Insets(12, 12, 12, 12), settings.padding)
+    }
+
+    @Test
+    fun settingsAcceptCustomPadding() {
+        val settings = TerminalSwingSettings(padding = Insets(4, 8, 4, 8))
+        assertEquals(Insets(4, 8, 4, 8), settings.padding)
     }
 
     @Test
@@ -113,11 +190,19 @@ class TerminalSwingSettingsTest {
     }
 
     @Test
+    fun terminalThemesRemainPaletteFactoriesForHosts() {
+        val palette = TerminalTheme.ONE_DARK.createPalette()
+
+        assertEquals(0xFFABB2BF.toInt(), palette.defaultForeground)
+        assertEquals(0xFF1E2127.toInt(), palette.defaultBackground)
+    }
+
+    @Test
     fun componentReportsVisibleGridFromFrozenMetrics() {
         val component =
-            TerminalSwingTerminal {
+            TerminalSwingTerminal(settingsProvider = {
                 TerminalSwingSettings(columns = 10, rows = 4)
-            }
+            })
         val preferred = component.preferredSize
         var visibleColumns = 0
         var visibleRows = 0

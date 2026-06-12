@@ -357,6 +357,14 @@ class TerminalPtySessionTest {
             windowTitles += title
         }
 
+        override fun resizeWindow(
+            session: TerminalSession,
+            rows: Int,
+            columns: Int,
+        ) {
+            // No-op for tests
+        }
+
         override fun listenerFailed(
             session: TerminalSession,
             exception: Exception,

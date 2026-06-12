@@ -54,8 +54,9 @@ class SessionHostEventBridgeTest {
         bridge.bell()
         bridge.iconTitleChanged("icon")
         bridge.windowTitleChanged("window")
+        bridge.resizeWindow(24, 80)
 
-        assertEquals(listOf("bell", "icon:icon", "window:window"), listener.events)
+        assertEquals(listOf("bell", "icon:icon", "window:window", "resizeWindow:24:80"), listener.events)
     }
 
     @Test
@@ -122,6 +123,14 @@ class SessionHostEventBridgeTest {
             title: String,
         ) {
             events += "window:$title"
+        }
+
+        override fun resizeWindow(
+            session: TerminalSession,
+            rows: Int,
+            columns: Int,
+        ) {
+            events += "resizeWindow:$rows:$columns"
         }
 
         override fun listenerFailed(

@@ -20,6 +20,7 @@ import com.gagik.terminal.render.cache.TerminalRenderCache
 import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import java.awt.Font
+import java.awt.Insets
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 
@@ -43,6 +44,7 @@ internal fun defaultTestSettings(
                 cursorBackground = TEST_BLUE,
             ),
         textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+        padding = Insets(0, 0, 0, 0),
     )
 
 internal fun testMetrics(

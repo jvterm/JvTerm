@@ -37,6 +37,15 @@ internal class TerminalSwingScrollModel {
         get() = committedOffset
 
     /**
+     * Precise logical scrollback offset in terminal rows.
+     *
+     * `0.0` is the live viewport. Larger values move farther back into
+     * scrollback history.
+     */
+    val preciseScrollbackOffset: Double
+        get() = preciseOffset
+
+    /**
      * Scrollback offset that should be requested from the render reader.
      */
     val requestedOffset: Int
@@ -76,17 +85,17 @@ internal class TerminalSwingScrollModel {
     }
 
     /**
-     * Applies a fractional line delta.
+     * Moves to [offsetLines], clamped to the available scrollback history.
      *
      * @return true when the precise offset changed.
      */
-    fun scrollBy(
-        deltaLines: Double,
+    fun scrollTo(
+        offsetLines: Double,
         historySize: Int,
     ): Boolean {
-        if (deltaLines == 0.0) return false
+        require(!offsetLines.isNaN()) { "offsetLines must not be NaN" }
 
-        val nextPrecise = (preciseOffset + deltaLines).coerceIn(0.0, historySize.toDouble())
+        val nextPrecise = offsetLines.coerceIn(0.0, historySize.toDouble())
         if (nextPrecise == preciseOffset) return false
 
         val nextCommitted = committed(nextPrecise, historySize)
@@ -96,6 +105,21 @@ internal class TerminalSwingScrollModel {
         renderOffset = nextRenderOffset
         fraction = fractionalPart(nextPrecise)
         return true
+    }
+
+    /**
+     * Applies a fractional line delta.
+     *
+     * @return true when the precise offset changed.
+     */
+    fun scrollBy(
+        deltaLines: Double,
+        historySize: Int,
+    ): Boolean {
+        require(!deltaLines.isNaN()) { "deltaLines must not be NaN" }
+        if (deltaLines == 0.0) return false
+
+        return scrollTo(preciseOffset + deltaLines, historySize)
     }
 
     /**

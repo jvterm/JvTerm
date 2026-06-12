@@ -20,6 +20,7 @@ import com.gagik.terminal.render.cache.TerminalRenderCache
 import com.gagik.terminal.ui.swing.api.CellSelection
 import com.gagik.terminal.ui.swing.render.cache.AwtColorCache
 import com.gagik.terminal.ui.swing.render.painter.*
+import com.gagik.terminal.ui.swing.search.TerminalSearchViewportHighlights
 import com.gagik.terminal.ui.swing.settings.TerminalSwingMetrics
 import com.gagik.terminal.ui.swing.settings.TerminalSwingSettings
 import java.awt.Font
@@ -41,6 +42,7 @@ internal class TerminalGridPainter {
     private val colorCache = AwtColorCache()
     private val backgroundPainter = TerminalBackgroundPainter(colorCache)
     private val selectionPainter = TerminalSelectionPainter(colorCache)
+    private val searchPainter = TerminalSearchPainter(colorCache)
     private val decorationPainter = TerminalDecorationPainter(colorCache)
     private val textPainter = TerminalTextPainter(colorCache, decorationPainter)
     private val cursorPainter = TerminalCursorPainter(colorCache, textPainter)
@@ -70,8 +72,10 @@ internal class TerminalGridPainter {
         height: Int,
         cursorBlinkVisible: Boolean,
         textBlinkVisible: Boolean = true,
+        cursorVisible: Boolean = true,
         contentYOffset: Double = 0.0,
         selection: CellSelection? = null,
+        searchHighlights: TerminalSearchViewportHighlights? = null,
         hoveredHyperlinkId: Int = 0,
         hyperlinkActivationHover: Boolean = false,
     ) {
@@ -90,13 +94,22 @@ internal class TerminalGridPainter {
         val clip = g.getClipBounds(clipScratch)
         backgroundPainter.clear(g, palette, width, height)
 
-        val firstRow = firstPaintRow(clip, metrics, contentYOffset)
-        val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentYOffset)
-        g.translate(0.0, contentYOffset)
+        val padding = settings.padding
+        val firstRow = firstPaintRow(clip, metrics, contentYOffset, padding.top)
+        val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentYOffset, padding.top, padding.bottom)
+        g.translate(padding.left.toDouble(), padding.top.toDouble() + contentYOffset)
         try {
             var row = firstRow
             while (row < rows) {
                 backgroundPainter.paintRow(g, cache, palette, metrics, row)
+                searchPainter.paint(
+                    g = g,
+                    metrics = metrics,
+                    row = row,
+                    highlights = searchHighlights,
+                    matchBackground = settings.searchMatchBackground,
+                    activeMatchBackground = settings.searchActiveMatchBackground,
+                )
                 selectionPainter.paint(g, cache, metrics, row, selection, settings.selectionBackground)
                 textPainter.paintRow(
                     g = g,
@@ -113,9 +126,18 @@ internal class TerminalGridPainter {
                 row++
             }
 
-            cursorPainter.paint(g, cache, palette, metrics, cursorBlinkVisible, textBlinkVisible, fontRenderContext)
+            cursorPainter.paint(
+                g,
+                cache,
+                palette,
+                metrics,
+                cursorBlinkVisible,
+                textBlinkVisible,
+                fontRenderContext,
+                cursorVisible = cursorVisible,
+            )
         } finally {
-            g.translate(0.0, -contentYOffset)
+            g.translate(-padding.left.toDouble(), -(padding.top.toDouble() + contentYOffset))
         }
     }
 
@@ -123,9 +145,10 @@ internal class TerminalGridPainter {
         clip: Rectangle?,
         metrics: TerminalSwingMetrics,
         contentYOffset: Double,
+        paddingTop: Int,
     ): Int {
         if (clip == null) return 0
-        return maxOf(0, floor((clip.y - contentYOffset) / metrics.cellHeight).toInt())
+        return maxOf(0, floor((clip.y - paddingTop - contentYOffset) / metrics.cellHeight).toInt())
     }
 
     private fun lastPaintRowExclusive(
@@ -134,13 +157,15 @@ internal class TerminalGridPainter {
         metrics: TerminalSwingMetrics,
         componentHeight: Int,
         contentYOffset: Double,
+        paddingTop: Int,
+        paddingBottom: Int,
     ): Int {
-        val visibleRows = minOf(cache.rows, componentHeight / metrics.cellHeight + 2)
+        val visibleRows = minOf(cache.rows, maxOf(1, (componentHeight - paddingTop - paddingBottom) / metrics.cellHeight) + 2)
         if (clip == null || clip.height <= 0) return visibleRows
 
         val clipBottom = clip.y + clip.height
         if (clipBottom <= 0) return 0
-        val clippedRows = ceil((clipBottom - contentYOffset) / metrics.cellHeight).toInt()
+        val clippedRows = ceil((clipBottom - paddingTop - contentYOffset) / metrics.cellHeight).toInt()
         return clippedRows.coerceIn(0, visibleRows)
     }
 

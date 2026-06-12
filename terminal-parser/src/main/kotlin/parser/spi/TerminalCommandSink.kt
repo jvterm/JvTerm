@@ -325,6 +325,17 @@ interface TerminalCommandSink {
     fun requestWindowReport(mode: Int)
 
     /**
+     * Requests that the host resize the terminal window to the specified grid dimensions.
+     *
+     * @param rows target row count.
+     * @param columns target column count.
+     */
+    fun resizeWindow(
+        rows: Int,
+        columns: Int,
+    )
+
+    /**
      * Xterm title stack push/pop scopes:
      * - 0: icon and window title
      * - 1: icon title

@@ -165,6 +165,16 @@ internal class TerminalModes : TerminalInputState {
         get() = TerminalModeBits.hasFlag(currentBits, TerminalModeBits.SYNCHRONIZED_OUTPUT)
         set(value) = setFlag(TerminalModeBits.SYNCHRONIZED_OUTPUT, value)
 
+    /** Urgent bell mode (?1042). True = enabled, false = disabled. */
+    var isBellIsUrgent: Boolean
+        get() = TerminalModeBits.hasFlag(currentBits, TerminalModeBits.BELL_IS_URGENT)
+        set(value) = setFlag(TerminalModeBits.BELL_IS_URGENT, value)
+
+    /** Pop on bell mode (?1043). True = enabled, false = disabled. */
+    var isPopOnBell: Boolean
+        get() = TerminalModeBits.hasFlag(currentBits, TerminalModeBits.POP_ON_BELL)
+        set(value) = setFlag(TerminalModeBits.POP_ON_BELL, value)
+
     private val currentBits: Long
         get() = modeBits.get()
 
@@ -197,6 +207,8 @@ internal class TerminalModes : TerminalInputState {
             formatOtherKeysMode = TerminalInputState.formatOtherKeysMode(bits),
             kittyKeyboardFlags = TerminalInputState.kittyKeyboardFlags(bits),
             isSynchronizedOutput = TerminalModeBits.hasFlag(bits, TerminalModeBits.SYNCHRONIZED_OUTPUT),
+            isBellIsUrgent = TerminalModeBits.hasFlag(bits, TerminalModeBits.BELL_IS_URGENT),
+            isPopOnBell = TerminalModeBits.hasFlag(bits, TerminalModeBits.POP_ON_BELL),
         )
     }
 

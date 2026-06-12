@@ -140,12 +140,26 @@ internal class TerminalModeControllerImpl(
         }
     }
 
+    override fun setDefaultCursorShape(shape: TerminalRenderCursorShape) {
+        mutateMode {
+            state.defaultCursorShape = shape
+        }
+    }
+
     override fun setTreatAmbiguousAsWide(enabled: Boolean) {
         mutateMode { state.modes.treatAmbiguousAsWide = enabled }
     }
 
     override fun setSynchronizedOutput(enabled: Boolean) {
         mutateMode { state.modes.isSynchronizedOutput = enabled }
+    }
+
+    override fun setBellIsUrgent(enabled: Boolean) {
+        mutateMode { state.modes.isBellIsUrgent = enabled }
+    }
+
+    override fun setPopOnBell(enabled: Boolean) {
+        mutateMode { state.modes.isPopOnBell = enabled }
     }
 
     override fun enterAltBufferWithoutCursorSave(clearBeforeEnter: Boolean) {
