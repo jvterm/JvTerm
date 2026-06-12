@@ -41,7 +41,7 @@ private fun defaultFontFamily(): String {
  * This data class is immutable. For updates, a new instance is created via [copy].
  * The settings are serialized to/from a TOML configuration file on disk.
  *
- * All numeric bounds are published in the [Limits] companion object so that the UI
+ * All numeric bounds are published in the companion object so that the UI
  * layer, the TOML config manager, and the data class validation all share one source
  * of truth instead of repeating magic numbers.
  *
@@ -64,21 +64,21 @@ private fun defaultFontFamily(): String {
  * @property lineHeight font metric line-height multiplier.
  */
 data class TerminalConfig(
-    val theme: String = "one-dark",
-    val treatAmbiguousAsWide: Boolean = false,
-    val fontFamily: String = defaultFontFamily(),
-    val fontSize: Int = 16,
-    val columns: Int = 100,
-    val rows: Int = 30,
-    val cursorBlinkMillis: Int = 600,
-    val useSystemFallbackFonts: Boolean = false,
-    val cursorShape: String = "block",
-    val shellPath: String = defaultShellPath(),
-    val startDirectory: String = System.getProperty("user.home"),
-    val audibleBell: Boolean = true,
-    val pasteOnMiddleClick: Boolean = true,
-    val scrollbackLines: Int = 1000,
-    val lineHeight: Float = 1.0f,
+    val theme: String = DEFAULT_THEME,
+    val treatAmbiguousAsWide: Boolean = DEFAULT_TREAT_AMBIGUOUS_AS_WIDE,
+    val fontFamily: String = DEFAULT_FONT_FAMILY,
+    val fontSize: Int = DEFAULT_FONT_SIZE,
+    val columns: Int = DEFAULT_COLUMNS,
+    val rows: Int = DEFAULT_ROWS,
+    val cursorBlinkMillis: Int = DEFAULT_CURSOR_BLINK_MILLIS,
+    val useSystemFallbackFonts: Boolean = DEFAULT_USE_SYSTEM_FALLBACK_FONTS,
+    val cursorShape: String = DEFAULT_CURSOR_SHAPE,
+    val shellPath: String = DEFAULT_SHELL_PATH,
+    val startDirectory: String = DEFAULT_START_DIRECTORY,
+    val audibleBell: Boolean = DEFAULT_AUDIBLE_BELL,
+    val pasteOnMiddleClick: Boolean = DEFAULT_PASTE_ON_MIDDLE_CLICK,
+    val scrollbackLines: Int = DEFAULT_SCROLLBACK_LINES,
+    val lineHeight: Float = DEFAULT_LINE_HEIGHT,
 ) {
     init {
         require(columns in COLUMNS_MIN..COLUMNS_MAX) {
@@ -106,17 +106,36 @@ data class TerminalConfig(
     }
 
     /**
-     * Published bounds for all numeric terminal configuration fields.
+     * Published bounds and defaults for all terminal configuration fields.
      *
      * These constants are the single source of truth shared by:
      * - [TerminalConfig.init] validity assertions.
      * - [TerminalWorkspaceConfigManager] TOML clamping before constructing a config.
      * - The standalone settings dialog spinner min/max values.
      *
-     * If you need to change a limit, change it here and it will be reflected
+     * If you need to change a limit or default, change it here and it will be reflected
      * everywhere automatically.
      */
-    companion object Limits {
+    companion object {
+        // Defaults
+        const val DEFAULT_THEME: String = "one-dark"
+        const val DEFAULT_TREAT_AMBIGUOUS_AS_WIDE: Boolean = false
+        const val DEFAULT_FONT_SIZE: Int = 16
+        const val DEFAULT_COLUMNS: Int = 100
+        const val DEFAULT_ROWS: Int = 30
+        const val DEFAULT_CURSOR_BLINK_MILLIS: Int = 600
+        const val DEFAULT_USE_SYSTEM_FALLBACK_FONTS: Boolean = false
+        const val DEFAULT_CURSOR_SHAPE: String = "block"
+        const val DEFAULT_AUDIBLE_BELL: Boolean = true
+        const val DEFAULT_PASTE_ON_MIDDLE_CLICK: Boolean = true
+        const val DEFAULT_SCROLLBACK_LINES: Int = 1000
+        const val DEFAULT_LINE_HEIGHT: Float = 1.0f
+
+        val DEFAULT_FONT_FAMILY: String get() = defaultFontFamily()
+        val DEFAULT_SHELL_PATH: String get() = defaultShellPath()
+        val DEFAULT_START_DIRECTORY: String get() = System.getProperty("user.home") ?: ""
+
+        // Limits
         const val COLUMNS_MIN: Int = 10
         const val COLUMNS_MAX: Int = 1000
 
