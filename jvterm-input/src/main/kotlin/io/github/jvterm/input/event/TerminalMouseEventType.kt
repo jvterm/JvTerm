@@ -13,31 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.github.jvterm.input.event
 
-plugins {
-    id("java-library")
-    kotlin("jvm")
-}
+/**
+ * Mouse event family accepted by the terminal input encoder.
+ */
+enum class TerminalMouseEventType {
+    /** Concrete button press. */
+    PRESS,
 
-group = "io.github.jvterm"
-version = "1.0-SNAPSHOT"
+    /** Button release. */
+    RELEASE,
 
-repositories {
-    mavenCentral()
-}
+    /** Pointer motion in a mouse tracking mode. */
+    MOTION,
 
-dependencies {
-    api(project(":jvterm-protocol"))
-    api(project(":jvterm-core"))
-
-    testImplementation(kotlin("test"))
-    testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
-}
-
-kotlin {
-    jvmToolchain(21)
-}
-
-tasks.test {
-    useJUnitPlatform()
+    /** Wheel step. */
+    WHEEL,
 }

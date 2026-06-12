@@ -15,12 +15,12 @@
  */
 package io.github.jvterm.benchmark
 
-import com.gagik.terminal.input.api.TerminalInputEncoder
-import com.gagik.terminal.input.event.*
-import com.gagik.terminal.input.impl.DefaultTerminalInputEncoder
 import com.gagik.terminal.protocol.host.TerminalHostOutput
 import io.github.jvterm.core.api.TerminalInputState
 import io.github.jvterm.core.api.TerminalModeBits
+import io.github.jvterm.input.api.TerminalInputEncoder
+import io.github.jvterm.input.event.*
+import io.github.jvterm.input.impl.DefaultTerminalInputEncoder
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 import java.util.concurrent.TimeUnit

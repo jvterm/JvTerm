@@ -13,31 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.github.jvterm.input.event
 
-plugins {
-    id("java-library")
-    kotlin("jvm")
-}
-
-group = "io.github.jvterm"
-version = "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    api(project(":jvterm-protocol"))
-    api(project(":jvterm-core"))
-
-    testImplementation(kotlin("test"))
-    testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
-}
-
-kotlin {
-    jvmToolchain(21)
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
+/**
+ * Focus transition event accepted by the terminal input encoder.
+ *
+ * @property focused true when the terminal surface gained focus, false when it
+ * lost focus.
+ */
+data class TerminalFocusEvent(
+    val focused: Boolean,
+)

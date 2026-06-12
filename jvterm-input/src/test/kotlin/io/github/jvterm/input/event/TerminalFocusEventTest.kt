@@ -13,31 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package io.github.jvterm.input.event
 
-plugins {
-    id("java-library")
-    kotlin("jvm")
-}
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
-group = "io.github.jvterm"
-version = "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
-}
-
-dependencies {
-    api(project(":jvterm-protocol"))
-    api(project(":jvterm-core"))
-
-    testImplementation(kotlin("test"))
-    testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
-}
-
-kotlin {
-    jvmToolchain(21)
-}
-
-tasks.test {
-    useJUnitPlatform()
+class TerminalFocusEventTest {
+    @Test
+    fun `stores focus state`() {
+        assertTrue(TerminalFocusEvent(focused = true).focused)
+        assertFalse(TerminalFocusEvent(focused = false).focused)
+    }
 }

@@ -1,6 +1,6 @@
 # Terminal Input Agent Guide
 
-`terminal-input` owns host-to-terminal input encoding. It converts UI-level key,
+`jvterm-input` owns host-to-terminal input encoding. It converts UI-level key,
 paste, focus, and mouse events into bytes written to the terminal host input
 stream.
 
@@ -23,7 +23,7 @@ Input must not:
 
 - parse terminal output bytes or escape sequences.
 - mutate terminal grid, cursor, scrollback, or pen state.
-- depend on `terminal-parser` or `terminal-host`.
+- depend on `jvterm-parser` or `jvterm-host`.
 - read renderer state, grid arrays, cursor internals, or parser state.
 - invent terminal mode semantics outside core/protocol vocabulary.
 
@@ -45,9 +45,9 @@ from core's input-readable API and then encode from that stable value.
 
 ## Current Dependency Note
 
-The target plan refers to a future `:terminal-core-api` module. This repository
-currently exposes core API types from `:terminal-core`, so the scaffold depends
-on `:terminal-core` until that API split exists.
+The target plan refers to a future `:jvterm-core-api` module. This repository
+currently exposes core API types from `:jvterm-core`, so the scaffold depends
+on `:jvterm-core` until that API split exists.
 
 ## Implementation Rules
 
@@ -55,7 +55,7 @@ on `:terminal-core` until that API split exists.
 - Keep `KeyboardEncoder` stateless with respect to modes; pass packed mode bits
   into each encode call.
 - Do not add a `TerminalInputModeSnapshot` data class.
-- Do not decode mode bit positions in `:terminal-input`; use core API helpers.
+- Do not decode mode bit positions in `:jvterm-input`; use core API helpers.
 - Do not allocate arrays or strings for generated CSI/SS3 sequences on the hot
   path.
 - Keep new protocol work layered behind explicit event vocabulary, policy, and
