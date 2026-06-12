@@ -108,7 +108,13 @@ class TerminalConfigTest {
         assertEquals("one-dark", config.theme)
         assertEquals(100, config.columns)
         assertEquals(30, config.rows)
-        assertEquals("Cascadia Mono", config.fontFamily)
+        val expectedFont =
+            when {
+                System.getProperty("os.name").lowercase(java.util.Locale.ROOT).contains("windows") -> "Cascadia Mono"
+                System.getProperty("os.name").lowercase(java.util.Locale.ROOT).contains("mac") -> "Menlo"
+                else -> "Monospaced"
+            }
+        assertEquals(expectedFont, config.fontFamily)
         assertEquals(16, config.fontSize)
         assertFalse(config.treatAmbiguousAsWide)
         assertEquals(600, config.cursorBlinkMillis)

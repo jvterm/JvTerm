@@ -15,6 +15,26 @@
  */
 package com.gagik.terminal.workspace.config
 
+import java.util.Locale
+
+private fun defaultShellPath(): String {
+    val os = System.getProperty("os.name").lowercase(Locale.ROOT)
+    return if (os.contains("windows")) {
+        "powershell.exe"
+    } else {
+        System.getenv("SHELL").takeIf { !it.isNullOrBlank() } ?: "/bin/bash"
+    }
+}
+
+private fun defaultFontFamily(): String {
+    val os = System.getProperty("os.name").lowercase(Locale.ROOT)
+    return when {
+        os.contains("windows") -> "Cascadia Mono"
+        os.contains("mac") -> "Menlo"
+        else -> "Monospaced"
+    }
+}
+
 /**
  * Host-neutral configuration settings for the terminal emulator.
  *
@@ -46,14 +66,14 @@ package com.gagik.terminal.workspace.config
 data class TerminalConfig(
     val theme: String = "one-dark",
     val treatAmbiguousAsWide: Boolean = false,
-    val fontFamily: String = "Cascadia Mono",
+    val fontFamily: String = defaultFontFamily(),
     val fontSize: Int = 16,
     val columns: Int = 100,
     val rows: Int = 30,
     val cursorBlinkMillis: Int = 600,
     val useSystemFallbackFonts: Boolean = false,
     val cursorShape: String = "block",
-    val shellPath: String = "powershell.exe",
+    val shellPath: String = defaultShellPath(),
     val startDirectory: String = System.getProperty("user.home"),
     val audibleBell: Boolean = true,
     val pasteOnMiddleClick: Boolean = true,
