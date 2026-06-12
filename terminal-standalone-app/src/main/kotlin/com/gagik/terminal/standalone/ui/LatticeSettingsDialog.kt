@@ -56,6 +56,8 @@ internal class LatticeSettingsDialog(
         }
 
     private val categories = mutableListOf<CategoryLabel>()
+    private val applyButton = JButton("Apply")
+    private val model = LatticeSettingsModel(settings, profileRegistry)
 
     // Factory Helpers
     private fun createTextField(
@@ -189,6 +191,7 @@ internal class LatticeSettingsDialog(
                         viewport.isOpaque = true
                         viewport.background = LatticeChrome.surface
                         border = BorderFactory.createMatteBorder(0, 1, 0, 0, LatticeChrome.border)
+                        horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
                     },
                     BorderLayout.CENTER,
                 )
@@ -203,6 +206,29 @@ internal class LatticeSettingsDialog(
         addPage("Behavior", buildBehaviorPanel())
 
         selectCategory(categories.first().categoryName)
+
+        updateApplyButtonState()
+
+        val updateApplyState = {
+            updateApplyButtonState()
+        }
+
+        registerChangeListener(shellPathCombo, updateApplyState)
+        registerChangeListener(customShellField, updateApplyState)
+        registerChangeListener(startDirectoryField, updateApplyState)
+        registerChangeListener(audibleBellCheckbox, updateApplyState)
+        registerChangeListener(fontFamilyCombo, updateApplyState)
+        registerChangeListener(fontSizeSpinner, updateApplyState)
+        registerChangeListener(lineHeightSpinner, updateApplyState)
+        registerChangeListener(columnsSpinner, updateApplyState)
+        registerChangeListener(rowsSpinner, updateApplyState)
+        registerChangeListener(scrollbackSpinner, updateApplyState)
+        registerChangeListener(themeCombo, updateApplyState)
+        registerChangeListener(treatAmbiguousCheckbox, updateApplyState)
+        registerChangeListener(useSystemFallbackCheckbox, updateApplyState)
+        registerChangeListener(pasteOnMiddleClickCheckbox, updateApplyState)
+        registerChangeListener(cursorBlinkSpinner, updateApplyState)
+        registerChangeListener(cursorShapeCombo, updateApplyState)
     }
 
     private fun applySizing(
@@ -223,7 +249,8 @@ internal class LatticeSettingsDialog(
         // Container with padding to hold the content panel
         val contentContainer =
             JPanel(BorderLayout()).apply {
-                isOpaque = false
+                isOpaque = true
+                background = LatticeChrome.surface
                 border = EmptyBorder(0, 16, 16, 16)
                 add(panel, BorderLayout.NORTH)
             }
@@ -482,10 +509,25 @@ internal class LatticeSettingsDialog(
     }
 
     private fun buildFooterPanel(): JPanel =
-        JPanel(FlowLayout(FlowLayout.RIGHT, 12, 12)).apply {
+        JPanel(BorderLayout()).apply {
             isOpaque = true
             background = LatticeChrome.surface
             border = BorderFactory.createMatteBorder(1, 0, 0, 0, LatticeChrome.border)
+
+            val leftPanel =
+                JPanel(FlowLayout(FlowLayout.LEFT, 12, 12)).apply {
+                    isOpaque = false
+                }
+            val rightPanel =
+                JPanel(FlowLayout(FlowLayout.RIGHT, 12, 12)).apply {
+                    isOpaque = false
+                }
+
+            val resetButton =
+                JButton("Reset to Defaults").apply {
+                    addActionListener { resetToDefaults() }
+                }
+            leftPanel.add(resetButton)
 
             val okButton =
                 JButton("OK").apply {
@@ -500,18 +542,71 @@ internal class LatticeSettingsDialog(
                     addActionListener { dispose() }
                 }
 
-            val applyButton =
-                JButton("Apply").apply {
-                    addActionListener { applyChanges() }
-                }
+            applyButton.addActionListener { applyChanges() }
 
-            add(okButton)
-            add(cancelButton)
-            add(applyButton)
+            rightPanel.add(cancelButton)
+            rightPanel.add(applyButton)
+            rightPanel.add(okButton)
+
+            add(leftPanel, BorderLayout.WEST)
+            add(rightPanel, BorderLayout.EAST)
             this@LatticeSettingsDialog.rootPane.defaultButton = okButton
         }
 
+    private fun resetToDefaults() {
+        val defaultProfile =
+            availableProfiles.firstOrNull { profile ->
+                val exec = profile.command.firstOrNull() ?: ""
+                exec.equals(TerminalConfig.DEFAULT_SHELL_PATH, ignoreCase = true) ||
+                    runCatching { Path.of(exec).fileName?.toString() }
+                        .getOrNull()
+                        ?.equals(TerminalConfig.DEFAULT_SHELL_PATH, ignoreCase = true) == true
+            }
+
+        shellPathCombo.selectedItem = defaultProfile ?: "Custom..."
+        customShellField.text = if (defaultProfile == null) TerminalConfig.DEFAULT_SHELL_PATH else ""
+        startDirectoryField.text = TerminalConfig.DEFAULT_START_DIRECTORY
+        audibleBellCheckbox.isSelected = TerminalConfig.DEFAULT_AUDIBLE_BELL
+
+        fontFamilyCombo.selectedItem = TerminalConfig.DEFAULT_FONT_FAMILY
+        fontSizeSpinner.value = TerminalConfig.DEFAULT_FONT_SIZE
+        lineHeightSpinner.value = TerminalConfig.DEFAULT_LINE_HEIGHT.toDouble()
+        columnsSpinner.value = TerminalConfig.DEFAULT_COLUMNS
+        rowsSpinner.value = TerminalConfig.DEFAULT_ROWS
+        scrollbackSpinner.value = TerminalConfig.DEFAULT_SCROLLBACK_LINES
+        themeCombo.selectedItem = TerminalConfig.DEFAULT_THEME
+
+        treatAmbiguousCheckbox.isSelected = TerminalConfig.DEFAULT_TREAT_AMBIGUOUS_AS_WIDE
+        useSystemFallbackCheckbox.isSelected = TerminalConfig.DEFAULT_USE_SYSTEM_FALLBACK_FONTS
+        pasteOnMiddleClickCheckbox.isSelected = TerminalConfig.DEFAULT_PASTE_ON_MIDDLE_CLICK
+        cursorBlinkSpinner.value = TerminalConfig.DEFAULT_CURSOR_BLINK_MILLIS
+        cursorShapeCombo.selectedItem = TerminalConfig.DEFAULT_CURSOR_SHAPE
+    }
+
     private fun applyChanges() {
+        val uiState = getUiState()
+        model.applyChanges(uiState) {
+            updateApplyButtonState()
+            onApply()
+        }
+    }
+
+    private fun updateApplyButtonState() {
+        val hasChanges = model.hasChanges(getUiState())
+        applyButton.isEnabled = hasChanges
+        if (hasChanges) {
+            applyButton.putClientProperty("JButton.buttonType", "default")
+            applyButton.background = UIManager.getColor("Button.default.background") ?: LatticeChrome.accent
+            applyButton.foreground = UIManager.getColor("Button.default.foreground") ?: LatticeChrome.surface
+        } else {
+            applyButton.putClientProperty("JButton.buttonType", null)
+            applyButton.background = null
+            applyButton.foreground = null
+        }
+        applyButton.repaint()
+    }
+
+    private fun getUiState(): SettingsState {
         val selected = shellPathCombo.selectedItem
         val nextShellPath =
             if (selected is TerminalProfile) {
@@ -525,26 +620,44 @@ internal class LatticeSettingsDialog(
             } else {
                 TerminalConfig.DEFAULT_SHELL_PATH
             }
-        settings.shellPath = finalShellPath
-        settings.startDirectory = startDirectoryField.text
-        settings.audibleBell = audibleBellCheckbox.isSelected
-        settings.pasteOnMiddleClick = pasteOnMiddleClickCheckbox.isSelected
-        settings.scrollbackLines = scrollbackSpinner.value as Int
-        settings.lineHeight = (lineHeightSpinner.value as Double).toFloat()
+        return SettingsState(
+            theme = themeCombo.selectedItem as? String ?: "",
+            treatAmbiguousAsWide = treatAmbiguousCheckbox.isSelected,
+            fontFamily = fontFamilyCombo.selectedItem as? String ?: "",
+            fontSize = fontSizeSpinner.value as? Int ?: TerminalConfig.DEFAULT_FONT_SIZE,
+            columns = columnsSpinner.value as? Int ?: TerminalConfig.DEFAULT_COLUMNS,
+            rows = rowsSpinner.value as? Int ?: TerminalConfig.DEFAULT_ROWS,
+            cursorBlinkMillis = cursorBlinkSpinner.value as? Int ?: TerminalConfig.DEFAULT_CURSOR_BLINK_MILLIS,
+            useSystemFallbackFonts = useSystemFallbackCheckbox.isSelected,
+            cursorShape = cursorShapeCombo.selectedItem as? String ?: "",
+            shellPath = finalShellPath,
+            startDirectory = startDirectoryField.text,
+            audibleBell = audibleBellCheckbox.isSelected,
+            pasteOnMiddleClick = pasteOnMiddleClickCheckbox.isSelected,
+            scrollbackLines = scrollbackSpinner.value as? Int ?: TerminalConfig.DEFAULT_SCROLLBACK_LINES,
+            lineHeight = lineHeightSpinner.value as? Double ?: TerminalConfig.DEFAULT_LINE_HEIGHT.toDouble(),
+        )
+    }
 
-        settings.fontFamily = fontFamilyCombo.selectedItem as String
-        settings.fontSize = fontSizeSpinner.value as Int
-        settings.columns = columnsSpinner.value as Int
-        settings.rows = rowsSpinner.value as Int
-        settings.treatAmbiguousAsWide = treatAmbiguousCheckbox.isSelected
-        settings.useSystemFallbackFonts = useSystemFallbackCheckbox.isSelected
-        settings.cursorBlinkMillis = cursorBlinkSpinner.value as Int
-        settings.cursorShape = cursorShapeCombo.selectedItem as String
+    private fun registerChangeListener(
+        comp: Component,
+        callback: () -> Unit,
+    ) {
+        when (comp) {
+            is JTextField ->
+                comp.document.addDocumentListener(
+                    object : javax.swing.event.DocumentListener {
+                        override fun insertUpdate(e: javax.swing.event.DocumentEvent?) = callback()
 
-        val themeName = themeCombo.selectedItem as String
-        settings.theme = TerminalTheme.entries.firstOrNull { it.name == themeName } ?: TerminalTheme.TOKYO_NIGHT
+                        override fun removeUpdate(e: javax.swing.event.DocumentEvent?) = callback()
 
-        onApply()
+                        override fun changedUpdate(e: javax.swing.event.DocumentEvent?) = callback()
+                    },
+                )
+            is JComboBox<*> -> comp.addActionListener { callback() }
+            is JCheckBox -> comp.addActionListener { callback() }
+            is JSpinner -> comp.addChangeListener { callback() }
+        }
     }
 
     private inner class CategoryLabel(
