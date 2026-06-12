@@ -132,6 +132,16 @@ class TerminalProfileRegistry(
                 )
         }
 
+        val wsl = wslExecutable()
+        if (wsl != null) {
+            profiles +=
+                TerminalProfile(
+                    id = "wsl",
+                    displayName = "WSL",
+                    command = listOf(wsl.toString()),
+                )
+        }
+
         val ubuntu = executableOnPath("ubuntu.exe")
         if (ubuntu != null) {
             profiles +=
@@ -236,6 +246,18 @@ class TerminalProfileRegistry(
     private fun commandPromptExecutable(): String {
         val comspec = environment["COMSPEC"]
         return if (comspec.isNullOrBlank()) "cmd.exe" else comspec
+    }
+
+    private fun wslExecutable(): Path? {
+        val wsl = executableOnPath("wsl.exe")
+        if (wsl != null) return wsl
+
+        val systemRoot = environment["SystemRoot"]
+        if (!systemRoot.isNullOrBlank()) {
+            val candidate = Path.of(systemRoot, "System32", "wsl.exe")
+            if (executableExists(candidate)) return candidate
+        }
+        return null
     }
 
     private fun gitBashExecutable(): Path? =
