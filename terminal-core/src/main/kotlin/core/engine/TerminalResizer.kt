@@ -44,7 +44,8 @@ internal object TerminalResizer {
         oldHeight: Int,
         newWidth: Int,
         newHeight: Int,
-    ) {
+        oldScrollbackOffset: Int = 0,
+    ): Int {
         val newStore = ClusterStore()
         val newRing = HistoryRing(buffer.maxHistory + newHeight) { Line(newWidth, newStore) }
         var clusterBuf = IntArray(16)
@@ -57,10 +58,15 @@ internal object TerminalResizer {
         val oldTrailingBlankStart = oldLiveScreenTop + oldHeight - oldTrailingBlankRows
         val shouldPreserveViewportTop = newWidth >= oldWidth || oldTrailingBlankRows > 0
 
+        val absoluteOldViewportTopRow = oldLiveScreenTop - oldScrollbackOffset
+
         var newAbsoluteCursorRow = 0
         var newCursorCol = 0
         var cursorPlaced = false
         var newLiveScreenTop = 0
+
+        var newViewportTopRow = -1
+        var viewportTopPlaced = false
 
         fun flushBuilder() {
             if (builder.size == 0) {
@@ -70,6 +76,10 @@ internal object TerminalResizer {
                     newAbsoluteCursorRow = newRing.size - 1
                     newCursorCol = 0
                     cursorPlaced = true
+                }
+                if (builder.viewportTopAbsoluteIndex != -1) {
+                    newViewportTopRow = newRing.size - 1
+                    viewportTopPlaced = true
                 }
                 return
             }
@@ -112,6 +122,10 @@ internal object TerminalResizer {
                         newCursorCol = i
                         cursorPlaced = true
                     }
+                    if (srcIndex == builder.viewportTopAbsoluteIndex) {
+                        newViewportTopRow = newRing.size - 1
+                        viewportTopPlaced = true
+                    }
                 }
                 if (chunkLength < newWidth && offset + chunkLength < builder.size) {
                     newLine.endsWithResizePadding = true
@@ -136,6 +150,7 @@ internal object TerminalResizer {
             val logicalLen = getLogicalLength(oldLine)
             val dataLength = if (oldLine.wrapped && logicalLen > 0) oldWidth else logicalLen
             val hasCursor = i == absoluteOldCursorRow
+            val hasViewportTop = oldScrollbackOffset > 0 && i == absoluteOldViewportTopRow
 
             val readLength =
                 if (hasCursor && buffer.cursor.col > 0) {
@@ -147,16 +162,21 @@ internal object TerminalResizer {
             for (col in 0 until readLength) {
                 if (oldLine.endsWithResizePadding && col == oldLine.width - 1) continue
                 val isCursor = hasCursor && col == buffer.cursor.col
+                val isViewportTop = hasViewportTop && col == 0
                 builder.append(
                     oldLine.rawCodepoint(col),
                     oldLine.getPackedAttr(col),
                     oldLine.getPackedExtendedAttr(col),
                     isCursor,
+                    isViewportTop,
                 )
             }
 
             if (hasCursor && readLength == 0) {
                 builder.cursorAbsoluteIndex = 0
+            }
+            if (hasViewportTop && readLength == 0) {
+                builder.viewportTopAbsoluteIndex = 0
             }
 
             if (!oldLine.wrapped) {
@@ -193,6 +213,14 @@ internal object TerminalResizer {
         buffer.ring = newRing
         buffer.cursor.col = newCursorCol
         buffer.cursor.row = newRelativeRow
+
+        return if (oldScrollbackOffset > 0 && viewportTopPlaced) {
+            (liveScreenTop - newViewportTopRow).coerceIn(0, liveScreenTop)
+        } else if (oldScrollbackOffset > 0) {
+            oldScrollbackOffset.coerceIn(0, liveScreenTop)
+        } else {
+            0
+        }
     }
 
     // Private helpers.
@@ -241,6 +269,7 @@ private class LogicalLineBuilder(
     var extendedAttrs = LongArray(initialCapacity)
     var size = 0
     var cursorAbsoluteIndex = -1
+    var viewportTopAbsoluteIndex = -1
 
     /**
      * Appends one cell (raw codepoint value plus packed attr) to the builder.
@@ -254,9 +283,11 @@ private class LogicalLineBuilder(
         attr: Long,
         extendedAttr: Long,
         isCursor: Boolean,
+        isViewportTop: Boolean,
     ) {
         if (size == codepoints.size) grow()
         if (isCursor) cursorAbsoluteIndex = size
+        if (isViewportTop) viewportTopAbsoluteIndex = size
         codepoints[size] = raw
         attrs[size] = attr
         extendedAttrs[size] = extendedAttr
@@ -267,6 +298,7 @@ private class LogicalLineBuilder(
     fun clear() {
         size = 0
         cursorAbsoluteIndex = -1
+        viewportTopAbsoluteIndex = -1
     }
 
     private fun grow() {

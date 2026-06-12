@@ -994,7 +994,20 @@ class TerminalSwingTerminal(
 
         lastResizedColumns = columns
         lastResizedRows = rows
-        boundSession.resize(columns, rows)
+
+        // Capture the integer scrollback offset and fractional sub-row position before
+        // reflow changes history size and line wrapping. The resizer uses the integer
+        // offset to locate the top visible logical line; we restore the fractional part
+        // afterwards so smooth-scroll state survives the resize.
+        val oldOffset = scrollModel.requestedOffset
+        val oldFraction = scrollModel.preciseScrollbackOffset - scrollModel.offset
+
+        val (newOffset, newHistorySize) = boundSession.resize(columns, rows, oldOffset)
+
+        // Re-anchor the scroll model to the reflowed position, preserving the
+        // fractional sub-row that was in-flight before the resize.
+        val newPrecise = (newOffset + oldFraction).coerceIn(0.0, newHistorySize.toDouble())
+        scrollModel.scrollTo(newPrecise, newHistorySize)
     }
 
     private fun updateVisibleGridSizeOnEdt(): Long {

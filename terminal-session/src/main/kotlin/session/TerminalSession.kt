@@ -160,19 +160,27 @@ class TerminalSession(
 
     /**
      * Resizes core, publisher, and the active connector.
+     *
+     * @param oldScrollbackOffset The scrollback offset that was active in the UI before this resize.
+     *   Pass 0 if the viewport was at the live screen (no scrollback).
+     * @return A [Pair] of (newScrollbackOffset, newHistorySize) that the UI should apply to
+     *   re-anchor the viewport to the same logical content after reflow.
      */
     fun resize(
         columns: Int,
         rows: Int,
-    ) {
+        oldScrollbackOffset: Int = 0,
+    ): Pair<Int, Int> {
         require(columns > 0) { "columns must be positive, got $columns" }
         require(rows > 0) { "rows must be positive, got $rows" }
 
+        val result: Pair<Int, Int>
         synchronized(mutationLock) {
-            terminal.resize(columns, rows)
+            result = terminal.resize(columns, rows, oldScrollbackOffset)
         }
         connector.resize(columns, rows)
         notifyRenderDirty()
+        return result
     }
 
     /**
