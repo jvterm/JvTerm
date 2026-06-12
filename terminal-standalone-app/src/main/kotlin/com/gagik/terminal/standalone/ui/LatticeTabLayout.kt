@@ -27,7 +27,6 @@ internal object LatticeTabMetrics {
     const val TAB_START_X = 8
     const val TAB_GAP = 4
     const val TAB_LABEL_PADDING_LEFT = 12
-    const val TAB_PADDING_RIGHT = 6
     const val ICON_TEXT_GAP = 20
     const val CLOSE_BUTTON_SIZE = 16
     const val CLOSE_BUTTON_MARGIN_RIGHT = 6
@@ -39,13 +38,10 @@ internal object LatticeTabMetrics {
     const val BOTTOM_OUTSIDE_RADIUS = 7
     const val FADE_DURATION_MS = 100
     const val FADE_DELAY_MS = 16
-    const val MIN_LABEL_TEXT_WIDTH = 50
-    const val MAX_LABEL_TEXT_WIDTH = 160
     const val MIN_TAB_WIDTH = 100
     const val PREFERRED_TAB_WIDTH = 220
     val HAIRLINE_STROKE: BasicStroke = BasicStroke(1f)
     val DIVIDER_STROKE: BasicStroke = BasicStroke(1.2f)
-    val ICON_DETAIL_STROKE: BasicStroke = BasicStroke(1f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
     val ICON_STROKE: BasicStroke = BasicStroke(1.2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
     val ACTION_ICON_STROKE: BasicStroke = BasicStroke(1.9f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
 }
@@ -96,7 +92,7 @@ internal data class LatticeTabLayout(
  * Calculates tab widths and action-button placement for [LatticeTabBar].
  */
 internal object LatticeTabLayoutCalculator {
-    fun preferredTabWidth(titleTextWidth: Int): Int = LatticeTabMetrics.PREFERRED_TAB_WIDTH
+    fun preferredTabWidth(): Int = LatticeTabMetrics.PREFERRED_TAB_WIDTH
 
     fun compute(
         componentWidth: Int,

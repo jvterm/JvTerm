@@ -312,7 +312,7 @@ internal class LatticeTabBar(
     private fun preferredTabWidth(
         entry: TabEntry,
         fm: FontMetrics,
-    ): Int = LatticeTabLayoutCalculator.preferredTabWidth(fm.stringWidth(entry.title))
+    ): Int = LatticeTabLayoutCalculator.preferredTabWidth()
 
     // -------------------------------------------------------------------------
     // Painting

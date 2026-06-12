@@ -28,8 +28,8 @@ class LatticeTabLayoutTest {
 
     @Test
     fun preferredTabWidthIsFixed() {
-        assertEquals(220, LatticeTabLayoutCalculator.preferredTabWidth(0))
-        assertEquals(220, LatticeTabLayoutCalculator.preferredTabWidth(300))
+        assertEquals(220, LatticeTabLayoutCalculator.preferredTabWidth())
+        assertEquals(220, LatticeTabLayoutCalculator.preferredTabWidth())
     }
 
     @Test
