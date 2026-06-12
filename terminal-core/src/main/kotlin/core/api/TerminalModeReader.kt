@@ -47,6 +47,10 @@ data class TerminalModeSnapshot(
     val kittyKeyboardFlags: Int,
     /** Synchronized output mode (?2026) enabled. */
     val isSynchronizedOutput: Boolean,
+    /** Urgent bell mode (?1042) enabled. */
+    val isBellIsUrgent: Boolean,
+    /** Pop on bell mode (?1043) enabled. */
+    val isPopOnBell: Boolean,
 )
 
 /**

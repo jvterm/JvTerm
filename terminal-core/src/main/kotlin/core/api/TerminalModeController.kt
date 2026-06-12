@@ -203,4 +203,10 @@ interface TerminalModeController {
         target: Int,
         color: Int,
     )
+
+    /** Toggles urgent bell mode (?1042). */
+    fun setBellIsUrgent(enabled: Boolean)
+
+    /** Toggles pop on bell mode (?1043). */
+    fun setPopOnBell(enabled: Boolean)
 }

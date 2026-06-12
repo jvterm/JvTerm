@@ -209,7 +209,6 @@ class TerminalWorkspaceConfigManager(
         # Style of the text cursor (block, underline, beam)
         cursor_shape = "${config.cursorShape}"
         # Play a system beep when the terminal receives a BEL character
-        # TODO(parser/core/integration): in-band BEL (\u0007) byte recognition and dispatch
         audible_bell = ${config.audibleBell}
         # Automatically paste clipboard contents when the middle mouse button is clicked
         paste_on_middle_click = ${config.pasteOnMiddleClick}

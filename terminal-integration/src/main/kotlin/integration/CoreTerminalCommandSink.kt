@@ -388,6 +388,8 @@ class CoreTerminalCommandSink(
             }
             DecPrivateMode.BRACKETED_PASTE -> terminal.setBracketedPasteEnabled(enable)
             DecPrivateMode.SYNCHRONIZED_OUTPUT -> terminal.setSynchronizedOutput(enable)
+            DecPrivateMode.BELL_IS_URGENT -> terminal.setBellIsUrgent(enable)
+            DecPrivateMode.POP_ON_BELL -> terminal.setPopOnBell(enable)
         }
     }
 

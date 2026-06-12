@@ -288,6 +288,8 @@ Missing:
   advanced through integration metadata, published through render generation,
   and surfaced to hosts through `TerminalHostEventSink`.
 - `DONE(integration/host)`: BEL is surfaced through `TerminalHostEventSink`.
+- `DONE(parser/core/integration/host)`: DEC private modes 1042 (`bellIsUrgent`) and 1043 (`popOnBell`) parsed, routed, and mapped to Taskbar attention request and window raise features in the UI.
+
 - `TODO(core/host)`: richer event API for hyperlink metadata, palette changes,
   terminal notifications, and any future host-observable state that should not
   be read from render frames.
@@ -615,10 +617,9 @@ professional emulator needs explicit contracts for it.
 - `DONE(host)`: audible bell setting (`audibleBell`) is now respected — the
   standalone app guards `Toolkit.beep()` with the current `settings.audibleBell`
   value, read live on each bell event.
-- `TODO(parser/core/integration)`: BEL (`\u0007`) byte recognition and
+- `DONE(parser/core/integration)`: BEL (`\u0007`) byte recognition and
   dispatch through the parser/core/integration pipeline to the host event sink.
-  Currently the host listener fires correctly from the PTY process exit path
-  but the in-band BEL control character is not yet parsed and dispatched.
+
 - `DONE(host/swing)`: middle-click paste is now supported, governed by `settings.pasteOnMiddleClick`.
 - `DONE(host)`: cursor shape configuration (`cursorShape`) mapping. Configured cursor shapes (block, underline, beam) are parsed and propagated to the terminal session to serve as the default shape on resets.
 - `TODO(host)`: UI scrollback controls, scrollbar policy, selection behavior

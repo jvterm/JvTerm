@@ -154,6 +154,14 @@ internal class TerminalModeControllerImpl(
         mutateMode { state.modes.isSynchronizedOutput = enabled }
     }
 
+    override fun setBellIsUrgent(enabled: Boolean) {
+        mutateMode { state.modes.isBellIsUrgent = enabled }
+    }
+
+    override fun setPopOnBell(enabled: Boolean) {
+        mutateMode { state.modes.isPopOnBell = enabled }
+    }
+
     override fun enterAltBufferWithoutCursorSave(clearBeforeEnter: Boolean) {
         if (state.isAltScreenActive) return
 

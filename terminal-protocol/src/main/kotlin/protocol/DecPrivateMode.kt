@@ -46,6 +46,12 @@ object DecPrivateMode {
 
     const val BRACKETED_PASTE: Int = 2004
 
+    /** Urgent bell mode, DECSET/DECRST `?1042`. */
+    const val BELL_IS_URGENT: Int = 1042
+
+    /** Pop on bell mode, DECSET/DECRST `?1043`. */
+    const val POP_ON_BELL: Int = 1043
+
     /** Synchronized output mode, DECSET/DECRST `?2026`. */
     const val SYNCHRONIZED_OUTPUT: Int = 2026
 }

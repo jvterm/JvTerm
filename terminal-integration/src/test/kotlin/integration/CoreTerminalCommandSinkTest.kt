@@ -422,6 +422,27 @@ class CoreTerminalCommandSinkTest {
         }
 
         @Test
+        fun `bell private modes 1042 and 1043 are parsed and update mode snapshot`() {
+            val f = Fixture()
+
+            val initialSnapshot = f.terminal.getModeSnapshot()
+            assertFalse(initialSnapshot.isBellIsUrgent)
+            assertFalse(initialSnapshot.isPopOnBell)
+
+            f.acceptAscii("\u001B[?1042h")
+            assertTrue(f.terminal.getModeSnapshot().isBellIsUrgent)
+
+            f.acceptAscii("\u001B[?1042l")
+            assertFalse(f.terminal.getModeSnapshot().isBellIsUrgent)
+
+            f.acceptAscii("\u001B[?1043h")
+            assertTrue(f.terminal.getModeSnapshot().isPopOnBell)
+
+            f.acceptAscii("\u001B[?1043l")
+            assertFalse(f.terminal.getModeSnapshot().isPopOnBell)
+        }
+
+        @Test
         fun `xterm key option controls update input-facing core mode snapshot`() {
             val f = Fixture()
 

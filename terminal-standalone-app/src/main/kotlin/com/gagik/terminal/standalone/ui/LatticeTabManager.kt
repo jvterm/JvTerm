@@ -550,6 +550,29 @@ internal class LatticeTabManager(
                     frame.toolkit.beep()
                 }
             }
+
+            val modes = tab.session.terminal.getModeSnapshot()
+            if (modes.isBellIsUrgent) {
+                SwingUtilities.invokeLater {
+                    try {
+                        if (Taskbar.isTaskbarSupported()) {
+                            val taskbar = Taskbar.getTaskbar()
+                            if (taskbar.isSupported(Taskbar.Feature.USER_ATTENTION_WINDOW)) {
+                                taskbar.requestWindowUserAttention(frame)
+                            } else if (taskbar.isSupported(Taskbar.Feature.USER_ATTENTION)) {
+                                taskbar.requestUserAttention(true, true)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // Ignore taskbar access failure on unsupported systems.
+                    }
+                }
+            }
+            if (modes.isPopOnBell) {
+                SwingUtilities.invokeLater {
+                    frame.toFront()
+                }
+            }
         }
 
         override fun titleChanged(

@@ -66,6 +66,12 @@ object TerminalModeBits {
     /** Synchronized output mode flag (?2026). */
     const val SYNCHRONIZED_OUTPUT: Long = 1L shl 13
 
+    /** Bell is urgent mode flag (?1042). */
+    const val BELL_IS_URGENT: Long = 1L shl 14
+
+    /** Pop on bell mode flag (?1043). */
+    const val POP_ON_BELL: Long = 1L shl 15
+
     /** Starting bit for the packed modify-other-keys mode field. */
     const val MODIFY_OTHER_KEYS_SHIFT: Int = 16
 
