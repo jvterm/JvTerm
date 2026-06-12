@@ -32,6 +32,8 @@ dependencies {
     implementation(project(":terminal-ui-swing"))
     implementation(project(":terminal-workspace"))
 
+    runtimeOnly("org.slf4j:slf4j-nop:2.0.17")
+
     testImplementation(kotlin("test"))
 }
 
