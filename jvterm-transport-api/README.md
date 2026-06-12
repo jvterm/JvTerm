@@ -40,7 +40,7 @@ sequenceDiagram
 
 To maintain clean architecture and prevent coupling, the following rules apply to `:terminal-transport-api`:
 
-* **No Sub-Module Dependencies:** The module does not depend on `:terminal-parser`, `:terminal-core`, `:terminal-integration`, `:terminal-input`, `:terminal-pty`, or `:terminal-ui-swing`. It depends only on standard Kotlin/JVM 21 library features.
+* **No Sub-Module Dependencies:** The module does not depend on `:terminal-parser`, `:terminal-core`, `:terminal-host`, `:terminal-input`, `:terminal-pty`, or `:terminal-ui-swing`. It depends only on standard Kotlin/JVM 21 library features.
 * **No Threading Policy Enforcement:** The interfaces do not dictate how implementations should manage their internal threads. Connectors are free to use dedicated thread pools, daemon threads (like `terminal-pty-reader`), or coroutine dispatchers.
 * **No Parsing or State Management:** It does not inspect the contents of the bytes flowing through its streams. It treats input and output data as raw opaque byte blocks.
 

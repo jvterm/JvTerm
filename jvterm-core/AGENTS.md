@@ -9,7 +9,7 @@ input events, or render UI.
 
 ## Core Boundary
 
-Core receives semantic operations from parser/integration-facing APIs such as
+Core receives semantic operations from parser/host-facing APIs such as
 `writeCodepoint`, `writeCluster`, cursor movement, erase/edit commands, mode
 setters, and pen setters.
 
@@ -71,7 +71,7 @@ API table-shaped now so generation is a mechanical upgrade later.
 ## Attribute Ownership
 
 Core must represent pen attributes truthfully. If an attribute is not supported,
-do not let integration fake it.
+do not let host fake it.
 
 High-priority gaps:
 

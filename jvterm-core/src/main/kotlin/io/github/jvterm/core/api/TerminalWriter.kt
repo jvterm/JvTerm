@@ -351,11 +351,11 @@ interface TerminalWriter {
     /**
      * Sets the active OSC 8 hyperlink id stamped onto future printed cells.
      *
-     * Core stores only the numeric id. The integration or host layer owns the
+     * Core stores only the numeric id. The host or host layer owns the
      * id-to-URI pool and decides how ids are allocated and retained.
      *
      * @param hyperlinkId `0` for no active hyperlink, or a positive id owned by
-     * the integration/host layer.
+     * the host/host layer.
      */
     fun setHyperlinkId(hyperlinkId: Int)
 

@@ -5,7 +5,7 @@ render frames and user input into a desktop component without knowing which
 transport produced the byte stream.
 
 This module is the shared UI foundation for standalone desktop usage, IDE
-integration, and other Swing hosts.
+host, and other Swing hosts.
 
 ## Package Layout
 
@@ -186,9 +186,9 @@ Host modules provide environment-specific adapters.
 
 Examples:
 
-- IDE integration can provide settings, clipboard, font fallback, tool-window
+- IDE host can provide settings, clipboard, font fallback, tool-window
   lifecycle, actions, and disposal hooks.
-- Standalone integration can provide window assembly, system clipboard, system
+- Standalone host can provide window assembly, system clipboard, system
   font fallback, local config, PTY startup, and app lifecycle.
 
 Those host concepts must enter `terminal-ui-swing` only through small

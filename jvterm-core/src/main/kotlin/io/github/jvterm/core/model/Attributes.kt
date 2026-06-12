@@ -24,7 +24,7 @@ package io.github.jvterm.core.model
  * product policy.
  *
  * [hyperlinkId] is a numeric handle for OSC 8 hyperlinks. `0` means no link;
- * positive ids are owned by the integration or host layer's URL pool.
+ * positive ids are owned by the host or host layer's URL pool.
  *
  * @property foreground Text foreground color.
  * @property background Text background color.

@@ -13,14 +13,14 @@ PTY owns:
 - writing host-bound byte ranges to PTY stdin.
 - resizing the PTY process.
 - reporting BEL and title metadata through `TerminalPtyEventListener` when the
-  convenience session factory wires integration host events.
+  convenience session factory wires host host events.
 
 PTY must not:
 
 - parse escape sequences or inspect parser state.
 - mutate grid/cursor state directly.
 - encode keyboard, paste, focus, or mouse bytes itself.
-- duplicate `terminal-integration` command mapping.
+- duplicate `terminal-host` command mapping.
 - expose concurrent access to `DefaultTerminalInputEncoder`.
 
 ## Testing
@@ -32,5 +32,5 @@ behavior. Session-level behavior should go through `TerminalSession` plus a
 Native PTY smoke tests are opt-in because PTY4J startup is platform-sensitive:
 
 ```text
-./gradlew :terminal-pty:test --tests "com.gagik.terminal.pty.TerminalPtyRealProcessTest" "-Dterminal.pty.integration=true"
+./gradlew :terminal-pty:test --tests "com.gagik.terminal.pty.TerminalPtyRealProcessTest" "-Dterminal.pty.host=true"
 ```

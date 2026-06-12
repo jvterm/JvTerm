@@ -98,8 +98,8 @@ To handle terminal events discovered during escape sequence parsing (like bells 
 - **Null Object Pattern**: Provides [TerminalPtyEventListener.NONE](./src/main/kotlin/pty/TerminalPtyEventListener.kt) as a default no-op listener to eliminate null checks.
 
 ### 5. Integration Host Event Bridge ([SessionHostEventBridge](./src/main/kotlin/pty/SessionHostEventBridge.kt))
-[SessionHostEventBridge](./src/main/kotlin/pty/SessionHostEventBridge.kt) connects the `terminal-integration` layer with `terminal-pty`:
-- Implements `TerminalHostEventSink` (from `:terminal-integration`).
+[SessionHostEventBridge](./src/main/kotlin/pty/SessionHostEventBridge.kt) connects the `terminal-host` layer with `terminal-pty`:
+- Implements `TerminalHostEventSink` (from `:terminal-host`).
 - **Failure Isolation**: Safely dispatches callbacks on the pump thread. If a client callback throws an error, the bridge catches it, dispatches it to `listenerFailed(...)`, and isolates the execution to prevent crashing the critical reader pump thread.
 
 ---
@@ -143,12 +143,12 @@ Operating a native process from the JVM involves complex multi-threaded scheduli
 
 ## Testing Doctrine
 
-The test suite in `:terminal-pty` verifies both stream-level correctness and native OS integration:
+The test suite in `:terminal-pty` verifies both stream-level correctness and native OS host:
 
 ### 1. Mock-Backed Unit Tests
 To achieve 100% deterministic test coverage, unit tests utilize simulated streams and processes rather than spawning actual OS-level shells:
 - **[PtyConnectorTest](./src/test/kotlin/pty/PtyConnectorTest.kt)**: Exercises stream chunking, write range offsets, process destruction, thread cleanup limits, EOF handling, and reader failure isolation using custom `TestProcess`, `RecordingOutputStream`, and `BlockingInputStream` fakes.
-- **[TerminalPtySessionTest](./src/test/kotlin/pty/TerminalPtySessionTest.kt)**: Asserts the integration of the full session pipeline. It verifies that fake PTY stdout is correctly parsed into terminal core lines, core responses are pushed back to PTY stdin, key events are properly encoded and dispatched, and metadata event bridges successfully invoke listener callbacks.
+- **[TerminalPtySessionTest](./src/test/kotlin/pty/TerminalPtySessionTest.kt)**: Asserts the host of the full session pipeline. It verifies that fake PTY stdout is correctly parsed into terminal core lines, core responses are pushed back to PTY stdin, key events are properly encoded and dispatched, and metadata event bridges successfully invoke listener callbacks.
 - **[SessionHostEventBridgeTest](./src/test/kotlin/pty/SessionHostEventBridgeTest.kt)**: Asserts correct event routing and exception handling/isolation behaviors.
 
 ### 2. Native Smoke Tests
@@ -157,7 +157,7 @@ Actual OS pseudo-terminal execution is validated via **[TerminalPtyRealProcessTe
 - Verifies that real PTY outputs reach the terminal core, resizes behave correctly without deadlocks, and native process exit codes are successfully captured.
 - **Opt-In Guard**: Native PTY testing requires downloading system-dependent binaries via PTY4J. These tests are gated behind a system property assumption. To execute them locally, supply the opt-in flag:
   ```bash
-  ./gradlew :terminal-pty:test --tests "com.gagik.terminal.pty.TerminalPtyRealProcessTest" "-Dterminal.pty.integration=true"
+  ./gradlew :terminal-pty:test --tests "com.gagik.terminal.pty.TerminalPtyRealProcessTest" "-Dterminal.pty.host=true"
   ```
 
 ---
@@ -168,7 +168,7 @@ Actual OS pseudo-terminal execution is validated via **[TerminalPtyRealProcessTe
   ```bash
   ./gradlew :terminal-pty:test
   ```
-- **Run all native integration PTY tests**:
+- **Run all native host PTY tests**:
   ```bash
-  ./gradlew :terminal-pty:test --tests "com.gagik.terminal.pty.TerminalPtyRealProcessTest" "-Dterminal.pty.integration=true"
+  ./gradlew :terminal-pty:test --tests "com.gagik.terminal.pty.TerminalPtyRealProcessTest" "-Dterminal.pty.host=true"
   ```

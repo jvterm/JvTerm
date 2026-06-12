@@ -424,10 +424,10 @@ class CharsetMapperTest {
         }
     }
 
-    // ----- Printable processor integration --------------------------------
+    // ----- Printable processor host --------------------------------
 
     @Nested
-    @DisplayName("PrintableProcessor integration")
+    @DisplayName("PrintableProcessor host")
     inner class PrintableProcessorIntegration {
         @Test
         fun `ASCII printable ingress is charset mapped before terminal sink output`() {

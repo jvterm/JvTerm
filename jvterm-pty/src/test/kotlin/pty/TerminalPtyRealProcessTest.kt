@@ -125,8 +125,8 @@ class TerminalPtyRealProcessTest {
 
     private fun assumeNativePty() {
         assumeTrue(
-            System.getProperty("terminal.pty.integration") == "true",
-            "Set -Dterminal.pty.integration=true to run native PTY integration tests",
+            System.getProperty("terminal.pty.host") == "true",
+            "Set -Dterminal.pty.host=true to run native PTY host tests",
         )
     }
 

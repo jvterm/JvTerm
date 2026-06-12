@@ -18,7 +18,7 @@ To preserve strict layer boundaries and maintain a lightweight testing footprint
 
 ### What the Module Does NOT Own
 - **Physical I/O Threads**: It does not start OS threads, read from file descriptors, or handle real host inputs.
-- **Terminal Protocol Parsing**: It maintains absolutely zero dependencies on `terminal-parser`, `terminal-core`, or `terminal-integration`.
+- **Terminal Protocol Parsing**: It maintains absolutely zero dependencies on `terminal-parser`, `terminal-core`, or `terminal-host`.
 - **Thread-Safety Guarantees**: It is designed for single-threaded or externally synchronized test harnesses to minimize scheduling overhead and avoid lock-contention noise in assertions.
 - **UI Event Mappings**: It does not convert platform events (like AWT or Swing events) into terminal events.
 

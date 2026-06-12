@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.gagik.integration
+package io.github.jvterm.host
 
 import com.gagik.parser.spi.TerminalCommandSink
 import com.gagik.terminal.protocol.AnsiMode
@@ -35,7 +35,7 @@ import io.github.jvterm.core.model.UnderlineStyle
  *
  * @param terminal public core buffer API mutated by parser semantic commands.
  * @param hostEvents optional metadata callback sink for BEL and title changes.
- * @param hostPolicy safety limits for integration-owned host metadata.
+ * @param hostPolicy safety limits for host-owned host metadata.
  */
 class CoreTerminalCommandSink(
     private val terminal: TerminalBufferApi,

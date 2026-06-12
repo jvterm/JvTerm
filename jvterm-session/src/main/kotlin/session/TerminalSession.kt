@@ -15,9 +15,6 @@
  */
 package com.gagik.terminal.session
 
-import com.gagik.integration.CoreTerminalCommandSink
-import com.gagik.integration.TerminalHostEventSink
-import com.gagik.integration.TerminalHostPolicy
 import com.gagik.parser.api.TerminalOutputParser
 import com.gagik.parser.api.TerminalParsers
 import com.gagik.terminal.input.api.TerminalInputEncoder
@@ -38,6 +35,9 @@ import com.gagik.terminal.transport.TerminalConnectorListener
 import com.gagik.terminal.transport.checkBounds
 import io.github.jvterm.core.api.TerminalBufferApi
 import io.github.jvterm.core.api.TerminalHostResponseReader
+import io.github.jvterm.host.CoreTerminalCommandSink
+import io.github.jvterm.host.TerminalHostEventSink
+import io.github.jvterm.host.TerminalHostPolicy
 import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
@@ -530,7 +530,7 @@ class TerminalSession(
         private fun unpackViewportRows(request: Long): Int = request.toInt()
 
         /**
-         * Creates a production session with the standard parser, integration
+         * Creates a production session with the standard parser, host
          * sink, and default input encoder.
          */
         @JvmStatic

@@ -15,8 +15,8 @@
  */
 package com.gagik.terminal.pty
 
-import com.gagik.integration.TerminalHostEventSink
 import com.gagik.terminal.session.TerminalSession
+import io.github.jvterm.host.TerminalHostEventSink
 
 internal class SessionHostEventBridge(
     private val listener: TerminalPtyEventListener,

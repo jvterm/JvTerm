@@ -23,7 +23,7 @@ package com.gagik.terminal.protocol.host
  * when a method returns, the provided data has either been consumed or copied.
  *
  * Ordering across different terminal-to-host producers is the responsibility
- * of the caller. A terminal integration should serialize UI input reports
+ * of the caller. A terminal host should serialize UI input reports
  * (keyboard, mouse, paste, focus) and parser/core responses (DSR, CPR, DA, and
  * future OSC/DCS replies) through one terminal event loop or actor before
  * writing to this sink. Concurrent calls from independent threads have no

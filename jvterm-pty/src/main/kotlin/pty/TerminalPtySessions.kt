@@ -24,7 +24,7 @@ import java.io.IOException
  */
 object TerminalPtySessions {
     /**
-     * Starts a PTY process and connects it to parser, core, integration, and
+     * Starts a PTY process and connects it to parser, core, host, and
      * input encoding components.
      *
      * PTY stdout is consumed on a daemon reader thread and fed to the parser.

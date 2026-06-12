@@ -24,7 +24,7 @@ Parser must not own:
 - core mode persistence beyond parser-local sequence assembly.
 
 If a behavior needs grid state, expose a semantic sink method or defer it to
-core/integration. Do not smuggle core decisions into parser code.
+core/host. Do not smuggle core decisions into parser code.
 
 ## FSM and Dispatch Rules
 
@@ -79,7 +79,7 @@ Cover these layers independently and together:
 - `ActionEngine` side effects, parameter invariants, payload bounds, and
   recovery.
 - `CommandDispatcher`, SGR, OSC, mode, charset, and Unicode components.
-- `TerminalParser` full byte-stream integration.
+- `TerminalParser` full byte-stream host.
 
 Required edge classes:
 

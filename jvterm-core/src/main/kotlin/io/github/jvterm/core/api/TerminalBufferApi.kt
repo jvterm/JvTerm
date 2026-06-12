@@ -19,14 +19,14 @@ package io.github.jvterm.core.api
  * Full public contract for the terminal buffer.
  *
  * Composes all role-specific interfaces into a single surface for host
- * applications and integration tests.
+ * applications and host tests.
  *
  * Coordinates are always zero-based when they are expressed directly as rows
  * and columns on this API. DEC/ANSI commands that are traditionally 1-based
  * should be translated by the parser before they reach the core.
  *
  * The parser should depend only on the narrower interfaces it actually needs;
- * this facade mainly exists for host integration points and tests.
+ * this facade mainly exists for host host points and tests.
  */
 interface TerminalBufferApi :
     TerminalWriter,

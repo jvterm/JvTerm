@@ -1,7 +1,7 @@
 # Terminal Protocol Agent Guide
 
 `terminal-protocol` holds dependency-free terminal protocol vocabulary shared by
-parser, core, integration, input, and host-facing modules.
+parser, core, host, input, and host-facing modules.
 
 ## Boundary
 
@@ -13,7 +13,7 @@ Protocol must not:
 - parse bytes or escape sequences.
 - mutate terminal state.
 - encode keyboard, mouse, focus, or paste reports.
-- depend on parser, core, integration, rendering, or host modules.
+- depend on parser, core, host, rendering, or host modules.
 
 Keep additions narrow and semantic. If a feature needs behavior, implement that
 behavior in the owning layer and expose only the shared vocabulary here.

@@ -1,6 +1,6 @@
 # Terminal Protocol (`:terminal-protocol`)
 
-The `terminal-protocol` module represents the zero-dependency, immutable core vocabulary of **Lattice Terminal**. It defines the fundamental, standard-aligned constants, enumerations, and interfaces shared by the parser, headless core, integration layers, input encoders, and host-bound transports. 
+The `terminal-protocol` module represents the zero-dependency, immutable core vocabulary of **Lattice Terminal**. It defines the fundamental, standard-aligned constants, enumerations, and interfaces shared by the parser, headless core, host layers, input encoders, and host-bound transports. 
 
 By centralizing ANSI/DEC protocol keys, mode identifiers, and low-level byte sinks, the module ensures strict consistency across the entire terminal pipeline while maintaining a lightweight, JIT-friendly, and allocation-conscious footprint.
 
@@ -20,7 +20,7 @@ graph TD
     Core[terminal-core]
     In[terminal-input]
     Session[terminal-session]
-    Int[terminal-integration]
+    Int[terminal-host]
     UI[terminal-ui-swing]
 
     %% Dependencies
@@ -132,7 +132,7 @@ interface TerminalHostOutput {
 > **Thread Synchronization Boundary:**
 > `TerminalHostOutput` implementations are typically mapped directly to PTY or SSH standard input streams. Callers must guarantee that operations from independent threads are properly serialized.
 > 
-> A terminal integration should coordinate UI inputs and internal response streams through a single actor event loop, writing to this sink sequentially to prevent overlapping or corrupted packet sequences.
+> A terminal host should coordinate UI inputs and internal response streams through a single actor event loop, writing to this sink sequentially to prevent overlapping or corrupted packet sequences.
 
 ---
 

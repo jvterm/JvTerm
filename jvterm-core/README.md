@@ -145,7 +145,7 @@ Tracks VT100-style tab stops inside a dense `BooleanArray`.
 
 1. **No Allocations in Mutation Hot Paths:** Hot paths (e.g., `printCodepoint`, `scrollUp`, attribute packing, cluster query) must not trigger garbage collection. Data structures use primitive indices, flat primitive arrays, and reusable scratch buffers.
 2. **Strict SRP Boundaries:** The core never parses incoming escape bytes, nor does it encode outgoing keystrokes. It only mutates headless buffers.
-3. **Truthful Representation:** Do not let integration layers fake unsupported cell attributes. If an attribute or color format is unsupported, it must be documented as a core gap in `docs/terminal-feature-gap-map.md`.
+3. **Truthful Representation:** Do not let host layers fake unsupported cell attributes. If an attribute or color format is unsupported, it must be documented as a core gap in `docs/terminal-feature-gap-map.md`.
 
 ---
 

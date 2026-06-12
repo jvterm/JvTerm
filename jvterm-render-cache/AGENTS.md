@@ -19,7 +19,7 @@ Render cache must not:
 - parse terminal output protocols.
 - mutate core, session, transport, or UI state.
 - choose fonts, colors, glyph runs, paint strategy, or Swing repaint policy.
-- depend on parser, core, integration, session, PTY, Swing, or host modules.
+- depend on parser, core, host, session, PTY, Swing, or host modules.
 
 Keep cache updates allocation-conscious. Reuse primitive cell-plane storage and
 clear cluster row ranges deliberately when copied frame data changes.

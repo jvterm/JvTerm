@@ -23,7 +23,7 @@ Input must not:
 
 - parse terminal output bytes or escape sequences.
 - mutate terminal grid, cursor, scrollback, or pen state.
-- depend on `terminal-parser` or `terminal-integration`.
+- depend on `terminal-parser` or `terminal-host`.
 - read renderer state, grid arrays, cursor internals, or parser state.
 - invent terminal mode semantics outside core/protocol vocabulary.
 
@@ -65,7 +65,7 @@ on `:terminal-core` until that API split exists.
 
 Input tests should assert exact bytes. Cover validation errors, modifier
 translation, printable UTF-8, Ctrl/Alt handling, special keys, keypad modes,
-bracketed paste, focus reporting, and a real core mode-bit integration case.
+bracketed paste, focus reporting, and a real core mode-bit host case.
 
 Do not hide expected byte sequences behind broad helpers. Fixtures may record
 bytes, but each test should make the terminal semantics obvious.

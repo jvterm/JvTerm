@@ -1,6 +1,6 @@
 # Terminal Integration Agent Guide
 
-`terminal-integration` is the bridge between `terminal-parser` and
+`jvterm-host` is the bridge between `terminal-parser` and
 `terminal-core`.
 
 It maps `TerminalCommandSink` calls to `TerminalBufferApi` calls and host-facing
@@ -35,7 +35,7 @@ belongs:
 
 - `TODO(core-gap)`: core API/storage does not exist yet.
 - `TODO(parser-gap)`: parser does not emit the semantic command yet.
-- `TODO(integration)`: both sides exist, adapter mapping is missing.
+- `TODO(host)`: both sides exist, adapter mapping is missing.
 - `TODO(policy)`: security or compatibility policy is required.
 
 Also update `docs/terminal-feature-gap-map.md` when a gap is discovered,

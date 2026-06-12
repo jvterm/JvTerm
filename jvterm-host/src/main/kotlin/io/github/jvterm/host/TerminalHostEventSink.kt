@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.gagik.integration
+package io.github.jvterm.host
 
 /**
  * Host-facing events emitted while parser commands are mapped to core state.

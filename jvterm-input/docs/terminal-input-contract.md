@@ -216,7 +216,7 @@ Guaranteed caller behavior:
 - scratch-backed arrays may be reused immediately after `writeBytes` returns
 
 Ordering across independent terminal-to-host producers is not guaranteed by the
-sink itself. The terminal actor or host integration layer owns that ordering.
+sink itself. The terminal actor or host host layer owns that ordering.
 
 ## Allocation Contract
 
@@ -250,7 +250,7 @@ Required coverage for behavior changes:
 - paste policy and bracketed paste behavior
 - focus reporting suppression and emission
 - one-read-per-event mode behavior through `DefaultTerminalInputEncoder`
-- real core packed mode integration for input-facing modes
+- real core packed mode host for input-facing modes
 - xterm input profile matrix coverage for supported mode combinations
 
 The feature gap map must be updated when the public input contract grows,
@@ -275,9 +275,9 @@ Likely to evolve before 1.0:
 
 - broader modified-key protocol support
 - optional Kitty keyboard protocol as a separate encoder path
-- SGR-Pixels mouse event vocabulary if renderer/UI integration supplies pixel
+- SGR-Pixels mouse event vocabulary if renderer/UI host supplies pixel
   coordinates
-- paste policy surface if host integration needs stricter security defaults
+- paste policy surface if host host needs stricter security defaults
 - a future `:terminal-core-api` split for input-facing mode reads
 
 The runtime semantics described in this document are the current intended

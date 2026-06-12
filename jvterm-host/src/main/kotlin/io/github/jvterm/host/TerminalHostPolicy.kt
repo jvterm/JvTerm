@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.gagik.integration
+package io.github.jvterm.host
 
 /**
- * Host-facing safety limits for integration-owned metadata.
+ * Host-facing safety limits for host-owned metadata.
  *
  * These limits prevent untrusted terminal output from retaining unbounded host
  * metadata while still allowing normal shell and TUI OSC 8 hyperlink usage.

@@ -11,7 +11,7 @@ Transport API owns:
 - host-bound byte writes.
 - terminal resize notifications to the transport.
 
-It must not depend on parser, core, integration, input, PTY, SSH, UI, or test
+It must not depend on parser, core, host, input, PTY, SSH, UI, or test
 modules. Connectors own their transport threads; sessions own parser/core
 synchronization and terminal-to-host ordering.
 

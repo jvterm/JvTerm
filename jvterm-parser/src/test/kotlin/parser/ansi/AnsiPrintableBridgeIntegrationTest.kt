@@ -24,12 +24,12 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
-@DisplayName("ANSI printable bridge integration")
+@DisplayName("ANSI printable bridge host")
 class AnsiPrintableBridgeIntegrationTest {
-    // ----- Charset integration --------------------------------------------
+    // ----- Charset host --------------------------------------------
 
     @Nested
-    @DisplayName("charset integration")
+    @DisplayName("charset host")
     inner class CharsetIntegration {
         @Test
         fun `ESC left paren 0 designates G0 DEC Special Graphics`() {

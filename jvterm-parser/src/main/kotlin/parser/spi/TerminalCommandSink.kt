@@ -269,7 +269,7 @@ interface TerminalCommandSink {
      * `CSI = flags ; mode u`.
      *
      * The parser only identifies the flag word and application mode. Core and
-     * integration own durable state and unsupported-mode policy.
+     * host own durable state and unsupported-mode policy.
      */
     fun applyKittyKeyboardFlags(
         flags: Int,

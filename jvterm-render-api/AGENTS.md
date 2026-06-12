@@ -10,7 +10,7 @@ attribute vocabulary.
 
 Render API must not:
 
-- depend on core, parser, integration, session, PTY, Swing, Compose, AWT, Skia,
+- depend on core, parser, host, session, PTY, Swing, Compose, AWT, Skia,
   or any host module.
 - expose core internal storage, cluster handles, cell objects, or mutable
   terminal state.

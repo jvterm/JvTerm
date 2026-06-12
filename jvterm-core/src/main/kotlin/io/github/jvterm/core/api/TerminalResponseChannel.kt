@@ -19,7 +19,7 @@ package io.github.jvterm.core.api
  * Terminal-to-host response channel.
  *
  * Host applications should drain these bytes and write them to the PTY/process
- * input side. Parser/integration code should use the request methods; core owns
+ * input side. Parser/host code should use the request methods; core owns
  * response contents that depend on core state such as cursor position.
  */
 interface TerminalResponseChannel : TerminalHostResponseReader {

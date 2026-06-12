@@ -1,6 +1,6 @@
 # Terminal Integration
 
-The `terminal-integration` module serves as the production bridge and adapter layer between the byte-stream parser (`terminal-parser`) and the headless state machine/grid engine (`terminal-core`). 
+The `terminal-host` module serves as the production bridge and adapter layer between the byte-stream parser (`terminal-parser`) and the headless state machine/grid engine (`terminal-core`). 
 
 It acts as the single, thin, and explicit translation point where abstract semantic ANSI/DEC protocols become concrete terminal grid mutations, mode changes, and host-facing events.
 
@@ -8,19 +8,19 @@ It acts as the single, thin, and explicit translation point where abstract seman
 
 ## Architectural Role & Pipeline Flow
 
-The terminal pipeline operates in strict, unidirectional layers to preserve a Strong Single Responsibility Principle (SRP). `terminal-integration` sits at the center of this pipeline:
+The terminal pipeline operates in strict, unidirectional layers to preserve a Strong Single Responsibility Principle (SRP). `terminal-host` sits at the center of this pipeline:
 
 ```mermaid
 graph TD
     HostBytes[Raw PTY/Byte Stream] -->|UTF-8 / Escape Sequences| Parser[terminal-parser <br> Byte FSM & DEC Charsets]
-    Parser -->|TerminalCommandSink semantic calls| Integration[terminal-integration <br> CoreTerminalCommandSink]
+    Parser -->|TerminalCommandSink semantic calls| Integration[terminal-host <br> CoreTerminalCommandSink]
     Integration -->|TerminalBufferApi mutations| Core[terminal-core <br> Headless Grid physics & Mode store]
     Integration -->|TerminalHostEventSink callbacks| HostApp[Host UI Application <br> Visual bell, OS Title updates]
     Integration -->|hostPolicy safety limits| HyperlinkLRU[Hyperlink Cache <br> LRU eviction & Size gates]
 ```
 
 ### Module Dependencies
-As defined in [build.gradle.kts](build.gradle.kts), `terminal-integration` maintains clean boundaries by depending only on the lower abstraction layers and exposing no UI or platform-specific bindings:
+As defined in [build.gradle.kts](build.gradle.kts), `terminal-host` maintains clean boundaries by depending only on the lower abstraction layers and exposing no UI or platform-specific bindings:
 - `:terminal-protocol` (Vocabulary, mode IDs, enums)
 - `:terminal-parser` (FSM, UTF-8, semantic command sinks)
 - `:terminal-core` (Grid representation, text buffer, cell attributes, modes)
@@ -29,7 +29,7 @@ As defined in [build.gradle.kts](build.gradle.kts), `terminal-integration` maint
 
 ## Integration Boundaries & Invariants
 
-To keep the pipeline secure, maintainable, and highly performant, `terminal-integration` adheres to strict operational boundaries:
+To keep the pipeline secure, maintainable, and highly performant, `terminal-host` adheres to strict operational boundaries:
 
 ### What Integration Owns:
 1. **Semantic Translation**: Mapping high-level `TerminalCommandSink` callbacks into atomic `TerminalBufferApi` calls.
@@ -131,7 +131,7 @@ Unwired or partially implemented protocols must never be hidden behind silent, i
 
 * `TODO(core-gap)`: The core storage, API, or state representation does not exist yet (e.g., synchronized output rendering).
 * `TODO(parser-gap)`: The parser FSM does not yet recognize or dispatch the required protocol bytes.
-* `TODO(integration)`: Both parser and core have the necessary APIs, but the adapter mapping has not been wired.
+* `TODO(host)`: Both parser and core have the necessary APIs, but the adapter mapping has not been wired.
 * `TODO(policy)`: The protocol requires an explicit security, permission, or host compatibility design (e.g., OSC 52 clipboard writes).
 
 Always keep the project-wide feature matrix at [docs/terminal-feature-gap-map.md](../docs/terminal-feature-gap-map.md) updated when gaps are discovered, closed, or reclassified.
@@ -140,7 +140,7 @@ Always keep the project-wide feature matrix at [docs/terminal-feature-gap-map.md
 
 ## Testing Doctrine
 
-We believe that tests should assert real terminal semantics rather than mock calls. As such, the test suite in [CoreTerminalCommandSinkTest.kt](src/test/kotlin/integration/CoreTerminalCommandSinkTest.kt) follows a strict end-to-end strategy:
+We believe that tests should assert real terminal semantics rather than mock calls. As such, the test suite in [CoreTerminalCommandSinkTest.kt](src/test/kotlin/host/CoreTerminalCommandSinkTest.kt) follows a strict end-to-end strategy:
 
 * **Real Byte Flows**: Tests construct a comprehensive `Fixture` that feeds real raw byte sequences through a live `TerminalOutputParser`, routes them into `CoreTerminalCommandSink`, and verifies the final state of the `TerminalBufferApi` grid.
 * **Hermetic Assertions**: Assertions are made directly against public core state reader surfaces, such as checking grid lines (`getLineAsString`), specific cell coordinates (`getCodepointAt`), modes (`getModeSnapshot`), or packed rendering cursor frames.
