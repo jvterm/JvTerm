@@ -46,6 +46,13 @@ internal class LatticeWindowFactory(
             JFrame(LatticeChrome.APP_TITLE).apply {
                 defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
                 minimumSize = Dimension(720, 420)
+                iconImages =
+                    listOf(
+                        FlatSVGIcon("com/gagik/terminal/standalone/icons/logo.svg", 16, 16).image,
+                        FlatSVGIcon("com/gagik/terminal/standalone/icons/logo.svg", 32, 32).image,
+                        FlatSVGIcon("com/gagik/terminal/standalone/icons/logo.svg", 48, 48).image,
+                        FlatSVGIcon("com/gagik/terminal/standalone/icons/logo.svg", 128, 128).image,
+                    )
             }
 
         val tabContentPanel =

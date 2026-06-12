@@ -197,11 +197,11 @@ internal class LatticeAboutDialog(
                     .getResourceAsStream("com/gagik/terminal/standalone/version.properties")
             if (inputStream != null) {
                 properties.load(inputStream)
-                properties.getProperty("version") ?: "1.0-SNAPSHOT"
+                properties.getProperty("version") ?: "1.0.0"
             } else {
-                "1.0-SNAPSHOT"
+                "1.0.0"
             }
         } catch (e: Exception) {
-            "1.0-SNAPSHOT"
+            "1.0.0"
         }
 }
