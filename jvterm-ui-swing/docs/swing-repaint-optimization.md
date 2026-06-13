@@ -27,5 +27,5 @@ Selection handles selection sweeps, word-level highlights, and block selections:
 
 ## 3. Clipboards & Key Mapping Services
 
-* **Clipboard Handlers**: Integrates with standard OS clipboards using [SwingHostServices](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-ui-swing/src/main/kotlin/io/github/jvterm/ui/swing/settings/SwingHostServices.kt), sanitizing carriage returns during copy/paste based on policy options.
+* **Clipboard Handlers**: Integrates with standard OS clipboards using [SwingHostServices](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-ui-swing/src/main/kotlin/io/github/jvterm/ui/swing/api/SwingHostServices.kt), sanitizing carriage returns during copy/paste based on policy options.
 * **Focus Mapping**: Converts window focus gain/loss into `TerminalFocusEvent` events, routing them to the active session to trigger bracketed focus reports (`CSI I` and `CSI O`).

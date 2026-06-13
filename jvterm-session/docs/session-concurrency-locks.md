@@ -19,7 +19,7 @@ The `jvterm-session` module acts as the synchronization pipeline coordinator tha
 
 ### A. `inboundLock`
 * **Purpose**: Serializes execution of parser byte ingestion.
-* **Scope**: Guards the [onBytes](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-session/src/main/kotlin/io/github/jvterm/session/TerminalSession.kt#L65) callback thread. It ensures that only one byte block from the transport is processed by the parser FSM at a time, preventing split-escape corruptions.
+* **Scope**: Guards the [onBytes](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-session/src/main/kotlin/io/github/jvterm/session/TerminalSession.kt#L271) callback thread. It ensures that only one byte block from the transport is processed by the parser FSM at a time, preventing split-escape corruptions.
 
 ### B. `mutationLock`
 * **Purpose**: Serializes all terminal grid, pen, and mode state mutations.

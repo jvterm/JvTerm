@@ -47,7 +47,7 @@ The following example shows how to instantiate the `DefaultTerminalInputEncoder`
 
 ```kotlin
 import io.github.jvterm.input.api.TerminalInputEncoder
-import io.github.jvterm.input.api.TerminalInputState
+import io.github.jvterm.core.api.TerminalInputState
 import io.github.jvterm.input.impl.DefaultTerminalInputEncoder
 import io.github.jvterm.input.event.TerminalKeyEvent
 import io.github.jvterm.input.event.TerminalKey

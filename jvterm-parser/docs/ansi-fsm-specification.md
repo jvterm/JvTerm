@@ -44,10 +44,10 @@ To avoid string parsing and dynamic map lookups during dispatch, the parser pack
 | Bit Range   | Usage                                   |
 +-------------+-----------------------------------------+
 | bits 0..7   | Final Character Byte                    |
-| bits 8..15  | Prefix character (or 0 if none)         |
-| bits 16..23 | First intermediate character            |
-| bits 24..31 | Second intermediate character           |
-| bits 32..63 | Reserved (currently zero)               |
+| bits 8..15  | Private marker/prefix character (or 0)  |
+| bits 16..47 | Intermediate bytes packed low-to-high   |
+| bits 48..51 | Intermediate count                      |
+| bits 52..63 | Reserved (currently zero)               |
 +-------------------------------------------------------+
 ```
 

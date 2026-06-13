@@ -26,7 +26,7 @@ use_system_fallback_fonts = true  # Enables fallback system font scan for missin
 name = "one-dark"                 # Theme palette name (e.g. one-dark, dracula, nord)
 
 [behavior]
-cursor_shape = "block"            # cursor shape: block, underline, bar
+cursor_shape = "block"            # cursor shape: block, underline, beam
 cursor_blink_millis = 500         # blink delay (0..5000, 0 means no blink)
 treat_ambiguous_as_wide = false   # sets East Asian Ambiguous width rendering policy
 audible_bell = false              # play audio beep sound on BEL

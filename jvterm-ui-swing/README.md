@@ -103,25 +103,26 @@ fun createTerminalView(session: TerminalSession): JComponent {
 
 ## How to Extend: Custom Host Services
 
-To integrate clipboard features, hyperlink clicking, or custom alert overlays into the terminal view, implement the [SwingHostServices](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-ui-swing/src/main/kotlin/io/github/jvterm/ui/swing/settings/SwingHostServices.kt) interface:
+To integrate clipboard features, hyperlink clicking, or custom threading/dispatchers into the terminal view, construct a custom [SwingHostServices](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-ui-swing/src/main/kotlin/io/github/jvterm/ui/swing/api/SwingHostServices.kt) instance and pass it to [SwingTerminal](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-ui-swing/src/main/kotlin/io/github/jvterm/ui/swing/api/SwingTerminal.kt):
 
 ```kotlin
-import io.github.jvterm.ui.swing.settings.SwingHostServices
-import java.awt.Toolkit
-import java.awt.datatransfer.StringSelection
+import io.github.jvterm.ui.swing.api.SwingHostServices
+import io.github.jvterm.ui.swing.settings.TerminalClipboardHandler
+import io.github.jvterm.ui.swing.settings.TerminalHyperlinkHandler
 
-class MyCustomHostServices : SwingHostServices {
-    override fun copyToClipboard(text: String) {
-        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
-        clipboard.setContents(StringSelection(text), null)
-    }
+val customServices = SwingHostServices(
+    clipboardHandler = object : TerminalClipboardHandler {
+        override fun copyText(text: String) {
+            println("Copying to custom clipboard: $text")
+        }
 
-    override fun pasteFromClipboard(): String {
-        return "Custom pasted string"
+        override fun readText(): String? {
+            return "Pasted text"
+        }
+    },
+    hyperlinkHandler = TerminalHyperlinkHandler { uri ->
+        println("User clicked hyperlink: $uri")
+        true
     }
-
-    override fun openUrl(url: String) {
-        println("User clicked hyperlink: $url")
-    }
-}
+)
 ```
