@@ -41,64 +41,66 @@ import java.nio.file.Path
  * @param eventListener host callbacks for parser-discovered PTY metadata
  * events such as BEL and title changes.
  */
-data class TerminalPtyOptions(
-    val command: List<String> = defaultCommand(),
-    val environment: Map<String, String> = defaultEnvironment(),
-    val workingDirectory: Path? = Path.of(System.getProperty("user.home")),
-    val columns: Int = 80,
-    val rows: Int = 24,
-    val treatAmbiguousAsWide: Boolean = false,
-    val inputPolicy: TerminalInputPolicy = defaultInputPolicy(),
-    val maxHistory: Int = 1000,
-    val readBufferSize: Int = 8192,
-    val readerThreadName: String = "terminal-pty-reader",
-    val watcherThreadName: String = "terminal-pty-watcher",
-    val eventListener: TerminalPtyEventListener = TerminalPtyEventListener.NONE,
-) {
-    init {
-        require(command.isNotEmpty()) { "PTY command must not be empty" }
-        require(command.none { it.isEmpty() }) { "PTY command elements must not be empty" }
-        require(columns > 0) { "PTY columns must be positive, got $columns" }
-        require(rows > 0) { "PTY rows must be positive, got $rows" }
-        require(maxHistory >= 0) { "PTY maxHistory must be >= 0, got $maxHistory" }
-        require(readBufferSize > 0) { "PTY readBufferSize must be positive, got $readBufferSize" }
-        require(readerThreadName.isNotBlank()) { "PTY readerThreadName must not be blank" }
-        require(watcherThreadName.isNotBlank()) { "PTY watcherThreadName must not be blank" }
-    }
+data class TerminalPtyOptions
+    @JvmOverloads
+    constructor(
+        val command: List<String> = defaultCommand(),
+        val environment: Map<String, String> = defaultEnvironment(),
+        val workingDirectory: Path? = Path.of(System.getProperty("user.home")),
+        val columns: Int = 80,
+        val rows: Int = 24,
+        val treatAmbiguousAsWide: Boolean = false,
+        val inputPolicy: TerminalInputPolicy = defaultInputPolicy(),
+        val maxHistory: Int = 1000,
+        val readBufferSize: Int = 8192,
+        val readerThreadName: String = "terminal-pty-reader",
+        val watcherThreadName: String = "terminal-pty-watcher",
+        val eventListener: TerminalPtyEventListener = TerminalPtyEventListener.NONE,
+    ) {
+        init {
+            require(command.isNotEmpty()) { "PTY command must not be empty" }
+            require(command.none { it.isEmpty() }) { "PTY command elements must not be empty" }
+            require(columns > 0) { "PTY columns must be positive, got $columns" }
+            require(rows > 0) { "PTY rows must be positive, got $rows" }
+            require(maxHistory >= 0) { "PTY maxHistory must be >= 0, got $maxHistory" }
+            require(readBufferSize > 0) { "PTY readBufferSize must be positive, got $readBufferSize" }
+            require(readerThreadName.isNotBlank()) { "PTY readerThreadName must not be blank" }
+            require(watcherThreadName.isNotBlank()) { "PTY watcherThreadName must not be blank" }
+        }
 
-    companion object {
-        /**
-         * Returns the platform default interactive shell command.
-         */
-        @JvmStatic
-        fun defaultCommand(): List<String> {
-            val osName = System.getProperty("os.name").lowercase()
-            if (osName.contains("windows")) {
-                val comspec = System.getenv("COMSPEC")
-                return listOf(if (comspec.isNullOrBlank()) "cmd.exe" else comspec)
+        companion object {
+            /**
+             * Returns the platform default interactive shell command.
+             */
+            @JvmStatic
+            fun defaultCommand(): List<String> {
+                val osName = System.getProperty("os.name").lowercase()
+                if (osName.contains("windows")) {
+                    val comspec = System.getenv("COMSPEC")
+                    return listOf(if (comspec.isNullOrBlank()) "cmd.exe" else comspec)
+                }
+                val shell = System.getenv("SHELL")
+                return listOf(if (shell.isNullOrBlank()) "/bin/sh" else shell, "-l")
             }
-            val shell = System.getenv("SHELL")
-            return listOf(if (shell.isNullOrBlank()) "/bin/sh" else shell, "-l")
-        }
 
-        /**
-         * Returns a process environment suitable for contemporary shells and TUIs.
-         */
-        @JvmStatic
-        fun defaultEnvironment(): Map<String, String> {
-            val env = LinkedHashMap(System.getenv())
-            env.putIfAbsent("TERM", "xterm-256color")
-            env.putIfAbsent("COLORTERM", "truecolor")
-            return env
-        }
+            /**
+             * Returns a process environment suitable for contemporary shells and TUIs.
+             */
+            @JvmStatic
+            fun defaultEnvironment(): Map<String, String> {
+                val env = LinkedHashMap(System.getenv())
+                env.putIfAbsent("TERM", "xterm-256color")
+                env.putIfAbsent("COLORTERM", "truecolor")
+                return env
+            }
 
-        /**
-         * Returns the default input policy for local PTY-backed sessions.
-         */
-        @JvmStatic
-        fun defaultInputPolicy(): TerminalInputPolicy =
-            TerminalInputPolicy(
-                enterNewLineModePolicy = EnterNewLineModePolicy.SEND_CR,
-            )
+            /**
+             * Returns the default input policy for local PTY-backed sessions.
+             */
+            @JvmStatic
+            fun defaultInputPolicy(): TerminalInputPolicy =
+                TerminalInputPolicy(
+                    enterNewLineModePolicy = EnterNewLineModePolicy.SEND_CR,
+                )
+        }
     }
-}

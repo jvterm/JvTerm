@@ -43,7 +43,7 @@ import io.github.jvterm.protocol.host.TerminalHostOutput
  * @param output host-bound byte sink.
  * @param policy policy for ambiguous or unsupported keyboard encodings.
  */
-class DefaultTerminalInputEncoder(
+internal class DefaultTerminalInputEncoder(
     private val inputState: TerminalInputState,
     output: TerminalHostOutput,
     policy: TerminalInputPolicy = TerminalInputPolicy(),

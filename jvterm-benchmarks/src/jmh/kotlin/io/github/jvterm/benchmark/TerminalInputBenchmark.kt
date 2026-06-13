@@ -17,9 +17,9 @@ package io.github.jvterm.benchmark
 
 import io.github.jvterm.core.api.TerminalInputState
 import io.github.jvterm.core.api.TerminalModeBits
+import io.github.jvterm.input.TerminalInputEncoders
 import io.github.jvterm.input.api.TerminalInputEncoder
 import io.github.jvterm.input.event.*
-import io.github.jvterm.input.impl.DefaultTerminalInputEncoder
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 import java.util.concurrent.TimeUnit
@@ -54,7 +54,7 @@ open class TerminalInputBenchmark {
     open fun setup() {
         // Legacy mode: all mode bits off.
         legacyEncoder =
-            DefaultTerminalInputEncoder(
+            TerminalInputEncoders.create(
                 inputState = FixedInputState(0L),
                 output = countingSink,
             )
@@ -68,7 +68,7 @@ open class TerminalInputBenchmark {
                 0b11111,
             )
         kittyEncoder =
-            DefaultTerminalInputEncoder(
+            TerminalInputEncoders.create(
                 inputState = FixedInputState(kittyBits),
                 output = countingSink,
             )
@@ -87,7 +87,7 @@ open class TerminalInputBenchmark {
                 2, // SGR encoding
             )
         mouseEncoder =
-            DefaultTerminalInputEncoder(
+            TerminalInputEncoders.create(
                 inputState = FixedInputState(mouseBits),
                 output = countingSink,
             )

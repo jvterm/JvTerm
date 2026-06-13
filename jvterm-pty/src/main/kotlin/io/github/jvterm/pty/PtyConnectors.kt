@@ -30,6 +30,7 @@ object PtyConnectors {
      * classes.
      */
     @JvmStatic
+    @JvmOverloads
     @Throws(IOException::class)
     fun create(
         command: List<String>,

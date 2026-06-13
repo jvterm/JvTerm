@@ -20,12 +20,12 @@ import io.github.jvterm.core.api.TerminalHostResponseReader
 import io.github.jvterm.host.HostCommandAdapter
 import io.github.jvterm.host.HostEventSink
 import io.github.jvterm.host.HostPolicy
+import io.github.jvterm.input.TerminalInputEncoders
 import io.github.jvterm.input.api.TerminalInputEncoder
 import io.github.jvterm.input.event.TerminalFocusEvent
 import io.github.jvterm.input.event.TerminalKeyEvent
 import io.github.jvterm.input.event.TerminalMouseEvent
 import io.github.jvterm.input.event.TerminalPasteEvent
-import io.github.jvterm.input.impl.DefaultTerminalInputEncoder
 import io.github.jvterm.input.policy.TerminalInputPolicy
 import io.github.jvterm.parser.api.TerminalOutputParser
 import io.github.jvterm.parser.api.TerminalParsers
@@ -534,6 +534,7 @@ class TerminalSession(
          * sink, and default input encoder.
          */
         @JvmStatic
+        @JvmOverloads
         fun create(
             terminal: TerminalBuffer,
             connector: TerminalConnector,
@@ -545,7 +546,7 @@ class TerminalSession(
             val hostOutput = ConnectorTerminalHostOutput(connector, outboundWriteLock)
             val sink = HostCommandAdapter(terminal, hostEvents, hostPolicy)
             val parser = TerminalParsers.create(sink)
-            val inputEncoder = DefaultTerminalInputEncoder(terminal, hostOutput, inputPolicy)
+            val inputEncoder = TerminalInputEncoders.create(terminal, hostOutput, inputPolicy)
             val renderReader =
                 terminal as? TerminalRenderFrameReader
                     ?: error("terminal must implement TerminalRenderFrameReader")

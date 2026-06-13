@@ -26,6 +26,8 @@ object TerminalBuffers {
      * Creates a terminal buffer with the requested visible dimensions and
      * scrollback capacity.
      */
+    @JvmStatic
+    @JvmOverloads
     fun create(
         width: Int,
         height: Int,

@@ -60,184 +60,186 @@ import java.util.*
  * @property scrollbackLines maximum scrollback lines retained by the terminal.
  * @property lineHeight vertical line height scaling factor.
  */
-data class TerminalSwingSettings(
-    val font: Font = defaultTerminalFont(),
-    val fallbackFonts: List<Font> = defaultFallbackFonts(),
-    val useSystemFallbackFonts: Boolean = false,
-    val palette: TerminalColorPalette = defaultPalette(),
-    val columns: Int = 80,
-    val rows: Int = 24,
-    val treatAmbiguousAsWide: Boolean = false,
-    val cursorBlinkMillis: Int = 600,
-    val textAntialiasing: Any = RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB,
-    val fractionalMetrics: Any = RenderingHints.VALUE_FRACTIONALMETRICS_OFF,
-    val clipboardShortcuts: TerminalClipboardShortcuts = TerminalClipboardShortcuts.platformDefault(),
-    val hyperlinkActivationForeground: Int = DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND,
-    val selectionBackground: Int = DEFAULT_SELECTION_BACKGROUND,
-    val searchMatchBackground: Int = DEFAULT_SEARCH_MATCH_BACKGROUND,
-    val searchActiveMatchBackground: Int = DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND,
-    val padding: Insets = Insets(12, 12, 12, 12),
-    val pasteOnMiddleClick: Boolean = true,
-    val cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK,
-    val scrollbackLines: Int = 1000,
-    val lineHeight: Float = 1.0f,
-    val shellRequestResizeWindow: Boolean = false,
-) {
-    init {
-        require(columns > 0) { "columns must be > 0, was $columns" }
-        require(rows > 0) { "rows must be > 0, was $rows" }
-        require(cursorBlinkMillis >= 0) {
-            "cursorBlinkMillis must be >= 0, was $cursorBlinkMillis"
-        }
-        require(scrollbackLines >= 0) {
-            "scrollbackLines must be >= 0, was $scrollbackLines"
-        }
-        require(lineHeight > 0f) {
-            "lineHeight must be > 0, was $lineHeight"
-        }
-    }
-
-    companion object {
-        private const val DEFAULT_FONT_SIZE = 16
-        private const val DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND = 0xFF4DA3FF.toInt()
-        private const val DEFAULT_SELECTION_BACKGROUND = 0x66FFFFFF
-        private const val DEFAULT_SEARCH_MATCH_BACKGROUND = 0x55FFD54F
-        private const val DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND = 0xAAFF8C00.toInt()
-        private val preferredDefaultFontFamilies =
-            arrayOf(
-                "Cascadia Mono",
-                "Cascadia Code",
-                "Consolas",
-                Font.MONOSPACED,
-            )
-        private val resolvedDefaultTerminalFont: Font by lazy(LazyThreadSafetyMode.PUBLICATION) {
-            Font(resolveDefaultFontFamily(), Font.PLAIN, DEFAULT_FONT_SIZE)
+data class TerminalSwingSettings
+    @JvmOverloads
+    constructor(
+        val font: Font = defaultTerminalFont(),
+        val fallbackFonts: List<Font> = defaultFallbackFonts(),
+        val useSystemFallbackFonts: Boolean = false,
+        val palette: TerminalColorPalette = defaultPalette(),
+        val columns: Int = 80,
+        val rows: Int = 24,
+        val treatAmbiguousAsWide: Boolean = false,
+        val cursorBlinkMillis: Int = 600,
+        val textAntialiasing: Any = RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB,
+        val fractionalMetrics: Any = RenderingHints.VALUE_FRACTIONALMETRICS_OFF,
+        val clipboardShortcuts: TerminalClipboardShortcuts = TerminalClipboardShortcuts.platformDefault(),
+        val hyperlinkActivationForeground: Int = DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND,
+        val selectionBackground: Int = DEFAULT_SELECTION_BACKGROUND,
+        val searchMatchBackground: Int = DEFAULT_SEARCH_MATCH_BACKGROUND,
+        val searchActiveMatchBackground: Int = DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND,
+        val padding: Insets = Insets(12, 12, 12, 12),
+        val pasteOnMiddleClick: Boolean = true,
+        val cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK,
+        val scrollbackLines: Int = 1000,
+        val lineHeight: Float = 1.0f,
+        val shellRequestResizeWindow: Boolean = false,
+    ) {
+        init {
+            require(columns > 0) { "columns must be > 0, was $columns" }
+            require(rows > 0) { "rows must be > 0, was $rows" }
+            require(cursorBlinkMillis >= 0) {
+                "cursorBlinkMillis must be >= 0, was $cursorBlinkMillis"
+            }
+            require(scrollbackLines >= 0) {
+                "scrollbackLines must be >= 0, was $scrollbackLines"
+            }
+            require(lineHeight > 0f) {
+                "lineHeight must be > 0, was $lineHeight"
+            }
         }
 
-        /**
-         * Returns the default terminal font used when hosts do not provide one.
-         *
-         * The preferred families match common modern Windows terminal defaults,
-         * with the logical monospaced font as a portable fallback.
-         */
-        @JvmStatic
-        fun defaultTerminalFont(): Font = resolvedDefaultTerminalFont
-
-        /**
-         * Returns conservative logical and common platform fonts for complex
-         * script fallback. Color emoji fonts are preferred ahead of symbol fonts
-         * so emoji cells do not degrade to monochrome dingbat glyphs when a
-         * native color emoji family is installed.
-         *
-         * Hosts can replace this list with their own font resolver policy.
-         */
-        @JvmStatic
-        fun defaultFallbackFonts(): List<Font> {
-            val installedFamilies =
-                GraphicsEnvironment
-                    .getLocalGraphicsEnvironment()
-                    .availableFontFamilyNames
-            return fallbackFontFamiliesForInstalledFonts(installedFamilies)
-                .map { family -> Font(family, Font.PLAIN, DEFAULT_FONT_SIZE) }
-        }
-
-        internal fun fallbackFontFamiliesForInstalledFonts(installedFamilies: Array<String>): List<String> {
-            val installedByLowercase = LinkedHashMap<String, String>(installedFamilies.size)
-            for (family in installedFamilies) {
-                installedByLowercase.putIfAbsent(family.lowercase(Locale.ROOT), family)
+        companion object {
+            private const val DEFAULT_FONT_SIZE = 16
+            private const val DEFAULT_HYPERLINK_ACTIVATION_FOREGROUND = 0xFF4DA3FF.toInt()
+            private const val DEFAULT_SELECTION_BACKGROUND = 0x66FFFFFF
+            private const val DEFAULT_SEARCH_MATCH_BACKGROUND = 0x55FFD54F
+            private const val DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND = 0xAAFF8C00.toInt()
+            private val preferredDefaultFontFamilies =
+                arrayOf(
+                    "Cascadia Mono",
+                    "Cascadia Code",
+                    "Consolas",
+                    Font.MONOSPACED,
+                )
+            private val resolvedDefaultTerminalFont: Font by lazy(LazyThreadSafetyMode.PUBLICATION) {
+                Font(resolveDefaultFontFamily(), Font.PLAIN, DEFAULT_FONT_SIZE)
             }
 
-            val result = ArrayList<String>(DEFAULT_FALLBACK_FONT_FAMILY_CAPACITY)
+            /**
+             * Returns the default terminal font used when hosts do not provide one.
+             *
+             * The preferred families match common modern Windows terminal defaults,
+             * with the logical monospaced font as a portable fallback.
+             */
+            @JvmStatic
+            fun defaultTerminalFont(): Font = resolvedDefaultTerminalFont
 
-            fun addIfAbsent(family: String) {
-                if (result.none { it.equals(family, ignoreCase = true) }) {
-                    result += family
+            /**
+             * Returns conservative logical and common platform fonts for complex
+             * script fallback. Color emoji fonts are preferred ahead of symbol fonts
+             * so emoji cells do not degrade to monochrome dingbat glyphs when a
+             * native color emoji family is installed.
+             *
+             * Hosts can replace this list with their own font resolver policy.
+             */
+            @JvmStatic
+            fun defaultFallbackFonts(): List<Font> {
+                val installedFamilies =
+                    GraphicsEnvironment
+                        .getLocalGraphicsEnvironment()
+                        .availableFontFamilyNames
+                return fallbackFontFamiliesForInstalledFonts(installedFamilies)
+                    .map { family -> Font(family, Font.PLAIN, DEFAULT_FONT_SIZE) }
+            }
+
+            internal fun fallbackFontFamiliesForInstalledFonts(installedFamilies: Array<String>): List<String> {
+                val installedByLowercase = LinkedHashMap<String, String>(installedFamilies.size)
+                for (family in installedFamilies) {
+                    installedByLowercase.putIfAbsent(family.lowercase(Locale.ROOT), family)
                 }
-            }
 
-            fun addInstalled(preferredFamily: String) {
-                val installed = installedByLowercase[preferredFamily.lowercase(Locale.ROOT)]
-                if (installed != null) addIfAbsent(installed)
-            }
+                val result = ArrayList<String>(DEFAULT_FALLBACK_FONT_FAMILY_CAPACITY)
 
-            for (family in preferredColorEmojiFallbackFamilies) {
-                addInstalled(family)
-            }
-            addIfAbsent(Font.DIALOG)
-            addIfAbsent(Font.SANS_SERIF)
-            for (family in preferredTextFallbackFamilies) {
-                addInstalled(family)
-            }
-            return result
-        }
-
-        /**
-         * Returns the default Swing terminal palette.
-         *
-         * Theme colors live in the Swing layer so the dependency-free render
-         * API can remain renderer-neutral.
-         */
-        @JvmStatic
-        fun defaultPalette(): TerminalColorPalette = TerminalTheme.CAMPBELL.createPalette()
-
-        private fun resolveDefaultFontFamily(): String {
-            val installedFamilies =
-                GraphicsEnvironment
-                    .getLocalGraphicsEnvironment()
-                    .availableFontFamilyNames
-            for (preferredFamily in preferredDefaultFontFamilies) {
-                for (installedFamily in installedFamilies) {
-                    if (installedFamily.equals(preferredFamily, ignoreCase = true)) {
-                        return installedFamily
+                fun addIfAbsent(family: String) {
+                    if (result.none { it.equals(family, ignoreCase = true) }) {
+                        result += family
                     }
                 }
-            }
-            return Font.MONOSPACED
-        }
 
-        private const val DEFAULT_FALLBACK_FONT_FAMILY_CAPACITY = 16
-        private val preferredColorEmojiFallbackFamilies =
-            arrayOf(
-                "Segoe UI Emoji",
-                "Apple Color Emoji",
-                "Noto Color Emoji",
-                "Twemoji Mozilla",
-                "EmojiOne Color",
-                "JoyPixels",
-                "Twitter Color Emoji",
-            )
-        private val preferredTextFallbackFamilies =
-            arrayOf(
-                "Nirmala UI",
-                "Segoe UI",
-                "Segoe UI Symbol",
-                "Segoe UI Historic",
-                "Noto Sans Devanagari",
-                "Noto Sans Bengali",
-                "Noto Sans Tamil",
-                "Noto Sans Khmer",
-                "Noto Sans Sinhala",
-                "Noto Serif Devanagari",
-                "Noto Serif Bengali",
-                "Noto Serif Tamil",
-                "Noto Serif Khmer",
-                "Noto Serif Sinhala",
-                "Mangal",
-                "Vrinda",
-                "Latha",
-                "Khmer UI",
-                "Iskoola Pota",
-                "Ebrima",
-                "Leelawadee UI",
-                "Nyala",
-                "Abyssinica SIL",
-                "Noto Sans Thai",
-                "Noto Sans Ethiopic",
-                "Noto Sans Runic",
-                "Noto Sans CJK SC",
-            )
+                fun addInstalled(preferredFamily: String) {
+                    val installed = installedByLowercase[preferredFamily.lowercase(Locale.ROOT)]
+                    if (installed != null) addIfAbsent(installed)
+                }
+
+                for (family in preferredColorEmojiFallbackFamilies) {
+                    addInstalled(family)
+                }
+                addIfAbsent(Font.DIALOG)
+                addIfAbsent(Font.SANS_SERIF)
+                for (family in preferredTextFallbackFamilies) {
+                    addInstalled(family)
+                }
+                return result
+            }
+
+            /**
+             * Returns the default Swing terminal palette.
+             *
+             * Theme colors live in the Swing layer so the dependency-free render
+             * API can remain renderer-neutral.
+             */
+            @JvmStatic
+            fun defaultPalette(): TerminalColorPalette = TerminalTheme.CAMPBELL.createPalette()
+
+            private fun resolveDefaultFontFamily(): String {
+                val installedFamilies =
+                    GraphicsEnvironment
+                        .getLocalGraphicsEnvironment()
+                        .availableFontFamilyNames
+                for (preferredFamily in preferredDefaultFontFamilies) {
+                    for (installedFamily in installedFamilies) {
+                        if (installedFamily.equals(preferredFamily, ignoreCase = true)) {
+                            return installedFamily
+                        }
+                    }
+                }
+                return Font.MONOSPACED
+            }
+
+            private const val DEFAULT_FALLBACK_FONT_FAMILY_CAPACITY = 16
+            private val preferredColorEmojiFallbackFamilies =
+                arrayOf(
+                    "Segoe UI Emoji",
+                    "Apple Color Emoji",
+                    "Noto Color Emoji",
+                    "Twemoji Mozilla",
+                    "EmojiOne Color",
+                    "JoyPixels",
+                    "Twitter Color Emoji",
+                )
+            private val preferredTextFallbackFamilies =
+                arrayOf(
+                    "Nirmala UI",
+                    "Segoe UI",
+                    "Segoe UI Symbol",
+                    "Segoe UI Historic",
+                    "Noto Sans Devanagari",
+                    "Noto Sans Bengali",
+                    "Noto Sans Tamil",
+                    "Noto Sans Khmer",
+                    "Noto Sans Sinhala",
+                    "Noto Serif Devanagari",
+                    "Noto Serif Bengali",
+                    "Noto Serif Tamil",
+                    "Noto Serif Khmer",
+                    "Noto Serif Sinhala",
+                    "Mangal",
+                    "Vrinda",
+                    "Latha",
+                    "Khmer UI",
+                    "Iskoola Pota",
+                    "Ebrima",
+                    "Leelawadee UI",
+                    "Nyala",
+                    "Abyssinica SIL",
+                    "Noto Sans Thai",
+                    "Noto Sans Ethiopic",
+                    "Noto Sans Runic",
+                    "Noto Sans CJK SC",
+                )
+        }
     }
-}
 
 /**
  * Built-in terminal color themes with verified correct ANSI color mappings.

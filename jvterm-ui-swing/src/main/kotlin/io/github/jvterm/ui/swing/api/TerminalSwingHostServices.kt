@@ -62,9 +62,11 @@ fun interface TerminalUiDispatcher {
  * @property viewportListener host scrollbar adapter notified when the terminal
  * scrollback viewport changes.
  */
-data class TerminalSwingHostServices(
-    val uiDispatcher: TerminalUiDispatcher = SWING,
-    val clipboardHandler: TerminalClipboardHandler = TerminalClipboardHandler.SYSTEM,
-    val hyperlinkHandler: TerminalHyperlinkHandler = TerminalHyperlinkHandler.SYSTEM,
-    val viewportListener: TerminalViewportListener = TerminalViewportListener.NONE,
-)
+data class TerminalSwingHostServices
+    @JvmOverloads
+    constructor(
+        val uiDispatcher: TerminalUiDispatcher = SWING,
+        val clipboardHandler: TerminalClipboardHandler = TerminalClipboardHandler.SYSTEM,
+        val hyperlinkHandler: TerminalHyperlinkHandler = TerminalHyperlinkHandler.SYSTEM,
+        val viewportListener: TerminalViewportListener = TerminalViewportListener.NONE,
+    )

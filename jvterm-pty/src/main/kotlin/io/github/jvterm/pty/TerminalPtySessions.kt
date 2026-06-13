@@ -36,6 +36,7 @@ object TerminalPtySessions {
      * @throws IOException when PTY4J cannot start the process.
      */
     @JvmStatic
+    @JvmOverloads
     @Throws(IOException::class)
     fun start(options: TerminalPtyOptions = TerminalPtyOptions()): TerminalSession = start(options, Pty4jTerminalProcessFactory)
 

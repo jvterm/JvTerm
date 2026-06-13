@@ -26,6 +26,7 @@ object TerminalSessions {
      * Starts a local PTY and returns the shared transport-neutral session type.
      */
     @JvmStatic
+    @JvmOverloads
     @Throws(IOException::class)
     fun localPty(options: TerminalPtyOptions = TerminalPtyOptions()): TerminalSession = TerminalPtySessions.start(options)
 }
