@@ -16,8 +16,8 @@
 package io.github.jvterm.benchmark
 
 import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBufferApi
-import io.github.jvterm.host.CoreTerminalCommandSink
+import io.github.jvterm.core.api.TerminalBuffer
+import io.github.jvterm.host.HostCommandAdapter
 import io.github.jvterm.parser.api.TerminalParsers
 import io.github.jvterm.render.cache.TerminalRenderPublisher
 import io.github.jvterm.session.TerminalSession
@@ -44,7 +44,7 @@ open class TerminalLargeInputBenchmark {
     lateinit var workload: String
 
     private lateinit var bytes: ByteArray
-    private lateinit var terminal: TerminalBufferApi
+    private lateinit var terminal: TerminalBuffer
     private lateinit var renderReader: io.github.jvterm.render.api.TerminalRenderFrameReader
     private lateinit var publisher: TerminalRenderPublisher
 
@@ -79,7 +79,7 @@ open class TerminalLargeInputBenchmark {
 
     @Benchmark
     open fun parseCoreAndPublishLargeInput(blackhole: Blackhole) {
-        val parser = TerminalParsers.create(CoreTerminalCommandSink(terminal))
+        val parser = TerminalParsers.create(HostCommandAdapter(terminal))
         parser.accept(bytes, 0, bytes.size)
         publisher.updateAndPublish(renderReader)
         blackhole.consume(bytes.size)
@@ -151,7 +151,7 @@ open class TerminalSwingPaintBenchmark {
     @Param("ascii", "styled", "clusters")
     lateinit var workload: String
 
-    private lateinit var terminal: TerminalBufferApi
+    private lateinit var terminal: TerminalBuffer
     private lateinit var session: TerminalSession
     private lateinit var component: TerminalSwingTerminal
     private lateinit var image: BufferedImage
@@ -243,7 +243,7 @@ private fun appendLinePayload(
 }
 
 private fun writeScrollbackContent(
-    terminal: TerminalBufferApi,
+    terminal: TerminalBuffer,
     lines: Int,
     columns: Int,
 ) {
@@ -259,7 +259,7 @@ private fun writeScrollbackContent(
 }
 
 private fun writeAsciiViewport(
-    terminal: TerminalBufferApi,
+    terminal: TerminalBuffer,
     rows: Int,
     columns: Int,
 ) {
@@ -274,7 +274,7 @@ private fun writeAsciiViewport(
 }
 
 private fun writeStyledViewport(
-    terminal: TerminalBufferApi,
+    terminal: TerminalBuffer,
     rows: Int,
     columns: Int,
 ) {
@@ -340,7 +340,7 @@ private fun buildEmojiInput(
 }
 
 private fun writeClusterViewport(
-    terminal: TerminalBufferApi,
+    terminal: TerminalBuffer,
     rows: Int,
     columns: Int,
 ) {
@@ -359,7 +359,7 @@ private fun writeClusterViewport(
     }
 }
 
-private fun benchmarkSession(terminal: TerminalBufferApi): TerminalSession =
+private fun benchmarkSession(terminal: TerminalBuffer): TerminalSession =
     TerminalSession.create(
         terminal = terminal,
         connector = NoOpTerminalConnector,

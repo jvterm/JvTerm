@@ -16,7 +16,7 @@
 package io.github.jvterm.benchmark
 
 import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 import java.util.concurrent.TimeUnit
@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit
 // ---------- Write benchmarks ----------
 
 /**
- * Measures raw [TerminalBufferApi] write throughput for ASCII codepoints,
+ * Measures raw [TerminalBuffer] write throughput for ASCII codepoints,
  * CJK wide characters, and grapheme clusters on a single line.
  *
  * Each invocation clears the screen and homes the cursor so every iteration
@@ -40,7 +40,7 @@ open class TerminalCoreWriteBenchmark {
     private val width = 160
     private val height = 48
 
-    private lateinit var buffer: TerminalBufferApi
+    private lateinit var buffer: TerminalBuffer
 
     /** Pre-allocated cluster: U+0065 LATIN SMALL LETTER E + U+0301 COMBINING ACUTE ACCENT. */
     private val eAcuteCluster = intArrayOf('e'.code, 0x0301)
@@ -105,7 +105,7 @@ open class TerminalCoreScrollBenchmark {
     private val height = 48
     private val maxHistory = 10_000
 
-    private lateinit var buffer: TerminalBufferApi
+    private lateinit var buffer: TerminalBuffer
 
     @Setup(Level.Trial)
     open fun createAndFillBuffer() {
@@ -155,7 +155,7 @@ open class TerminalCoreEraseBenchmark {
     private val width = 160
     private val height = 48
 
-    private lateinit var buffer: TerminalBufferApi
+    private lateinit var buffer: TerminalBuffer
 
     @Setup(Level.Trial)
     open fun createBuffer() {

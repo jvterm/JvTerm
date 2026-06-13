@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.app.ui
 
-import io.github.jvterm.app.config.StandaloneTerminalSettings
+import io.github.jvterm.app.config.JvTermSettings
 import io.github.jvterm.workspace.*
 import java.awt.*
 import java.awt.event.InputEvent
@@ -26,7 +26,7 @@ import javax.swing.*
  * Owns standalone terminal tabs and tab-scoped session lifecycle.
  *
  * The manager coordinates between [LatticeTabBar] (visual header), the
- * [tabContentPanel] (holds one [LatticeTerminalPane] per tab via [CardLayout]),
+ * [tabContentPanel] (holds one [TerminalPane] per tab via [CardLayout]),
  * and the backing [TerminalWorkspace]. All session lifecycle decisions live
  * here; reusable UI components remain policy-free.
  *
@@ -38,15 +38,15 @@ internal class LatticeTabManager(
     private val frame: JFrame,
     val tabBar: LatticeTabBar,
     private val tabContentPanel: JPanel,
-    private val settings: StandaloneTerminalSettings,
+    private val settings: JvTermSettings,
     private val defaultProfileProvider: () -> TerminalProfile,
 ) {
-    private val panes = ArrayList<LatticeTerminalPane>(INITIAL_TAB_CAPACITY)
+    private val panes = ArrayList<TerminalPane>(INITIAL_TAB_CAPACITY)
     private val workspace = TerminalWorkspace(StandaloneWorkspaceListener())
     private val tabRoots = HashMap<String, SplitNode>()
     private val tabContainers = HashMap<String, JPanel>()
 
-    val selectedPane: LatticeTerminalPane?
+    val selectedPane: TerminalPane?
         get() = tabBar.selectedId()?.let { getActivePane(it) }
 
     private val isMac =
@@ -190,7 +190,7 @@ internal class LatticeTabManager(
             }
 
         val pane =
-            LatticeTerminalPane.create(workspaceTab, settings) { p, x, y ->
+            TerminalPane.create(workspaceTab, settings) { p, x, y ->
                 showPaneContextMenu(p, p.terminal, x, y)
             }
         panes += pane
@@ -301,7 +301,7 @@ internal class LatticeTabManager(
     }
 
     fun splitPane(
-        pane: LatticeTerminalPane,
+        pane: TerminalPane,
         isVertical: Boolean,
     ) {
         val tabId = tabBar.selectedId() ?: return
@@ -327,7 +327,7 @@ internal class LatticeTabManager(
                 return
             }
         val newPane =
-            LatticeTerminalPane.create(workspaceTab, settings) { p, x, y ->
+            TerminalPane.create(workspaceTab, settings) { p, x, y ->
                 showPaneContextMenu(p, p.terminal, x, y)
             }
 
@@ -348,8 +348,8 @@ internal class LatticeTabManager(
 
     private fun splitNodeInTree(
         current: SplitNode,
-        target: LatticeTerminalPane,
-        newPane: LatticeTerminalPane,
+        target: TerminalPane,
+        newPane: TerminalPane,
         isVertical: Boolean,
     ): SplitNode =
         when (current) {
@@ -372,7 +372,7 @@ internal class LatticeTabManager(
             }
         }
 
-    fun closePane(pane: LatticeTerminalPane) {
+    fun closePane(pane: TerminalPane) {
         val tabId = tabBar.selectedId() ?: return
         val root = tabRoots[tabId] ?: return
         val allPanes = root.allPanes()
@@ -407,14 +407,14 @@ internal class LatticeTabManager(
         closePane(activePane)
     }
 
-    fun getActivePane(tabId: String): LatticeTerminalPane? {
+    fun getActivePane(tabId: String): TerminalPane? {
         val root = tabRoots[tabId] ?: return null
         val focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
         return root.findActivePane(focusOwner) ?: root.allPanes().firstOrNull()
     }
 
     fun showPaneContextMenu(
-        pane: LatticeTerminalPane,
+        pane: TerminalPane,
         component: Component,
         x: Int,
         y: Int,
@@ -627,23 +627,23 @@ internal class LatticeTabManager(
 internal sealed interface SplitNode {
     val component: Component
 
-    fun findPane(id: String): LatticeTerminalPane?
+    fun findPane(id: String): TerminalPane?
 
-    fun findActivePane(focusedComponent: Component?): LatticeTerminalPane?
+    fun findActivePane(focusedComponent: Component?): TerminalPane?
 
-    fun allPanes(): List<LatticeTerminalPane>
+    fun allPanes(): List<TerminalPane>
 
-    fun removePane(pane: LatticeTerminalPane): SplitNode?
+    fun removePane(pane: TerminalPane): SplitNode?
 }
 
 internal class LeafNode(
-    val pane: LatticeTerminalPane,
+    val pane: TerminalPane,
 ) : SplitNode {
     override val component: Component get() = pane.component
 
-    override fun findPane(id: String): LatticeTerminalPane? = if (pane.tab.id == id) pane else null
+    override fun findPane(id: String): TerminalPane? = if (pane.tab.id == id) pane else null
 
-    override fun findActivePane(focusedComponent: Component?): LatticeTerminalPane? {
+    override fun findActivePane(focusedComponent: Component?): TerminalPane? {
         if (focusedComponent != null &&
             (pane.component == focusedComponent || SwingUtilities.isDescendingFrom(focusedComponent, pane.component))
         ) {
@@ -652,9 +652,9 @@ internal class LeafNode(
         return null
     }
 
-    override fun allPanes(): List<LatticeTerminalPane> = listOf(pane)
+    override fun allPanes(): List<TerminalPane> = listOf(pane)
 
-    override fun removePane(pane: LatticeTerminalPane): SplitNode? = if (this.pane === pane) null else this
+    override fun removePane(pane: TerminalPane): SplitNode? = if (this.pane === pane) null else this
 }
 
 internal class ParentNode(
@@ -664,14 +664,14 @@ internal class ParentNode(
 ) : SplitNode {
     override val component: Component get() = splitPane
 
-    override fun findPane(id: String): LatticeTerminalPane? = left.findPane(id) ?: right.findPane(id)
+    override fun findPane(id: String): TerminalPane? = left.findPane(id) ?: right.findPane(id)
 
-    override fun findActivePane(focusedComponent: Component?): LatticeTerminalPane? =
+    override fun findActivePane(focusedComponent: Component?): TerminalPane? =
         left.findActivePane(focusedComponent) ?: right.findActivePane(focusedComponent)
 
-    override fun allPanes(): List<LatticeTerminalPane> = left.allPanes() + right.allPanes()
+    override fun allPanes(): List<TerminalPane> = left.allPanes() + right.allPanes()
 
-    override fun removePane(pane: LatticeTerminalPane): SplitNode {
+    override fun removePane(pane: TerminalPane): SplitNode {
         val nextLeft = left.removePane(pane)
         val nextRight = right.removePane(pane)
         if (nextLeft == null) return right

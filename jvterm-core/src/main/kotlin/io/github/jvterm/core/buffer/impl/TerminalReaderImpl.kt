@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.core.buffer.impl
 
-import io.github.jvterm.core.api.TerminalLineApi
+import io.github.jvterm.core.api.TerminalLine
 import io.github.jvterm.core.api.TerminalReader
 import io.github.jvterm.core.model.TerminalConstants
 import io.github.jvterm.core.model.VoidLine
@@ -33,7 +33,7 @@ internal class TerminalReaderImpl(
     override val historySize: Int
         get() = state.historySize
 
-    override fun getLine(row: Int): TerminalLineApi {
+    override fun getLine(row: Int): TerminalLine {
         if (!state.dimensions.isValidRow(row)) return VoidLine
         return state.ring[state.resolveRingIndex(row)]
     }

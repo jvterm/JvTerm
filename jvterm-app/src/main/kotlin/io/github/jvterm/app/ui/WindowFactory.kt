@@ -16,7 +16,7 @@
 package io.github.jvterm.app.ui
 
 import com.formdev.flatlaf.extras.FlatSVGIcon
-import io.github.jvterm.app.config.StandaloneTerminalSettings
+import io.github.jvterm.app.config.JvTermSettings
 import io.github.jvterm.workspace.TerminalProfileRegistry
 import java.awt.CardLayout
 import java.awt.Dimension
@@ -38,7 +38,7 @@ import javax.swing.border.EmptyBorder
  *   dropdown menu and the default-profile provider lambda.
  */
 internal class LatticeWindowFactory(
-    private val settings: StandaloneTerminalSettings,
+    private val settings: JvTermSettings,
     private val profileRegistry: TerminalProfileRegistry,
 ) {
     fun createWindow(): LatticeWindow {
@@ -140,7 +140,7 @@ internal class LatticeWindowFactory(
                 border = BorderFactory.createLineBorder(LatticeChrome.border)
             }
 
-        val profileIcons = LatticeProfileIcons()
+        val profileIcons = ProfileIcons()
         profiles.forEach { profile ->
             val item =
                 JMenuItem(profile.displayName, profileIcons.icon(profile.kind)).apply {
@@ -178,7 +178,7 @@ internal class LatticeWindowFactory(
                 background = LatticeChrome.popupBackground
                 foreground = LatticeChrome.textPrimary
                 addActionListener {
-                    LatticeSettingsDialog(frame, settings, profileRegistry) {
+                    SettingsDialog(frame, settings, profileRegistry) {
                         tabManager.reloadAllPanes()
                     }.isVisible = true
                 }
@@ -197,7 +197,7 @@ internal class LatticeWindowFactory(
                 background = LatticeChrome.popupBackground
                 foreground = LatticeChrome.textPrimary
                 addActionListener {
-                    LatticeAboutDialog(frame).isVisible = true
+                    AboutDialog(frame).isVisible = true
                 }
             }
         popup.add(aboutItem)

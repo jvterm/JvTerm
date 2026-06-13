@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.app.ui
 
-import io.github.jvterm.app.config.StandaloneTerminalSettings
+import io.github.jvterm.app.config.JvTermSettings
 import io.github.jvterm.workspace.TerminalProfileRegistry
 import io.github.jvterm.workspace.config.TerminalWorkspaceConfigManager
 import java.nio.file.Files
@@ -23,7 +23,7 @@ import kotlin.test.*
 
 class LatticeSettingsModelTest {
     private lateinit var tempFile: java.nio.file.Path
-    private lateinit var settings: StandaloneTerminalSettings
+    private lateinit var settings: JvTermSettings
     private lateinit var registry: TerminalProfileRegistry
     private lateinit var model: LatticeSettingsModel
 
@@ -31,7 +31,7 @@ class LatticeSettingsModelTest {
     fun setUp() {
         tempFile = Files.createTempFile("lattice-settings-test", ".toml")
         val manager = TerminalWorkspaceConfigManager(tempFile)
-        settings = StandaloneTerminalSettings(manager)
+        settings = JvTermSettings(manager)
         registry = TerminalProfileRegistry(executableExists = { false })
         model = LatticeSettingsModel(settings, registry)
     }

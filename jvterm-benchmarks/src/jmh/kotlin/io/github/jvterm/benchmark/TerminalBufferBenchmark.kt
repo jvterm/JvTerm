@@ -16,7 +16,7 @@
 package io.github.jvterm.benchmark
 
 import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.model.AttributeColor
 import io.github.jvterm.core.model.UnderlineStyle
 import io.github.jvterm.render.api.TerminalRenderFrame
@@ -38,7 +38,7 @@ open class TerminalBufferBenchmark : TerminalRenderFrameConsumer {
     @Param("24", "40", "80")
     var height: Int = 0
 
-    private lateinit var buffer: TerminalBufferApi
+    private lateinit var buffer: TerminalBuffer
     private lateinit var reader: TerminalRenderFrameReader
     private lateinit var codeWords: IntArray
     private lateinit var attrWords: LongArray
@@ -102,7 +102,7 @@ open class TerminalBufferAttributeBenchmark : TerminalRenderFrameConsumer {
     @Param("40")
     var height: Int = 0
 
-    private lateinit var buffer: TerminalBufferApi
+    private lateinit var buffer: TerminalBuffer
     private lateinit var reader: TerminalRenderFrameReader
     private lateinit var codeWords: IntArray
     private lateinit var attrWords: LongArray
@@ -208,7 +208,7 @@ open class TerminalBufferClusterBenchmark : TerminalRenderFrameConsumer {
 
     private val width = 80
     private val height = 24
-    private lateinit var buffer: TerminalBufferApi
+    private lateinit var buffer: TerminalBuffer
     private lateinit var reader: TerminalRenderFrameReader
     private lateinit var codeWords: IntArray
     private lateinit var attrWords: LongArray

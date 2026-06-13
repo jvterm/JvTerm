@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.core.model
 
-import io.github.jvterm.core.api.TerminalLineApi
+import io.github.jvterm.core.api.TerminalLine
 import io.github.jvterm.core.store.ClusterStore
 
 /**
@@ -40,7 +40,7 @@ import io.github.jvterm.core.store.ClusterStore
  * ## Mutability
  *
  * All mutation methods are `internal` and called exclusively by
- * [io.github.jvterm.core.engine.MutationEngine]. The [TerminalLineApi] surface exposed to
+ * [io.github.jvterm.core.engine.MutationEngine]. The [TerminalLine] surface exposed to
  * the renderer is strictly read-only.
  *
  * @param width The number of columns in this line. Immutable after construction.
@@ -49,7 +49,7 @@ import io.github.jvterm.core.store.ClusterStore
 internal class Line(
     override val width: Int,
     internal val store: ClusterStore,
-) : TerminalLineApi {
+) : TerminalLine {
     init {
         require(width > 0) { "Line width must be positive, got $width" }
     }
@@ -119,7 +119,7 @@ internal class Line(
         extendedAttrs[col] = extendedAttr
     }
 
-    // TerminalLineApi — public read-only surface
+    // TerminalLine — public read-only surface
 
     /**
      * Returns the base (first) codepoint for the cell at [col].
@@ -471,7 +471,7 @@ internal class Line(
  * A read-only, zero-allocation sentinel returned by [io.github.jvterm.buffer.TerminalBufferApi.getLine]
  * when the requested row is out of bounds. Avoids null checks in the renderer.
  */
-internal object VoidLine : TerminalLineApi {
+internal object VoidLine : TerminalLine {
     override val width: Int = 0
 
     override fun getCodepoint(col: Int): Int = TerminalConstants.EMPTY

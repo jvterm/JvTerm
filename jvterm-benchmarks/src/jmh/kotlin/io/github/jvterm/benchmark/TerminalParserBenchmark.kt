@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Isolated parser throughput benchmark.
  *
- * Feeds pre-built byte arrays into the parser with a [NoOpTerminalCommandSink]
+ * Feeds pre-built byte arrays into the parser with a [NoOpCommandSink]
  * to measure pure parser cost (FSM transitions, UTF-8 decode, grapheme
  * assembly, CSI/SGR dispatch) without any core mutation overhead.
  */
@@ -44,7 +44,7 @@ open class TerminalParserBenchmark {
 
     @Setup(Level.Trial)
     open fun setup() {
-        parser = TerminalParsers.create(NoOpTerminalCommandSink())
+        parser = TerminalParsers.create(NoOpCommandSink())
         bytes =
             when (workload) {
                 "ascii" -> buildParserAsciiInput()

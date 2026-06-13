@@ -15,13 +15,13 @@
  */
 package io.github.jvterm.app.ui
 
-import io.github.jvterm.app.config.StandaloneTerminalSettings
+import io.github.jvterm.app.config.JvTermSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfileRegistry
 import io.github.jvterm.workspace.config.TerminalConfig
 
 internal class LatticeSettingsModel(
-    private val settings: StandaloneTerminalSettings,
+    private val settings: JvTermSettings,
     private val profileRegistry: TerminalProfileRegistry,
 ) {
     var initialUiState: SettingsState = getSettingsState()

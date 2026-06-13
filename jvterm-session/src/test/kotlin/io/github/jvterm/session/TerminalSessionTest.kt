@@ -16,7 +16,7 @@
 package io.github.jvterm.session
 
 import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.input.api.TerminalInputEncoder
 import io.github.jvterm.input.event.TerminalFocusEvent
 import io.github.jvterm.input.event.TerminalKeyEvent
@@ -843,7 +843,7 @@ class TerminalSessionTest {
     }
 
     private class HalfRowParser(
-        private val terminal: TerminalBufferApi,
+        private val terminal: TerminalBuffer,
         private val firstWriteDone: CountDownLatch,
         private val releaseSecondWrite: CountDownLatch,
     ) : TerminalOutputParser {

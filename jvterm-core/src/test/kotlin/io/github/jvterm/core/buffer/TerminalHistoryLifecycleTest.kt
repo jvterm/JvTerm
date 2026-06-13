@@ -43,10 +43,10 @@ class TerminalHistoryLifecycleTest {
 
     @Test
     fun `reset_releasesAllPrimaryHistoryClusterSlots`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2, maxHistory = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2, maxHistory = 3)
         val state =
-            TerminalBufferResizeTest().run {
-                val componentsField = TerminalBuffer::class.java.getDeclaredField("components")
+            DefaultTerminalBufferResizeTest().run {
+                val componentsField = DefaultTerminalBuffer::class.java.getDeclaredField("components")
                 componentsField.isAccessible = true
                 val components = componentsField.get(buffer)
                 val stateField = components.javaClass.getDeclaredField("state")

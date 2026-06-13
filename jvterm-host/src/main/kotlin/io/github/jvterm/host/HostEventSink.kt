@@ -19,10 +19,9 @@ package io.github.jvterm.host
  * Host-facing events emitted while parser commands are mapped to core state.
  *
  * This sink is intentionally metadata-only. Grid mutation, terminal modes, and
- * terminal-to-host byte responses remain owned by [CoreTerminalCommandSink] and
- * the public core APIs.
+ * terminal-to-host byte responses remain owned by the public core APIs.
  */
-interface TerminalHostEventSink {
+interface HostEventSink {
     /**
      * Called when the parser emits BEL.
      */
@@ -58,8 +57,8 @@ interface TerminalHostEventSink {
          * Event sink used when the host does not need metadata callbacks.
          */
         @JvmField
-        val NONE: TerminalHostEventSink =
-            object : TerminalHostEventSink {
+        val NONE: HostEventSink =
+            object : HostEventSink {
                 override fun bell() = Unit
 
                 override fun iconTitleChanged(title: String) = Unit

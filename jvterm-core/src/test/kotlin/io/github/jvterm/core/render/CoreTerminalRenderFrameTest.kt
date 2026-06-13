@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.core.render
 
-import io.github.jvterm.core.buffer.TerminalBuffer
+import io.github.jvterm.core.buffer.DefaultTerminalBuffer
 import io.github.jvterm.core.model.AttributeColor
 import io.github.jvterm.core.model.UnderlineStyle
 import io.github.jvterm.render.api.*
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test
 class CoreTerminalRenderFrameTest {
     @Test
     fun `terminal buffer exposes render frame reader callback`() {
-        val buffer = TerminalBuffer(initialWidth = 3, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 3, initialHeight = 2)
         val reader = buffer as TerminalRenderFrameReader
 
         reader.readRenderFrame { frame ->
@@ -44,7 +44,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `terminal render frame reflects mutated cursor shape`() {
-        val buffer = TerminalBuffer(initialWidth = 3, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 3, initialHeight = 2)
         val reader = buffer as TerminalRenderFrameReader
 
         buffer.setCursorShape(TerminalRenderCursorShape.UNDERLINE)
@@ -64,7 +64,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `empty line copies empty flags and default attrs`() {
-        val buffer = TerminalBuffer(initialWidth = 3, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 3, initialHeight = 1)
         val reader = buffer as TerminalRenderFrameReader
 
         reader.readRenderFrame { frame ->
@@ -89,7 +89,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `ascii cells copy as codepoints`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 1)
         buffer.writeText("AB")
         val reader = buffer as TerminalRenderFrameReader
 
@@ -108,7 +108,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `wide codepoint copies leader and trailing flags`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 1)
         buffer.writeCodepoint(0x1F600)
         val reader = buffer as TerminalRenderFrameReader
 
@@ -131,7 +131,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `cluster cells call sink and copy stable cluster flags`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 1)
         buffer.writeCluster(intArrayOf('e'.code, 0x0301), length = 2)
         val reader = buffer as TerminalRenderFrameReader
 
@@ -149,7 +149,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `cluster cells can copy primitive cluster data without text sink`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 1)
         buffer.writeCluster(intArrayOf('e'.code, 0x0301), length = 2)
         val reader = buffer as TerminalRenderFrameReader
 
@@ -178,7 +178,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `wide cluster copies leader and trailing flags`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 1)
         buffer.writeCluster(intArrayOf(0x1F468, 0x200D, 0x1F469), length = 3)
         val reader = buffer as TerminalRenderFrameReader
 
@@ -201,7 +201,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `cell attributes translate to public render ABI`() {
-        val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 2, initialHeight = 1)
         buffer.setPenColors(
             foreground = AttributeColor.rgb(0x12_34_56),
             background = AttributeColor.indexed(42),
@@ -246,7 +246,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `indexed cell colors translate to public render ABI`() {
-        val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 2, initialHeight = 1)
         buffer.setPenColors(
             foreground = AttributeColor.indexed(0),
             background = AttributeColor.indexed(255),
@@ -268,7 +268,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `rgb cell colors translate to public render ABI`() {
-        val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 2, initialHeight = 1)
         buffer.setPenColors(
             foreground = AttributeColor.rgb(0x00_00_00),
             background = AttributeColor.rgb(0xFF_FF_FF),
@@ -290,7 +290,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `reverse video is reflected in copied public attrs`() {
-        val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 2, initialHeight = 1)
         buffer.setPenColors(
             foreground = AttributeColor.rgb(0x12_34_56),
             background = AttributeColor.indexed(42),
@@ -315,7 +315,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `hyperlink ids copy through optional array`() {
-        val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 2, initialHeight = 1)
         buffer.setHyperlinkId(77)
         buffer.writeCodepoint('X'.code)
         val reader = buffer as TerminalRenderFrameReader
@@ -329,7 +329,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `line metadata exposes generations and wrap flag`() {
-        val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 2, initialHeight = 2)
         val reader = buffer as TerminalRenderFrameReader
         var oldFrame = 0L
         var oldLine = 0L
@@ -353,7 +353,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `scrollback offset maps render rows without mutating live viewport`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 3, maxHistory = 5)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 3, maxHistory = 5)
         val reader = buffer as TerminalRenderFrameReader
         repeat(6) { buffer.writeLogicalLine("L$it") }
 
@@ -387,7 +387,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `scrollback cursor row is translated into render viewport and clipped`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 3, maxHistory = 5)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 3, maxHistory = 5)
         val reader = buffer as TerminalRenderFrameReader
         repeat(6) { buffer.writeLogicalLine("L$it") }
         buffer.positionCursor(col = 1, row = 0)
@@ -410,7 +410,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `scrollback render viewport can expose one overscan row`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 3, maxHistory = 5)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 3, maxHistory = 5)
         val reader = buffer as TerminalRenderFrameReader
         repeat(6) { buffer.writeLogicalLine("L$it") }
 
@@ -433,7 +433,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `active buffer reports alternate after switch`() {
-        val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 2, initialHeight = 1)
         val reader = buffer as TerminalRenderFrameReader
 
         buffer.enterAltBuffer()
@@ -445,7 +445,7 @@ class CoreTerminalRenderFrameTest {
 
     @Test
     fun `copyLine validates row and destination capacity`() {
-        val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 2, initialHeight = 1)
         val reader = buffer as TerminalRenderFrameReader
 
         reader.readRenderFrame { frame ->
@@ -512,7 +512,7 @@ class CoreTerminalRenderFrameTest {
             .joinToString("")
             .trimEnd()
 
-    private fun TerminalBuffer.writeLogicalLine(text: String) {
+    private fun DefaultTerminalBuffer.writeLogicalLine(text: String) {
         writeText(text)
         carriageReturn()
         newLine()

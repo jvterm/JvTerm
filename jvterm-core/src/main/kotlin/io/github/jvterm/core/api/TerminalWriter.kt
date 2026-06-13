@@ -267,7 +267,7 @@ interface TerminalWriter {
      * VT100 default spacing.
      *
      * The scroll region is not affected. For a full terminal reset use
-     * [TerminalBufferApi.reset].
+     * [TerminalBuffer.reset].
      */
     fun clearAll()
 

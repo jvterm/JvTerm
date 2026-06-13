@@ -21,7 +21,7 @@ import io.github.jvterm.parser.spi.TerminalCommandSink
  * No-op sink for parser-only benchmarks. Discards all commands to measure
  * pure parser throughput.
  */
-internal class NoOpTerminalCommandSink : TerminalCommandSink {
+internal class NoOpCommandSink : TerminalCommandSink {
     override fun writeCodepoint(codepoint: Int) {}
 
     override fun writeCluster(

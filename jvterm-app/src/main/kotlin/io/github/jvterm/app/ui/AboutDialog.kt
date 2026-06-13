@@ -26,7 +26,7 @@ import javax.swing.border.EmptyBorder
  * A clean, professional about dialog showcasing the Lattice Terminal brand,
  * version information, and developer credits.
  */
-internal class LatticeAboutDialog(
+internal class AboutDialog(
     parent: JFrame,
 ) : JDialog(parent, "About Lattice Terminal", true) {
     init {
@@ -63,7 +63,7 @@ internal class LatticeAboutDialog(
                         dispose()
                     }
                 }
-            this@LatticeAboutDialog.rootPane.defaultButton = okButton
+            this@AboutDialog.rootPane.defaultButton = okButton
             add(buildButtonSection(okButton))
         }
 
@@ -193,7 +193,7 @@ internal class LatticeAboutDialog(
         try {
             val properties = Properties()
             val inputStream: InputStream? =
-                LatticeAboutDialog::class.java.classLoader
+                AboutDialog::class.java.classLoader
                     .getResourceAsStream("com/gagik/terminal/standalone/version.properties")
             if (inputStream != null) {
                 properties.load(inputStream)

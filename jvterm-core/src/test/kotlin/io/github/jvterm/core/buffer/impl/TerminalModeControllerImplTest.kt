@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.core.buffer.impl
 
-import io.github.jvterm.core.buffer.TerminalBuffer
+import io.github.jvterm.core.buffer.DefaultTerminalBuffer
 import io.github.jvterm.core.engine.CursorEngine
 import io.github.jvterm.core.engine.MutationEngine
 import io.github.jvterm.core.state.TerminalState
@@ -63,7 +63,7 @@ class TerminalModeControllerImplTest {
         modeController.setCursorShape(TerminalRenderCursorShape.BAR)
         assertEquals(TerminalRenderCursorShape.BAR, state.cursorShape)
 
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 3)
         buffer.setCursorShape(TerminalRenderCursorShape.BAR)
         buffer.reset()
 
@@ -83,7 +83,7 @@ class TerminalModeControllerImplTest {
 
     @Test
     fun `default cursor shape can be set and is restored on full and soft reset`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 3)
         buffer.setDefaultCursorShape(TerminalRenderCursorShape.BAR)
         buffer.setCursorShape(TerminalRenderCursorShape.BAR)
 

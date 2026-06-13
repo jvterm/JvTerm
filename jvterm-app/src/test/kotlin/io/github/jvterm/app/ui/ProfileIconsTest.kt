@@ -20,10 +20,10 @@ import java.awt.image.BufferedImage
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
-class LatticeProfileIconsTest {
+class ProfileIconsTest {
     @Test
     fun paintsEveryProfileKindFromSvgResources() {
-        val icons = LatticeProfileIcons()
+        val icons = ProfileIcons()
 
         TerminalProfileKind.entries.forEachIndexed { index, kind ->
             val image = BufferedImage(24, 24, BufferedImage.TYPE_INT_ARGB)

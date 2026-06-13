@@ -16,7 +16,7 @@
 package io.github.jvterm.core.buffer
 
 import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.api.TerminalResponseChannel
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -209,7 +209,7 @@ class TerminalResponseChannelTest {
         assertEquals("\u001BP0+r\u001B\\", drain(buffer))
     }
 
-    private fun drain(buffer: TerminalBufferApi): String {
+    private fun drain(buffer: TerminalBuffer): String {
         val destination = ByteArray(128)
         val count = buffer.readResponseBytes(destination)
         return destination.decodeToString(0, count)

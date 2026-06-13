@@ -16,7 +16,7 @@
 package io.github.jvterm.benchmark
 
 import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.api.TerminalResponseChannel
 import io.github.jvterm.core.model.AttributeColor
 import org.openjdk.jmh.annotations.*
@@ -38,8 +38,8 @@ import java.util.concurrent.TimeUnit
 @Measurement(iterations = 5, time = 1, timeUnit = TimeUnit.SECONDS)
 @Fork(1)
 open class TerminalResponseBenchmark {
-    private lateinit var buffer: TerminalBufferApi
-    private lateinit var complexBuffer: TerminalBufferApi
+    private lateinit var buffer: TerminalBuffer
+    private lateinit var complexBuffer: TerminalBuffer
     private lateinit var drainBuffer: ByteArray
 
     @Setup(Level.Trial)

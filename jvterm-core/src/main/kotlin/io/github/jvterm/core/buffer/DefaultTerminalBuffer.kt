@@ -35,9 +35,9 @@ import io.github.jvterm.core.state.TerminalState
  * - full terminal reset (RIS)
  * - soft terminal reset (DECSTR)
  */
-internal class TerminalBuffer private constructor(
+internal class DefaultTerminalBuffer private constructor(
     private val components: Components,
-) : TerminalBufferApi,
+) : TerminalBuffer,
     io.github.jvterm.render.api.TerminalRenderFrameReader,
     TerminalReader by TerminalReaderImpl(components.state),
     TerminalWriter by TerminalWriterImpl(components.state, components.mutationEngine, components.cursorEngine),

@@ -19,9 +19,9 @@ import io.github.jvterm.core.state.TerminalState
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
-class TerminalBufferResizeTest {
-    private fun stateOf(buffer: TerminalBuffer): TerminalState {
-        val componentsField = TerminalBuffer::class.java.getDeclaredField("components")
+class DefaultTerminalBufferResizeTest {
+    private fun stateOf(buffer: DefaultTerminalBuffer): TerminalState {
+        val componentsField = DefaultTerminalBuffer::class.java.getDeclaredField("components")
         componentsField.isAccessible = true
         val components = componentsField.get(buffer)
 
@@ -32,7 +32,7 @@ class TerminalBufferResizeTest {
 
     @Test
     fun `resizeWhileAltActive_clampsPrimaryScrollRegionBeforeExit`() {
-        val buffer = TerminalBuffer(initialWidth = 5, initialHeight = 6, maxHistory = 4)
+        val buffer = DefaultTerminalBuffer(initialWidth = 5, initialHeight = 6, maxHistory = 4)
         buffer.setScrollRegion(top = 3, bottom = 6)
         buffer.enterAltBuffer()
 
@@ -48,7 +48,7 @@ class TerminalBufferResizeTest {
 
     @Test
     fun `resizeWhileAltActive_thenInsertLinesOnPrimary_doesNotIndexPastRing`() {
-        val buffer = TerminalBuffer(initialWidth = 5, initialHeight = 6, maxHistory = 4)
+        val buffer = DefaultTerminalBuffer(initialWidth = 5, initialHeight = 6, maxHistory = 4)
         buffer.setScrollRegion(top = 3, bottom = 6)
         buffer.enterAltBuffer()
         buffer.resize(newWidth = 5, newHeight = 3)
@@ -62,7 +62,7 @@ class TerminalBufferResizeTest {
 
     @Test
     fun `resize_resetsOrClampsBothBuffersMarginsPerChosenPolicy`() {
-        val buffer = TerminalBuffer(initialWidth = 7, initialHeight = 6, maxHistory = 4)
+        val buffer = DefaultTerminalBuffer(initialWidth = 7, initialHeight = 6, maxHistory = 4)
         buffer.setScrollRegion(top = 2, bottom = 5)
         buffer.enterAltBuffer()
         buffer.setScrollRegion(top = 3, bottom = 6)

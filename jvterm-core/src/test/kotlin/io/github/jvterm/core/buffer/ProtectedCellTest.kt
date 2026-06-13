@@ -16,7 +16,7 @@
 package io.github.jvterm.core.buffer
 
 import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.codec.AttributeCodec
 import io.github.jvterm.core.state.TerminalState
 import org.junit.jupiter.api.Assertions.*
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test
 class ProtectedCellTest {
     private fun blankScreen(height: Int): String = List(height) { "" }.joinToString("\n")
 
-    private fun stateOf(api: TerminalBufferApi): TerminalState {
+    private fun stateOf(api: TerminalBuffer): TerminalState {
         val componentsField = api.javaClass.getDeclaredField("components")
         componentsField.isAccessible = true
         val components = componentsField.get(api)

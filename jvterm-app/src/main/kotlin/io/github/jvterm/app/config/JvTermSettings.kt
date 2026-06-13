@@ -29,7 +29,7 @@ import java.util.*
  * host-specific Swing settings. Changes to configuration parameters are immediately
  * saved to disk.
  */
-internal class StandaloneTerminalSettings(
+internal class JvTermSettings(
     private val configManager: TerminalWorkspaceConfigManager = TerminalWorkspaceConfigManager.getDefault(),
 ) {
     private var config: TerminalConfig = configManager.load()

@@ -29,7 +29,7 @@ package io.github.jvterm.host
  * in UTF-16 code units. Longer IDs are ignored and mapped to no active
  * hyperlink.
  */
-data class TerminalHostPolicy(
+data class HostPolicy(
     val maxHyperlinkEntries: Int = 4096,
     val maxHyperlinkUriLength: Int = 4096,
     val maxHyperlinkIdLength: Int = 256,

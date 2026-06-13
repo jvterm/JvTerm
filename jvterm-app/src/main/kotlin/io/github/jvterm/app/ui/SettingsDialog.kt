@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.app.ui
 
-import io.github.jvterm.app.config.StandaloneTerminalSettings
+import io.github.jvterm.app.config.JvTermSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfile
 import io.github.jvterm.workspace.TerminalProfileKind
@@ -32,9 +32,9 @@ import javax.swing.border.EmptyBorder
 /**
  * A highly polished, IDE-style settings dialog featuring a clean sidebar and flat form layouts.
  */
-internal class LatticeSettingsDialog(
+internal class SettingsDialog(
     parent: JFrame,
-    private val settings: StandaloneTerminalSettings,
+    private val settings: JvTermSettings,
     private val profileRegistry: TerminalProfileRegistry,
     private val onApply: () -> Unit,
 ) : JDialog(parent, "Terminal Settings", true) {
@@ -113,7 +113,7 @@ internal class LatticeSettingsDialog(
             selectedItem = matchedProfile ?: "Custom..."
             renderer =
                 object : DefaultListCellRenderer() {
-                    private val profileIcons = LatticeProfileIcons()
+                    private val profileIcons = ProfileIcons()
 
                     override fun getListCellRendererComponent(
                         list: JList<*>?,
@@ -280,7 +280,7 @@ internal class LatticeSettingsDialog(
                 isOpaque = false
             }
 
-        panel.add(LatticeSectionHeader("Project Settings"))
+        panel.add(SectionHeader("Project Settings"))
         val projectSection = createSectionPanel()
         addFormRow(projectSection, 0, "Default shell:", shellPathCombo)
 
@@ -296,7 +296,7 @@ internal class LatticeSettingsDialog(
                                 JFileChooser(customShellField.text).apply {
                                     fileSelectionMode = JFileChooser.FILES_ONLY
                                 }
-                            if (chooser.showOpenDialog(this@LatticeSettingsDialog) == JFileChooser.APPROVE_OPTION) {
+                            if (chooser.showOpenDialog(this@SettingsDialog) == JFileChooser.APPROVE_OPTION) {
                                 customShellField.text = chooser.selectedFile.absolutePath
                             }
                         }
@@ -329,7 +329,7 @@ internal class LatticeSettingsDialog(
                                 JFileChooser(startDirectoryField.text).apply {
                                     fileSelectionMode = JFileChooser.DIRECTORIES_ONLY
                                 }
-                            if (chooser.showOpenDialog(this@LatticeSettingsDialog) == JFileChooser.APPROVE_OPTION) {
+                            if (chooser.showOpenDialog(this@SettingsDialog) == JFileChooser.APPROVE_OPTION) {
                                 startDirectoryField.text = chooser.selectedFile.absolutePath
                             }
                         }
@@ -339,7 +339,7 @@ internal class LatticeSettingsDialog(
         addFormRow(projectSection, 2, "Start directory:", startDirWrapper)
         panel.add(projectSection)
 
-        panel.add(LatticeSectionHeader("Application Settings"))
+        panel.add(SectionHeader("Application Settings"))
         val appSection = createSectionPanel()
         addCheckboxRow(appSection, 0, audibleBellCheckbox)
         panel.add(appSection)
@@ -354,14 +354,14 @@ internal class LatticeSettingsDialog(
                 isOpaque = false
             }
 
-        panel.add(LatticeSectionHeader("Typography & Theme"))
+        panel.add(SectionHeader("Typography & Theme"))
         val typoSection = createSectionPanel()
         addFormRow(typoSection, 0, "Font family:", fontFamilyCombo)
         addFormRow(typoSection, 1, "Font size:", fontSizeSpinner, "Line height:", lineHeightSpinner)
         addFormRow(typoSection, 2, "Color theme:", themeCombo)
         panel.add(typoSection)
 
-        panel.add(LatticeSectionHeader("Window Layout"))
+        panel.add(SectionHeader("Window Layout"))
         val windowSection = createSectionPanel()
         addFormRow(windowSection, 0, "Columns:", columnsSpinner, "Rows:", rowsSpinner)
         addFormRow(windowSection, 1, "Scrollback lines:", scrollbackSpinner)
@@ -377,7 +377,7 @@ internal class LatticeSettingsDialog(
                 isOpaque = false
             }
 
-        panel.add(LatticeSectionHeader("Terminal Behavior"))
+        panel.add(SectionHeader("Terminal Behavior"))
         val behaviorSection = createSectionPanel()
         addCheckboxRow(
             behaviorSection,
@@ -404,7 +404,7 @@ internal class LatticeSettingsDialog(
         )
         panel.add(behaviorSection)
 
-        panel.add(LatticeSectionHeader("Cursor Settings"))
+        panel.add(SectionHeader("Cursor Settings"))
         val cursorSection = createSectionPanel()
         addFormRow(cursorSection, 0, "Cursor shape:", cursorShapeCombo)
         addFormRow(cursorSection, 1, "Blink period (ms):", cursorBlinkSpinner)
@@ -558,7 +558,7 @@ internal class LatticeSettingsDialog(
 
             add(leftPanel, BorderLayout.WEST)
             add(rightPanel, BorderLayout.EAST)
-            this@LatticeSettingsDialog.rootPane.defaultButton = okButton
+            this@SettingsDialog.rootPane.defaultButton = okButton
         }
 
     private fun resetToDefaults() {

@@ -23,7 +23,7 @@ import javax.swing.plaf.basic.BasicScrollBarUI
 /**
  * Minimal dark scrollbar skin for the standalone terminal window.
  */
-internal class LatticeScrollBarUi : BasicScrollBarUI() {
+internal class ScrollBarUi : BasicScrollBarUI() {
     override fun configureScrollBarColors() {
         trackColor = LatticeChrome.scrollbarTrack
         thumbColor = LatticeChrome.scrollbarThumb

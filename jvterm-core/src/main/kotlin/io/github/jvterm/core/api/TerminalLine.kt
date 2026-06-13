@@ -22,7 +22,7 @@ package io.github.jvterm.core.api
  * immediate execution scope of the current render frame. The backing memory
  * may mutate at any time if background output arrives.
  */
-interface TerminalLineApi {
+interface TerminalLine {
     /** Number of columns in this line. */
     val width: Int
 

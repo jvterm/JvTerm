@@ -28,7 +28,7 @@ import javax.swing.Icon
  * The tab bar owns placement and state. Glyph design lives in vector assets so
  * profile icon changes do not require editing Java2D drawing code.
  */
-internal class LatticeProfileIcons {
+internal class ProfileIcons {
     private val icons = EnumMap<TerminalProfileKind, Icon>(TerminalProfileKind::class.java)
 
     fun paint(

@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.app.ui
 
-import io.github.jvterm.app.config.StandaloneTerminalSettings
+import io.github.jvterm.app.config.JvTermSettings
 import io.github.jvterm.ui.swing.api.TerminalSwingHostServices
 import io.github.jvterm.ui.swing.api.TerminalSwingTerminal
 import io.github.jvterm.workspace.TerminalWorkspaceTab
@@ -30,7 +30,7 @@ import javax.swing.JScrollBar
  * A pane binds a workspace tab's session to one reusable Swing terminal
  * component and owns pane-local viewport chrome such as the scrollbar.
  */
-internal class LatticeTerminalPane private constructor(
+internal class TerminalPane private constructor(
     val tab: TerminalWorkspaceTab,
     val terminal: TerminalSwingTerminal,
     val component: JPanel,
@@ -51,9 +51,9 @@ internal class LatticeTerminalPane private constructor(
     internal companion object {
         fun create(
             tab: TerminalWorkspaceTab,
-            settings: StandaloneTerminalSettings,
-            onContextMenu: (LatticeTerminalPane, Int, Int) -> Unit,
-        ): LatticeTerminalPane {
+            settings: JvTermSettings,
+            onContextMenu: (TerminalPane, Int, Int) -> Unit,
+        ): TerminalPane {
             val scrollbar = JScrollBar(Adjustable.VERTICAL)
             val scrollbarAdapter = TerminalScrollbarAdapter(scrollbar)
             val terminal =
@@ -70,7 +70,7 @@ internal class LatticeTerminalPane private constructor(
             terminal.bind(tab.session)
 
             val pane =
-                LatticeTerminalPane(
+                TerminalPane(
                     tab = tab,
                     terminal = terminal,
                     component = terminalPanel(terminal, scrollbar),
@@ -112,7 +112,7 @@ internal class LatticeTerminalPane private constructor(
             scrollbar.unitIncrement = 1
             scrollbar.blockIncrement = 8
             scrollbar.preferredSize = LatticeChrome.scrollbarSize
-            scrollbar.ui = LatticeScrollBarUi()
+            scrollbar.ui = ScrollBarUi()
             scrollbar.isVisible = false
             scrollbar.isFocusable = false
             scrollbar.isOpaque = false

@@ -15,11 +15,11 @@
  */
 package io.github.jvterm.session
 
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.api.TerminalHostResponseReader
-import io.github.jvterm.host.CoreTerminalCommandSink
-import io.github.jvterm.host.TerminalHostEventSink
-import io.github.jvterm.host.TerminalHostPolicy
+import io.github.jvterm.host.HostCommandAdapter
+import io.github.jvterm.host.HostEventSink
+import io.github.jvterm.host.HostPolicy
 import io.github.jvterm.input.api.TerminalInputEncoder
 import io.github.jvterm.input.event.TerminalFocusEvent
 import io.github.jvterm.input.event.TerminalKeyEvent
@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicLong
  * @property terminal public terminal buffer mutated by host output.
  */
 class TerminalSession(
-    val terminal: TerminalBufferApi,
+    val terminal: TerminalBuffer,
     val publisher: TerminalRenderPublisher,
     private val renderReader: TerminalRenderFrameReader,
     private val responseReader: TerminalHostResponseReader,
@@ -535,15 +535,15 @@ class TerminalSession(
          */
         @JvmStatic
         fun create(
-            terminal: TerminalBufferApi,
+            terminal: TerminalBuffer,
             connector: TerminalConnector,
-            hostEvents: TerminalHostEventSink = TerminalHostEventSink.NONE,
-            hostPolicy: TerminalHostPolicy = TerminalHostPolicy(),
+            hostEvents: HostEventSink = HostEventSink.NONE,
+            hostPolicy: HostPolicy = HostPolicy(),
             inputPolicy: TerminalInputPolicy = TerminalInputPolicy(),
         ): TerminalSession {
             val outboundWriteLock = Any()
             val hostOutput = ConnectorTerminalHostOutput(connector, outboundWriteLock)
-            val sink = CoreTerminalCommandSink(terminal, hostEvents, hostPolicy)
+            val sink = HostCommandAdapter(terminal, hostEvents, hostPolicy)
             val parser = TerminalParsers.create(sink)
             val inputEncoder = DefaultTerminalInputEncoder(terminal, hostOutput, inputPolicy)
             val renderReader =

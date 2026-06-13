@@ -29,9 +29,9 @@ fun main(args: Array<String>) {
 
 private object LatticeStandaloneApp {
     fun start(args: List<String>) {
-      StandaloneLookAndFeel.install()
+      JvTermLookAndFeel.install()
 
-        val settings = io.github.jvterm.app.config.StandaloneTerminalSettings()
+        val settings = io.github.jvterm.app.config.JvTermSettings()
       io.github.jvterm.app.ui.LatticeChrome
             .applyPalette(settings.current().palette)
         val profileRegistry = io.github.jvterm.workspace.TerminalProfileRegistry()

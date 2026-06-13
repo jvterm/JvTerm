@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.host
 
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.model.AttributeColor
 import io.github.jvterm.core.model.UnderlineStyle
 import io.github.jvterm.parser.spi.TerminalCommandSink
@@ -35,12 +35,12 @@ import io.github.jvterm.render.api.TerminalRenderCursorShape
  *
  * @param terminal public core buffer API mutated by parser semantic commands.
  * @param hostEvents optional metadata callback sink for BEL and title changes.
- * @param hostPolicy safety limits for host-owned host metadata.
+ * @param hostPolicy safety limits for host-owned metadata.
  */
-class CoreTerminalCommandSink(
-    private val terminal: TerminalBufferApi,
-    private val hostEvents: TerminalHostEventSink = TerminalHostEventSink.NONE,
-    private val hostPolicy: TerminalHostPolicy = TerminalHostPolicy(),
+class HostCommandAdapter(
+    private val terminal: TerminalBuffer,
+    private val hostEvents: HostEventSink = HostEventSink.NONE,
+    private val hostPolicy: HostPolicy = HostPolicy(),
 ) : TerminalCommandSink {
     var windowTitle: String = ""
         private set

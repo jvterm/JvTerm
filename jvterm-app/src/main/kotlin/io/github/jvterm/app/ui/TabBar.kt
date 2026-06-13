@@ -53,7 +53,7 @@ internal class LatticeTabBar(
     private var selectedId: String? = null
     private val tabFillShape = Path2D.Double()
     private val tabBorderShape = Path2D.Double()
-    private val profileIcons = LatticeProfileIcons()
+    private val profileIcons = ProfileIcons()
 
     // Layout state
     private var tabWidths: List<Int> = emptyList()

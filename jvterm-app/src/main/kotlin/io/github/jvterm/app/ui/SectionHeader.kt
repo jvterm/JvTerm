@@ -25,7 +25,7 @@ import javax.swing.border.EmptyBorder
  * A sleek section header component consisting of a bold title on the left
  * and a thin horizontal separator line extending across the remaining width.
  */
-internal class LatticeSectionHeader(
+internal class SectionHeader(
     title: String,
 ) : JPanel() {
     init {

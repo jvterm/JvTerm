@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.core.buffer
 
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.model.Line
 import io.github.jvterm.core.model.UnderlineStyle
 import io.github.jvterm.core.state.TerminalState
@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test
 class TerminalRenderGenerationTest {
     @Test
     fun `printing changes frame and line generation`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
         val state = stateOf(buffer)
         val line = lineAt(state, 0)
         val oldFrame = state.frameGeneration
@@ -41,7 +41,7 @@ class TerminalRenderGenerationTest {
 
     @Test
     fun `cursor movement changes cursor generation without dirtying line generation`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
         val state = stateOf(buffer)
         buffer.writeCodepoint('A'.code)
         val line = lineAt(state, 0)
@@ -60,7 +60,7 @@ class TerminalRenderGenerationTest {
 
     @Test
     fun `SGR alone does not change render generations but later print does`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
         val state = stateOf(buffer)
         val line = lineAt(state, 0)
         val oldFrame = state.frameGeneration
@@ -90,7 +90,7 @@ class TerminalRenderGenerationTest {
 
     @Test
     fun `erase changes the affected line generation`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
         val state = stateOf(buffer)
         buffer.writeText("AB")
         val line = lineAt(state, 0)
@@ -108,7 +108,7 @@ class TerminalRenderGenerationTest {
 
     @Test
     fun `scroll changes structure generation`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
         val state = stateOf(buffer)
         val oldStructure = state.structureGeneration
 
@@ -120,7 +120,7 @@ class TerminalRenderGenerationTest {
 
     @Test
     fun `resize changes structure generation`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
         val state = stateOf(buffer)
         val oldStructure = state.structureGeneration
 
@@ -131,7 +131,7 @@ class TerminalRenderGenerationTest {
 
     @Test
     fun `alternate screen switch changes structure generation`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
         val state = stateOf(buffer)
         val oldStructure = state.structureGeneration
 
@@ -142,7 +142,7 @@ class TerminalRenderGenerationTest {
 
     @Test
     fun `reverse video changes visible line generations`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
         val state = stateOf(buffer)
         buffer.writeText("AB")
         val row0 = lineAt(state, 0)
@@ -162,7 +162,7 @@ class TerminalRenderGenerationTest {
 
     @Test
     fun `soft reset dirties visible lines when it disables reverse video`() {
-        val buffer = TerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
         val state = stateOf(buffer)
         buffer.writeText("AB")
         buffer.setReverseVideo(true)
@@ -179,7 +179,7 @@ class TerminalRenderGenerationTest {
         )
     }
 
-    private fun stateOf(api: TerminalBufferApi): TerminalState {
+    private fun stateOf(api: TerminalBuffer): TerminalState {
         val componentsField = api.javaClass.getDeclaredField("components")
         componentsField.isAccessible = true
         val components = componentsField.get(api)

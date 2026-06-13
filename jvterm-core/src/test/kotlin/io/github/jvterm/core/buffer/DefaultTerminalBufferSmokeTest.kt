@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-class TerminalBufferSmokeTest {
+class DefaultTerminalBufferSmokeTest {
     @Test
     fun `factory exposes a working buffer api`() {
         val buffer = TerminalBuffers.create(4, 3, 2)
@@ -39,7 +39,7 @@ class TerminalBufferSmokeTest {
 
     @Test
     fun `constructor and resize validation still reject non-positive dimensions`() {
-        assertThrows<IllegalArgumentException> { TerminalBuffer(0, 1) }
+        assertThrows<IllegalArgumentException> { DefaultTerminalBuffer(0, 1) }
         assertThrows<IllegalArgumentException> { TerminalBuffers.create(1, 0) }
     }
 }

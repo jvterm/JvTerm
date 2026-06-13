@@ -28,7 +28,7 @@ package io.github.jvterm.core.api
  * The parser should depend only on the narrower interfaces it actually needs;
  * this facade mainly exists for host host points and tests.
  */
-interface TerminalBufferApi :
+interface TerminalBuffer :
     TerminalWriter,
     TerminalCursor,
     TerminalModeController,

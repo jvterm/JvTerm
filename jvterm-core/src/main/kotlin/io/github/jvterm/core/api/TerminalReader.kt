@@ -45,7 +45,7 @@ interface TerminalReader {
     val historySize: Int
 
     /** Returns the visible line at [row], or a shared void line when [row] is out of bounds. */
-    fun getLine(row: Int): TerminalLineApi
+    fun getLine(row: Int): TerminalLine
 
     /**
      * Returns the display/base codepoint at `[col, row]`.

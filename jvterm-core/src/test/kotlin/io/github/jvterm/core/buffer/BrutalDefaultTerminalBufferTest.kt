@@ -21,10 +21,10 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-class BrutalTerminalBufferTest {
+class BrutalDefaultTerminalBufferTest {
     @Test
     fun `6-1 API lifetime - frame is only valid inside callback`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         var leakedFrame: TerminalRenderFrame? = null
 
         (buffer as TerminalRenderFrameReader).readRenderFrame { frame ->
@@ -49,7 +49,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - printing char changes frame and line generation`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         val reader = buffer as TerminalRenderFrameReader
         var frameGen0 = 0L
         var lineGen0 = 0L
@@ -70,7 +70,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - cursor move changes frame and cursor generation, NOT line generation`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         val reader = buffer as TerminalRenderFrameReader
         var frameGen0 = 0L
         var cursorGen0 = 0L
@@ -93,7 +93,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - SGR alone changes no line generation`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         val reader = buffer as TerminalRenderFrameReader
         var lineGen0 = 0L
 
@@ -110,7 +110,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - SGR plus print changes line generation`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         val reader = buffer as TerminalRenderFrameReader
         buffer.writeCodepoint('A'.code)
 
@@ -129,7 +129,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - erase changes line generation`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         buffer.writeText("ABC")
         val reader = buffer as TerminalRenderFrameReader
         var lineGen0 = 0L
@@ -147,7 +147,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - wrap flag change changes line generation`() {
-        val buffer = TerminalBuffer(initialWidth = 2, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 2, initialHeight = 3)
         buffer.writeText("AB")
         val reader = buffer as TerminalRenderFrameReader
         var lineGen0 = 0L
@@ -168,7 +168,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - scroll changes structure generation`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         val reader = buffer as TerminalRenderFrameReader
         var structureGen0 = 0L
 
@@ -185,7 +185,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - resize changes structure generation`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         val reader = buffer as TerminalRenderFrameReader
         var structureGen0 = 0L
 
@@ -202,7 +202,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - alt-screen switch changes structure generation`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         val reader = buffer as TerminalRenderFrameReader
         var structureGen0 = 0L
 
@@ -219,7 +219,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-4 Generation - title change changes frame generation`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 3)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 3)
         val reader = buffer as TerminalRenderFrameReader
         var frameGen0 = 0L
 
@@ -243,7 +243,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-2 Cell encoding - emoji cluster and combining cluster`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 1)
         // Emoji: Family (Man, Woman, Girl, Boy) - often wide
         val emoji = intArrayOf(0x1F468, 0x200D, 0x1F469, 0x200D, 0x1F467, 0x200D, 0x1F466)
         buffer.writeCluster(emoji)
@@ -278,7 +278,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-1 API lifetime - no core cluster handle leaks through copied code words`() {
-        val buffer = TerminalBuffer(initialWidth = 3, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 3, initialHeight = 1)
         // Write a cluster which will have a negative internal handle
         buffer.writeCluster(intArrayOf('e'.code, 0x0301), length = 2)
         val reader = buffer as TerminalRenderFrameReader
@@ -300,7 +300,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-3 Attr - RGB fg and bg`() {
-        val buffer = TerminalBuffer(initialWidth = 10, initialHeight = 1)
+        val buffer = DefaultTerminalBuffer(initialWidth = 10, initialHeight = 1)
         buffer.setPenColors(
             foreground = AttributeColor.rgb(0xFF, 0x00, 0x00),
             background = AttributeColor.rgb(0x00, 0xFF, 0x00),
@@ -327,7 +327,7 @@ class BrutalTerminalBufferTest {
 
     @Test
     fun `6-5 Row mapping - line generations stay attached to line content after ring rotation`() {
-        val buffer = TerminalBuffer(initialWidth = 3, initialHeight = 2, maxHistory = 10)
+        val buffer = DefaultTerminalBuffer(initialWidth = 3, initialHeight = 2, maxHistory = 10)
         val reader = buffer as TerminalRenderFrameReader
 
         // Write line 0

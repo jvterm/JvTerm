@@ -16,7 +16,7 @@
 package io.github.jvterm.core.buffer
 
 import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.model.AttributeColor
 import io.github.jvterm.core.model.Attributes
 import io.github.jvterm.core.model.UnderlineStyle
@@ -29,9 +29,9 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
-@DisplayName("TerminalBuffer Integration Test Suite")
-class TerminalBufferTest {
-    private fun stateOf(api: TerminalBufferApi): TerminalState {
+@DisplayName("DefaultTerminalBuffer Integration Test Suite")
+class DefaultTerminalBufferTest {
+    private fun stateOf(api: TerminalBuffer): TerminalState {
         val componentsField = api.javaClass.getDeclaredField("components")
         componentsField.isAccessible = true
         val components = componentsField.get(api)
@@ -45,13 +45,13 @@ class TerminalBufferTest {
         width: Int = 4,
         height: Int = 3,
         maxHistory: Int = 5,
-    ): TerminalBuffer = TerminalBuffer(width, height, maxHistory)
+    ): TerminalBuffer = DefaultTerminalBuffer(width, height, maxHistory)
 
     private fun newApiBuffer(
         width: Int = 4,
         height: Int = 3,
         maxHistory: Int = 5,
-    ): TerminalBufferApi = TerminalBuffers.create(width, height, maxHistory)
+    ): TerminalBuffer = TerminalBuffers.create(width, height, maxHistory)
 
     private fun blankScreen(height: Int): String = List(height) { "" }.joinToString("\n")
 
@@ -76,7 +76,7 @@ class TerminalBufferTest {
 
     @Test
     fun `constructor and factory reject invalid dimensions`() {
-        assertThrows<IllegalArgumentException> { TerminalBuffer(0, 1) }
+        assertThrows<IllegalArgumentException> { DefaultTerminalBuffer(0, 1) }
         assertThrows<IllegalArgumentException> { TerminalBuffers.create(1, 0) }
     }
 

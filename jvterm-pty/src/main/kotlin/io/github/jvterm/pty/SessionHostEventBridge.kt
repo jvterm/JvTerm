@@ -15,12 +15,12 @@
  */
 package io.github.jvterm.pty
 
-import io.github.jvterm.host.TerminalHostEventSink
+import io.github.jvterm.host.HostEventSink
 import io.github.jvterm.session.TerminalSession
 
 internal class SessionHostEventBridge(
     private val listener: TerminalPtyEventListener,
-) : TerminalHostEventSink {
+) : HostEventSink {
     private var attachedSession: TerminalSession? = null
 
     fun attach(session: TerminalSession) {

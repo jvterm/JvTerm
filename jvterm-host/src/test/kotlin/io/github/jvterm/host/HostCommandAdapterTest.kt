@@ -16,7 +16,7 @@
 package io.github.jvterm.host
 
 import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBufferApi
+import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.model.AttributeColor
 import io.github.jvterm.core.model.UnderlineStyle
 import io.github.jvterm.parser.api.TerminalOutputParser
@@ -33,13 +33,13 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 
-@DisplayName("CoreTerminalCommandSink")
-class CoreTerminalCommandSinkTest {
+@DisplayName("HostCommandAdapter")
+class HostCommandAdapterTest {
     private data class Fixture(
-        val terminal: TerminalBufferApi = TerminalBuffers.create(width = 10, height = 5),
-        val hostPolicy: TerminalHostPolicy = TerminalHostPolicy(),
-        val sink: CoreTerminalCommandSink =
-            CoreTerminalCommandSink(
+        val terminal: TerminalBuffer = TerminalBuffers.create(width = 10, height = 5),
+        val hostPolicy: HostPolicy = HostPolicy(),
+        val sink: HostCommandAdapter =
+            HostCommandAdapter(
                 terminal = terminal,
                 hostPolicy = hostPolicy,
             ),
@@ -935,7 +935,7 @@ class CoreTerminalCommandSinkTest {
             val f =
                 Fixture(
                     terminal = TerminalBuffers.create(width = 2, height = 1),
-                    hostPolicy = TerminalHostPolicy(maxHyperlinkUriLength = 8),
+                    hostPolicy = HostPolicy(maxHyperlinkUriLength = 8),
                 )
 
             f.sink.startHyperlink(uri = "https://too-long.example", id = null)
@@ -962,7 +962,7 @@ class CoreTerminalCommandSinkTest {
             val f =
                 Fixture(
                     terminal = TerminalBuffers.create(width = 2, height = 1),
-                    hostPolicy = TerminalHostPolicy(maxHyperlinkIdLength = 3),
+                    hostPolicy = HostPolicy(maxHyperlinkIdLength = 3),
                 )
 
             f.sink.startHyperlink(uri = "https://example.com", id = "toolong")
@@ -989,7 +989,7 @@ class CoreTerminalCommandSinkTest {
             val f =
                 Fixture(
                     terminal = TerminalBuffers.create(width = 5, height = 1),
-                    hostPolicy = TerminalHostPolicy(maxHyperlinkEntries = 2),
+                    hostPolicy = HostPolicy(maxHyperlinkEntries = 2),
                 )
 
             f.sink.startHyperlink(uri = "https://example.com/a", id = null)
@@ -1020,7 +1020,7 @@ class CoreTerminalCommandSinkTest {
             val f =
                 Fixture(
                     terminal = TerminalBuffers.create(width = 4, height = 1),
-                    hostPolicy = TerminalHostPolicy(maxHyperlinkEntries = 2),
+                    hostPolicy = HostPolicy(maxHyperlinkEntries = 2),
                 )
 
             repeat(16) { index ->
@@ -1074,7 +1074,7 @@ class CoreTerminalCommandSinkTest {
         fun `host event sink receives bell and title metadata changes`() {
             val events = RecordingHostEventSink()
             val terminal = TerminalBuffers.create(width = 10, height = 5)
-            val sink = CoreTerminalCommandSink(terminal, events)
+            val sink = HostCommandAdapter(terminal, events)
             val parser = TerminalParsers.create(sink)
 
             parser.accept("\u0007\u001B]0;both\u001B\\".encodeToByteArray())
@@ -1214,7 +1214,7 @@ class CoreTerminalCommandSinkTest {
         }
     }
 
-    private class RecordingHostEventSink : TerminalHostEventSink {
+    private class RecordingHostEventSink : HostEventSink {
         var bells: Int = 0
         val iconTitles = mutableListOf<String>()
         val windowTitles = mutableListOf<String>()
