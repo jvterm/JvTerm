@@ -54,6 +54,7 @@ internal object JvTermLookAndFeel {
         UIManager.put("TitlePane.buttonSize", java.awt.Dimension(40, 40))
         UIManager.put("TitlePane.buttonMinimumWidth", 40)
         UIManager.put("TitlePane.buttonMaximizedHeight", 40)
-      io.github.jvterm.app.ui.LatticeChrome.applySwingDefaults()
+        io.github.jvterm.app.ui.Chrome
+            .applySwingDefaults()
     }
 }

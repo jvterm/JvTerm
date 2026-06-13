@@ -16,6 +16,7 @@
 package io.github.jvterm.core.state
 
 import io.github.jvterm.core.model.*
+import io.github.jvterm.render.api.TerminalRenderCursorShape
 
 /**
  * The global hardware context of the terminal.
@@ -39,7 +40,9 @@ internal class TerminalState(
     val pen = Pen()
     val dimensions = GridDimensions(initialWidth, initialHeight)
     val hostResponses = HostResponseQueue()
-    var themePalette = io.github.jvterm.render.api.TerminalColorPalette()
+    var themePalette =
+        io.github.jvterm.render.api
+            .TerminalColorPalette()
     var palette = themePalette
     var windowPixelWidth: Int = 0
     var windowPixelHeight: Int = 0
@@ -58,9 +61,9 @@ internal class TerminalState(
             }
         }
 
-    var defaultCursorShape: io.github.jvterm.render.api.TerminalRenderCursorShape = io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK
+    var defaultCursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK
 
-    var cursorShape: io.github.jvterm.render.api.TerminalRenderCursorShape = io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK
+    var cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK
         set(value) {
             if (field != value) {
                 field = value

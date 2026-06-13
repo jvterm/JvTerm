@@ -42,7 +42,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("io.github.jvterm.standalone.LatticeStandaloneAppKt")
+    mainClass.set("io.github.jvterm.app.JvTermAppKt")
 }
 
 tasks.test {

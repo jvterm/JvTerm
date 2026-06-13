@@ -20,7 +20,7 @@ import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfileRegistry
 import io.github.jvterm.workspace.config.TerminalConfig
 
-internal class LatticeSettingsModel(
+internal class SettingsModel(
     private val settings: JvTermSettings,
     private val profileRegistry: TerminalProfileRegistry,
 ) {

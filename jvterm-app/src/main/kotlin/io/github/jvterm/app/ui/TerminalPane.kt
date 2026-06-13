@@ -111,7 +111,7 @@ internal class TerminalPane private constructor(
         private fun configureScrollbar(scrollbar: JScrollBar) {
             scrollbar.unitIncrement = 1
             scrollbar.blockIncrement = 8
-            scrollbar.preferredSize = LatticeChrome.scrollbarSize
+            scrollbar.preferredSize = Chrome.scrollbarSize
             scrollbar.ui = ScrollBarUi()
             scrollbar.isVisible = false
             scrollbar.isFocusable = false

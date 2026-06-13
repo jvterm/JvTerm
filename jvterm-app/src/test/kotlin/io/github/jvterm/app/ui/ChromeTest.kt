@@ -21,35 +21,35 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class LatticeChromeTest {
+class ChromeTest {
     @Test
     fun builtInThemesDeriveReadableTabText() {
         TerminalTheme.entries.forEach { theme ->
-            LatticeChrome.applyPalette(theme.createPalette())
+            Chrome.applyPalette(theme.createPalette())
 
             assertContrast(
                 theme = theme,
                 label = "selected tab text",
-                foreground = LatticeChrome.textPrimary,
-                background = LatticeChrome.tabSelectedBackground,
+                foreground = Chrome.textPrimary,
+                background = Chrome.tabSelectedBackground,
             )
             assertContrast(
                 theme = theme,
                 label = "hovered tab text",
-                foreground = LatticeChrome.textHover,
-                background = LatticeChrome.tabHoverBackground,
+                foreground = Chrome.textHover,
+                background = Chrome.tabHoverBackground,
             )
             assertContrast(
                 theme = theme,
                 label = "inactive tab text",
-                foreground = LatticeChrome.textSecondary,
-                background = LatticeChrome.surface,
+                foreground = Chrome.textSecondary,
+                background = Chrome.surface,
             )
             assertContrast(
                 theme = theme,
                 label = "action icon text",
-                foreground = LatticeChrome.controlText,
-                background = LatticeChrome.surface,
+                foreground = Chrome.controlText,
+                background = Chrome.surface,
             )
         }
     }
@@ -57,10 +57,10 @@ class LatticeChromeTest {
     @Test
     fun builtInThemesSeparateSelectedTabFromTitleBar() {
         TerminalTheme.entries.forEach { theme ->
-            LatticeChrome.applyPalette(theme.createPalette())
+            Chrome.applyPalette(theme.createPalette())
 
-            val tabContrast = LatticeChrome.contrastRatio(LatticeChrome.tabSelectedBackground, LatticeChrome.surface)
-            val borderContrast = LatticeChrome.contrastRatio(LatticeChrome.border, LatticeChrome.surface)
+            val tabContrast = Chrome.contrastRatio(Chrome.tabSelectedBackground, Chrome.surface)
+            val borderContrast = Chrome.contrastRatio(Chrome.border, Chrome.surface)
 
             assertTrue(
                 tabContrast >= MINIMUM_SURFACE_CONTRAST,
@@ -75,13 +75,13 @@ class LatticeChromeTest {
 
     @Test
     fun applyPalettePublishesChromeTokensToSwingDefaults() {
-        LatticeChrome.applyPalette(TerminalTheme.entries.first().createPalette())
+        Chrome.applyPalette(TerminalTheme.entries.first().createPalette())
 
-        assertEquals(LatticeChrome.topBarBackground, UIManager.getColor("TitlePane.background"))
-        assertEquals(LatticeChrome.textPrimary, UIManager.getColor("TitlePane.foreground"))
-        assertEquals(LatticeChrome.surface, UIManager.getColor("Panel.background"))
-        assertEquals(LatticeChrome.border, UIManager.getColor("Separator.foreground"))
-        assertEquals(LatticeChrome.controlHover, UIManager.getColor("MenuItem.selectionBackground"))
+        assertEquals(Chrome.topBarBackground, UIManager.getColor("TitlePane.background"))
+        assertEquals(Chrome.textPrimary, UIManager.getColor("TitlePane.foreground"))
+        assertEquals(Chrome.surface, UIManager.getColor("Panel.background"))
+        assertEquals(Chrome.border, UIManager.getColor("Separator.foreground"))
+        assertEquals(Chrome.controlHover, UIManager.getColor("MenuItem.selectionBackground"))
     }
 
     private fun assertContrast(
@@ -90,7 +90,7 @@ class LatticeChromeTest {
         foreground: java.awt.Color,
         background: java.awt.Color,
     ) {
-        val contrast = LatticeChrome.contrastRatio(foreground, background)
+        val contrast = Chrome.contrastRatio(foreground, background)
         assertTrue(
             contrast >= MINIMUM_TEXT_CONTRAST,
             "${theme.name} $label contrast was $contrast",

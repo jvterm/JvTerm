@@ -213,9 +213,12 @@ open class TerminalBufferClusterBenchmark : TerminalRenderFrameConsumer {
     private lateinit var codeWords: IntArray
     private lateinit var attrWords: LongArray
     private lateinit var flags: IntArray
-    private val clusterSink = io.github.jvterm.render.api.TerminalRenderClusterSink { _, _ -> }
+    private val clusterSink =
+        io.github.jvterm.render.api
+            .TerminalRenderClusterSink { _, _ -> }
     private val clusterDataSink =
-      io.github.jvterm.render.api.TerminalRenderClusterDataSink { _, _, _, _ -> }
+        io.github.jvterm.render.api
+            .TerminalRenderClusterDataSink { _, _, _, _ -> }
 
     private var runWithDataSink = false
 

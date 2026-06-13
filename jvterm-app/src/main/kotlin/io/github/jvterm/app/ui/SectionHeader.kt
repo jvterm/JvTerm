@@ -37,13 +37,13 @@ internal class SectionHeader(
 
         val titleLabel =
             JLabel(title).apply {
-                foreground = LatticeChrome.textPrimary
+                foreground = Chrome.textPrimary
                 font = font.deriveFont(Font.BOLD, 13f)
             }
 
         val separator =
             JSeparator(JSeparator.HORIZONTAL).apply {
-                foreground = LatticeChrome.border
+                foreground = Chrome.border
             }
 
         val gbc =

@@ -27,7 +27,7 @@ internal class RenderAttrTranslator {
         extendedAttr: Long,
         reverseVideo: Boolean,
     ): Long =
-      io.github.jvterm.render.api.TerminalRenderAttrs.pack(
+        io.github.jvterm.render.api.TerminalRenderAttrs.pack(
             foregroundKind = AttributeCodec.foregroundColorKind(primaryAttr).toRenderColorKind(),
             foregroundValue = AttributeCodec.foregroundColorValue(primaryAttr),
             backgroundKind = AttributeCodec.backgroundColorKind(primaryAttr).toRenderColorKind(),
@@ -43,7 +43,7 @@ internal class RenderAttrTranslator {
         )
 
     fun toRenderExtraAttrWord(extendedAttr: Long): Long =
-      io.github.jvterm.render.api.TerminalRenderExtraAttrs.pack(
+        io.github.jvterm.render.api.TerminalRenderExtraAttrs.pack(
             underlineColorKind = AttributeCodec.underlineAttributeColorKind(extendedAttr).toRenderColorKind(),
             underlineColorValue = AttributeCodec.underlineAttributeColorValue(extendedAttr),
             overline = AttributeCodec.isOverline(extendedAttr),

@@ -17,7 +17,6 @@ package io.github.jvterm.input.event
 
 import io.github.jvterm.input.event.TerminalKeyEvent.Companion.NO_CODEPOINT
 
-
 /**
  * One keyboard event accepted by the terminal input encoder.
  *

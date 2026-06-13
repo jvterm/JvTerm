@@ -20,7 +20,7 @@ import java.awt.BasicStroke
 /**
  * Shared geometry and stroke constants for the standalone tab strip.
  */
-internal object LatticeTabMetrics {
+internal object TabMetrics {
     const val TAB_BAR_HEIGHT = 40
     const val TAB_TOP_PADDING = 8
     const val TAB_BOTTOM_PADDING = 0
@@ -49,7 +49,7 @@ internal object LatticeTabMetrics {
 /**
  * Immutable tab-strip geometry derived from the component width and tabs.
  */
-internal data class LatticeTabLayout(
+internal data class TabLayout(
     val tabWidths: List<Int>,
     val scrollOffset: Int,
     val maxScrollOffset: Int,
@@ -64,9 +64,9 @@ internal data class LatticeTabLayout(
      * horizontal scroll offset.
      */
     fun tabX(index: Int): Int {
-        var tabX = LatticeTabMetrics.TAB_START_X
+        var tabX = TabMetrics.TAB_START_X
         for (i in 0 until index) {
-            tabX += tabWidths[i] + LatticeTabMetrics.TAB_GAP
+            tabX += tabWidths[i] + TabMetrics.TAB_GAP
         }
         return tabX
     }
@@ -77,46 +77,46 @@ internal data class LatticeTabLayout(
     fun visibleTabRange(index: Int): Pair<Int, Int>? {
         val tabWidth = tabWidths.getOrNull(index) ?: return null
         val relativeLeft = tabX(index) - scrollOffset
-        val visibleStart = maxOf(relativeLeft, LatticeTabMetrics.TAB_START_X)
-        val visibleEnd = minOf(relativeLeft + tabWidth, LatticeTabMetrics.TAB_START_X + availableTabWidth)
+        val visibleStart = maxOf(relativeLeft, TabMetrics.TAB_START_X)
+        val visibleEnd = minOf(relativeLeft + tabWidth, TabMetrics.TAB_START_X + availableTabWidth)
         if (visibleStart >= visibleEnd) return null
         return Pair(visibleStart, visibleEnd)
     }
 
     internal companion object {
-        fun totalTabContentWidth(tabWidths: List<Int>): Int = tabWidths.sum() + maxOf(0, tabWidths.size - 1) * LatticeTabMetrics.TAB_GAP
+        fun totalTabContentWidth(tabWidths: List<Int>): Int = tabWidths.sum() + maxOf(0, tabWidths.size - 1) * TabMetrics.TAB_GAP
     }
 }
 
 /**
- * Calculates tab widths and action-button placement for [LatticeTabBar].
+ * Calculates tab widths and action-button placement for [TabBar].
  */
-internal object LatticeTabLayoutCalculator {
-    fun preferredTabWidth(): Int = LatticeTabMetrics.PREFERRED_TAB_WIDTH
+internal object TabLayoutCalculator {
+    fun preferredTabWidth(): Int = TabMetrics.PREFERRED_TAB_WIDTH
 
     fun compute(
         componentWidth: Int,
         preferredWidths: List<Int>,
         previousScrollOffset: Int,
         editingIndex: Int = -1,
-    ): LatticeTabLayout {
+    ): TabLayout {
         if (preferredWidths.isEmpty()) {
-            return LatticeTabLayout(
+            return TabLayout(
                 tabWidths = emptyList(),
                 scrollOffset = 0,
                 maxScrollOffset = 0,
                 availableTabWidth = spaceWithoutScrollButtons(componentWidth),
-                actionButtonStartX = LatticeTabMetrics.TAB_START_X,
+                actionButtonStartX = TabMetrics.TAB_START_X,
             )
         }
 
         val tabWidths = allocateTabWidths(componentWidth, preferredWidths, editingIndex)
-        val totalWidth = LatticeTabLayout.totalTabContentWidth(tabWidths)
+        val totalWidth = TabLayout.totalTabContentWidth(tabWidths)
         val availableWithoutScroll = spaceWithoutScrollButtons(componentWidth)
-        val preferredTotal = LatticeTabLayout.totalTabContentWidth(preferredWidths)
+        val preferredTotal = TabLayout.totalTabContentWidth(preferredWidths)
         val minimumTotal =
-            preferredWidths.size * LatticeTabMetrics.MIN_TAB_WIDTH +
-                (preferredWidths.size - 1) * LatticeTabMetrics.TAB_GAP
+            preferredWidths.size * TabMetrics.MIN_TAB_WIDTH +
+                (preferredWidths.size - 1) * TabMetrics.TAB_GAP
         val needsScroll = preferredTotal > availableWithoutScroll && minimumTotal > availableWithoutScroll
         val availableForTabs =
             if (needsScroll) {
@@ -127,14 +127,14 @@ internal object LatticeTabLayoutCalculator {
         val maxScrollOffset = if (needsScroll) maxOf(0, totalWidth - availableForTabs) else 0
         val scrollOffset = previousScrollOffset.coerceIn(0, maxScrollOffset)
         val actionButtonStartX =
-            LatticeTabMetrics.TAB_START_X +
+            TabMetrics.TAB_START_X +
                 if (needsScroll) {
                     availableForTabs
                 } else {
                     totalWidth
                 }
 
-        return LatticeTabLayout(
+        return TabLayout(
             tabWidths = tabWidths,
             scrollOffset = scrollOffset,
             maxScrollOffset = maxScrollOffset,
@@ -157,9 +157,9 @@ internal object LatticeTabLayoutCalculator {
             if (otherCount <= 0) {
                 return listOf(minOf(editPref, availableWithoutScroll))
             }
-            val otherGaps = otherCount * LatticeTabMetrics.TAB_GAP + LatticeTabMetrics.TAB_GAP
+            val otherGaps = otherCount * TabMetrics.TAB_GAP + TabMetrics.TAB_GAP
             val remainingSpaceForOthers = availableWithoutScroll - editPref - otherGaps
-            val minSpaceForOthers = otherCount * LatticeTabMetrics.MIN_TAB_WIDTH
+            val minSpaceForOthers = otherCount * TabMetrics.MIN_TAB_WIDTH
 
             if (remainingSpaceForOthers >= minSpaceForOthers) {
                 val widths = IntArray(count)
@@ -172,7 +172,7 @@ internal object LatticeTabLayoutCalculator {
                 for (idx in sortedOtherIndices) {
                     val pref = preferredWidths[idx]
                     val fairShare = spaceToDistribute / remainingOthers
-                    val w = minOf(pref, fairShare).coerceAtLeast(LatticeTabMetrics.MIN_TAB_WIDTH)
+                    val w = minOf(pref, fairShare).coerceAtLeast(TabMetrics.MIN_TAB_WIDTH)
                     widths[idx] = w
                     spaceToDistribute -= w
                     remainingOthers--
@@ -180,21 +180,21 @@ internal object LatticeTabLayoutCalculator {
                 return widths.toList()
             } else {
                 return List(count) { index ->
-                    if (index == editingIndex) editPref else LatticeTabMetrics.MIN_TAB_WIDTH
+                    if (index == editingIndex) editPref else TabMetrics.MIN_TAB_WIDTH
                 }
             }
         }
 
-        val totalPreferred = LatticeTabLayout.totalTabContentWidth(preferredWidths)
+        val totalPreferred = TabLayout.totalTabContentWidth(preferredWidths)
         if (totalPreferred <= availableWithoutScroll) return preferredWidths
 
-        val totalMinimum = count * LatticeTabMetrics.MIN_TAB_WIDTH + (count - 1) * LatticeTabMetrics.TAB_GAP
+        val totalMinimum = count * TabMetrics.MIN_TAB_WIDTH + (count - 1) * TabMetrics.TAB_GAP
         if (totalMinimum > availableWithoutScroll) {
-            return List(count) { LatticeTabMetrics.MIN_TAB_WIDTH }
+            return List(count) { TabMetrics.MIN_TAB_WIDTH }
         }
 
         val widths = IntArray(count)
-        var remainingSpace = availableWithoutScroll - (count - 1) * LatticeTabMetrics.TAB_GAP
+        var remainingSpace = availableWithoutScroll - (count - 1) * TabMetrics.TAB_GAP
         var remainingCount = count
         val sortedIndices = preferredWidths.indices.sortedBy { preferredWidths[it] }
 
@@ -212,12 +212,12 @@ internal object LatticeTabLayoutCalculator {
     private fun spaceWithoutScrollButtons(componentWidth: Int): Int =
         (
             componentWidth -
-                LatticeTabMetrics.TAB_START_X -
-                LatticeTabMetrics.NEW_TAB_BUTTON_WIDTH -
-                LatticeTabMetrics.MENU_BUTTON_WIDTH -
-                LatticeTabMetrics.TRAILING_SPACE
+                TabMetrics.TAB_START_X -
+                TabMetrics.NEW_TAB_BUTTON_WIDTH -
+                TabMetrics.MENU_BUTTON_WIDTH -
+                TabMetrics.TRAILING_SPACE
         ).coerceAtLeast(0)
 
     private fun spaceWithScrollButtons(componentWidth: Int): Int =
-        (spaceWithoutScrollButtons(componentWidth) - LatticeTabMetrics.SCROLL_BUTTON_WIDTH * 2).coerceAtLeast(0)
+        (spaceWithoutScrollButtons(componentWidth) - TabMetrics.SCROLL_BUTTON_WIDTH * 2).coerceAtLeast(0)
 }

@@ -20,11 +20,11 @@ import java.awt.event.MouseEvent
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class LatticeTabBarTest {
+class TabBarTest {
     @Test
     fun tabWidthLockIsAppliedOnHoverCloseAndClearedOnExit() {
         val tabBar =
-            LatticeTabBar(
+            TabBar(
                 onTabSelected = {},
                 onTabClose = {},
                 onNewTab = {},
@@ -97,7 +97,7 @@ class LatticeTabBarTest {
     @Test
     fun tabWidthLockLimitsTabExpansionInNarrowTabBar() {
         val tabBar =
-            LatticeTabBar(
+            TabBar(
                 onTabSelected = {},
                 onTabClose = {},
                 onNewTab = {},

@@ -106,9 +106,9 @@ internal class CoreTerminalRenderFrame(
         get() {
             checkValid()
             return if (state.isAltScreenActive) {
-              io.github.jvterm.render.api.TerminalRenderBufferKind.ALTERNATE
+                io.github.jvterm.render.api.TerminalRenderBufferKind.ALTERNATE
             } else {
-              io.github.jvterm.render.api.TerminalRenderBufferKind.PRIMARY
+                io.github.jvterm.render.api.TerminalRenderBufferKind.PRIMARY
             }
         }
 

@@ -44,20 +44,20 @@ internal class SettingsDialog(
     private val cardPanel =
         JPanel(cardLayout).apply {
             isOpaque = true
-            background = LatticeChrome.surface
+            background = Chrome.surface
         }
     private val sidebarPanel =
         JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             isOpaque = true
-            background = LatticeChrome.surface
+            background = Chrome.surface
             border = EmptyBorder(8, 0, 8, 0)
             preferredSize = Dimension(180, -1)
         }
 
     private val categories = mutableListOf<CategoryLabel>()
     private val applyButton = JButton("Apply")
-    private val model = LatticeSettingsModel(settings, profileRegistry)
+    private val model = SettingsModel(settings, profileRegistry)
 
     // Factory Helpers
     private fun createTextField(
@@ -184,14 +184,14 @@ internal class SettingsDialog(
         val splitPane =
             JPanel(BorderLayout()).apply {
                 isOpaque = true
-                background = LatticeChrome.surface
+                background = Chrome.surface
                 add(sidebarPanel, BorderLayout.WEST)
                 add(
                     JScrollPane(cardPanel).apply {
                         isOpaque = true
                         viewport.isOpaque = true
-                        viewport.background = LatticeChrome.surface
-                        border = BorderFactory.createMatteBorder(0, 1, 0, 0, LatticeChrome.border)
+                        viewport.background = Chrome.surface
+                        border = BorderFactory.createMatteBorder(0, 1, 0, 0, Chrome.border)
                         horizontalScrollBarPolicy = ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
                     },
                     BorderLayout.CENTER,
@@ -252,7 +252,7 @@ internal class SettingsDialog(
         val contentContainer =
             JPanel(BorderLayout()).apply {
                 isOpaque = true
-                background = LatticeChrome.surface
+                background = Chrome.surface
                 border = EmptyBorder(0, 16, 16, 16)
                 add(panel, BorderLayout.NORTH)
             }
@@ -430,7 +430,7 @@ internal class SettingsDialog(
     ): JLabel {
         val label =
             JLabel(labelText).apply {
-                foreground = LatticeChrome.textPrimary
+                foreground = Chrome.textPrimary
                 font = font.deriveFont(Font.PLAIN, 13f)
             }
 
@@ -459,7 +459,7 @@ internal class SettingsDialog(
         if (label2Text != null && comp2 != null) {
             val label2 =
                 JLabel(label2Text).apply {
-                    foreground = LatticeChrome.textPrimary
+                    foreground = Chrome.textPrimary
                     font = font.deriveFont(Font.PLAIN, 13f)
                 }
             gbc.gridx = 2
@@ -509,7 +509,7 @@ internal class SettingsDialog(
                 }
             val descLabel =
                 JLabel("<html>$description</html>").apply {
-                    foreground = LatticeChrome.textSecondary
+                    foreground = Chrome.textSecondary
                     font = font.deriveFont(Font.PLAIN, 12f)
                 }
             panel.add(descLabel, descGbc)
@@ -519,8 +519,8 @@ internal class SettingsDialog(
     private fun buildFooterPanel(): JPanel =
         JPanel(BorderLayout()).apply {
             isOpaque = true
-            background = LatticeChrome.surface
-            border = BorderFactory.createMatteBorder(1, 0, 0, 0, LatticeChrome.border)
+            background = Chrome.surface
+            border = BorderFactory.createMatteBorder(1, 0, 0, 0, Chrome.border)
 
             val leftPanel =
                 JPanel(FlowLayout(FlowLayout.LEFT, 12, 12)).apply {
@@ -605,8 +605,8 @@ internal class SettingsDialog(
         applyButton.isEnabled = hasChanges
         if (hasChanges) {
             applyButton.putClientProperty("JButton.buttonType", "default")
-            applyButton.background = UIManager.getColor("Button.default.background") ?: LatticeChrome.accent
-            applyButton.foreground = UIManager.getColor("Button.default.foreground") ?: LatticeChrome.surface
+            applyButton.background = UIManager.getColor("Button.default.background") ?: Chrome.accent
+            applyButton.foreground = UIManager.getColor("Button.default.foreground") ?: Chrome.surface
         } else {
             applyButton.putClientProperty("JButton.buttonType", null)
             applyButton.background = null
@@ -679,7 +679,7 @@ internal class SettingsDialog(
         private val nameLabel =
             JLabel(categoryName).apply {
                 font = font.deriveFont(Font.PLAIN, 13f)
-                foreground = LatticeChrome.textPrimary
+                foreground = Chrome.textPrimary
                 border = EmptyBorder(0, 12, 0, 0)
             }
 
@@ -714,10 +714,10 @@ internal class SettingsDialog(
 
         override fun paintComponent(g: Graphics) {
             if (selected) {
-                g.color = LatticeChrome.controlHover
+                g.color = Chrome.controlHover
                 g.fillRect(8, 0, width - 16, height)
             } else if (hovered) {
-                g.color = LatticeChrome.tabHoverBackground
+                g.color = Chrome.tabHoverBackground
                 g.fillRect(8, 0, width - 16, height)
             }
             super.paintComponent(g)

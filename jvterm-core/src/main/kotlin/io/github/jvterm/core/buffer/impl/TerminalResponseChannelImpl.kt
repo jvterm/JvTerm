@@ -200,9 +200,9 @@ internal class TerminalResponseChannelImpl(
             "q" -> {
                 val shapeCode =
                     when (state.cursorShape) {
-                      io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK -> if (state.modes.isCursorBlinking) 1 else 2
-                      io.github.jvterm.render.api.TerminalRenderCursorShape.UNDERLINE -> if (state.modes.isCursorBlinking) 3 else 4
-                      io.github.jvterm.render.api.TerminalRenderCursorShape.BAR -> if (state.modes.isCursorBlinking) 5 else 6
+                        io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK -> if (state.modes.isCursorBlinking) 1 else 2
+                        io.github.jvterm.render.api.TerminalRenderCursorShape.UNDERLINE -> if (state.modes.isCursorBlinking) 3 else 4
+                        io.github.jvterm.render.api.TerminalRenderCursorShape.BAR -> if (state.modes.isCursorBlinking) 5 else 6
                     }
                 enqueueDecrqssResponse(status = 1, "$shapeCode q")
             }

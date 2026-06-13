@@ -20,7 +20,7 @@ import java.awt.Dimension
 import javax.swing.UIManager
 import kotlin.math.pow
 
-private data class LatticeChromeColors(
+private data class ChromeColors(
     val surface: Color,
     val topBarBackground: Color,
     val terminalBackground: Color,
@@ -44,8 +44,8 @@ private data class LatticeChromeColors(
     val scrollbarThumbPressed: Color,
 ) {
     companion object {
-        fun fallback(): LatticeChromeColors =
-            LatticeChromeColors(
+        fun fallback(): ChromeColors =
+            ChromeColors(
                 surface = Color(0x18, 0x18, 0x18),
                 topBarBackground = Color(0x18, 0x18, 0x18),
                 terminalBackground = Color(0x18, 0x18, 0x18),
@@ -77,7 +77,7 @@ private data class LatticeChromeColors(
  * The reusable terminal component owns terminal rendering. This host object
  * owns only standalone chrome colors such as tab states, menus, and scrollbars.
  */
-internal object LatticeChrome {
+internal object Chrome {
     const val APP_TITLE = "Lattice"
 
     /** Root window background and deep surface. */
@@ -167,7 +167,7 @@ internal object LatticeChrome {
     /** Preferred scrollbar width. */
     val scrollbarSize: Dimension = Dimension(10, 1)
 
-    private var colors = LatticeChromeColors.fallback()
+    private var colors = ChromeColors.fallback()
 
     /**
      * Derives standalone chrome colors from [palette] and updates Swing defaults.
@@ -184,7 +184,7 @@ internal object LatticeChrome {
         val textPrimary = ensureContrast(fg, bg, MINIMUM_TEXT_CONTRAST)
 
         colors =
-            LatticeChromeColors(
+            ChromeColors(
                 surface = surface,
                 topBarBackground = surface,
                 terminalBackground = bg,

@@ -40,7 +40,7 @@ internal class AboutDialog(
     private fun buildAboutPanel(): JPanel =
         JPanel().apply {
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
-            background = LatticeChrome.surface
+            background = Chrome.surface
             isOpaque = true
             border = EmptyBorder(24, 24, 24, 24)
 
@@ -71,7 +71,7 @@ internal class AboutDialog(
         val panel =
             JPanel().apply {
                 layout = BoxLayout(this, BoxLayout.X_AXIS)
-                background = LatticeChrome.surface
+                background = Chrome.surface
                 isOpaque = false
                 maximumSize = Dimension(Int.MAX_VALUE, 50)
                 alignmentX = LEFT_ALIGNMENT
@@ -90,7 +90,7 @@ internal class AboutDialog(
         val titlePanel =
             JPanel().apply {
                 layout = BoxLayout(this, BoxLayout.Y_AXIS)
-                background = LatticeChrome.surface
+                background = Chrome.surface
                 isOpaque = false
                 alignmentY = CENTER_ALIGNMENT
             }
@@ -98,13 +98,13 @@ internal class AboutDialog(
         val titleLabel =
             JLabel("Lattice Terminal").apply {
                 font = Font("Dialog", Font.BOLD, 20)
-                foreground = LatticeChrome.textPrimary
+                foreground = Chrome.textPrimary
             }
 
         val subtitleLabel =
             JLabel("A high-performance, modern terminal emulator.").apply {
                 font = Font("Dialog", Font.PLAIN, 11)
-                foreground = LatticeChrome.textSecondary
+                foreground = Chrome.textSecondary
             }
 
         titlePanel.add(titleLabel)
@@ -121,7 +121,7 @@ internal class AboutDialog(
         val panel =
             JPanel().apply {
                 layout = GridLayout(3, 1, 0, 4)
-                background = LatticeChrome.surface
+                background = Chrome.surface
                 isOpaque = false
                 alignmentX = LEFT_ALIGNMENT
             }
@@ -130,19 +130,19 @@ internal class AboutDialog(
         val versionLabel =
             JLabel("Version: $version").apply {
                 font = Font("Dialog", Font.PLAIN, 11)
-                foreground = LatticeChrome.textSecondary
+                foreground = Chrome.textSecondary
             }
 
         val developerLabel =
             JLabel("Developer: Gagik Sargsyan").apply {
                 font = Font("Dialog", Font.PLAIN, 11)
-                foreground = LatticeChrome.textSecondary
+                foreground = Chrome.textSecondary
             }
 
         val licenseLabel =
             JLabel("Licensed under the Apache License, Version 2.0").apply {
                 font = Font("Dialog", Font.PLAIN, 10)
-                foreground = LatticeChrome.controlTextDisabled
+                foreground = Chrome.controlTextDisabled
             }
 
         panel.add(versionLabel)
@@ -155,7 +155,7 @@ internal class AboutDialog(
     private fun buildDivider(): JPanel =
         JPanel().apply {
             layout = BorderLayout()
-            background = LatticeChrome.surface
+            background = Chrome.surface
             isOpaque = false
             maximumSize = Dimension(Int.MAX_VALUE, 1)
             preferredSize = Dimension(Int.MAX_VALUE, 1)
@@ -165,7 +165,7 @@ internal class AboutDialog(
                     override fun paintComponent(g: Graphics) {
                         super.paintComponent(g)
                         val g2d = g as Graphics2D
-                        g2d.color = LatticeChrome.border
+                        g2d.color = Chrome.border
                         g2d.drawLine(0, height / 2, width, height / 2)
                     }
                 }.apply {
@@ -179,7 +179,7 @@ internal class AboutDialog(
         val panel =
             JPanel().apply {
                 layout = FlowLayout(FlowLayout.RIGHT, 0, 0)
-                background = LatticeChrome.surface
+                background = Chrome.surface
                 isOpaque = false
                 maximumSize = Dimension(Int.MAX_VALUE, 32)
                 alignmentX = LEFT_ALIGNMENT

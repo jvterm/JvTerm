@@ -20,22 +20,22 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class LatticeTabLayoutTest {
+class TabLayoutTest {
     @Test
     fun firstTabLeftPaddingMatchesTopPadding() {
-        assertEquals(LatticeTabMetrics.TAB_TOP_PADDING, LatticeTabMetrics.TAB_START_X)
+        assertEquals(TabMetrics.TAB_TOP_PADDING, TabMetrics.TAB_START_X)
     }
 
     @Test
     fun preferredTabWidthIsFixed() {
-        assertEquals(220, LatticeTabLayoutCalculator.preferredTabWidth())
-        assertEquals(220, LatticeTabLayoutCalculator.preferredTabWidth())
+        assertEquals(220, TabLayoutCalculator.preferredTabWidth())
+        assertEquals(220, TabLayoutCalculator.preferredTabWidth())
     }
 
     @Test
     fun computeReturnsStableEmptyLayout() {
         val layout =
-            LatticeTabLayoutCalculator.compute(
+            TabLayoutCalculator.compute(
                 componentWidth = 120,
                 preferredWidths = emptyList(),
                 previousScrollOffset = 70,
@@ -45,13 +45,13 @@ class LatticeTabLayoutTest {
         assertEquals(0, layout.scrollOffset)
         assertEquals(0, layout.maxScrollOffset)
         assertEquals(52, layout.availableTabWidth)
-        assertEquals(LatticeTabMetrics.TAB_START_X, layout.actionButtonStartX)
+        assertEquals(TabMetrics.TAB_START_X, layout.actionButtonStartX)
     }
 
     @Test
     fun computeKeepsPreferredWidthsWhenTabsFit() {
         val layout =
-            LatticeTabLayoutCalculator.compute(
+            TabLayoutCalculator.compute(
                 componentWidth = 600,
                 preferredWidths = listOf(120, 140),
                 previousScrollOffset = 50,
@@ -62,7 +62,7 @@ class LatticeTabLayoutTest {
         assertEquals(0, layout.maxScrollOffset)
         assertFalse(layout.scrollButtonsVisible)
         assertEquals(
-            LatticeTabMetrics.TAB_START_X + 120 + LatticeTabMetrics.TAB_GAP + 140,
+            TabMetrics.TAB_START_X + 120 + TabMetrics.TAB_GAP + 140,
             layout.actionButtonStartX,
         )
     }
@@ -70,7 +70,7 @@ class LatticeTabLayoutTest {
     @Test
     fun computeDoesNotForceScrollWhenSmallPreferredTabsFit() {
         val layout =
-            LatticeTabLayoutCalculator.compute(
+            TabLayoutCalculator.compute(
                 componentWidth = 260,
                 preferredWidths = listOf(40, 40, 40),
                 previousScrollOffset = 0,
@@ -84,7 +84,7 @@ class LatticeTabLayoutTest {
     @Test
     fun computeShrinksTabsWithoutScrollWhenMinimumWidthsFit() {
         val layout =
-            LatticeTabLayoutCalculator.compute(
+            TabLayoutCalculator.compute(
                 componentWidth = 420,
                 preferredWidths = listOf(180, 160, 140),
                 previousScrollOffset = 0,
@@ -98,7 +98,7 @@ class LatticeTabLayoutTest {
     @Test
     fun computeUsesMinimumWidthsAndScrollButtonsWhenTabsCannotFit() {
         val layout =
-            LatticeTabLayoutCalculator.compute(
+            TabLayoutCalculator.compute(
                 componentWidth = 260,
                 preferredWidths = listOf(180, 160, 140),
                 previousScrollOffset = 999,
@@ -109,13 +109,13 @@ class LatticeTabLayoutTest {
         assertEquals(144, layout.availableTabWidth)
         assertEquals(164, layout.maxScrollOffset)
         assertEquals(164, layout.scrollOffset)
-        assertEquals(LatticeTabMetrics.TAB_START_X + layout.availableTabWidth, layout.actionButtonStartX)
+        assertEquals(TabMetrics.TAB_START_X + layout.availableTabWidth, layout.actionButtonStartX)
     }
 
     @Test
     fun computeClampsNegativeScrollOffset() {
         val layout =
-            LatticeTabLayoutCalculator.compute(
+            TabLayoutCalculator.compute(
                 componentWidth = 260,
                 preferredWidths = listOf(180, 160, 140),
                 previousScrollOffset = -40,
@@ -128,7 +128,7 @@ class LatticeTabLayoutTest {
     @Test
     fun computeHandlesNarrowComponentWithoutNegativeViewport() {
         val layout =
-            LatticeTabLayoutCalculator.compute(
+            TabLayoutCalculator.compute(
                 componentWidth = 20,
                 preferredWidths = listOf(120, 120),
                 previousScrollOffset = 0,
@@ -136,13 +136,13 @@ class LatticeTabLayoutTest {
 
         assertEquals(0, layout.availableTabWidth)
         assertEquals(204, layout.maxScrollOffset)
-        assertEquals(LatticeTabMetrics.TAB_START_X, layout.actionButtonStartX)
+        assertEquals(TabMetrics.TAB_START_X, layout.actionButtonStartX)
     }
 
     @Test
     fun visibleTabRangeClipsAgainstViewportAndScrollOffset() {
         val layout =
-            LatticeTabLayout(
+            TabLayout(
                 tabWidths = listOf(100, 100, 100),
                 scrollOffset = 80,
                 maxScrollOffset = 120,
@@ -158,7 +158,7 @@ class LatticeTabLayoutTest {
     @Test
     fun visibleTabRangeReturnsNullForHiddenOrUnknownTabs() {
         val layout =
-            LatticeTabLayout(
+            TabLayout(
                 tabWidths = listOf(100, 100),
                 scrollOffset = 240,
                 maxScrollOffset = 240,

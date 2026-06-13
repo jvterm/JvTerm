@@ -31,19 +31,19 @@ import javax.swing.border.EmptyBorder
  *
  * FlatLaf merges [JMenuBar] into the custom title bar when
  * `useWindowDecorations=true` and `JFrame.setDefaultLookAndFeelDecorated(true)`
- * are active. We place [LatticeTabBar] at the left of the menu bar and the
+ * are active. We place [TabBar] at the left of the menu bar and the
  * action buttons at the right, with a horizontal glue in between.
  *
  * @property profileRegistry source of available shell profiles for the new-tab
  *   dropdown menu and the default-profile provider lambda.
  */
-internal class LatticeWindowFactory(
+internal class WindowFactory(
     private val settings: JvTermSettings,
     private val profileRegistry: TerminalProfileRegistry,
 ) {
-    fun createWindow(): LatticeWindow {
+    fun createWindow(): Window {
         val frame =
-            JFrame(LatticeChrome.APP_TITLE).apply {
+            JFrame(Chrome.APP_TITLE).apply {
                 defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
                 minimumSize = Dimension(720, 420)
                 iconImages =
@@ -57,14 +57,14 @@ internal class LatticeWindowFactory(
 
         val tabContentPanel =
             JPanel(CardLayout()).apply {
-                background = LatticeChrome.terminalBackground
+                background = Chrome.terminalBackground
                 isOpaque = true
             }
 
         // Tab bar callbacks reference tabManager; forward via lambda so the
         // lateinit is resolved at call time, not at construction time.
-        lateinit var tabManager: LatticeTabManager
-        lateinit var tabBar: LatticeTabBar
+        lateinit var tabManager: TabManager
+        lateinit var tabBar: TabBar
 
         val availableProfiles = profileRegistry.availableProfiles()
 
@@ -82,7 +82,7 @@ internal class LatticeWindowFactory(
         }
 
         tabBar =
-            LatticeTabBar(
+            TabBar(
                 onTabSelected = { id -> tabManager.onTabSelected(id) },
                 onTabClose = { id -> tabManager.closeTab(id) },
                 onNewTab = { tabManager.openTab(defaultProfileProvider()) },
@@ -91,7 +91,7 @@ internal class LatticeWindowFactory(
                 onTabRenameRequested = { id, newName -> tabManager.onTabRenameRequested(id, newName) },
             )
 
-        tabManager = LatticeTabManager(frame, tabBar, tabContentPanel, settings, defaultProfileProvider)
+        tabManager = TabManager(frame, tabBar, tabContentPanel, settings, defaultProfileProvider)
 
         installMenuBar(frame, tabBar)
         styleTitleBar(frame)
@@ -105,7 +105,7 @@ internal class LatticeWindowFactory(
             },
         )
 
-        return LatticeWindow(frame, tabManager)
+        return Window(frame, tabManager)
     }
 
     /**
@@ -114,7 +114,7 @@ internal class LatticeWindowFactory(
      */
     private fun installMenuBar(
         frame: JFrame,
-        tabBar: LatticeTabBar,
+        tabBar: TabBar,
     ) {
         frame.jMenuBar =
             JMenuBar().apply {
@@ -131,21 +131,21 @@ internal class LatticeWindowFactory(
         x: Int,
         y: Int,
         profiles: List<io.github.jvterm.workspace.TerminalProfile>,
-        tabManager: LatticeTabManager,
+        tabManager: TabManager,
         defaultProfileProvider: () -> io.github.jvterm.workspace.TerminalProfile,
     ) {
         val popup =
             JPopupMenu().apply {
-                background = LatticeChrome.popupBackground
-                border = BorderFactory.createLineBorder(LatticeChrome.border)
+                background = Chrome.popupBackground
+                border = BorderFactory.createLineBorder(Chrome.border)
             }
 
         val profileIcons = ProfileIcons()
         profiles.forEach { profile ->
             val item =
                 JMenuItem(profile.displayName, profileIcons.icon(profile.kind)).apply {
-                    background = LatticeChrome.popupBackground
-                    foreground = LatticeChrome.textPrimary
+                    background = Chrome.popupBackground
+                    foreground = Chrome.textPrimary
                     addActionListener {
                         // Stamp the configured startDirectory onto built-in profiles
                         // whose workingDirectory is null (i.e. they carry no explicit
@@ -172,11 +172,11 @@ internal class LatticeWindowFactory(
                     FlatSVGIcon("com/gagik/terminal/standalone/icons/settings.svg", 16, 16).apply {
                         colorFilter =
                             FlatSVGIcon.ColorFilter().apply {
-                                add(java.awt.Color.BLACK, LatticeChrome.textPrimary)
+                                add(java.awt.Color.BLACK, Chrome.textPrimary)
                             }
                     }
-                background = LatticeChrome.popupBackground
-                foreground = LatticeChrome.textPrimary
+                background = Chrome.popupBackground
+                foreground = Chrome.textPrimary
                 addActionListener {
                     SettingsDialog(frame, settings, profileRegistry) {
                         tabManager.reloadAllPanes()
@@ -191,11 +191,11 @@ internal class LatticeWindowFactory(
                     FlatSVGIcon("com/gagik/terminal/standalone/icons/about.svg", 16, 16).apply {
                         colorFilter =
                             FlatSVGIcon.ColorFilter().apply {
-                                add(java.awt.Color.BLACK, LatticeChrome.textPrimary)
+                                add(java.awt.Color.BLACK, Chrome.textPrimary)
                             }
                     }
-                background = LatticeChrome.popupBackground
-                foreground = LatticeChrome.textPrimary
+                background = Chrome.popupBackground
+                foreground = Chrome.textPrimary
                 addActionListener {
                     AboutDialog(frame).isVisible = true
                 }
@@ -211,9 +211,9 @@ internal class LatticeWindowFactory(
      */
     private fun styleTitleBar(frame: JFrame) {
         frame.rootPane.apply {
-            background = LatticeChrome.surface
-            putClientProperty("JRootPane.titleBarBackground", LatticeChrome.topBarBackground)
-            putClientProperty("JRootPane.titleBarForeground", LatticeChrome.textPrimary)
+            background = Chrome.surface
+            putClientProperty("JRootPane.titleBarBackground", Chrome.topBarBackground)
+            putClientProperty("JRootPane.titleBarForeground", Chrome.textPrimary)
             putClientProperty("JRootPane.titleBarShowIcon", false)
             putClientProperty("JRootPane.titleBarShowTitle", false)
         }
@@ -223,7 +223,7 @@ internal class LatticeWindowFactory(
 /**
  * Standalone window and its terminal tab controller.
  */
-internal data class LatticeWindow(
+internal data class Window(
     val frame: JFrame,
-    val tabManager: LatticeTabManager,
+    val tabManager: TabManager,
 )

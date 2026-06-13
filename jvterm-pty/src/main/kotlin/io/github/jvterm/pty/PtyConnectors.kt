@@ -40,12 +40,12 @@ object PtyConnectors {
     ): TerminalConnector {
         val options =
             TerminalPtyOptions(
-                  command = command,
-                  environment = env,
-                  workingDirectory = workingDirectory,
-                  columns = columns,
-                  rows = rows,
-              )
+                command = command,
+                environment = env,
+                workingDirectory = workingDirectory,
+                columns = columns,
+                rows = rows,
+            )
         return create(options, Pty4jTerminalProcessFactory)
     }
 

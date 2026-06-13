@@ -25,7 +25,7 @@ import javax.swing.*
 /**
  * Owns standalone terminal tabs and tab-scoped session lifecycle.
  *
- * The manager coordinates between [LatticeTabBar] (visual header), the
+ * The manager coordinates between [TabBar] (visual header), the
  * [tabContentPanel] (holds one [TerminalPane] per tab via [CardLayout]),
  * and the backing [TerminalWorkspace]. All session lifecycle decisions live
  * here; reusable UI components remain policy-free.
@@ -34,9 +34,9 @@ import javax.swing.*
  *   or split pane is opened. Queried at open time — not cached — so that changes
  *   to the configured shell take effect immediately on the next new tab.
  */
-internal class LatticeTabManager(
+internal class TabManager(
     private val frame: JFrame,
-    val tabBar: LatticeTabBar,
+    val tabBar: TabBar,
     private val tabContentPanel: JPanel,
     private val settings: JvTermSettings,
     private val defaultProfileProvider: () -> TerminalProfile,
@@ -201,7 +201,7 @@ internal class LatticeTabManager(
 
         val container =
             JPanel(BorderLayout()).apply {
-                background = LatticeChrome.terminalBackground
+                background = Chrome.terminalBackground
                 isOpaque = true
                 add(leaf.component, BorderLayout.CENTER)
             }
@@ -247,12 +247,12 @@ internal class LatticeTabManager(
     /** Propagates a settings reload to all live panes and the workspace. */
     fun reloadAllPanes() {
         val snapshot = settings.current()
-        LatticeChrome.applyPalette(snapshot.palette)
-        frame.rootPane.putClientProperty("JRootPane.titleBarBackground", LatticeChrome.topBarBackground)
-        frame.rootPane.putClientProperty("JRootPane.titleBarForeground", LatticeChrome.textPrimary)
+        Chrome.applyPalette(snapshot.palette)
+        frame.rootPane.putClientProperty("JRootPane.titleBarBackground", Chrome.topBarBackground)
+        frame.rootPane.putClientProperty("JRootPane.titleBarForeground", Chrome.textPrimary)
         SwingUtilities.updateComponentTreeUI(frame)
         panes.forEach { it.reloadSettings() }
-        tabContentPanel.background = LatticeChrome.terminalBackground
+        tabContentPanel.background = Chrome.terminalBackground
         workspace.applySettings(
             palette = snapshot.palette,
             treatAmbiguousAsWide = snapshot.treatAmbiguousAsWide,
@@ -262,7 +262,7 @@ internal class LatticeTabManager(
 
     /**
      * Switches the active content pane and workspace selection to [id].
-     * Called by [LatticeTabBar] when the user clicks a different tab.
+     * Called by [TabBar] when the user clicks a different tab.
      */
     fun onTabSelected(id: String) {
         val activePane = getActivePane(id) ?: return
@@ -278,7 +278,7 @@ internal class LatticeTabManager(
 
     /**
      * Updates the custom color of the corresponding workspace tab.
-     * Called by [LatticeTabBar] when a user picks a custom color.
+     * Called by [TabBar] when a user picks a custom color.
      */
     fun onTabColorChanged(
         id: String,
@@ -290,7 +290,7 @@ internal class LatticeTabManager(
 
     /**
      * Updates the custom title of the corresponding workspace tab.
-     * Called by [LatticeTabBar] when a user renames a tab.
+     * Called by [TabBar] when a user renames a tab.
      */
     fun onTabRenameRequested(
         id: String,
@@ -483,13 +483,13 @@ internal class LatticeTabManager(
                     override fun createDefaultDivider(): javax.swing.plaf.basic.BasicSplitPaneDivider =
                         object : javax.swing.plaf.basic.BasicSplitPaneDivider(this) {
                             override fun paint(g: Graphics) {
-                                g.color = LatticeChrome.border
+                                g.color = Chrome.border
                                 g.fillRect(0, 0, width, height)
                             }
                         }
                 },
             )
-            background = LatticeChrome.terminalBackground
+            background = Chrome.terminalBackground
         }
     }
 
@@ -528,7 +528,7 @@ internal class LatticeTabManager(
     }
 
     private fun updateFrameTitle() {
-        frame.title = selectedPane?.tab?.title ?: LatticeChrome.APP_TITLE
+        frame.title = selectedPane?.tab?.title ?: Chrome.APP_TITLE
     }
 
     private fun showStartError(

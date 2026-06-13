@@ -18,7 +18,6 @@ package io.github.jvterm.core
 import io.github.jvterm.core.api.TerminalBuffer
 import io.github.jvterm.core.buffer.DefaultTerminalBuffer
 
-
 /**
  * Factory for creating terminal buffer instances behind the public core API.
  */

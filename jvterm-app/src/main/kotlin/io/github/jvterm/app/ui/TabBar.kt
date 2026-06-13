@@ -24,7 +24,7 @@ import javax.swing.SwingUtilities
 import javax.swing.Timer
 
 /**
- * A tab entry displayed in [LatticeTabBar].
+ * A tab entry displayed in [TabBar].
  */
 internal data class TabEntry(
     val id: String,
@@ -41,7 +41,7 @@ internal data class TabEntry(
  * - Horizontal scrolling with mouse wheel and buttons when tabs exceed available width.
  * - Single trailing dropdown for unified profile and settings menus.
  */
-internal class LatticeTabBar(
+internal class TabBar(
     private val onTabSelected: (id: String) -> Unit,
     private val onTabClose: (id: String) -> Unit,
     private val onNewTab: () -> Unit,
@@ -59,7 +59,7 @@ internal class LatticeTabBar(
     private var tabWidths: List<Int> = emptyList()
     private var scrollOffset = 0
     private var maxScrollOffset = 0
-    private var layout = LatticeTabLayoutCalculator.compute(0, emptyList(), 0)
+    private var layout = TabLayoutCalculator.compute(0, emptyList(), 0)
 
     // Editing state
     private var editingIndex = -1
@@ -99,7 +99,7 @@ internal class LatticeTabBar(
         addComponentListener(
             object : ComponentAdapter() {
                 override fun componentResized(e: ComponentEvent?) {
-                    val window = SwingUtilities.getWindowAncestor(this@LatticeTabBar)
+                    val window = SwingUtilities.getWindowAncestor(this@TabBar)
                     val currentWindowWidth = window?.width ?: -1
                     if (lastWindowWidth != -1 && currentWindowWidth != lastWindowWidth) {
                         hoverTabWidthLock = null
@@ -269,7 +269,7 @@ internal class LatticeTabBar(
             } else {
                 entries.map { preferredTabWidth(it, fm) }
             }
-        val totalTabWidth = LatticeTabLayout.totalTabContentWidth(preferredWidths)
+        val totalTabWidth = TabLayout.totalTabContentWidth(preferredWidths)
         val staticWidth = TAB_START_X + NEW_TAB_BUTTON_WIDTH + MENU_BUTTON_WIDTH + TRAILING_SPACE
         val prefW = totalTabWidth + staticWidth
 
@@ -303,7 +303,7 @@ internal class LatticeTabBar(
                     }
                 }
             }
-        layout = LatticeTabLayoutCalculator.compute(width, prefWidths, scrollOffset, editingIndex)
+        layout = TabLayoutCalculator.compute(width, prefWidths, scrollOffset, editingIndex)
         tabWidths = layout.tabWidths
         scrollOffset = layout.scrollOffset
         maxScrollOffset = layout.maxScrollOffset
@@ -312,7 +312,7 @@ internal class LatticeTabBar(
     private fun preferredTabWidth(
         entry: TabEntry,
         fm: FontMetrics,
-    ): Int = LatticeTabLayoutCalculator.preferredTabWidth()
+    ): Int = TabLayoutCalculator.preferredTabWidth()
 
     // -------------------------------------------------------------------------
     // Painting
@@ -387,29 +387,29 @@ internal class LatticeTabBar(
                     if (entry.id == fadingInId && fadeProgress < 1.0f) {
                         val startColor =
                             if (index == tabHoverIndex) {
-                                if (isTabPressed) LatticeChrome.controlPressed else LatticeChrome.tabHoverBackground
+                                if (isTabPressed) Chrome.controlPressed else Chrome.tabHoverBackground
                             } else {
                                 TRANSPARENT_COLOR
                             }
-                        blendColors(startColor, LatticeChrome.tabSelectedBackground, fadeProgress)
+                        blendColors(startColor, Chrome.tabSelectedBackground, fadeProgress)
                     } else {
-                        LatticeChrome.tabSelectedBackground
+                        Chrome.tabSelectedBackground
                     }
                 }
                 entry.id == fadingOutId -> {
                     val endColor =
                         if (index == tabHoverIndex) {
-                            if (isTabPressed) LatticeChrome.controlPressed else LatticeChrome.tabHoverBackground
+                            if (isTabPressed) Chrome.controlPressed else Chrome.tabHoverBackground
                         } else {
                             TRANSPARENT_COLOR
                         }
-                    blendColors(LatticeChrome.tabSelectedBackground, endColor, fadeProgress)
+                    blendColors(Chrome.tabSelectedBackground, endColor, fadeProgress)
                 }
                 index == tabHoverIndex -> {
                     if (isTabPressed) {
-                        LatticeChrome.controlPressed
+                        Chrome.controlPressed
                     } else {
-                        LatticeChrome.tabHoverBackground
+                        Chrome.tabHoverBackground
                     }
                 }
                 else -> TRANSPARENT_COLOR
@@ -470,7 +470,7 @@ internal class LatticeTabBar(
                     else -> 1.0f
                 }
             if (borderAlpha > 0f) {
-                val baseBorderColor = LatticeChrome.border
+                val baseBorderColor = Chrome.border
                 g2.color =
                     Color(
                         baseBorderColor.red,
@@ -490,7 +490,7 @@ internal class LatticeTabBar(
         val isNextSelectedOrFading = nextId == selectedId || nextId == fadingOutId
         val nextHovered = index + 1 == tabHoverIndex
         if (!isSelfSelectedOrFading && !isNextSelectedOrFading && !nextHovered && index < entries.size - 1 && index != tabHoverIndex) {
-            g2.color = LatticeChrome.border
+            g2.color = Chrome.border
             g2.stroke = HAIRLINE_STROKE
             val divX = x + w + TAB_GAP / 2
             g2.drawLine(divX, y + 6, divX, y + h - 6)
@@ -515,18 +515,18 @@ internal class LatticeTabBar(
             when {
                 entry.id == selectedId -> {
                     if (entry.id == fadingInId && fadeProgress < 1.0f) {
-                        val startColor = if (index == tabHoverIndex) LatticeChrome.textHover else LatticeChrome.textSecondary
-                        blendColors(startColor, LatticeChrome.textPrimary, fadeProgress)
+                        val startColor = if (index == tabHoverIndex) Chrome.textHover else Chrome.textSecondary
+                        blendColors(startColor, Chrome.textPrimary, fadeProgress)
                     } else {
-                        LatticeChrome.textPrimary
+                        Chrome.textPrimary
                     }
                 }
                 entry.id == fadingOutId -> {
-                    val endColor = if (index == tabHoverIndex) LatticeChrome.textHover else LatticeChrome.textSecondary
-                    blendColors(LatticeChrome.textPrimary, endColor, fadeProgress)
+                    val endColor = if (index == tabHoverIndex) Chrome.textHover else Chrome.textSecondary
+                    blendColors(Chrome.textPrimary, endColor, fadeProgress)
                 }
-                index == tabHoverIndex -> LatticeChrome.textHover
-                else -> LatticeChrome.textSecondary
+                index == tabHoverIndex -> Chrome.textHover
+                else -> Chrome.textSecondary
             }
         g2.color = titleFg
         val labelMaxWidth = w - TAB_LABEL_PADDING_LEFT - ICON_TEXT_GAP - CLOSE_BUTTON_SIZE - CLOSE_BUTTON_MARGIN_RIGHT - 4
@@ -581,7 +581,7 @@ internal class LatticeTabBar(
                 val baseBg =
                     if (hovered) {
                         val isPressed = activePressedResult == HitResult.TabClose(index)
-                        if (isPressed) LatticeChrome.controlPressed else LatticeChrome.controlHover
+                        if (isPressed) Chrome.controlPressed else Chrome.controlHover
                     } else {
                         null
                     }
@@ -590,7 +590,7 @@ internal class LatticeTabBar(
                     g2.fillRoundRect(x, y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, 3, 3)
                 }
 
-                val baseFg = if (hovered) LatticeChrome.textPrimary else LatticeChrome.textSecondary
+                val baseFg = if (hovered) Chrome.textPrimary else Chrome.textSecondary
                 g2.color = Color(baseFg.red, baseFg.green, baseFg.blue, (baseFg.alpha * closeAlpha).toInt().coerceIn(0, 255))
                 g2.stroke = ICON_STROKE
                 val pad = CLOSE_BUTTON_SIZE / 4
@@ -704,7 +704,7 @@ internal class LatticeTabBar(
         }
         currentX += NEW_TAB_BUTTON_WIDTH
 
-        g2.color = LatticeChrome.divider
+        g2.color = Chrome.divider
         g2.stroke = DIVIDER_STROKE
         val divX = currentX - 2
         g2.drawLine(divX, y + 6, divX, y + h - 6)
@@ -739,7 +739,7 @@ internal class LatticeTabBar(
         val centerX = x + width / 2
         val centerY = y + height / 2
         if (hovered || pressed) {
-            g2.color = if (pressed) LatticeChrome.controlPressed else LatticeChrome.tabHoverBackground
+            g2.color = if (pressed) Chrome.controlPressed else Chrome.tabHoverBackground
             g2.fillRoundRect(
                 centerX - ACTION_BUTTON_HOVER_SIZE / 2,
                 centerY - ACTION_BUTTON_HOVER_SIZE / 2,
@@ -752,9 +752,9 @@ internal class LatticeTabBar(
 
         g2.color =
             when {
-                !enabled -> LatticeChrome.controlTextDisabled
-                hovered || pressed -> LatticeChrome.textPrimary
-                else -> LatticeChrome.controlText
+                !enabled -> Chrome.controlTextDisabled
+                hovered || pressed -> Chrome.textPrimary
+                else -> Chrome.controlText
             }
         g2.stroke = ACTION_ICON_STROKE
         paintIcon(centerX, centerY)
@@ -1086,12 +1086,12 @@ internal class LatticeTabBar(
 
         val tf = javax.swing.JTextField(entry.title)
         tf.font = font.deriveFont(13f)
-        tf.foreground = LatticeChrome.textPrimary
-        tf.caretColor = LatticeChrome.textPrimary
-        tf.background = LatticeChrome.tabSelectedBackground
+        tf.foreground = Chrome.textPrimary
+        tf.caretColor = Chrome.textPrimary
+        tf.background = Chrome.tabSelectedBackground
         tf.border =
             javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(LatticeChrome.accent, 1),
+                javax.swing.BorderFactory.createLineBorder(Chrome.accent, 1),
                 javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 4),
             )
 
@@ -1226,32 +1226,32 @@ internal class LatticeTabBar(
     }
 
     private companion object {
-        private const val FADE_DURATION_MS = LatticeTabMetrics.FADE_DURATION_MS
-        private const val FADE_DELAY_MS = LatticeTabMetrics.FADE_DELAY_MS
-        private const val TAB_BAR_HEIGHT = LatticeTabMetrics.TAB_BAR_HEIGHT
-        private const val TAB_TOP_PADDING = LatticeTabMetrics.TAB_TOP_PADDING
-        private const val TAB_BOTTOM_PADDING = LatticeTabMetrics.TAB_BOTTOM_PADDING
-        private const val TAB_START_X = LatticeTabMetrics.TAB_START_X
-        private const val TAB_GAP = LatticeTabMetrics.TAB_GAP
-        private const val TAB_LABEL_PADDING_LEFT = LatticeTabMetrics.TAB_LABEL_PADDING_LEFT
-        private const val ICON_TEXT_GAP = LatticeTabMetrics.ICON_TEXT_GAP
-        private const val CLOSE_BUTTON_SIZE = LatticeTabMetrics.CLOSE_BUTTON_SIZE
-        private const val CLOSE_BUTTON_MARGIN_RIGHT = LatticeTabMetrics.CLOSE_BUTTON_MARGIN_RIGHT
-        private const val SCROLL_BUTTON_WIDTH = LatticeTabMetrics.SCROLL_BUTTON_WIDTH
-        private const val NEW_TAB_BUTTON_WIDTH = LatticeTabMetrics.NEW_TAB_BUTTON_WIDTH
-        private const val MENU_BUTTON_WIDTH = LatticeTabMetrics.MENU_BUTTON_WIDTH
-        private const val TRAILING_SPACE = LatticeTabMetrics.TRAILING_SPACE
-        private const val CORNER_RADIUS = LatticeTabMetrics.CORNER_RADIUS
-        private const val BOTTOM_OUTSIDE_RADIUS = LatticeTabMetrics.BOTTOM_OUTSIDE_RADIUS
+        private const val FADE_DURATION_MS = TabMetrics.FADE_DURATION_MS
+        private const val FADE_DELAY_MS = TabMetrics.FADE_DELAY_MS
+        private const val TAB_BAR_HEIGHT = TabMetrics.TAB_BAR_HEIGHT
+        private const val TAB_TOP_PADDING = TabMetrics.TAB_TOP_PADDING
+        private const val TAB_BOTTOM_PADDING = TabMetrics.TAB_BOTTOM_PADDING
+        private const val TAB_START_X = TabMetrics.TAB_START_X
+        private const val TAB_GAP = TabMetrics.TAB_GAP
+        private const val TAB_LABEL_PADDING_LEFT = TabMetrics.TAB_LABEL_PADDING_LEFT
+        private const val ICON_TEXT_GAP = TabMetrics.ICON_TEXT_GAP
+        private const val CLOSE_BUTTON_SIZE = TabMetrics.CLOSE_BUTTON_SIZE
+        private const val CLOSE_BUTTON_MARGIN_RIGHT = TabMetrics.CLOSE_BUTTON_MARGIN_RIGHT
+        private const val SCROLL_BUTTON_WIDTH = TabMetrics.SCROLL_BUTTON_WIDTH
+        private const val NEW_TAB_BUTTON_WIDTH = TabMetrics.NEW_TAB_BUTTON_WIDTH
+        private const val MENU_BUTTON_WIDTH = TabMetrics.MENU_BUTTON_WIDTH
+        private const val TRAILING_SPACE = TabMetrics.TRAILING_SPACE
+        private const val CORNER_RADIUS = TabMetrics.CORNER_RADIUS
+        private const val BOTTOM_OUTSIDE_RADIUS = TabMetrics.BOTTOM_OUTSIDE_RADIUS
         private const val TAB_CLIP_OVERPAINT = BOTTOM_OUTSIDE_RADIUS + 1
         private const val SELECTED_TAB_JOIN_OVERLAP = 2
         private const val ACTION_BUTTON_HOVER_SIZE = 24
         private const val ACTION_BUTTON_CORNER_RADIUS = 3
         private val TRANSPARENT_COLOR = Color(0, 0, 0, 0)
-        private val HAIRLINE_STROKE = LatticeTabMetrics.HAIRLINE_STROKE
-        private val DIVIDER_STROKE = LatticeTabMetrics.DIVIDER_STROKE
-        private val ICON_STROKE = LatticeTabMetrics.ICON_STROKE
-        private val ACTION_ICON_STROKE = LatticeTabMetrics.ACTION_ICON_STROKE
+        private val HAIRLINE_STROKE = TabMetrics.HAIRLINE_STROKE
+        private val DIVIDER_STROKE = TabMetrics.DIVIDER_STROKE
+        private val ICON_STROKE = TabMetrics.ICON_STROKE
+        private val ACTION_ICON_STROKE = TabMetrics.ACTION_ICON_STROKE
     }
 
     private data class TabShapeBounds(
