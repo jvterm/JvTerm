@@ -6,7 +6,7 @@ Using JetBrains [Pty4J](https://github.com/JetBrains/pty4j) as the underlying na
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 - **`:jvterm-protocol`** (vocabulary, mode IDs, enums)
 - **`:jvterm-transport-api`** (duplex connector contracts)
 - **`:jvterm-core`** (headless terminal grid)
@@ -16,11 +16,11 @@ Using JetBrains [Pty4J](https://github.com/JetBrains/pty4j) as the underlying na
 
 ---
 
-## 🏛️ Architectural Role & Data Flow
+## Architectural Role & Data Flow
 
 The PTY transport orchestrates three asynchronous boundaries:
-1. **The Reader Thread** (`pty-reader`): Blocks on the native PTY process `InputStream`, pumping raw byte packets to the parser.
-2. **The Watcher Thread** (`pty-watcher`): Blocks on process termination (`Process.waitFor()`) to capture the native exit code.
+1. **The Reader Thread** (`terminal-pty-reader`): Blocks on the native PTY process `InputStream`, pumping raw byte packets to the parser.
+2. **The Watcher Thread** (`terminal-pty-watcher`): Blocks on process termination (`Process.waitFor()`) to capture the native exit code.
 3. **The Outbound Writer**: Processes writes synchronously from the terminal event loop or core replies, protected by an internal serialization write lock.
 
 ```mermaid
@@ -28,8 +28,8 @@ flowchart TD
     UI([User Interaction / Input])
     Loop[TerminalSession Event Loop]
     PtyConn[PtyConnector]
-    ReaderThread[pty-reader Thread]
-    WatcherThread[pty-watcher Thread]
+    ReaderThread[terminal-pty-reader Thread]
+    WatcherThread[terminal-pty-watcher Thread]
     PtyProc[PtyProcess]
 
     UI -->|Key / Mouse / Paste| Loop
@@ -46,14 +46,14 @@ flowchart TD
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For deep-dive details on daemon threading and ConPTY integration:
 * [pty4j-process-lifecycle.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-pty/docs/pty4j-process-lifecycle.md) - PTY reader and watcher loops, exit-code capture, and Windows sizing adjustments.
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 The following example shows how to launch a local shell session (e.g. `/bin/bash` or `cmd.exe`) using the `TerminalSessions` factory:
 
@@ -93,7 +93,7 @@ fun main() {
 
 ---
 
-## 🔗 How to Extend: Custom Key Mappings or Shells
+## How to Extend: Custom Key Mappings or Shells
 
 You can customize the command array, working directory, and custom environment variables directly via `PtyOptions`:
 

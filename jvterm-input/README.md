@@ -6,13 +6,13 @@ The module is engineered to be highly performant, allocation-minimal, and robust
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 - **`:jvterm-protocol`** (for shared mouse, keyboard, and mode constants).
 - **`:jvterm-core`** (for reading terminal input state and modes).
 
 ---
 
-## 🏛️ Architectural Scope & Flow
+## Architectural Scope & Flow
 
 To preserve a strict separation of concerns, `jvterm-input` operates under clear design constraints:
 
@@ -33,7 +33,7 @@ Parser/Core Replies  ───────────────────�
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For specifications on the input API contract and wire formats:
 * [terminal-input-contract.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-input/docs/terminal-input-contract.md) - Input event definitions, validation criteria, modifiers, and thread-safety limits.
@@ -41,7 +41,7 @@ For specifications on the input API contract and wire formats:
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 The following example shows how to instantiate the `DefaultTerminalInputEncoder` and encode a keyboard key press event:
 

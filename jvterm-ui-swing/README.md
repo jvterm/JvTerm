@@ -6,7 +6,7 @@ A reusable, premium-tier Swing terminal component built in Kotlin/JVM 21.
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 - **`:jvterm-protocol`** (vocabulary, mode IDs, enums)
 - **`:jvterm-render-api`** (render frame primitives and color palettes)
 - **`:jvterm-render-cache`** (triple-buffered cache reader)
@@ -15,7 +15,7 @@ A reusable, premium-tier Swing terminal component built in Kotlin/JVM 21.
 
 ---
 
-## 🏛️ Architecture & System Design
+## Architecture & System Design
 
 The module is built on three core design philosophies:
 1. **Complete Protocol Ignorance:** The UI has zero knowledge of ANSI, VT, ESC, OSC, or DCS bytes. It never parses stream protocols or executes grid mutation rules.
@@ -53,7 +53,7 @@ graph TD
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For detailed specifications on Swing painting and text pipelines:
 * [swing-repaint-optimization.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-ui-swing/docs/swing-repaint-optimization.md) - Repaint planner bounds calculations, drag selection matrices, and smart path double-click detection.
@@ -61,7 +61,7 @@ For detailed specifications on Swing painting and text pipelines:
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 To place a functional, interactive terminal component in your Swing layout, instantiate `SwingTerminal` and bind it to your active `TerminalSession`:
 
@@ -101,7 +101,7 @@ fun createTerminalView(session: TerminalSession): JComponent {
 
 ---
 
-## 🔗 How to Extend: Custom Host Services
+## How to Extend: Custom Host Services
 
 To integrate clipboard features, hyperlink clicking, or custom alert overlays into the terminal view, implement the [SwingHostServices](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-ui-swing/src/main/kotlin/io/github/jvterm/ui/swing/settings/SwingHostServices.kt) interface:
 

@@ -6,14 +6,14 @@ It acts as the single, thin, and explicit translation point where abstract seman
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 - **`:jvterm-protocol`** (vocabulary, mode IDs, enums)
 - **`:jvterm-parser`** (FSM, UTF-8, semantic command sinks)
 - **`:jvterm-core`** (grid representation, text buffer, cell attributes, modes)
 
 ---
 
-## 🏛️ Architectural Role & Pipeline Flow
+## Architectural Role & Pipeline Flow
 
 The terminal pipeline operates in strict, unidirectional layers to preserve a Strong Single Responsibility Principle (SRP). `jvterm-host` sits at the center of this pipeline:
 
@@ -33,7 +33,7 @@ graph TD
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For details on the hyperlink registry and mapping rules:
 * [hyperlink-registry.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-host/docs/hyperlink-registry.md) - OSC 8 URI mapping, numeric cell keys, and LRU eviction thresholds.
@@ -41,7 +41,7 @@ For details on the hyperlink registry and mapping rules:
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 The following example shows how to instantiate the adapter and wire the parser to the core buffer:
 
@@ -84,6 +84,6 @@ fun main() {
 
 ---
 
-## 🔗 How to Extend: Custom Event Sinks
+## How to Extend: Custom Event Sinks
 
 To react to non-grid events in a custom application UI (for example, to display window titles in an OS frame header), implement the [HostEventSink](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-host/src/main/kotlin/io/github/jvterm/host/HostEventSink.kt) interface and pass it to the `HostCommandAdapter` constructor during startup.

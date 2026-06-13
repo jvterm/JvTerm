@@ -1,4 +1,4 @@
-# 🌀 JvTerm Terminal
+# JvTerm Terminal
 
 **JvTerm** (derived from **JVM** + **Terminal**) is a next-generation, high-performance, strictly modular terminal emulator library written in **Kotlin/JVM 21**. 
 

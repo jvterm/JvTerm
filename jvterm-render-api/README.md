@@ -6,12 +6,12 @@ This module is designed under a rigid **Single Responsibility Principle (SRP)**:
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 * **None**. This is a standalone, zero-dependency module compiling against the bare-metal Kotlin Standard Library.
 
 ---
 
-## 🏛️ Architectural Role
+## Architectural Role
 
 ```mermaid
 classDiagram
@@ -53,7 +53,7 @@ classDiagram
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For deep-dive technical details on attribute packing and thread synchronization:
 * [attribute-packing.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-api/docs/attribute-packing.md) - Exact bit mapping layouts for 64-bit attributes.
@@ -61,7 +61,7 @@ For deep-dive technical details on attribute packing and thread synchronization:
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 The following example shows how a custom drawing canvas consumes a `TerminalRenderFrame` to copy cell data and draw to a screen:
 
@@ -106,7 +106,7 @@ class CanvasPainter(
 
 ---
 
-## 🔗 How to Extend: Custom State Provider
+## How to Extend: Custom State Provider
 
 To expose a custom data structure (such as a remote SSH buffer or custom grid implementation) for rendering, implement the `TerminalRenderFrame` and `TerminalRenderFrameReader` interfaces:
 

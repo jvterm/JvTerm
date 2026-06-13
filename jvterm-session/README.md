@@ -6,7 +6,7 @@ The module encapsulates the synchronization policies necessary to support concur
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 - **`:jvterm-protocol`** (vocabulary, mode IDs, enums)
 - **`:jvterm-render-api`** (render frame contracts)
 - **`:jvterm-render-cache`** (triple-buffered frame publication)
@@ -19,7 +19,7 @@ The module encapsulates the synchronization policies necessary to support concur
 
 ---
 
-## 🏛️ Architectural Role & Runtime Context
+## Architectural Role & Runtime Context
 
 ```text
 UI Adapter  ───►  Terminal Event Loop Actor  ───►  TerminalInputEncoder  ───►  TerminalHostOutput  ───►  PTY stdin
@@ -34,7 +34,7 @@ The session integrates all independent components into a single lifecycle loop:
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For detailed specifications on session locks and thread architectures:
 * [session-concurrency-locks.md](file:///c:/Users/gagik/IdeaProjects/terminal-session/docs/session-concurrency-locks.md) - Core concurrency locks (`inboundLock`, `mutationLock`, `outboundWriteLock`) and lock order routing.
@@ -42,7 +42,7 @@ For detailed specifications on session locks and thread architectures:
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 The following example shows how to create and start a `TerminalSession` by wiring together the core, transport, host, and input elements:
 

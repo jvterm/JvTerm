@@ -6,7 +6,7 @@ This module is designed to be completely decoupled from any specific UI toolkit,
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 - **`:jvterm-protocol`** (vocabulary, mode IDs, enums)
 - **`:jvterm-render-api`** (render frame primitives and color palettes)
 - **`:jvterm-transport-api`** (duplex connector contracts)
@@ -15,7 +15,7 @@ This module is designed to be completely decoupled from any specific UI toolkit,
 
 ---
 
-## 🏛️ Architectural Role
+## Architectural Role
 
 `TerminalWorkspace` manages a collection of tabs. Each tab wraps an active, running `TerminalSession` tied to a specific `TerminalProfile` launch configuration.
 
@@ -41,14 +41,14 @@ graph TD
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For detailed specifications on the persistency configuration format and resolution:
 * [profile-config-toml.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/docs/profile-config-toml.md) - TOML config blocks syntax, configuration properties list, and directory resolution hierarchies per OS.
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 The following example shows how to load workspace configurations, register a workspace listener, and open multiple terminal tabs:
 
@@ -107,7 +107,7 @@ fun main() {
 
 ---
 
-## 🔗 How to Extend: Custom Tab Listeners
+## How to Extend: Custom Tab Listeners
 
 UI components (such as Swing tabbed panels or custom IDE interfaces) implement `TerminalWorkspaceListener` to map workspace actions directly onto window views:
 

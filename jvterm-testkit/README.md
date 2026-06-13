@@ -46,7 +46,7 @@ The module's public surface area contains a single, highly configurable test dou
 
 ---
 
-## 🔗 How to Use in Tests
+## How to Use in Tests
 
 The following example shows how to write a unit test using `MockConnector` to assert on bidirectional byte flows:
 

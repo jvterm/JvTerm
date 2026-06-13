@@ -6,12 +6,12 @@ It is designed with strict **Single Responsibility Principles (SRP)** and serves
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 * **None**. This is a standalone, zero-dependency module compiling against the bare-metal Kotlin Standard Library.
 
 ---
 
-## 🏛️ Architectural Role & Core Interfaces
+## Architectural Role & Core Interfaces
 
 The transport API provides a duplex, byte-stream abstraction to isolate the terminal engine from physical I/O streams (e.g., network sockets, local processes, files, or test mocks).
 
@@ -44,14 +44,14 @@ classDiagram
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For deep-dive technical details on threading invariants and lifecycle states:
 * [connector-lifecycle.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-transport-api/docs/connector-lifecycle.md) - Startup/shutdown transitions, concurrent writes, and synchronous consumption invariants.
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 The following example shows how a generic terminal engine can consume a `TerminalConnector` to write user input and listen for incoming host bytes:
 
@@ -89,7 +89,7 @@ class SimpleTerminalEngine(private val connector: TerminalConnector) {
 
 ---
 
-## 🔗 How to Implement: Custom Transport Connector
+## How to Implement: Custom Transport Connector
 
 To implement a custom transport connector (e.g., a TCP socket transport), extend `TerminalConnector` and coordinate the background reading threads:
 

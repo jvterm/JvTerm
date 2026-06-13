@@ -16,18 +16,18 @@ To prevent blocking client threads during blocking Native I/O reads or process w
          ┌─────────────────────┴─────────────────────┐
          ▼                                           ▼
   [Reader Thread]                            [Watcher Thread]
-  ("pty-reader-*")                           ("pty-watcher-*")
+  ("terminal-pty-reader")                    ("terminal-pty-watcher")
          │                                           │
   - Loops on process.inputStream.read()      - Blocks on process.waitFor()
   - Dispatches onBytes(...) serially         - Captures exitCode
   - Reuses flat byte read buffers            - Dispatches onClosed(...)
 ```
 
-* **Reader Thread (`pty-reader-*`)**:
+* **Reader Thread (`terminal-pty-reader`)**:
   * Continually blocks on process `inputStream.read(buffer)`.
-  * **Memory optimization**: Reuses a pre-allocated byte buffer (default `4096` bytes) to prevent GC allocation overhead.
+  * **Memory optimization**: Reuses a pre-allocated byte buffer (default `8192` bytes) to prevent GC allocation overhead.
   * **Synchronous dispatch**: Immediately forwards read chunks to `TerminalConnectorListener.onBytes(...)`.
-* **Watcher Thread (`pty-watcher-*`)**:
+* **Watcher Thread (`terminal-pty-watcher`)**:
   * Blocks on `process.waitFor()` to detect process termination.
   * Captures the integer exit code and safely dispatches `onClosed(exitCode)` to cleanup resources.
 * **Daemon Property**: Both threads are explicitly marked as daemon threads (`isDaemon = true`) so that when the main application shuts down, the PTY reader threads do not keep the JVM process alive.

@@ -6,12 +6,12 @@ These cached layouts allow asynchronous UI paint loop threads to perform font re
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 * **`:jvterm-render-api`** (for rendering interfaces, attributes, and cell flags).
 
 ---
 
-## 🏛️ Architectural Role & Boundaries
+## Architectural Role & Boundaries
 
 To guarantee safety, memory locality, and absolute performance, `jvterm-render-cache` operates under strict boundaries:
 
@@ -48,14 +48,14 @@ To guarantee safety, memory locality, and absolute performance, `jvterm-render-c
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For deep-dive technical details on triple-buffering logic and grapheme cluster copy optimizations:
 * [triple-buffering-concurrency.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-cache/docs/triple-buffering-concurrency.md) - Buffer rotation phases, reader lease counts, and packed cluster allocation safety.
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 The following example shows how a UI component initializes a publisher and draws using the double/triple-buffered cache:
 

@@ -6,12 +6,12 @@ By centralizing ANSI/DEC protocol keys, mode identifiers, and low-level byte sin
 
 ---
 
-## 🔌 Upstream Dependencies
+## Upstream Dependencies
 * **None**. This is a standalone, zero-dependency module compiling against the bare-metal Kotlin Standard Library.
 
 ---
 
-## 🏛️ Architectural Role
+## Architectural Role
 
 To maintain a strict separation of concerns, `jvterm-protocol` contains **no execution logic, no parser engines, and no terminal grid memory**. It acts purely as a shared typing and constant definitions layer.
 
@@ -69,7 +69,7 @@ classDiagram
 
 ---
 
-## 📖 Sub-Documentation
+## Sub-Documentation
 
 For deep-dive specifications on modes and input behaviors:
 * [protocol-modes.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-protocol/docs/protocol-modes.md) - Full specification of all supported ANSI and DEC private modes.
@@ -77,7 +77,7 @@ For deep-dive specifications on modes and input behaviors:
 
 ---
 
-## 🔗 How to Use
+## How to Use
 
 Below are typical integration examples demonstrating how a client codebase would import and consume the `jvterm-protocol` definitions.
 
@@ -108,7 +108,7 @@ class CustomTerminalWidget {
 
 ---
 
-## 🔗 How to Extend: Custom Transport Sinks
+## How to Extend: Custom Transport Sinks
 
 To output bytes from the emulator to a custom channel (such as a TCP Socket, SSH Session, or Mock Console), implement the [TerminalHostOutput](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-protocol/src/main/kotlin/io/github/jvterm/protocol/host/TerminalHostOutput.kt) interface:
 
