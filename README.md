@@ -1,22 +1,26 @@
 # JvTerm Terminal
 
-**JvTerm** (derived from **JVM** + **Terminal**) is a next-generation, high-performance, strictly modular terminal emulator library written in **Kotlin/JVM 21**. 
+**JvTerm** (derived from **JVM** + **Terminal**) is a next-generation, high-performance, strictly modular terminal emulator library written in **Kotlin/JVM 21**.
 
 Designed for embedding into IDEs, developer tools, and standalone desktop applications, JvTerm provides a clean, fast, and modern terminal architecture. It rejects the bloated legacy compatibility of the 1980s (like printer passthroughs or Tektronix vector graphics) to focus on contemporary shells and text-user interfaces (TUIs).
 
 ---
 
-## Key Features & Strengths
+## Features
 
-* **Modern & Fast**: Optimized with zero-allocation hot paths, table-driven FSM transitions, and flat primitive grids. Sustains a rendering speed of **60+ FPS** under intense stdout streams.
-* **TUI-Ready Compliance**: Passes most of the tests from `vttest`, ensuring flawless rendering and interactive support for advanced TUIs such as `vim`, `htop`, `tmux`, and `less`.
-* **Native PTY Integration**: Backed by JetBrains [Pty4J](https://github.com/traff/pty4j) under the hood, enabling seamless, cross-platform local shell execution (`cmd.exe` or `powershell.exe` on Windows; `bash` or `zsh` on macOS/Linux).
-* **Premium Swing Component**: Exposes a highly customizable Java Swing component (`SwingTerminal`) that is easy to drop into any desktop layout.
-* **Triple-Buffered UI Rendering**: Uses a double/triple-buffered publisher model to isolate background PTY processing from the Swing Event Dispatch Thread (EDT), ensuring **zero visual tearing and glitch-free painting**.
-* **Precision Typography & Unicode**: Fully implements Unicode Standard Annex #29 (UAX #29) grapheme cluster segmentation, East Asian width policies, and custom cell-by-cell box-drawing renderers.
-* **Security-Hardened Design**: Includes bounded LRU caches for OSC 8 hyperlinks, title stack guards, and strict DCS/OSC byte limits to protect hosts from memory exhaustion.
+* **Native Pseudo-Terminal (PTY) Integration**: Seamless cross-platform native execution using JetBrains [Pty4J](https://github.com/traff/pty4j) with full Windows ConPTY support, built to handle modern shells (Zsh, Fish, PowerShell) and prompt size propagation.
+* **Modern TUI & vt100/xterm Compliance**: Passes most tests of the rigorous `vttest` suite, ensuring flawless rendering for heavy interactive TUI applications like Neovim, Tmux, Htop, Fzf, and lazygit.
+* **Richer Styling & 24-Bit TrueColor**: Bypasses the limits of standard 256-color palettes with full 24-bit TrueColor RGB mapping. Renders overline decorations and modern underline styles (Single, Double, Curly, Dotted, Dashed) with custom underline colors.
+* **Advanced Keyboard Shortcuts**: Full support for the **Kitty Keyboard Protocol** (capturing complex shortcut transitions like press, repeat, release, and alternate layout shortcuts that outdated terminal widgets drop) alongside xterm `modifyOtherKeys` and compact CSI-u.
+* **Unbounded Mouse Tracking**: Supports legacy mouse tracking alongside modern Standard SGR Mouse (`1006`) and URXVT (`1015`) decimal-packed mouse coordinates, allowing clicks, drags, and scroll-wheel interactions to work on high-resolution displays larger than 223 columns.
+* **Tear-Free Triple-Buffered Rendering**: Decouples active parsing from the UI drawing loops using an asynchronous dirty-coalescing rendering worker and a triple-buffered publisher. Delivers a clean **60+ FPS** paint cycle with zero visual tearing or stuttering under massive log outputs.
+* **Security-Hardened Design**: Hardened against malicious escape sequence exploits. Utilizes a bounded, double-indexed LRU cache for OSC 8 hyperlinks, strict xterm title stack limits, and pre-allocated OSC/DCS payload buffers to block memory exhaustion.
+* **Pixel-Perfect Typography & Color Emojis**: Integrates UAX #29 grapheme cluster segmentation, East Asian width policies, custom fallback font chains, and prioritized OS color emojis (Apple, Segoe, Noto). Programmatically paints box-drawing and block characters to eliminate anti-aliased line gaps.
+* **Zero-Allocation Memory Profile**: Core grid storage is built on flat parallel primitive arrays (no object-per-cell overhead) and a circular arena allocator (`ClusterStore`), ensuring near-zero garbage collector pressure and pauses during active shell throughput.
+* **Independent Buffer & Margin Physics**: Employs vertical and horizontal scroll margins (`DECSLRM`/`DECSTBM`) with instant switching between primary and alt buffers (`?1049`) carrying independent margins and cursor state save slots.
 
 ---
+
 
 ## Seamless Integration Guide
 
@@ -39,10 +43,10 @@ fun spawnTerminalWindow() {
         rows = 30,
         maxHistory = 2000
     )
-    
+
     // 2. Start PTY process and reader daemon threads
     val session = TerminalSessions.localPty(options)
-    
+
     // 3. Create the Swing JComponent with visual settings
     val settings = SwingSettings(
         palette = TerminalTheme.ONE_DARK.createPalette(),
@@ -52,10 +56,10 @@ fun spawnTerminalWindow() {
     val terminalComponent = SwingTerminal(
         settingsProvider = { settings }
     )
-    
+
     // 4. Bind the Swing component to the active session
     terminalComponent.bind(session)
-    
+
     // 5. Host it in a standard JFrame layout
     val frame = JFrame("JvTerm Terminal")
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
@@ -115,6 +119,23 @@ JvTerm is composed of 12 highly decoupled Gradle modules:
   ```bash
   ./gradlew :jvterm-ui-swing-demo:run --args="powershell.exe"
   ```
+
+---
+
+## Authors
+
+* **Gagik Sargsyan** - Creator & Core Maintainer
+
+---
+
+## Links & Resources
+
+* **Terminal Protocol Details**: [xterm control sequences](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)
+* **Parser FSM Inspiration**: [Paul Williams' ANSI Parser State Machine](https://vt100.net/emu/dec_ansi_parser)
+* **Unicode Segmentation Standard**: [Unicode Standard Annex #29 (UAX #29)](https://www.unicode.org/reports/tr29/)
+* **Advanced Keyboard Input Specs**: [Kitty Keyboard Protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/)
+* **Native PTY Dependency**: [Pty4J Github Repository](https://github.com/traff/pty4j)
+* **Terminal Testing Reference**: [vttest suite homepage](https://invisible-island.net/vttest/)
 
 ---
 
