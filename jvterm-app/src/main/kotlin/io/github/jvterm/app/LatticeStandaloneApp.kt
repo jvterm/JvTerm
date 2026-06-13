@@ -23,19 +23,19 @@ import javax.swing.SwingUtilities
  */
 fun main(args: Array<String>) {
     SwingUtilities.invokeLater {
-        _root_ide_package_.io.github.jvterm.app.LatticeStandaloneApp.start(args.toList())
+      io.github.jvterm.app.LatticeStandaloneApp.start(args.toList())
     }
 }
 
 private object LatticeStandaloneApp {
     fun start(args: List<String>) {
-        _root_ide_package_.io.github.jvterm.app.StandaloneLookAndFeel.install()
+      io.github.jvterm.app.StandaloneLookAndFeel.install()
 
-        val settings = _root_ide_package_.io.github.jvterm.app.config.StandaloneTerminalSettings()
-        _root_ide_package_.io.github.jvterm.app.ui.LatticeChrome
+        val settings = io.github.jvterm.app.config.StandaloneTerminalSettings()
+      io.github.jvterm.app.ui.LatticeChrome
             .applyPalette(settings.current().palette)
-        val profileRegistry = _root_ide_package_.io.github.jvterm.workspace.TerminalProfileRegistry()
-        val windowFactory = _root_ide_package_.io.github.jvterm.app.ui.LatticeWindowFactory(settings, profileRegistry)
+        val profileRegistry = io.github.jvterm.workspace.TerminalProfileRegistry()
+        val windowFactory = io.github.jvterm.app.ui.LatticeWindowFactory(settings, profileRegistry)
         val window = windowFactory.createWindow()
         val frame = window.frame
 

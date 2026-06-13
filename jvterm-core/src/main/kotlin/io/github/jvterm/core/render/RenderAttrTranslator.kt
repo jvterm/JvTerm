@@ -27,7 +27,7 @@ internal class RenderAttrTranslator {
         extendedAttr: Long,
         reverseVideo: Boolean,
     ): Long =
-        _root_ide_package_.io.github.jvterm.render.api.TerminalRenderAttrs.pack(
+      io.github.jvterm.render.api.TerminalRenderAttrs.pack(
             foregroundKind = AttributeCodec.foregroundColorKind(primaryAttr).toRenderColorKind(),
             foregroundValue = AttributeCodec.foregroundColorValue(primaryAttr),
             backgroundKind = AttributeCodec.backgroundColorKind(primaryAttr).toRenderColorKind(),
@@ -43,7 +43,7 @@ internal class RenderAttrTranslator {
         )
 
     fun toRenderExtraAttrWord(extendedAttr: Long): Long =
-        _root_ide_package_.io.github.jvterm.render.api.TerminalRenderExtraAttrs.pack(
+      io.github.jvterm.render.api.TerminalRenderExtraAttrs.pack(
             underlineColorKind = AttributeCodec.underlineAttributeColorKind(extendedAttr).toRenderColorKind(),
             underlineColorValue = AttributeCodec.underlineAttributeColorValue(extendedAttr),
             overline = AttributeCodec.isOverline(extendedAttr),
@@ -51,18 +51,18 @@ internal class RenderAttrTranslator {
 
     private fun Int.toRenderColorKind(): Int =
         when (this) {
-            AttributeCodec.COLOR_KIND_INDEXED -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderColorKind.INDEXED
-            AttributeCodec.COLOR_KIND_RGB -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderColorKind.RGB
-            else -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderColorKind.DEFAULT
+            AttributeCodec.COLOR_KIND_INDEXED -> io.github.jvterm.render.api.TerminalRenderColorKind.INDEXED
+            AttributeCodec.COLOR_KIND_RGB -> io.github.jvterm.render.api.TerminalRenderColorKind.RGB
+            else -> io.github.jvterm.render.api.TerminalRenderColorKind.DEFAULT
         }
 
     private fun UnderlineStyle.toRenderUnderline(): Int =
         when (this) {
-            UnderlineStyle.NONE -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderUnderline.NONE
-            UnderlineStyle.SINGLE -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderUnderline.SINGLE
-            UnderlineStyle.DOUBLE -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderUnderline.DOUBLE
-            UnderlineStyle.CURLY -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderUnderline.CURLY
-            UnderlineStyle.DOTTED -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderUnderline.DOTTED
-            UnderlineStyle.DASHED -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderUnderline.DASHED
+            UnderlineStyle.NONE -> io.github.jvterm.render.api.TerminalRenderUnderline.NONE
+            UnderlineStyle.SINGLE -> io.github.jvterm.render.api.TerminalRenderUnderline.SINGLE
+            UnderlineStyle.DOUBLE -> io.github.jvterm.render.api.TerminalRenderUnderline.DOUBLE
+            UnderlineStyle.CURLY -> io.github.jvterm.render.api.TerminalRenderUnderline.CURLY
+            UnderlineStyle.DOTTED -> io.github.jvterm.render.api.TerminalRenderUnderline.DOTTED
+            UnderlineStyle.DASHED -> io.github.jvterm.render.api.TerminalRenderUnderline.DASHED
         }
 }

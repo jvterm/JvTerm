@@ -54,6 +54,6 @@ internal object StandaloneLookAndFeel {
         UIManager.put("TitlePane.buttonSize", java.awt.Dimension(40, 40))
         UIManager.put("TitlePane.buttonMinimumWidth", 40)
         UIManager.put("TitlePane.buttonMaximizedHeight", 40)
-        _root_ide_package_.io.github.jvterm.app.ui.LatticeChrome.applySwingDefaults()
+      io.github.jvterm.app.ui.LatticeChrome.applySwingDefaults()
     }
 }

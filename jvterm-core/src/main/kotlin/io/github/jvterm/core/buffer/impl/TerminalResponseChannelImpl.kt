@@ -200,9 +200,9 @@ internal class TerminalResponseChannelImpl(
             "q" -> {
                 val shapeCode =
                     when (state.cursorShape) {
-                        _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK -> if (state.modes.isCursorBlinking) 1 else 2
-                        _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCursorShape.UNDERLINE -> if (state.modes.isCursorBlinking) 3 else 4
-                        _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCursorShape.BAR -> if (state.modes.isCursorBlinking) 5 else 6
+                      io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK -> if (state.modes.isCursorBlinking) 1 else 2
+                      io.github.jvterm.render.api.TerminalRenderCursorShape.UNDERLINE -> if (state.modes.isCursorBlinking) 3 else 4
+                      io.github.jvterm.render.api.TerminalRenderCursorShape.BAR -> if (state.modes.isCursorBlinking) 5 else 6
                     }
                 enqueueDecrqssResponse(status = 1, "$shapeCode q")
             }
@@ -223,7 +223,7 @@ internal class TerminalResponseChannelImpl(
         status: Int,
         responseData: String,
     ) {
-        state.hostResponses.enqueueByte(_root_ide_package_.io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte('P'.code)
         state.hostResponses.enqueuePositiveDecimal(status)
         state.hostResponses.enqueueByte('$'.code)
@@ -299,7 +299,7 @@ internal class TerminalResponseChannelImpl(
 
     /** Emits `ESC P [statusChar] + r`. */
     private fun enqueueXtgettcapPrefix(statusChar: Char) {
-        state.hostResponses.enqueueByte(_root_ide_package_.io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte('P'.code)
         state.hostResponses.enqueueByte(statusChar.code)
         state.hostResponses.enqueueByte('+'.code)
@@ -491,17 +491,17 @@ internal class TerminalResponseChannelImpl(
     }
 
     private fun enqueueOscPrefix() {
-        state.hostResponses.enqueueByte(_root_ide_package_.io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte(']'.code)
     }
 
     private fun enqueueStSuffix() {
-        state.hostResponses.enqueueByte(_root_ide_package_.io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte('\\'.code)
     }
 
     private fun enqueueCsiPrefix() {
-        state.hostResponses.enqueueByte(_root_ide_package_.io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte('['.code)
     }
 

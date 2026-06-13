@@ -84,19 +84,19 @@ private fun Line.cellFlags(
     raw: Int,
 ): Int =
     when {
-        raw == TerminalConstants.EMPTY -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCellFlags.EMPTY
-        raw == TerminalConstants.WIDE_CHAR_SPACER -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_TRAILING
+        raw == TerminalConstants.EMPTY -> io.github.jvterm.render.api.TerminalRenderCellFlags.EMPTY
+        raw == TerminalConstants.WIDE_CHAR_SPACER -> io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_TRAILING
         raw <= TerminalConstants.CLUSTER_HANDLE_MAX -> {
-            var flags = _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCellFlags.CLUSTER
+            var flags = io.github.jvterm.render.api.TerminalRenderCellFlags.CLUSTER
             if (isWideLeading(col)) {
-                flags = flags or _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
+                flags = flags or io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
             }
             flags
         }
         else -> {
-            var flags = _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCellFlags.CODEPOINT
+            var flags = io.github.jvterm.render.api.TerminalRenderCellFlags.CODEPOINT
             if (isWideLeading(col)) {
-                flags = flags or _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
+                flags = flags or io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
             }
             flags
         }

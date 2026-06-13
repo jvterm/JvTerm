@@ -73,7 +73,7 @@ class PtyConnector internal constructor(
         readBufferSize: Int = DEFAULT_READ_BUFFER_SIZE,
         readerThreadName: String = DEFAULT_READER_THREAD_NAME,
         watcherThreadName: String = DEFAULT_WATCHER_THREAD_NAME,
-    ) : this(_root_ide_package_.io.github.jvterm.pty.Pty4jTerminalProcess(process), readBufferSize, readerThreadName, watcherThreadName)
+    ) : this(io.github.jvterm.pty.Pty4jTerminalProcess(process), readBufferSize, readerThreadName, watcherThreadName)
 
     init {
         require(readBufferSize > 0) { "readBufferSize must be positive, got $readBufferSize" }

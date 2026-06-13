@@ -19,7 +19,9 @@ import io.github.jvterm.core.TerminalBuffers
 import io.github.jvterm.core.api.TerminalBufferApi
 import io.github.jvterm.core.model.AttributeColor
 import io.github.jvterm.core.model.UnderlineStyle
-import io.github.jvterm.render.api.*
+import io.github.jvterm.render.api.TerminalRenderFrame
+import io.github.jvterm.render.api.TerminalRenderFrameConsumer
+import io.github.jvterm.render.api.TerminalRenderFrameReader
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.TimeUnit
 
@@ -211,9 +213,9 @@ open class TerminalBufferClusterBenchmark : io.github.jvterm.render.api.Terminal
     private lateinit var codeWords: IntArray
     private lateinit var attrWords: LongArray
     private lateinit var flags: IntArray
-    private val clusterSink = _root_ide_package_.io.github.jvterm.render.api.TerminalRenderClusterSink { _, _ -> }
+    private val clusterSink = io.github.jvterm.render.api.TerminalRenderClusterSink { _, _ -> }
     private val clusterDataSink =
-        _root_ide_package_.io.github.jvterm.render.api.TerminalRenderClusterDataSink { _, _, _, _ -> }
+      io.github.jvterm.render.api.TerminalRenderClusterDataSink { _, _, _, _ -> }
 
     private var runWithDataSink = false
 

@@ -16,7 +16,7 @@
 package io.github.jvterm.core.render
 
 import io.github.jvterm.core.state.TerminalState
-import io.github.jvterm.render.api.*
+import io.github.jvterm.render.api.TerminalRenderFrame
 
 /**
  * Adapter from core state to the stable public render frame ABI.
@@ -106,9 +106,9 @@ internal class CoreTerminalRenderFrame(
         get() {
             checkValid()
             return if (state.isAltScreenActive) {
-                _root_ide_package_.io.github.jvterm.render.api.TerminalRenderBufferKind.ALTERNATE
+              io.github.jvterm.render.api.TerminalRenderBufferKind.ALTERNATE
             } else {
-                _root_ide_package_.io.github.jvterm.render.api.TerminalRenderBufferKind.PRIMARY
+              io.github.jvterm.render.api.TerminalRenderBufferKind.PRIMARY
             }
         }
 
@@ -122,7 +122,7 @@ internal class CoreTerminalRenderFrame(
         get() {
             checkValid()
             val row = state.cursor.row + resolvedScrollbackOffset
-            return _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCursor(
+            return io.github.jvterm.render.api.TerminalRenderCursor(
                 column = state.cursor.col,
                 row = row,
                 visible = state.modes.isCursorVisible && row in 0 until resolvedRows,

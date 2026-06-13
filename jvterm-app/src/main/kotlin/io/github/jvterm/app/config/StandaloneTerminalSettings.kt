@@ -151,9 +151,9 @@ internal class StandaloneTerminalSettings(
 
     private fun parseCursorShape(shape: String): io.github.jvterm.render.api.TerminalRenderCursorShape =
         when (shape.lowercase(Locale.ROOT)) {
-            "beam" -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCursorShape.BAR
-            "underline" -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCursorShape.UNDERLINE
-            else -> _root_ide_package_.io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK
+            "beam" -> io.github.jvterm.render.api.TerminalRenderCursorShape.BAR
+            "underline" -> io.github.jvterm.render.api.TerminalRenderCursorShape.UNDERLINE
+            else -> io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK
         }
 
     private fun updateConfig(newConfig: TerminalConfig) {
