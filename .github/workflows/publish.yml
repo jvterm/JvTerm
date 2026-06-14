@@ -31,6 +31,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+
       - name: Determine Release Mode
         shell: bash
         run: |
@@ -41,7 +46,7 @@ jobs:
           fi
 
       - name: Verify Quality and Run Tests
-        run: ./gradlew spotlessCheck test --no-daemon
+        run: xvfb-run -a ./gradlew spotlessCheck test --no-daemon
 
       - name: Verify Local Publication
         env:
