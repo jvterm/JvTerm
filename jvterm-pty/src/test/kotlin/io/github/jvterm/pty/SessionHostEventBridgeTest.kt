@@ -16,6 +16,7 @@
 package io.github.jvterm.pty
 
 import io.github.jvterm.core.TerminalBuffers
+import io.github.jvterm.protocol.NotificationLevel
 import io.github.jvterm.session.TerminalSession
 import io.github.jvterm.transport.TerminalConnector
 import io.github.jvterm.transport.TerminalConnectorListener
@@ -43,7 +44,7 @@ class SessionHostEventBridgeTest {
         assertThrows(IllegalStateException::class.java) { bridge.bell() }
         assertThrows(IllegalStateException::class.java) { bridge.iconTitleChanged("icon") }
         assertThrows(IllegalStateException::class.java) { bridge.windowTitleChanged("window") }
-        assertThrows(IllegalStateException::class.java) { bridge.showNotification("title", "body") }
+        assertThrows(IllegalStateException::class.java) { bridge.showNotification("title", "body", NotificationLevel.INFO) }
     }
 
     @Test
@@ -56,9 +57,12 @@ class SessionHostEventBridgeTest {
         bridge.iconTitleChanged("icon")
         bridge.windowTitleChanged("window")
         bridge.resizeWindow(24, 80)
-        bridge.showNotification("title", "body")
+        bridge.showNotification("title", "body", NotificationLevel.INFO)
 
-        assertEquals(listOf("bell", "icon:icon", "window:window", "resizeWindow:24:80", "showNotification:title:body"), listener.events)
+        assertEquals(
+            listOf("bell", "icon:icon", "window:window", "resizeWindow:24:80", "showNotification:title:body:INFO"),
+            listener.events,
+        )
     }
 
     @Test
@@ -139,8 +143,9 @@ class SessionHostEventBridgeTest {
             session: TerminalSession,
             title: String,
             body: String,
+            level: NotificationLevel,
         ) {
-            events += "showNotification:$title:$body"
+            events += "showNotification:$title:$body:${level.name}"
         }
 
         override fun listenerFailed(

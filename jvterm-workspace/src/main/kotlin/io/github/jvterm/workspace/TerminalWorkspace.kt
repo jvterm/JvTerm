@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.workspace
 
+import io.github.jvterm.protocol.NotificationLevel
 import io.github.jvterm.pty.PtyEventListener
 import io.github.jvterm.pty.PtyOptions
 import io.github.jvterm.pty.TerminalSessions
@@ -174,8 +175,9 @@ class TerminalWorkspace(
                 session: TerminalSession,
                 title: String,
                 body: String,
+                level: NotificationLevel,
             ) {
-                tabBySession(session)?.let { listener.showNotification(it, title, body) }
+                tabBySession(session)?.let { listener.showNotification(it, title, body, level) }
             }
 
             override fun listenerFailed(
@@ -355,12 +357,13 @@ interface TerminalWorkspaceListener {
      *
      * @param tab tab that requested the notification.
      * @param title notification title.
-     * @param body notification body.
+     * @param level notification severity level.
      */
     fun showNotification(
         tab: TerminalWorkspaceTab,
         title: String,
         body: String,
+        level: NotificationLevel,
     ) = Unit
 
     companion object {

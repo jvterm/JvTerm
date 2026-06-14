@@ -15,6 +15,8 @@
  */
 package io.github.jvterm.host
 
+import io.github.jvterm.protocol.NotificationLevel
+
 /**
  * Host-facing events emitted while parser commands are mapped to core state.
  *
@@ -57,10 +59,12 @@ interface HostEventSink {
      *
      * @param title notification title (can be empty if not provided).
      * @param body notification body text.
+     * @param level notification severity level.
      */
     fun showNotification(
         title: String,
         body: String,
+        level: NotificationLevel,
     ) = Unit
 
     companion object {
@@ -84,6 +88,7 @@ interface HostEventSink {
                 override fun showNotification(
                     title: String,
                     body: String,
+                    level: NotificationLevel,
                 ) = Unit
             }
     }

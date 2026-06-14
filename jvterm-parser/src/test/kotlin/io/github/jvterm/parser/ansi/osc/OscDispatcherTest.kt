@@ -166,7 +166,7 @@ class OscDispatcherTest {
         @Test
         fun `OSC 9 dispatches desktop notification`() {
             assertEquals(
-                listOf("showNotification::Hello World"),
+                listOf("showNotification::Hello World:INFO"),
                 dispatch("9;Hello World").events,
             )
         }
@@ -182,7 +182,7 @@ class OscDispatcherTest {
         @Test
         fun `OSC 777 notify dispatches notification with title and body`() {
             assertEquals(
-                listOf("showNotification:Task finished:success"),
+                listOf("showNotification:Task finished:success:INFO"),
                 dispatch("777;notify;Task finished;success").events,
             )
         }
@@ -190,7 +190,7 @@ class OscDispatcherTest {
         @Test
         fun `OSC 777 notify handles body with semicolons`() {
             assertEquals(
-                listOf("showNotification:Build:success; code 0; done"),
+                listOf("showNotification:Build:success; code 0; done:INFO"),
                 dispatch("777;notify;Build;success; code 0; done").events,
             )
         }
@@ -198,7 +198,7 @@ class OscDispatcherTest {
         @Test
         fun `OSC 777 notify handles omitted body`() {
             assertEquals(
-                listOf("showNotification:Only Title:"),
+                listOf("showNotification:Only Title::INFO"),
                 dispatch("777;notify;Only Title").events,
             )
         }
@@ -206,6 +206,38 @@ class OscDispatcherTest {
         @Test
         fun `OSC 777 ignores other subcommands`() {
             assertTrue(dispatch("777;random_subcommand;title;body").events.isEmpty())
+        }
+
+        @Test
+        fun `OSC 777 notify dispatches custom level warning`() {
+            assertEquals(
+                listOf("showNotification:Task:crashed:WARNING"),
+                dispatch("777;notify;Task;crashed;warning").events,
+            )
+        }
+
+        @Test
+        fun `OSC 777 notify dispatches custom level none`() {
+            assertEquals(
+                listOf("showNotification:Silent:done:NONE"),
+                dispatch("777;notify;Silent;done;none").events,
+            )
+        }
+
+        @Test
+        fun `OSC 777 notify parses level case-insensitively`() {
+            assertEquals(
+                listOf("showNotification:Title:message:ERROR"),
+                dispatch("777;notify;Title;message;ErRoR").events,
+            )
+        }
+
+        @Test
+        fun `OSC 777 notify handles level with body containing semicolons`() {
+            assertEquals(
+                listOf("showNotification:Build:clean; exit 0:WARNING"),
+                dispatch("777;notify;Build;clean; exit 0;warning").events,
+            )
         }
     }
 

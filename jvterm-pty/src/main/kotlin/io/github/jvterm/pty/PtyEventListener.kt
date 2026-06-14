@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.pty
 
+import io.github.jvterm.protocol.NotificationLevel
 import io.github.jvterm.session.TerminalSession
 
 /**
@@ -87,11 +88,13 @@ interface PtyEventListener {
      * @param session session that received the event.
      * @param title notification title.
      * @param body notification body.
+     * @param level notification severity level.
      */
     fun showNotification(
         session: TerminalSession,
         title: String,
         body: String,
+        level: NotificationLevel,
     ) = Unit
 
     companion object {
@@ -123,6 +126,7 @@ interface PtyEventListener {
                     session: TerminalSession,
                     title: String,
                     body: String,
+                    level: NotificationLevel,
                 ) = Unit
 
                 override fun listenerFailed(

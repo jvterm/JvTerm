@@ -23,6 +23,7 @@ import io.github.jvterm.parser.api.TerminalOutputParser
 import io.github.jvterm.parser.api.TerminalParsers
 import io.github.jvterm.protocol.MouseEncodingMode
 import io.github.jvterm.protocol.MouseTrackingMode
+import io.github.jvterm.protocol.NotificationLevel
 import io.github.jvterm.protocol.keyboard.FormatOtherKeysMode
 import io.github.jvterm.protocol.keyboard.KittyKeyboardProgressiveFlag
 import io.github.jvterm.protocol.keyboard.ModifyOtherKeysMode
@@ -113,7 +114,7 @@ class HostCommandAdapterTest {
 
         @Test
         fun `symbol heavy paste split byte by byte leaves cursor after visual cells`() {
-            val text = "∀∂∈ℝ∧∪≡∞ ↑↗↨↻⇣ ┐┼╔╘░►☺♀ ﬁ�⑀₂ἠḂӥẄɐː⍎אԱა"
+            val text = "∀∂∈ℝ∧∪≡∞ ↑↗↨↻⇣ ┐┼╔╘░►☺♀ ﬁ⑀₂ἠḂӥẄɐː⍎אԱა"
             val bytes = text.encodeToByteArray()
             val expectedCodepoints = text.codePointCount(0, text.length)
             val f = Fixture(terminal = TerminalBuffers.create(width = 120, height = 3))
@@ -1234,7 +1235,14 @@ class HostCommandAdapterTest {
         fun `notifications are forwarded to the event sink`() {
             val f = Fixture()
             f.acceptAscii("\u001B]9;Hello from Host\u0007")
-            assertEquals(listOf(Pair("", "Hello from Host")), f.events.notifications)
+            f.acceptAscii("\u001B]777;notify;Warning!;Disk space low;warning\u0007")
+            assertEquals(
+                listOf(
+                    Triple("", "Hello from Host", NotificationLevel.INFO),
+                    Triple("Warning!", "Disk space low", NotificationLevel.WARNING),
+                ),
+                f.events.notifications,
+            )
         }
 
         @Test
@@ -1247,8 +1255,8 @@ class HostCommandAdapterTest {
                             maxNotificationBodyLength = 10,
                         ),
                 )
-            f.acceptAscii("\u001B]777;notify;1234567;1234567890123\u0007")
-            assertEquals(listOf(Pair("12345", "1234567890")), f.events.notifications)
+            f.acceptAscii("\u001B]777;notify;1234567;1234567890123;error\u0007")
+            assertEquals(listOf(Triple("12345", "1234567890", NotificationLevel.ERROR)), f.events.notifications)
         }
     }
 
@@ -1276,13 +1284,14 @@ class HostCommandAdapterTest {
             // No-op for tests unless assertions need it
         }
 
-        val notifications = mutableListOf<Pair<String, String>>()
+        val notifications = mutableListOf<Triple<String, String, NotificationLevel>>()
 
         override fun showNotification(
             title: String,
             body: String,
+            level: NotificationLevel,
         ) {
-            notifications += Pair(title, body)
+            notifications += Triple(title, body, level)
         }
     }
 }

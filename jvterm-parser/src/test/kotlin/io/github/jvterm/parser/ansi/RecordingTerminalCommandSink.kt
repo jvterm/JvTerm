@@ -16,6 +16,7 @@
 package io.github.jvterm.parser.ansi
 
 import io.github.jvterm.parser.spi.TerminalCommandSink
+import io.github.jvterm.protocol.NotificationLevel
 
 internal class RecordingTerminalCommandSink : TerminalCommandSink {
     val events = ArrayList<String>()
@@ -442,7 +443,8 @@ internal class RecordingTerminalCommandSink : TerminalCommandSink {
     override fun showNotification(
         title: String,
         body: String,
+        level: NotificationLevel,
     ) {
-        events += "showNotification:$title:$body"
+        events += "showNotification:$title:$body:${level.name}"
     }
 }

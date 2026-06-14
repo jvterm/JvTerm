@@ -16,6 +16,7 @@
 package io.github.jvterm.pty
 
 import io.github.jvterm.host.HostEventSink
+import io.github.jvterm.protocol.NotificationLevel
 import io.github.jvterm.session.TerminalSession
 
 internal class SessionHostEventBridge(
@@ -52,8 +53,9 @@ internal class SessionHostEventBridge(
     override fun showNotification(
         title: String,
         body: String,
+        level: NotificationLevel,
     ) {
-        safeDispatch { session -> listener.showNotification(session, title, body) }
+        safeDispatch { session -> listener.showNotification(session, title, body, level) }
     }
 
     private inline fun safeDispatch(block: (TerminalSession) -> Unit) {

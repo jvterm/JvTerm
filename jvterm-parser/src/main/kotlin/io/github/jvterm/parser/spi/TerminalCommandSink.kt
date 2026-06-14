@@ -17,6 +17,7 @@ package io.github.jvterm.parser.spi
 
 import io.github.jvterm.protocol.AnsiMode
 import io.github.jvterm.protocol.DecPrivateMode
+import io.github.jvterm.protocol.NotificationLevel
 
 /**
  * Parser-facing terminal command sink.
@@ -447,9 +448,11 @@ interface TerminalCommandSink {
      *
      * @param title notification title.
      * @param body notification body.
+     * @param level notification severity level.
      */
     fun showNotification(
         title: String,
         body: String,
+        level: NotificationLevel,
     )
 }

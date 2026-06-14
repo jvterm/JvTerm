@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.app.ui
 
+import io.github.jvterm.protocol.NotificationLevel
 import java.awt.Color
 import java.awt.Font
 import java.awt.Image
@@ -51,6 +52,7 @@ internal object DesktopNotificationManager {
     fun showNotification(
         title: String,
         body: String,
+        level: NotificationLevel,
     ) {
         SwingUtilities.invokeLater {
             if (!SystemTray.isSupported()) {
@@ -83,8 +85,16 @@ internal object DesktopNotificationManager {
                 }
             }
 
+            val messageType =
+                when (level) {
+                    NotificationLevel.INFO -> TrayIcon.MessageType.INFO
+                    NotificationLevel.WARNING -> TrayIcon.MessageType.WARNING
+                    NotificationLevel.ERROR -> TrayIcon.MessageType.ERROR
+                    NotificationLevel.NONE -> TrayIcon.MessageType.NONE
+                }
+
             // Show the OS notification
-            icon.displayMessage(displayTitle, body, TrayIcon.MessageType.INFO)
+            icon.displayMessage(displayTitle, body, messageType)
 
             // Reset or start the removal timer
             removeTimer?.stop()

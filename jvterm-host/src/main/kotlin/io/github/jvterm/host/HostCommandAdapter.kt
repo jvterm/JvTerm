@@ -23,6 +23,7 @@ import io.github.jvterm.protocol.AnsiMode
 import io.github.jvterm.protocol.DecPrivateMode
 import io.github.jvterm.protocol.MouseEncodingMode
 import io.github.jvterm.protocol.MouseTrackingMode
+import io.github.jvterm.protocol.NotificationLevel
 import io.github.jvterm.protocol.keyboard.*
 import io.github.jvterm.render.api.TerminalRenderCursorShape
 
@@ -728,10 +729,11 @@ class HostCommandAdapter(
     override fun showNotification(
         title: String,
         body: String,
+        level: NotificationLevel,
     ) {
         val clampedTitle = title.take(hostPolicy.maxNotificationTitleLength)
         val clampedBody = body.take(hostPolicy.maxNotificationBodyLength)
-        hostEvents.showNotification(clampedTitle, clampedBody)
+        hostEvents.showNotification(clampedTitle, clampedBody, level)
     }
 
     /**

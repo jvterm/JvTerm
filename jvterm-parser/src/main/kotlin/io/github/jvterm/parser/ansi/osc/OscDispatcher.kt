@@ -16,6 +16,7 @@
 package io.github.jvterm.parser.ansi.osc
 
 import io.github.jvterm.parser.spi.TerminalCommandSink
+import io.github.jvterm.protocol.NotificationLevel
 
 internal object OscDispatcher {
     fun dispatch(
@@ -63,7 +64,7 @@ internal object OscDispatcher {
             9 -> {
                 val payloadStr = decodePayload(payload, commandEnd + 1, length)
                 if (!isConEmuCommand(payloadStr)) {
-                    sink.showNotification(title = "", body = payloadStr)
+                    sink.showNotification(title = "", body = payloadStr, level = NotificationLevel.INFO)
                 }
             }
             10, 11, 12 -> {
@@ -89,13 +90,23 @@ internal object OscDispatcher {
                     val parts = payloadStr.split(';')
                     if (parts.size >= 2) {
                         val title = parts[1]
-                        val body =
-                            if (parts.size >= 3) {
-                                parts.subList(2, parts.size).joinToString(";")
+                        var body = ""
+                        var level = NotificationLevel.INFO
+
+                        if (parts.size >= 4) {
+                            val lastPart = parts.last()
+                            val parsedLevel = NotificationLevel.parseOrNull(lastPart)
+                            if (parsedLevel != null) {
+                                level = parsedLevel
+                                body = parts.subList(2, parts.size - 1).joinToString(";")
                             } else {
-                                ""
+                                body = parts.subList(2, parts.size).joinToString(";")
                             }
-                        sink.showNotification(title = title, body = body)
+                        } else if (parts.size == 3) {
+                            body = parts[2]
+                        }
+
+                        sink.showNotification(title = title, body = body, level = level)
                     }
                 }
             }
