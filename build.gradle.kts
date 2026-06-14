@@ -38,8 +38,8 @@ subprojects {
         }
     }
 
-    apply(plugin = "com.diffplug.spotless")
-    apply(plugin = "org.jetbrains.dokka")
+    plugins.apply("com.diffplug.spotless")
+    plugins.apply("org.jetbrains.dokka")
 
     plugins.withId("org.jetbrains.dokka") {
         if (file("Module.md").exists()) {
