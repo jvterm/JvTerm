@@ -43,6 +43,8 @@ internal class MouseEncoder(
         when (TerminalInputState.mouseEncodingMode(modeBits)) {
             MouseEncodingMode.SGR -> encodeSgr(event)
 
+            MouseEncodingMode.SGR_PIXELS -> encodeSgrPixels(event)
+
             MouseEncodingMode.DEFAULT -> encodeLegacyDefault(event)
 
             MouseEncodingMode.UTF8 -> encodeUtf8Extended(event)
@@ -63,23 +65,23 @@ internal class MouseEncoder(
 
             MouseTrackingMode.NORMAL ->
                 event.type == TerminalMouseEventType.PRESS ||
-                    event.type == TerminalMouseEventType.RELEASE ||
-                    event.type == TerminalMouseEventType.WHEEL
+                        event.type == TerminalMouseEventType.RELEASE ||
+                        event.type == TerminalMouseEventType.WHEEL
 
             MouseTrackingMode.BUTTON_EVENT ->
                 event.type == TerminalMouseEventType.PRESS ||
-                    event.type == TerminalMouseEventType.RELEASE ||
-                    event.type == TerminalMouseEventType.WHEEL ||
-                    (
-                        event.type == TerminalMouseEventType.MOTION &&
-                            event.button != TerminalMouseButton.NONE
-                    )
+                        event.type == TerminalMouseEventType.RELEASE ||
+                        event.type == TerminalMouseEventType.WHEEL ||
+                        (
+                                event.type == TerminalMouseEventType.MOTION &&
+                                        event.button != TerminalMouseButton.NONE
+                                )
 
             MouseTrackingMode.ANY_EVENT ->
                 event.type == TerminalMouseEventType.PRESS ||
-                    event.type == TerminalMouseEventType.RELEASE ||
-                    event.type == TerminalMouseEventType.WHEEL ||
-                    event.type == TerminalMouseEventType.MOTION
+                        event.type == TerminalMouseEventType.RELEASE ||
+                        event.type == TerminalMouseEventType.WHEEL ||
+                        event.type == TerminalMouseEventType.MOTION
 
             else -> false
         }
@@ -87,6 +89,30 @@ internal class MouseEncoder(
     private fun encodeSgr(event: TerminalMouseEvent) {
         val x = oneBasedCoordinate(event.column)
         val y = oneBasedCoordinate(event.row)
+
+        val cb = mouseButtonCode(event, legacyRelease = false)
+        if (cb < 0) {
+            return
+        }
+
+        scratch.clear()
+        scratch.appendByte(ESC)
+        scratch.appendByte('['.code)
+        scratch.appendByte('<'.code)
+        scratch.appendDecimal(cb)
+        scratch.appendByte(';'.code)
+        scratch.appendDecimal(x)
+        scratch.appendByte(';'.code)
+        scratch.appendDecimal(y)
+        scratch.appendByte(
+            if (event.type == TerminalMouseEventType.RELEASE) 'm'.code else 'M'.code,
+        )
+        scratch.writeTo(output)
+    }
+
+    private fun encodeSgrPixels(event: TerminalMouseEvent) {
+        val x = if (event.pixelX >= 0) event.pixelX + 1 else oneBasedCoordinate(event.column)
+        val y = if (event.pixelY >= 0) event.pixelY + 1 else oneBasedCoordinate(event.row)
 
         val cb = mouseButtonCode(event, legacyRelease = false)
         if (cb < 0) {
@@ -225,7 +251,7 @@ internal class MouseEncoder(
 
                 TerminalMouseEventType.PRESS,
                 TerminalMouseEventType.MOTION,
-                -> {
+                    -> {
                     if (event.button == TerminalMouseButton.NONE) {
                         if (event.type == TerminalMouseEventType.MOTION) {
                             3

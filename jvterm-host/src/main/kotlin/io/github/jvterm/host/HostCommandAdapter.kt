@@ -366,6 +366,10 @@ class HostCommandAdapter(
                 terminal.setMouseEncodingMode(
                     if (enable) MouseEncodingMode.URXVT else MouseEncodingMode.DEFAULT,
                 )
+            DecPrivateMode.MOUSE_SGR_PIXELS ->
+                terminal.setMouseEncodingMode(
+                    if (enable) MouseEncodingMode.SGR_PIXELS else MouseEncodingMode.DEFAULT,
+                )
             DecPrivateMode.ALT_SCREEN -> {
                 if (enable) {
                     terminal.enterAltBufferWithoutCursorSave(clearBeforeEnter = false)
@@ -796,7 +800,7 @@ class HostCommandAdapter(
         id: String?,
     ): Boolean =
         uri.length <= hostPolicy.maxHyperlinkUriLength &&
-            (id?.length ?: 0) <= hostPolicy.maxHyperlinkIdLength
+                (id?.length ?: 0) <= hostPolicy.maxHyperlinkIdLength
 
     private fun nextHyperlinkIdAfter(current: Int): Int = if (current == Int.MAX_VALUE) 1 else current + 1
 

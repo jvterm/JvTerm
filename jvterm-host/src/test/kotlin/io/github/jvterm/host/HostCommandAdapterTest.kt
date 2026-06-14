@@ -409,6 +409,17 @@ class HostCommandAdapterTest {
         }
 
         @Test
+        fun `SGR-Pixels mouse encoding mode updates core snapshot`() {
+            val f = Fixture()
+
+            f.acceptAscii("\u001B[?1016h")
+            assertEquals(MouseEncodingMode.SGR_PIXELS, f.terminal.getModeSnapshot().mouseEncodingMode)
+
+            f.acceptAscii("\u001B[?1016l")
+            assertEquals(MouseEncodingMode.DEFAULT, f.terminal.getModeSnapshot().mouseEncodingMode)
+        }
+
+        @Test
         fun `synchronized output mode is parsed and updates mode snapshot`() {
             val f = Fixture()
 
@@ -485,22 +496,22 @@ class HostCommandAdapterTest {
             f.acceptAscii("\u001B[=9u")
             assertEquals(
                 KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES or
-                    KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+                        KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
                 f.terminal.getModeSnapshot().kittyKeyboardFlags,
             )
 
             f.acceptAscii("\u001B[=2;2u")
             assertEquals(
                 KittyKeyboardProgressiveFlag.DISAMBIGUATE_ESCAPE_CODES or
-                    KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES or
-                    KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+                        KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES or
+                        KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
                 f.terminal.getModeSnapshot().kittyKeyboardFlags,
             )
 
             f.acceptAscii("\u001B[=1;3u")
             assertEquals(
                 KittyKeyboardProgressiveFlag.REPORT_EVENT_TYPES or
-                    KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
+                        KittyKeyboardProgressiveFlag.REPORT_ALL_KEYS_AS_ESCAPE_CODES,
                 f.terminal.getModeSnapshot().kittyKeyboardFlags,
             )
         }

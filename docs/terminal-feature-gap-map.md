@@ -406,6 +406,7 @@ Missing:
     - bounded legacy `ESC [ M` encoding with explicit coordinate-limit policy
     - UTF-8 extended mouse encoding (`?1005`) up to xterm's coordinate limit
     - URXVT mouse encoding (`?1015`)
+    - SGR-Pixels mouse encoding (`?1016`) utilizing high-precision pixel coordinates
 - `DONE(parser/core/host/input)`: xterm modifyOtherKeys and
   formatOtherKeys support for ordinary-key input:
     - modifyOtherKeys mode 1/2/3 consumption from core packed mode bits
@@ -429,8 +430,7 @@ Missing:
       F1-F4 when a platform can distinguish keypad PF keys
 - `TODO(input/policy)`: additional xterm-compatible key policies when a real
   ambiguity exists, such as Delete behavior and optional eight-bit Meta output.
-- `TODO(input)`: SGR-Pixels mouse mode (`?1016`) if renderer/UI host
-  provides pixel-coordinate mouse events.
+- `DONE(input)`: SGR-Pixels mouse mode (`?1016`) supported in input and mapped from Swing UI.
 - `TODO(parser/core/input)`: xterm highlight mouse tracking (`?1001`) if full
   xterm mouse parity is required; it needs a distinct interaction contract
   rather than simple cell-coordinate event forwarding.
@@ -498,8 +498,8 @@ Planned Kitty Keyboard Protocol scope:
     - support push/pop controls with a small bounded stack:
         - `CSI > flags u`: push current flags, then apply supplied flags
         - `CSI < number u`: pop one or more stack entries, defaulting to one
-      - `DONE(core)`: add bounded stack state when parser/host starts
-        routing push/pop controls.
+        - `DONE(core)`: add bounded stack state when parser/host starts
+          routing push/pop controls.
     - encode only key press events at first; report repeat/release events only
       after UI event vocabulary exposes them distinctly.
     - implement the high-value input slice first:
