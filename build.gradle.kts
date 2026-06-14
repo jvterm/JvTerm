@@ -2,6 +2,7 @@ plugins {
     kotlin("jvm") version "2.4.0" apply false
     id("com.diffplug.spotless") version "8.6.0"
     id("org.jetbrains.dokka") version "2.0.0"
+    id("com.vanniktech.maven.publish") version "0.36.0" apply false
 }
 
 repositories {
@@ -24,9 +25,18 @@ dependencies {
     dokka(project(":jvterm-workspace"))
 }
 
+val versionFile = rootProject.file("VERSION")
+val baseVersion = if (versionFile.exists()) {
+    versionFile.readText().trim()
+} else {
+    "0.1.0"
+}
+val isRelease = System.getenv("RELEASE") == "true"
+val projectVersion = if (isRelease) baseVersion else "$baseVersion-SNAPSHOT"
+
 subprojects {
     group = "io.github.jvterm"
-    version = "0.1.0"
+    version = projectVersion
 
     repositories {
         mavenCentral()
@@ -35,6 +45,40 @@ subprojects {
     plugins.withId("org.jetbrains.kotlin.jvm") {
         extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
             jvmToolchain(21)
+        }
+    }
+
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        if (name != "jvterm-benchmarks" && name != "jvterm-app") {
+            plugins.apply("com.vanniktech.maven.publish")
+
+            extensions.configure<com.vanniktech.maven.publish.MavenPublishBaseExtension> {
+                publishToMavenCentral(automaticRelease = true)
+                signAllPublications()
+
+                pom {
+                    name.set(project.name)
+                    description.set("JvTerm terminal emulator library - subproject ${project.name}")
+                    url.set("https://github.com/jvterm/JvTerm")
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+                    developers {
+                        developer {
+                            id.set("gsargsyan")
+                            name.set("Gagik Sargsyan")
+                        }
+                    }
+                    scm {
+                        connection.set("scm:git:git://github.com/jvterm/JvTerm.git")
+                        developerConnection.set("scm:git:ssh://github.com/jvterm/JvTerm.git")
+                        url.set("https://github.com/jvterm/JvTerm")
+                    }
+                }
+            }
         }
     }
 
@@ -63,5 +107,6 @@ subprojects {
         }
     }
 }
+
 
 
