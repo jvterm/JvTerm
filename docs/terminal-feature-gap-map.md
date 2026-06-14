@@ -177,8 +177,8 @@ Missing:
   and security policy before implementation.
 - `DONE(parser/core/host/host)`: OSC 4 / 10 / 11 / 12 color palette queries and updates.
 - `TODO(parser)`: OSC 7 current directory.
-- `DONE(parser/core/host/app)`: OSC 9 desktop notifications (iTerm2 style).
-- `DONE(parser/core/host/app)`: OSC 777 desktop notifications (urxvt notify style).
+- `DONE(parser/core/host/app)`: OSC 9 desktop notifications (iTerm2 style). See [specification](file:///c:/Users/gagik/IdeaProjects/JvTerm/docs/desktop-notifications.md).
+- `DONE(parser/core/host/app)`: OSC 777 desktop notifications (urxvt notify style) with custom severity levels. See [specification](file:///c:/Users/gagik/IdeaProjects/JvTerm/docs/desktop-notifications.md).
 - `TODO(parser)`: OSC 133 shell host markers.
 - `TODO(parser)`: OSC 1337/iTerm2 extensions, if desired.
 - `TODO(parser)`: OSC query responses. Requires terminal-to-host output.
