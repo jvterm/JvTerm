@@ -15,10 +15,15 @@
  */
 package io.github.jvterm.intellij.ui
 
+import com.intellij.icons.AllIcons
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
+import com.intellij.openapi.wm.ex.ToolWindowEx
+import io.github.jvterm.intellij.JvTermBundle
 import io.github.jvterm.intellij.services.JvTermProjectTerminalService
 
 /**
@@ -29,8 +34,39 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
         project: Project,
         toolWindow: ToolWindow,
     ) {
-        JvTermProjectTerminalService
-            .getInstance(project)
-            .ensureInitialTab(toolWindow)
+        val terminalService = JvTermProjectTerminalService.getInstance(project)
+        installTitleActions(project, toolWindow, terminalService)
+        terminalService.ensureInitialTab(toolWindow)
+    }
+
+    private fun installTitleActions(
+        project: Project,
+        toolWindow: ToolWindow,
+        terminalService: JvTermProjectTerminalService,
+    ) {
+        val toolWindowEx = toolWindow as? ToolWindowEx ?: return
+        toolWindowEx.setTitleActions(
+            listOf(
+                NewTerminalAction(project, toolWindow, terminalService),
+            ),
+        )
+    }
+
+    private class NewTerminalAction(
+        private val project: Project,
+        private val toolWindow: ToolWindow,
+        private val terminalService: JvTermProjectTerminalService,
+    ) : DumbAwareAction(
+            JvTermBundle.message("action.jvterm.newTerminal.text"),
+            JvTermBundle.message("action.jvterm.newTerminal.description"),
+            AllIcons.General.Add,
+        ) {
+        override fun actionPerformed(event: AnActionEvent) {
+            terminalService.openDefaultTab(toolWindow)
+        }
+
+        override fun update(event: AnActionEvent) {
+            event.presentation.isEnabled = !project.isDisposed
+        }
     }
 }

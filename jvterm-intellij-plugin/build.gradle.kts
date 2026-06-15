@@ -26,6 +26,16 @@ dependencies {
     }
 }
 
+intellijPlatform {
+    pluginConfiguration {
+        version.set(project.version.toString())
+
+        ideaVersion {
+            sinceBuild.set("253")
+        }
+    }
+}
+
 kotlin {
     jvmToolchain(21)
 }

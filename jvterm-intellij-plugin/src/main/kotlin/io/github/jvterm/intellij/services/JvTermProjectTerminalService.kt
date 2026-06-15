@@ -73,6 +73,8 @@ class JvTermProjectTerminalService(
     fun openDefaultTab(toolWindow: ToolWindow): Content? {
         check(!disposed) { "JvTerm project terminal service is disposed" }
 
+        JvTermNativeLibrarySetup.install()
+
         val profile = JvTermDefaultProfileFactory.defaultProfile(project)
         val settings = JvTermIntellijSettings.current()
         val workspaceTab =
