@@ -16,6 +16,7 @@
 package io.github.jvterm.app.ui
 
 import io.github.jvterm.app.config.JvTermSettings
+import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfile
 import io.github.jvterm.workspace.TerminalProfileKind
@@ -146,7 +147,14 @@ internal class SettingsDialog(
 
     // Form Controls - Appearance
     private val fontFamilyCombo =
-        createComboBox(GraphicsEnvironment.getLocalGraphicsEnvironment().availableFontFamilyNames, settings.fontFamily, 220)
+        run {
+            val monospaceFamilies = SwingSettings.getMonospaceFontFamilies().toMutableList()
+            val currentFamily = settings.fontFamily
+            if (currentFamily.isNotEmpty() && monospaceFamilies.none { it.equals(currentFamily, ignoreCase = true) }) {
+                monospaceFamilies.add(0, currentFamily)
+            }
+            createComboBox(monospaceFamilies.toTypedArray(), currentFamily, 220)
+        }
     private val fontSizeSpinner =
         createSpinner(settings.fontSize, TerminalConfig.FONT_SIZE_MIN, TerminalConfig.FONT_SIZE_MAX, 1, 80)
     private val lineHeightSpinner =

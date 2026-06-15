@@ -160,6 +160,25 @@ class SwingSettingsTest {
     }
 
     @Test
+    fun getMonospaceFontFamiliesReturnsOnlyInstalledMonospaceFonts() {
+        val monospaceFamilies = SwingSettings.getMonospaceFontFamilies()
+        assertTrue(monospaceFamilies.isNotEmpty(), "Monospace font families list must not be empty")
+
+        val installedSet =
+            java.awt.GraphicsEnvironment
+                .getLocalGraphicsEnvironment()
+                .availableFontFamilyNames
+                .toSet()
+
+        for (family in monospaceFamilies) {
+            assertTrue(
+                installedSet.contains(family),
+                "Resolved monospace font family '$family' must be installed on the system",
+            )
+        }
+    }
+
+    @Test
     fun fallbackPolicyPrefersInstalledColorEmojiBeforeSymbolFonts() {
         val families =
             SwingSettings.fallbackFontFamiliesForInstalledFonts(

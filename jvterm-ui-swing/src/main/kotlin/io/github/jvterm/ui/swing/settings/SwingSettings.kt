@@ -106,13 +106,6 @@ data class SwingSettings
             private const val DEFAULT_SELECTION_BACKGROUND = 0x66FFFFFF
             private const val DEFAULT_SEARCH_MATCH_BACKGROUND = 0x55FFD54F
             private const val DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND = 0xAAFF8C00.toInt()
-            private val preferredDefaultFontFamilies =
-                arrayOf(
-                    "Cascadia Mono",
-                    "Cascadia Code",
-                    "Consolas",
-                    Font.MONOSPACED,
-                )
             private val resolvedDefaultTerminalFont: Font by lazy(LazyThreadSafetyMode.PUBLICATION) {
                 Font(resolveDefaultFontFamily(), Font.PLAIN, DEFAULT_FONT_SIZE)
             }
@@ -204,31 +197,61 @@ data class SwingSettings
                     GraphicsEnvironment
                         .getLocalGraphicsEnvironment()
                         .availableFontFamilyNames
-                for (installedFamily in installedFamilies) {
-                    if (installedFamily.equals(requestedFamily, ignoreCase = true)) {
-                        return installedFamily
-                    }
-                }
-                return resolveDefaultFontFamily(installedFamilies)
+                val matched = installedFamilies.firstOrNull { it.equals(requestedFamily, ignoreCase = true) }
+                return matched ?: resolveDefaultFontFamily()
             }
 
-            private fun resolveDefaultFontFamily(installedFamilies: Array<String>): String {
-                for (preferredFamily in preferredDefaultFontFamilies) {
-                    for (installedFamily in installedFamilies) {
-                        if (installedFamily.equals(preferredFamily, ignoreCase = true)) {
-                            return installedFamily
-                        }
-                    }
-                }
-                return Font.MONOSPACED
-            }
+            private fun resolveDefaultFontFamily(): String = resolvedMonospaceFontFamilies.firstOrNull() ?: Font.MONOSPACED
 
-            private fun resolveDefaultFontFamily(): String {
-                val installedFamilies =
+            /**
+             * Returns all installed font family names that are verified to be monospaced on the current system.
+             *
+             * @return list of monospaced font family names.
+             */
+            @JvmStatic
+            fun getMonospaceFontFamilies(): List<String> = resolvedMonospaceFontFamilies
+
+            private val curatedMonospaceFontFamilies =
+                arrayOf(
+                    "Cascadia Mono",
+                    "Cascadia Code",
+                    "Consolas",
+                    "Menlo",
+                    "Monaco",
+                    "SF Mono",
+                    "JetBrains Mono",
+                    "Fira Code",
+                    "Source Code Pro",
+                    "Inconsolata",
+                    "Hack",
+                    "DejaVu Sans Mono",
+                    "Liberation Mono",
+                    "Ubuntu Mono",
+                    "Noto Sans Mono",
+                    "Noto Mono",
+                    "Lucida Console",
+                    "Courier New",
+                    "Courier",
+                    "FreeMono",
+                    Font.MONOSPACED,
+                )
+
+            private val resolvedMonospaceFontFamilies: List<String> by lazy(LazyThreadSafetyMode.PUBLICATION) {
+                val installed =
                     GraphicsEnvironment
                         .getLocalGraphicsEnvironment()
                         .availableFontFamilyNames
-                return resolveDefaultFontFamily(installedFamilies)
+                val result = ArrayList<String>()
+                for (curated in curatedMonospaceFontFamilies) {
+                    val matched = installed.firstOrNull { it.equals(curated, ignoreCase = true) }
+                    if (matched != null) {
+                        result.add(matched)
+                    }
+                }
+                if (result.isEmpty()) {
+                    result.add(Font.MONOSPACED)
+                }
+                result
             }
 
             private const val DEFAULT_FALLBACK_FONT_FAMILY_CAPACITY = 16
