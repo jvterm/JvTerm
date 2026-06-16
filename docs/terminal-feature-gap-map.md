@@ -72,7 +72,6 @@ These are not badges of compatibility for this project. They expand attack surfa
 ### OSC Protocols
 - `TODO(policy)`: OSC 52 clipboard support. This needs an explicit permission and security policy before implementation.
 - `TODO(parser)`: OSC 7 current directory.
-- `TODO(parser)`: OSC 133 shell host markers.
 - `TODO(parser)`: OSC 1337/iTerm2 extensions, if desired.
 - `TODO(parser)`: OSC query responses. Requires terminal-to-host output.
 - `TODO(parser)`: payload encoding policy for non-UTF-8 or invalid UTF-8 OSC data.
@@ -94,6 +93,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ### Reset and Mode Semantics
 - `TODO(core/host)`: richer event API for hyperlink metadata, palette changes, terminal notifications, and any future host-observable state that should not be read from render frames.
+- `TODO(core/host)`: shell integration command range storage, row anchoring, command navigation, command decorations, and command output selection on top of the existing OSC 133 marker event backbone.
 
 ### Grid Operations
 - `TODO(core)`: rectangular area operations if parser support is added (copy, erase, fill, selective erase).

@@ -161,6 +161,54 @@ class OscDispatcherTest {
     }
 
     @Nested
+    @DisplayName("shell integration")
+    inner class ShellIntegration {
+        @Test
+        fun `OSC 133 dispatches prompt and command boundary markers`() {
+            assertEquals(
+                listOf("shellIntegrationMarker:PROMPT_START:null"),
+                dispatch("133;A").events,
+            )
+            assertEquals(
+                listOf("shellIntegrationMarker:PROMPT_END:null"),
+                dispatch("133;B").events,
+            )
+            assertEquals(
+                listOf("shellIntegrationMarker:COMMAND_START:null"),
+                dispatch("133;C").events,
+            )
+        }
+
+        @Test
+        fun `OSC 133 command finished supports omitted numeric and malformed exit codes`() {
+            assertEquals(
+                listOf("shellIntegrationMarker:COMMAND_FINISHED:null"),
+                dispatch("133;D").events,
+            )
+            assertEquals(
+                listOf("shellIntegrationMarker:COMMAND_FINISHED:127"),
+                dispatch("133;D;127").events,
+            )
+            assertEquals(
+                listOf("shellIntegrationMarker:COMMAND_FINISHED:null"),
+                dispatch("133;D;not-a-number").events,
+            )
+        }
+
+        @Test
+        fun `OSC 133 ignores unknown and malformed marker commands`() {
+            assertTrue(dispatch("133;E").events.isEmpty())
+            assertTrue(dispatch("133;").events.isEmpty())
+            assertTrue(dispatch("133;AB").events.isEmpty())
+        }
+
+        @Test
+        fun `OSC 133 overflow is ignored`() {
+            assertTrue(dispatch("133;A", overflowed = true).events.isEmpty())
+        }
+    }
+
+    @Nested
     @DisplayName("notifications")
     inner class Notifications {
         @Test

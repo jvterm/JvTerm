@@ -22,6 +22,9 @@ import io.github.jvterm.input.event.TerminalKeyEvent
 import io.github.jvterm.input.event.TerminalMouseEvent
 import io.github.jvterm.input.event.TerminalPasteEvent
 import io.github.jvterm.parser.api.TerminalOutputParser
+import io.github.jvterm.protocol.ShellIntegrationEvent
+import io.github.jvterm.protocol.ShellIntegrationMarker
+import io.github.jvterm.pty.PtyEventListener
 import io.github.jvterm.render.api.TerminalRenderFrameReader
 import io.github.jvterm.render.cache.TerminalRenderPublisher
 import io.github.jvterm.session.TerminalSession
@@ -34,17 +37,7 @@ import kotlin.test.assertNull
 class TerminalWorkspaceTest {
     @Test
     fun testTabTitleRenamingAndPrecedence() {
-        val terminal = TerminalBuffers.create(width = 80, height = 24, maxHistory = 100)
-        val session =
-            TerminalSession(
-                terminal = terminal,
-                publisher = TerminalRenderPublisher(80, 24),
-                renderReader = terminal as TerminalRenderFrameReader,
-                responseReader = terminal,
-                connector = NoOpConnector,
-                parser = NoOpParser,
-                inputEncoder = NoOpInputEncoder,
-            )
+        val session = testSession()
 
         var titleChangedCount = 0
         var lastTitle: String? = null
@@ -89,6 +82,59 @@ class TerminalWorkspaceTest {
         assertEquals("PTY Title 2", tab.title)
         assertEquals("PTY Title 2", lastTitle)
         assertEquals(3, titleChangedCount)
+    }
+
+    @Test
+    fun testShellIntegrationMarkerIsForwardedWithOwningTab() {
+        var capturedEventListener: PtyEventListener? = null
+        val session = testSession()
+        val markerEvents = mutableListOf<Pair<String, ShellIntegrationEvent>>()
+        val workspace =
+            TerminalWorkspace(
+                listener =
+                    object : TerminalWorkspaceListener {
+                        override fun shellIntegrationMarker(
+                            tab: TerminalWorkspaceTab,
+                            event: ShellIntegrationEvent,
+                        ) {
+                            markerEvents += tab.id to event
+                        }
+                    },
+                sessionFactory =
+                    TerminalWorkspaceSessionFactory { _, _, eventListener ->
+                        capturedEventListener = eventListener
+                        session
+                    },
+            )
+        val tab =
+            workspace.openTab(
+                profile = TerminalProfile("p1", "Profile 1", listOf("mock-shell")),
+                options =
+                    TerminalWorkspaceOpenOptions(
+                        columns = 80,
+                        rows = 24,
+                        treatAmbiguousAsWide = false,
+                        maxHistory = 100,
+                    ),
+            )
+        val event = ShellIntegrationEvent(ShellIntegrationMarker.COMMAND_FINISHED, exitCode = 2)
+
+        capturedEventListener!!.shellIntegrationMarker(session, event)
+
+        assertEquals(listOf(tab.id to event), markerEvents)
+    }
+
+    private fun testSession(): TerminalSession {
+        val terminal = TerminalBuffers.create(width = 80, height = 24, maxHistory = 100)
+        return TerminalSession(
+            terminal = terminal,
+            publisher = TerminalRenderPublisher(80, 24),
+            renderReader = terminal as TerminalRenderFrameReader,
+            responseReader = terminal,
+            connector = NoOpConnector,
+            parser = NoOpParser,
+            inputEncoder = NoOpInputEncoder,
+        )
     }
 
     private object NoOpConnector : TerminalConnector {

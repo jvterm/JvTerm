@@ -24,6 +24,8 @@ import io.github.jvterm.parser.api.TerminalParsers
 import io.github.jvterm.protocol.MouseEncodingMode
 import io.github.jvterm.protocol.MouseTrackingMode
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
+import io.github.jvterm.protocol.ShellIntegrationMarker
 import io.github.jvterm.protocol.keyboard.FormatOtherKeysMode
 import io.github.jvterm.protocol.keyboard.KittyKeyboardProgressiveFlag
 import io.github.jvterm.protocol.keyboard.ModifyOtherKeysMode
@@ -1229,6 +1231,33 @@ class HostCommandAdapterTest {
     }
 
     @Nested
+    @DisplayName("shell integration")
+    inner class ShellIntegration {
+        @Test
+        fun `OSC 133 shell integration markers are forwarded without grid mutation`() {
+            val f = Fixture()
+
+            f.acceptAscii("\u001B]133;A\u0007")
+            f.acceptAscii("\u001B]133;D;7\u001B\\")
+
+            assertAll(
+                {
+                    assertEquals(
+                        listOf(
+                            ShellIntegrationEvent(ShellIntegrationMarker.PROMPT_START),
+                            ShellIntegrationEvent(ShellIntegrationMarker.COMMAND_FINISHED, exitCode = 7),
+                        ),
+                        f.events.shellIntegrationEvents,
+                    )
+                },
+                { assertEquals("", f.terminal.getLineAsString(0)) },
+                { assertEquals(0, f.terminal.cursorCol) },
+                { assertEquals(0, f.terminal.cursorRow) },
+            )
+        }
+    }
+
+    @Nested
     @DisplayName("desktop notifications")
     inner class DesktopNotifications {
         @Test
@@ -1293,6 +1322,7 @@ class HostCommandAdapterTest {
         var raises = 0
         var lowers = 0
         val maximisedStates = mutableListOf<Boolean>()
+        val shellIntegrationEvents = mutableListOf<ShellIntegrationEvent>()
 
         override fun bell() {
             bells++
@@ -1338,6 +1368,10 @@ class HostCommandAdapterTest {
 
         override fun setMaximized(maximize: Boolean) {
             maximisedStates += maximize
+        }
+
+        override fun shellIntegrationMarker(event: ShellIntegrationEvent) {
+            shellIntegrationEvents += event
         }
 
         val notifications = mutableListOf<Triple<String, String, NotificationLevel>>()

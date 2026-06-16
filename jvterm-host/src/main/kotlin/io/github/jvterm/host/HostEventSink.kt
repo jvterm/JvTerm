@@ -16,6 +16,7 @@
 package io.github.jvterm.host
 
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
 
 /**
  * Host-facing events emitted while parser commands are mapped to core state.
@@ -91,6 +92,13 @@ interface HostEventSink {
      * @param maximize true to maximize, false to restore.
      */
     fun setMaximized(maximize: Boolean) = Unit
+
+    /**
+     * Called when an OSC 133 shell integration marker is received.
+     *
+     * @param event typed marker event.
+     */
+    fun shellIntegrationMarker(event: ShellIntegrationEvent) = Unit
 
     /**
      * Called when the shell requests a desktop notification.

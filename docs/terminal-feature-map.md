@@ -51,6 +51,7 @@ For a detailed backlog of gaps and intentional non-goals, see the [Terminal Feat
 
 - **Title Management**: Window, icon, or combined title updates with push/pop stack operations (`CSI 22 t` / `CSI 23 t`).
 - **OSC 8 Hyperlinks**: Inline hyperlink parsing (`OSC 8 ; id ; url ESC \`) with interactive Ctrl-click navigation and a bounded, double-indexed LRU eviction registry in the host.
+- **OSC 133 Shell Integration Markers**: FinalTerm/iTerm-compatible shell lifecycle marker events (`OSC 133 ; A/B/C/D ST`) are parsed and forwarded through host, PTY, and workspace event boundaries. This first slice exposes prompt start, prompt end, command output start, and command finished with optional exit code metadata; command history storage, navigation, decorations, and row anchoring remain separate follow-up features.
 - **OSC Palette Queries**: Dynamic color palette queries and updates (`OSC 4 / 10 / 11 / 12`), allowing applications to query standard palette colors or default foreground/background/cursor colors.
 - **Desktop Notifications**:
   - **iTerm2 Style (`OSC 9`)**: Triggers a notification body payload (`OSC 9 ; message ST` or `BEL`).

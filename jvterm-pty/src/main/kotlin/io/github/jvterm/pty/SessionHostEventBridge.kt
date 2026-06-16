@@ -17,6 +17,7 @@ package io.github.jvterm.pty
 
 import io.github.jvterm.host.HostEventSink
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
 import io.github.jvterm.session.TerminalSession
 
 internal class SessionHostEventBridge(
@@ -75,6 +76,10 @@ internal class SessionHostEventBridge(
 
     override fun setMaximized(maximize: Boolean) {
         safeDispatch { session -> listener.setMaximized(session, maximize) }
+    }
+
+    override fun shellIntegrationMarker(event: ShellIntegrationEvent) {
+        safeDispatch { session -> listener.shellIntegrationMarker(session, event) }
     }
 
     override fun showNotification(

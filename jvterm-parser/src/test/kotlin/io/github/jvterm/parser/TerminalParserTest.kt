@@ -548,6 +548,46 @@ class TerminalParserTest {
         }
 
         @Test
+        fun `OSC 133 shell integration markers dispatch on BEL or ST`() {
+            val promptStart = TerminalParserFixture()
+            val promptEnd = TerminalParserFixture()
+            val commandStart = TerminalParserFixture()
+            val commandFinished = TerminalParserFixture()
+
+            promptStart.acceptAscii("\u001B]133;A\u0007")
+            promptEnd.acceptAscii("\u001B]133;B\u001B\\")
+            commandStart.acceptAscii("\u001B]133;C\u0007")
+            commandFinished.acceptAscii("\u001B]133;D;127\u001B\\")
+
+            assertAll(
+                { assertEquals(listOf("shellIntegrationMarker:PROMPT_START:null"), promptStart.sink.events) },
+                { assertEquals(listOf("shellIntegrationMarker:PROMPT_END:null"), promptEnd.sink.events) },
+                { assertEquals(listOf("shellIntegrationMarker:COMMAND_START:null"), commandStart.sink.events) },
+                {
+                    assertEquals(
+                        listOf("shellIntegrationMarker:COMMAND_FINISHED:127"),
+                        commandFinished.sink.events,
+                    )
+                },
+            )
+        }
+
+        @Test
+        fun `OSC 133 survives byte chunk boundaries around structural bytes`() {
+            val f = TerminalParserFixture()
+            val bytes = "\u001B]133;D;42\u001B\\".encodeToByteArray()
+
+            for (byte in bytes) {
+                f.parser.accept(byteArrayOf(byte))
+            }
+
+            assertAll(
+                { assertEquals(AnsiState.GROUND, f.state.fsmState) },
+                { assertEquals(listOf("shellIntegrationMarker:COMMAND_FINISHED:42"), f.sink.events) },
+            )
+        }
+
+        @Test
         fun `DCS ST drops payload without dispatching plain ESC backslash`() {
             val f = TerminalParserFixture()
 

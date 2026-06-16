@@ -17,6 +17,8 @@ package io.github.jvterm.pty
 
 import io.github.jvterm.core.TerminalBuffers
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
+import io.github.jvterm.protocol.ShellIntegrationMarker
 import io.github.jvterm.session.TerminalSession
 import io.github.jvterm.transport.TerminalConnector
 import io.github.jvterm.transport.TerminalConnectorListener
@@ -44,6 +46,9 @@ class SessionHostEventBridgeTest {
         assertThrows(IllegalStateException::class.java) { bridge.bell() }
         assertThrows(IllegalStateException::class.java) { bridge.iconTitleChanged("icon") }
         assertThrows(IllegalStateException::class.java) { bridge.windowTitleChanged("window") }
+        assertThrows(IllegalStateException::class.java) {
+            bridge.shellIntegrationMarker(ShellIntegrationEvent(ShellIntegrationMarker.PROMPT_START))
+        }
         assertThrows(IllegalStateException::class.java) { bridge.showNotification("title", "body", NotificationLevel.INFO) }
     }
 
@@ -64,6 +69,7 @@ class SessionHostEventBridgeTest {
         bridge.lowerWindow()
         bridge.setMaximized(true)
         bridge.setMaximized(false)
+        bridge.shellIntegrationMarker(ShellIntegrationEvent(ShellIntegrationMarker.COMMAND_FINISHED, exitCode = 3))
         bridge.showNotification("title", "body", NotificationLevel.INFO)
 
         assertEquals(
@@ -79,6 +85,7 @@ class SessionHostEventBridgeTest {
                 "lowerWindow",
                 "setMaximized:true",
                 "setMaximized:false",
+                "shellIntegrationMarker:COMMAND_FINISHED:3",
                 "showNotification:title:body:INFO",
             ),
             listener.events,
@@ -188,6 +195,13 @@ class SessionHostEventBridgeTest {
             maximize: Boolean,
         ) {
             events += "setMaximized:$maximize"
+        }
+
+        override fun shellIntegrationMarker(
+            session: TerminalSession,
+            event: ShellIntegrationEvent,
+        ) {
+            events += "shellIntegrationMarker:${event.marker.name}:${event.exitCode ?: "null"}"
         }
 
         override fun showNotification(

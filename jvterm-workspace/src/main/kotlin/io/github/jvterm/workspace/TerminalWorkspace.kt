@@ -16,6 +16,7 @@
 package io.github.jvterm.workspace
 
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
 import io.github.jvterm.pty.PtyEventListener
 import io.github.jvterm.pty.PtyOptions
 import io.github.jvterm.pty.TerminalSessions
@@ -31,9 +32,20 @@ import java.util.concurrent.atomic.AtomicInteger
  * tool-window contents. This class does not know about UI widgets, painting,
  * input events, or platform actions.
  */
-class TerminalWorkspace(
-    private val listener: TerminalWorkspaceListener = TerminalWorkspaceListener.NONE,
+class TerminalWorkspace internal constructor(
+    private val listener: TerminalWorkspaceListener,
+    private val sessionFactory: TerminalWorkspaceSessionFactory,
 ) : AutoCloseable {
+    /**
+     * Creates a workspace backed by local PTY sessions.
+     *
+     * @param listener host-neutral workspace event listener.
+     */
+    constructor(listener: TerminalWorkspaceListener = TerminalWorkspaceListener.NONE) : this(
+        listener = listener,
+        sessionFactory = LocalPtyWorkspaceSessionFactory,
+    )
+
     private val tabs = ArrayList<TerminalWorkspaceTab>(INITIAL_TAB_CAPACITY)
     private val nextTabNumber = AtomicInteger(1)
     private var selectedTabId: String? = null
@@ -65,19 +77,7 @@ class TerminalWorkspace(
     ): TerminalWorkspaceTab {
         val id = "terminal-${nextTabNumber.getAndIncrement()}"
         val tabEventListener = tabEventListener(id, profile)
-        val session =
-            TerminalSessions.localPty(
-                PtyOptions(
-                    command = profile.command,
-                    environment = PtyOptions.defaultEnvironment() + profile.environment,
-                    workingDirectory = profile.workingDirectory ?: DEFAULT_WORKING_DIRECTORY,
-                    columns = options.columns,
-                    rows = options.rows,
-                    treatAmbiguousAsWide = options.treatAmbiguousAsWide,
-                    maxHistory = options.maxHistory,
-                    eventListener = tabEventListener,
-                ),
-            )
+        val session = sessionFactory.open(profile, options, tabEventListener)
         val tab =
             TerminalWorkspaceTab(
                 id = id,
@@ -206,6 +206,13 @@ class TerminalWorkspace(
                 tabBySession(session)?.let { listener.setMaximized(it, maximize) }
             }
 
+            override fun shellIntegrationMarker(
+                session: TerminalSession,
+                event: ShellIntegrationEvent,
+            ) {
+                tabBySession(session)?.let { listener.shellIntegrationMarker(it, event) }
+            }
+
             override fun showNotification(
                 session: TerminalSession,
                 title: String,
@@ -229,8 +236,37 @@ class TerminalWorkspace(
 
     private companion object {
         private const val INITIAL_TAB_CAPACITY = 4
-        private val DEFAULT_WORKING_DIRECTORY: Path = Path.of(System.getProperty("user.home"))
     }
+}
+
+internal fun interface TerminalWorkspaceSessionFactory {
+    fun open(
+        profile: TerminalProfile,
+        options: TerminalWorkspaceOpenOptions,
+        eventListener: PtyEventListener,
+    ): TerminalSession
+}
+
+private object LocalPtyWorkspaceSessionFactory : TerminalWorkspaceSessionFactory {
+    override fun open(
+        profile: TerminalProfile,
+        options: TerminalWorkspaceOpenOptions,
+        eventListener: PtyEventListener,
+    ): TerminalSession =
+        TerminalSessions.localPty(
+            PtyOptions(
+                command = profile.command,
+                environment = PtyOptions.defaultEnvironment() + profile.environment,
+                workingDirectory = profile.workingDirectory ?: DEFAULT_WORKING_DIRECTORY,
+                columns = options.columns,
+                rows = options.rows,
+                treatAmbiguousAsWide = options.treatAmbiguousAsWide,
+                maxHistory = options.maxHistory,
+                eventListener = eventListener,
+            ),
+        )
+
+    private val DEFAULT_WORKING_DIRECTORY: Path = Path.of(System.getProperty("user.home"))
 }
 
 /**
@@ -416,6 +452,17 @@ interface TerminalWorkspaceListener {
     fun setMaximized(
         tab: TerminalWorkspaceTab,
         maximize: Boolean,
+    ) = Unit
+
+    /**
+     * Called when a tab receives an OSC 133 shell integration marker.
+     *
+     * @param tab tab that received the marker.
+     * @param event typed marker event.
+     */
+    fun shellIntegrationMarker(
+        tab: TerminalWorkspaceTab,
+        event: ShellIntegrationEvent,
     ) = Unit
 
     /**

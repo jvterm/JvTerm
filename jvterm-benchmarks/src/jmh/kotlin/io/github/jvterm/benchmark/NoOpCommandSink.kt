@@ -17,6 +17,7 @@ package io.github.jvterm.benchmark
 
 import io.github.jvterm.parser.spi.TerminalCommandSink
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
 
 /**
  * No-op sink for parser-only benchmarks. Discards all commands to measure
@@ -278,6 +279,8 @@ internal class NoOpCommandSink : TerminalCommandSink {
     override fun queryStatusString(query: String) {}
 
     override fun queryTerminfo(rawPayload: String) {}
+
+    override fun shellIntegrationMarker(event: ShellIntegrationEvent) {}
 
     override fun showNotification(
         title: String,

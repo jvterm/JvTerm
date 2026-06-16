@@ -17,6 +17,8 @@ package io.github.jvterm.parser.ansi.osc
 
 import io.github.jvterm.parser.spi.TerminalCommandSink
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
+import io.github.jvterm.protocol.ShellIntegrationMarker
 
 internal object OscDispatcher {
     fun dispatch(
@@ -84,6 +86,7 @@ internal object OscDispatcher {
                     target++
                 }
             }
+            133 -> dispatchShellIntegrationMarker(sink, payload, length, commandEnd + 1)
             777 -> {
                 val payloadStr = decodePayload(payload, commandEnd + 1, length)
                 if (payloadStr.startsWith("notify;")) {
@@ -111,6 +114,55 @@ internal object OscDispatcher {
                 }
             }
         }
+    }
+
+    private fun dispatchShellIntegrationMarker(
+        sink: TerminalCommandSink,
+        payload: ByteArray,
+        length: Int,
+        markerStart: Int,
+    ) {
+        if (markerStart >= length) return
+
+        val markerEnd = findByte(payload, length, startIndex = markerStart, byteValue = ';'.code)
+        val markerEndExclusive = if (markerEnd >= 0) markerEnd else length
+        if (markerEndExclusive - markerStart != 1) return
+
+        val marker =
+            when ((payload[markerStart].toInt() and 0xff).toChar()) {
+                'A' -> ShellIntegrationMarker.PROMPT_START
+                'B' -> ShellIntegrationMarker.PROMPT_END
+                'C' -> ShellIntegrationMarker.COMMAND_START
+                'D' -> ShellIntegrationMarker.COMMAND_FINISHED
+                else -> return
+            }
+
+        val exitCode =
+            if (marker == ShellIntegrationMarker.COMMAND_FINISHED && markerEnd >= 0) {
+                parseShellIntegrationExitCode(payload, markerEnd + 1, length)
+            } else {
+                null
+            }
+
+        sink.shellIntegrationMarker(ShellIntegrationEvent(marker = marker, exitCode = exitCode))
+    }
+
+    private fun parseShellIntegrationExitCode(
+        payload: ByteArray,
+        startInclusive: Int,
+        endExclusive: Int,
+    ): Int? {
+        if (startInclusive >= endExclusive) return null
+        var value = 0
+        var i = startInclusive
+        while (i < endExclusive) {
+            val digit = (payload[i].toInt() and 0xff) - '0'.code
+            if (digit !in 0..9) return null
+            if (value > (Int.MAX_VALUE - digit) / 10) return null
+            value = value * 10 + digit
+            i++
+        }
+        return value
     }
 
     private fun isConEmuCommand(payload: String): Boolean {

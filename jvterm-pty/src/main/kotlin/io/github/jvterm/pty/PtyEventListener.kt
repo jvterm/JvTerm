@@ -16,6 +16,7 @@
 package io.github.jvterm.pty
 
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
 import io.github.jvterm.session.TerminalSession
 
 /**
@@ -132,6 +133,17 @@ interface PtyEventListener {
     fun setMaximized(
         session: TerminalSession,
         maximize: Boolean,
+    ) = Unit
+
+    /**
+     * Called when an OSC 133 shell integration marker is received.
+     *
+     * @param session session that received the event.
+     * @param event typed marker event.
+     */
+    fun shellIntegrationMarker(
+        session: TerminalSession,
+        event: ShellIntegrationEvent,
     ) = Unit
 
     /**
