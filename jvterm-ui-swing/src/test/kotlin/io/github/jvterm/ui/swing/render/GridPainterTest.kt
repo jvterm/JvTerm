@@ -22,6 +22,7 @@ import io.github.jvterm.ui.swing.api.CellSelection
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.awt.Font
@@ -516,6 +517,51 @@ class GridPainterTest {
         assertEquals(BLACK, image.getRGB(0, metrics.cellHeight + 1))
     }
 
+    @Test
+    fun `shell integration viewport snapshot does not clear session state while scrolled back`() {
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                padding = Insets(0, 8, 0, 0),
+            )
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(
+            TextRowsFrame(
+                lines = arrayOf("abc", "def", "ghi"),
+                palette = settings.palette,
+                historySize = 100,
+                scrollbackOffset = 20,
+            ),
+        )
+        val state = TerminalShellIntegrationState()
+        state.observeLiveBottomRow(102)
+        state.recordPromptStart(81)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+
+        decorations.updateFrom(state, cache)
+
+        assertTrue(state.hasPromptDividerAt(81))
+        assertTrue(decorations.hasPromptDividerAt(1))
+        assertFalse(decorations.hasPromptDividerAt(0))
+    }
+
+    @Test
+    fun `shell integration viewport snapshot reports visible marker changes without render cache mutation`() {
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = TerminalColorPalette()))
+        val state = TerminalShellIntegrationState()
+        val decorations = TerminalShellIntegrationViewportDecorations()
+
+        assertTrue(decorations.updateFrom(state, cache))
+        assertFalse(decorations.updateFrom(state, cache))
+
+        state.recordPromptStart(1)
+
+        assertTrue(decorations.updateFrom(state, cache))
+        assertTrue(decorations.hasPromptDividerAt(1))
+        assertFalse(decorations.updateFrom(state, cache))
+    }
+
     private fun BufferedImage.containsColorInRange(
         argb: Int,
         xStart: Int,
@@ -611,6 +657,9 @@ class GridPainterTest {
     private class TextRowsFrame(
         private val lines: Array<String>,
         override val palette: TerminalColorPalette,
+        override val historySize: Int = 0,
+        override val scrollbackOffset: Int = 0,
+        override val discardedCount: Long = 0L,
     ) : TerminalRenderFrameReader,
         TerminalRenderFrame {
         override val columns: Int = lines.maxOf { it.length }

@@ -377,6 +377,56 @@ class SwingRepaintPlannerTest {
     }
 
     @Test
+    fun `forced frame repaint snapshots unchanged cache for metadata only decorations`() {
+        val frame = MutableFrame(columns = 4, rows = 4)
+        val cache = TerminalRenderCache(columns = 4, rows = 4)
+        val planner = SwingRepaintPlanner()
+        var fullRepaints = 0
+
+        cache.updateFrom(frame.reader)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
+
+        planner.requestFrameRepaint(
+            cache = cache,
+            metrics = METRICS,
+            componentWidth = WIDTH,
+            componentHeight = HEIGHT,
+            contentYOffset = 0.0,
+            padding = PADDING,
+            repaintSink =
+                object : TerminalRepaintSink {
+                    override fun requestFullRepaint() {
+                        fullRepaints++
+                    }
+
+                    override fun requestRegionRepaint(
+                        x: Int,
+                        y: Int,
+                        width: Int,
+                        height: Int,
+                    ) {
+                        error("metadata-only decoration repaint must not request a partial row repaint")
+                    }
+                },
+            forceFullRepaint = true,
+        )
+
+        val repaintSink = RecordingRepaintSink(failOnFullRepaint = true)
+        planner.requestFrameRepaint(
+            cache = cache,
+            metrics = METRICS,
+            componentWidth = WIDTH,
+            componentHeight = HEIGHT,
+            contentYOffset = 0.0,
+            padding = PADDING,
+            repaintSink = repaintSink,
+        )
+
+        assertEquals(1, fullRepaints)
+        assertEquals(emptyList(), repaintSink.regions)
+    }
+
+    @Test
     fun `resized render cache requests full repaint`() {
         val cache = TerminalRenderCache(columns = 2, rows = 2)
         val planner = SwingRepaintPlanner()

@@ -28,26 +28,31 @@ import io.github.jvterm.session.TerminalShellIntegrationState
 internal class TerminalShellIntegrationViewportDecorations {
     private var promptDividers = BooleanArray(0)
     private var failedCommandRails = BooleanArray(0)
+    private var nextPromptDividers = BooleanArray(0)
+    private var nextFailedCommandRails = BooleanArray(0)
     private var rowCount = 0
 
     /**
      * Copies visible shell integration decorations from [state] for [cache].
+     *
+     * @return true when any visible decoration flag changed.
      */
     fun updateFrom(
         state: TerminalShellIntegrationState,
         cache: TerminalRenderCache,
-    ) {
+    ): Boolean {
         ensureCapacity(cache.rows)
-        rowCount = cache.rows
         val firstAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset
-        val bottomAbsoluteRow = firstAbsoluteRow + cache.rows - 1
-        state.observeLiveBottomRow(bottomAbsoluteRow)
         state.copyViewport(
             firstAbsoluteRow = firstAbsoluteRow,
             rowCount = cache.rows,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptDividers = nextPromptDividers,
+            failedCommandRails = nextFailedCommandRails,
         )
+        val changed = decorationsChanged(cache.rows)
+        swapBuffers()
+        rowCount = cache.rows
+        return changed
     }
 
     /**
@@ -71,5 +76,29 @@ internal class TerminalShellIntegrationViewportDecorations {
         if (promptDividers.size >= rows) return
         promptDividers = BooleanArray(rows)
         failedCommandRails = BooleanArray(rows)
+        nextPromptDividers = BooleanArray(rows)
+        nextFailedCommandRails = BooleanArray(rows)
+    }
+
+    private fun decorationsChanged(nextRowCount: Int): Boolean {
+        if (rowCount != nextRowCount) return true
+
+        var row = 0
+        while (row < nextRowCount) {
+            if (promptDividers[row] != nextPromptDividers[row]) return true
+            if (failedCommandRails[row] != nextFailedCommandRails[row]) return true
+            row++
+        }
+        return false
+    }
+
+    private fun swapBuffers() {
+        var prompt = promptDividers
+        promptDividers = nextPromptDividers
+        nextPromptDividers = prompt
+
+        prompt = failedCommandRails
+        failedCommandRails = nextFailedCommandRails
+        nextFailedCommandRails = prompt
     }
 }

@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.workspace
 
+import java.util.Base64
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -23,7 +24,7 @@ import kotlin.test.assertTrue
 
 class TerminalShellIntegrationBootstrapTest {
     @Test
-    fun `PowerShell profile receives interactive OSC 133 bootstrap command`() {
+    fun `PowerShell profile receives interactive OSC 133 encoded bootstrap command`() {
         val profile =
             TerminalProfile(
                 id = "powershell",
@@ -36,13 +37,13 @@ class TerminalShellIntegrationBootstrapTest {
         assertEquals("pwsh.exe", integrated.command[0])
         assertTrue("-NoLogo" in integrated.command)
         assertTrue("-NoExit" in integrated.command)
-        assertEquals("-Command", integrated.command[integrated.command.lastIndex - 1])
+        assertEquals("-EncodedCommand", integrated.command[integrated.command.lastIndex - 1])
 
-        val script = integrated.command.last()
+        val script = decodePowerShellScript(integrated.command.last())
         assertTrue(script.contains("function global:prompt"))
         assertTrue(script.contains("function global:PSConsoleHostReadLine"))
         assertTrue(script.contains("]133;"))
-        assertTrue(script.contains("D;$"))
+        assertTrue(script.contains("'D;' + ${'$'}exitCode"))
         assertFalse(script.contains('"'))
     }
 
@@ -102,4 +103,6 @@ class TerminalShellIntegrationBootstrapTest {
         assertSame(profile, integrated)
         assertFalse(integrated.command.any { it.contains("133") })
     }
+
+    private fun decodePowerShellScript(encoded: String): String = String(Base64.getDecoder().decode(encoded), Charsets.UTF_16LE)
 }

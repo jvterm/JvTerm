@@ -823,7 +823,7 @@ class SwingTerminal
             if (scrollModel.clamp(renderCache.historySize) || renderCache.scrollbackOffset != scrollModel.requestedOffset) {
                 refreshRenderCacheFromSession(boundSession)
             }
-            refreshShellIntegrationDecorations(boundSession)
+            val shellIntegrationDecorationsChanged = refreshShellIntegrationDecorations(boundSession)
             refreshSearchForFrameOnEdt()
             publishViewportState(renderCache.historySize)
             val yOffset = contentYOffset(renderCache)
@@ -835,6 +835,7 @@ class SwingTerminal
                 contentYOffset = yOffset,
                 padding = settings.padding,
                 repaintSink = repaintSink,
+                forceFullRepaint = shellIntegrationDecorationsChanged,
             )
         }
 
@@ -1106,9 +1107,8 @@ class SwingTerminal
             )
         }
 
-        private fun refreshShellIntegrationDecorations(session: TerminalSession) {
+        private fun refreshShellIntegrationDecorations(session: TerminalSession): Boolean =
             shellIntegrationDecorations.updateFrom(session.shellIntegrationState, renderCache)
-        }
 
         private fun contentYOffset(cache: TerminalRenderCache): Double {
             if (cache.rows < requestedRenderRows()) return 0.0

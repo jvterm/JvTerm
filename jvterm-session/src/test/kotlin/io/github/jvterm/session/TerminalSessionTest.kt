@@ -252,6 +252,21 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `OSC 133 command finish at next prompt line excludes prompt row from failed range`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 20, rows = 4)
+
+        connector.feedFromHost("\u001B]133;C\u0007failed\r\n\u001B]133;D;2\u0007\u001B]133;A\u0007PS> ".ascii())
+
+        assertAll(
+            { assertTrue(session.shellIntegrationState.hasFailedCommandRailAt(0)) },
+            { assertFalse(session.shellIntegrationState.hasFailedCommandRailAt(1)) },
+            { assertTrue(session.shellIntegrationState.hasPromptDividerAt(1)) },
+        )
+        session.close()
+    }
+
+    @Test
     fun `resize clears shared shell integration state because rows are reflowed`() {
         val connector = MockConnector()
         val session = createStartedSession(connector, columns = 10, rows = 4)

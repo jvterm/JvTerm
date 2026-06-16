@@ -79,8 +79,9 @@ internal class SwingRepaintPlanner {
         contentYOffset: Double,
         padding: java.awt.Insets,
         repaintSink: TerminalRepaintSink,
+        forceFullRepaint: Boolean = false,
     ) {
-        if (requiresFullRepaint(cache)) {
+        if (forceFullRepaint || requiresFullRepaint(cache)) {
             snapshotCacheState(cache)
             snapshotCursor(cache)
             repaintSink.requestFullRepaint()

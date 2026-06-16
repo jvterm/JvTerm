@@ -681,10 +681,12 @@ private class ShellIntegrationRecordingHostEventSink(
 
     override fun shellIntegrationMarker(event: ShellIntegrationEvent) {
         var cursorAbsoluteRow = 0L
+        var cursorColumn = 0
         var bottomAbsoluteRow = 0L
         renderReader.readRenderFrame(scrollbackOffset = 0) { frame ->
             val firstVisibleRow = frame.discardedCount + frame.historySize
             cursorAbsoluteRow = firstVisibleRow + frame.cursor.row
+            cursorColumn = frame.cursor.column
             bottomAbsoluteRow = firstVisibleRow + frame.rows - 1
         }
 
@@ -693,7 +695,15 @@ private class ShellIntegrationRecordingHostEventSink(
             ShellIntegrationMarker.PROMPT_START -> state.recordPromptStart(cursorAbsoluteRow)
             ShellIntegrationMarker.PROMPT_END -> Unit
             ShellIntegrationMarker.COMMAND_START -> state.recordCommandStart(cursorAbsoluteRow)
-            ShellIntegrationMarker.COMMAND_FINISHED -> state.recordCommandFinished(cursorAbsoluteRow, event.exitCode)
+            ShellIntegrationMarker.COMMAND_FINISHED -> {
+                val finishedRow =
+                    if (cursorColumn == 0 && cursorAbsoluteRow > 0L) {
+                        cursorAbsoluteRow - 1L
+                    } else {
+                        cursorAbsoluteRow
+                    }
+                state.recordCommandFinished(finishedRow, event.exitCode)
+            }
         }
 
         delegate.shellIntegrationMarker(event)

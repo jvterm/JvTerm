@@ -15,7 +15,9 @@
  */
 package io.github.jvterm.workspace
 
-import java.util.*
+import java.util.ArrayList
+import java.util.Base64
+import java.util.Locale
 
 /**
  * Applies host-neutral shell integration launch hooks to terminal profiles.
@@ -41,8 +43,9 @@ internal object TerminalShellIntegrationBootstrap {
 
     private fun withPowerShellIntegration(profile: TerminalProfile): TerminalProfile {
         val command = profile.command
+        val encodedScript = encodedPowerShellScript()
         if (command.size <= 1) {
-            return profile.copy(command = command + listOf("-NoExit", "-Command", POWERSHELL_SCRIPT))
+            return profile.copy(command = command + listOf("-NoExit", "-EncodedCommand", encodedScript))
         }
         if (hasExplicitPowerShellEntryPoint(command)) return profile
 
@@ -51,10 +54,12 @@ internal object TerminalShellIntegrationBootstrap {
         if (!hasPowerShellArgument(command, "-NoExit")) {
             next += "-NoExit"
         }
-        next += "-Command"
-        next += POWERSHELL_SCRIPT
+        next += "-EncodedCommand"
+        next += encodedScript
         return profile.copy(command = next)
     }
+
+    private fun encodedPowerShellScript(): String = Base64.getEncoder().encodeToString(POWERSHELL_SCRIPT.toByteArray(Charsets.UTF_16LE))
 
     private fun hasExplicitPowerShellEntryPoint(command: List<String>): Boolean {
         var index = 1
