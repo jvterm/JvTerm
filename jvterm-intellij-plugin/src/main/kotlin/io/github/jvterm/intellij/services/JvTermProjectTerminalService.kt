@@ -54,7 +54,12 @@ class JvTermProjectTerminalService(
     private val workspaceLock = Any()
     private val nextPendingTabNumber = AtomicInteger(1)
     private val ptyRuntime = IntelliJPtyRuntime()
+    private val settingsChangedListener = { reloadOpenTerminalSettings() }
     private var disposed = false
+
+    init {
+        JvTermIntellijSettings.getInstance().addChangeListener(settingsChangedListener)
+    }
 
     /**
      * Returns true when this project already has an open terminal tab.
@@ -80,8 +85,10 @@ class JvTermProjectTerminalService(
     fun openDefaultTab(toolWindow: ToolWindow): Content {
         check(!disposed) { "JvTerm project terminal service is disposed" }
 
-        val profile = JvTermDefaultProfileFactory.defaultProfile(project)
-        val settings = JvTermIntellijSettings.current()
+        val settingsService = JvTermIntellijSettings.getInstance()
+        val settingsState = settingsService.state
+        val profile = JvTermDefaultProfileFactory.defaultProfile(project, settingsState)
+        val settings = settingsService.current()
         val pendingId = "pending-terminal-${nextPendingTabNumber.getAndIncrement()}"
         val container =
             JPanel(BorderLayout()).apply {
@@ -132,6 +139,7 @@ class JvTermProjectTerminalService(
         for (pane in panes) {
             pane.close()
         }
+        JvTermIntellijSettings.getInstance().removeChangeListener(settingsChangedListener)
         synchronized(workspaceLock) {
             workspace.close()
         }
@@ -229,6 +237,14 @@ class JvTermProjectTerminalService(
         container.add(component, BorderLayout.CENTER)
         container.revalidate()
         container.repaint()
+    }
+
+    private fun reloadOpenTerminalSettings() {
+        invokeLaterIfAlive {
+            for (pane in panesByTabId.values) {
+                pane.reloadSettings()
+            }
+        }
     }
 
     private fun openOptions(settings: SwingSettings): TerminalWorkspaceOpenOptions =

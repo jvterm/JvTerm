@@ -15,19 +15,26 @@
  */
 package io.github.jvterm.intellij.settings
 
+import com.intellij.openapi.fileChooser.FileChooser
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.ui.ComboBox
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
 import io.github.jvterm.intellij.JvTermBundle
+import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
+import io.github.jvterm.workspace.TerminalProfileRegistry
 import io.github.jvterm.workspace.config.TerminalConfig
 import java.util.Locale
 import javax.swing.JComponent
 import javax.swing.JSpinner
 import javax.swing.SpinnerNumberModel
+
+private const val JVTERM_SETTINGS_CONFIGURABLE_ID = "io.github.jvterm.terminal.settings"
 
 /**
  * IntelliJ-native settings page for IDE-hosted JvTerm terminals.
@@ -40,8 +47,9 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
         get() = JvTermIntellijSettings.getInstance()
 
     private val themeCombo = ComboBox(themeOptions())
-    private val fontFamilyField = JBTextField()
-    private val fontSizeSpinner = spinner(0, 0, TerminalConfig.FONT_SIZE_MAX)
+    private val fontFamilyCombo = ComboBox(fontFamilyOptions()).apply { isEditable = false }
+    private val fallbackFontFamilyCombo = ComboBox(fontFamilyOptions()).apply { isEditable = false }
+    private val fontSizeSpinner = integerSpinner(JvTermIntellijSettings.DEFAULT_FONT_SIZE, TerminalConfig.FONT_SIZE_MIN, TerminalConfig.FONT_SIZE_MAX)
     private val columnsSpinner = spinner(TerminalConfig.DEFAULT_COLUMNS, TerminalConfig.COLUMNS_MIN, TerminalConfig.COLUMNS_MAX)
     private val rowsSpinner = spinner(TerminalConfig.DEFAULT_ROWS, TerminalConfig.ROWS_MIN, TerminalConfig.ROWS_MAX)
     private val scrollbackSpinner =
@@ -49,11 +57,15 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
     private val cursorBlinkSpinner =
         spinner(TerminalConfig.DEFAULT_CURSOR_BLINK_MILLIS, TerminalConfig.CURSOR_BLINK_MIN, TerminalConfig.CURSOR_BLINK_MAX)
     private val lineHeightSpinner =
-        spinner(
-            (TerminalConfig.DEFAULT_LINE_HEIGHT * LINE_HEIGHT_SCALE).toInt(),
-            (TerminalConfig.LINE_HEIGHT_MIN * LINE_HEIGHT_SCALE).toInt(),
-            (TerminalConfig.LINE_HEIGHT_MAX * LINE_HEIGHT_SCALE).toInt(),
+        decimalSpinner(
+            TerminalConfig.DEFAULT_LINE_HEIGHT.toDouble(),
+            TerminalConfig.LINE_HEIGHT_MIN.toDouble(),
+            TerminalConfig.LINE_HEIGHT_MAX.toDouble(),
         )
+    private val shellPathCombo = ComboBox(shellPathOptions()).apply { isEditable = true }
+    private val startDirectoryField = TextFieldWithBrowseButton()
+    private val environmentVariablesField = JBTextField()
+    private val defaultTabNameField = JBTextField()
     private val cursorShapeCombo = ComboBox(cursorShapeOptions())
     private val ambiguousWidthCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.ambiguousWidth"))
     private val systemFallbackFontsCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.systemFallbackFonts"))
@@ -61,35 +73,71 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
 
     private var panel: JComponent? = null
 
-    override fun getId(): String = ID
+    init {
+        startDirectoryField.addActionListener {
+            val chosen =
+                FileChooser.chooseFile(
+                    FileChooserDescriptorFactory.createSingleFolderDescriptor(),
+                    null,
+                    null,
+                )
+            if (chosen != null) {
+                startDirectoryField.text = chosen.path
+            }
+        }
+    }
+
+    override fun getId(): String = JVTERM_SETTINGS_CONFIGURABLE_ID
 
     override fun getDisplayName(): String = JvTermBundle.message("settings.jvterm.displayName")
 
     override fun createComponent(): JComponent {
         val created =
             panel {
-                group(JvTermBundle.message("settings.jvterm.group.appearance")) {
+                group(JvTermBundle.message("settings.jvterm.group.session")) {
+                    row(JvTermBundle.message("settings.jvterm.startDirectory")) {
+                        cell(startDirectoryField)
+                            .align(AlignX.FILL)
+                            .comment(JvTermBundle.message("settings.jvterm.startDirectory.comment"))
+                    }
+                    row(JvTermBundle.message("settings.jvterm.environmentVariables")) {
+                        cell(environmentVariablesField)
+                            .align(AlignX.FILL)
+                            .comment(JvTermBundle.message("settings.jvterm.environmentVariables.comment"))
+                    }
+                }
+
+                group(JvTermBundle.message("settings.jvterm.group.font")) {
+                    row {
+                        label(JvTermBundle.message("settings.jvterm.fontFamily"))
+                        cell(fontFamilyCombo)
+                            .align(AlignX.FILL)
+                        label(JvTermBundle.message("settings.jvterm.fallbackFontFamily"))
+                        cell(fallbackFontFamilyCombo)
+                            .align(AlignX.FILL)
+                    }
+                    row {
+                        label(JvTermBundle.message("settings.jvterm.fontSize"))
+                        cell(fontSizeSpinner)
+                        label(JvTermBundle.message("settings.jvterm.lineHeight"))
+                        cell(lineHeightSpinner)
+                    }
                     row(JvTermBundle.message("settings.jvterm.theme")) {
                         cell(themeCombo)
                             .align(AlignX.LEFT)
                             .comment(JvTermBundle.message("settings.jvterm.theme.comment"))
                     }
-                    row(JvTermBundle.message("settings.jvterm.fontFamily")) {
-                        cell(fontFamilyField)
-                            .align(AlignX.FILL)
-                            .comment(JvTermBundle.message("settings.jvterm.fontFamily.comment"))
-                    }
-                    row(JvTermBundle.message("settings.jvterm.fontSize")) {
-                        cell(fontSizeSpinner)
-                            .comment(JvTermBundle.message("settings.jvterm.fontSize.comment"))
-                    }
-                    row(JvTermBundle.message("settings.jvterm.lineHeight")) {
-                        cell(lineHeightSpinner)
-                            .comment(JvTermBundle.message("settings.jvterm.lineHeight.comment"))
-                    }
                 }
 
-                group(JvTermBundle.message("settings.jvterm.group.terminal")) {
+                group(JvTermBundle.message("settings.jvterm.group.application")) {
+                    row(JvTermBundle.message("settings.jvterm.shellPath")) {
+                        cell(shellPathCombo)
+                            .align(AlignX.FILL)
+                    }
+                    row(JvTermBundle.message("settings.jvterm.defaultTabName")) {
+                        cell(defaultTabNameField)
+                            .align(AlignX.FILL)
+                    }
                     row(JvTermBundle.message("settings.jvterm.initialColumns")) {
                         cell(columnsSpinner)
                     }
@@ -144,13 +192,18 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
     private fun applyState(state: JvTermIntellijSettings.State) {
         val normalized = JvTermIntellijSettingsNormalizer.normalize(state)
         themeCombo.selectedItem = themeOptions().first { it.id == normalized.themeId }
-        fontFamilyField.text = normalized.fontFamily
+        fontFamilyCombo.selectedItem = normalized.fontFamily
+        fallbackFontFamilyCombo.selectedItem = normalized.fallbackFontFamily
         fontSizeSpinner.value = normalized.fontSize
         columnsSpinner.value = normalized.columns
         rowsSpinner.value = normalized.rows
         scrollbackSpinner.value = normalized.scrollbackLines
         cursorBlinkSpinner.value = normalized.cursorBlinkMillis
-        lineHeightSpinner.value = (normalized.lineHeight * LINE_HEIGHT_SCALE).toInt()
+        lineHeightSpinner.value = normalized.lineHeight.toDouble()
+        shellPathCombo.selectedItem = normalized.shellPath
+        startDirectoryField.text = normalized.startDirectory
+        environmentVariablesField.text = normalized.environmentVariables
+        defaultTabNameField.text = normalized.defaultTabName
         cursorShapeCombo.selectedItem = cursorShapeOptions().first { it.id == normalized.cursorShape }
         ambiguousWidthCheckBox.isSelected = normalized.treatAmbiguousAsWide
         systemFallbackFontsCheckBox.isSelected = normalized.useSystemFallbackFonts
@@ -160,7 +213,8 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
     private fun uiState(): JvTermIntellijSettings.State =
         JvTermIntellijSettings.State(
             themeId = selectedThemeId(),
-            fontFamily = fontFamilyField.text.trim(),
+            fontFamily = selectedString(fontFamilyCombo),
+            fallbackFontFamily = selectedString(fallbackFontFamilyCombo),
             fontSize = spinnerValue(fontSizeSpinner),
             columns = spinnerValue(columnsSpinner),
             rows = spinnerValue(rowsSpinner),
@@ -170,7 +224,11 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
             cursorShape = selectedCursorShapeId(),
             pasteOnMiddleClick = pasteOnMiddleClickCheckBox.isSelected,
             scrollbackLines = spinnerValue(scrollbackSpinner),
-            lineHeight = spinnerValue(lineHeightSpinner) / LINE_HEIGHT_SCALE.toFloat(),
+            lineHeight = spinnerDoubleValue(lineHeightSpinner).toFloat(),
+            shellPath = selectedString(shellPathCombo),
+            startDirectory = startDirectoryField.text.trim(),
+            environmentVariables = environmentVariablesField.text.trim(),
+            defaultTabName = defaultTabNameField.text.trim(),
         )
 
     private fun selectedThemeId(): String =
@@ -179,9 +237,19 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
     private fun selectedCursorShapeId(): String =
         (cursorShapeCombo.selectedItem as? CursorShapeOption)?.id ?: "block"
 
+    private fun selectedString(comboBox: ComboBox<String>): String = comboBox.selectedItem?.toString()?.trim().orEmpty()
+
     private fun spinnerValue(spinner: JSpinner): Int = (spinner.value as Number).toInt()
 
+    private fun spinnerDoubleValue(spinner: JSpinner): Double = (spinner.value as Number).toDouble()
+
     private fun spinner(
+        value: Int,
+        minimum: Int,
+        maximum: Int,
+    ): JSpinner = integerSpinner(value, minimum, maximum)
+
+    private fun integerSpinner(
         value: Int,
         minimum: Int,
         maximum: Int,
@@ -190,47 +258,65 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
             editor = JSpinner.NumberEditor(this, "#")
         }
 
-    private data class ThemeOption(
-        val id: String,
-        private val label: String,
-    ) {
-        override fun toString(): String = label
-    }
+    private fun decimalSpinner(
+        value: Double,
+        minimum: Double,
+        maximum: Double,
+    ): JSpinner =
+        JSpinner(SpinnerNumberModel(value, minimum, maximum, 0.1)).apply {
+            editor = JSpinner.NumberEditor(this, "0.0")
+        }
 
-    private data class CursorShapeOption(
-        val id: String,
-        private val label: String,
-    ) {
-        override fun toString(): String = label
-    }
-
-    private companion object {
-        private const val ID = "io.github.jvterm.terminal.settings"
-        private const val LINE_HEIGHT_SCALE = 100
-
-        private fun themeOptions(): Array<ThemeOption> =
-            arrayOf(
-                ThemeOption(
-                    JvTermIntellijSettings.DEFAULT_THEME_ID,
-                    JvTermBundle.message("settings.jvterm.theme.intellij"),
-                ),
-                *TerminalTheme.entries
-                    .map { theme ->
-                        ThemeOption(
-                            theme.name.lowercase(Locale.ROOT).replace('_', '-'),
-                            theme.name
-                                .lowercase(Locale.ROOT)
-                                .split('_')
-                                .joinToString(" ") { part -> part.replaceFirstChar(Char::titlecase) },
-                        )
-                    }.toTypedArray(),
-            )
-
-        private fun cursorShapeOptions(): Array<CursorShapeOption> =
-            arrayOf(
-                CursorShapeOption("block", JvTermBundle.message("settings.jvterm.cursorShape.block")),
-                CursorShapeOption("beam", JvTermBundle.message("settings.jvterm.cursorShape.beam")),
-                CursorShapeOption("underline", JvTermBundle.message("settings.jvterm.cursorShape.underline")),
-            )
-    }
 }
+
+private data class ThemeOption(
+    val id: String,
+    private val label: String,
+) {
+    override fun toString(): String = label
+}
+
+private data class CursorShapeOption(
+    val id: String,
+    private val label: String,
+) {
+    override fun toString(): String = label
+}
+
+private fun fontFamilyOptions(): Array<String> =
+    LinkedHashSet<String>().apply {
+        add(JvTermIntellijSettings.DEFAULT_FONT_FAMILY)
+        addAll(SwingSettings.getMonospaceFontFamilies())
+    }.toTypedArray()
+
+private fun shellPathOptions(): Array<String> =
+    TerminalProfileRegistry()
+        .availableProfiles()
+        .map { it.command.first() }
+        .distinct()
+        .toTypedArray()
+
+private fun themeOptions(): Array<ThemeOption> =
+    arrayOf(
+        ThemeOption(
+            JvTermIntellijSettings.DEFAULT_THEME_ID,
+            JvTermBundle.message("settings.jvterm.theme.intellij"),
+        ),
+        *TerminalTheme.entries
+            .map { theme ->
+                ThemeOption(
+                    theme.name.lowercase(Locale.ROOT).replace('_', '-'),
+                    theme.name
+                        .lowercase(Locale.ROOT)
+                        .split('_')
+                        .joinToString(" ") { part -> part.replaceFirstChar(Char::titlecase) },
+                )
+            }.toTypedArray(),
+    )
+
+private fun cursorShapeOptions(): Array<CursorShapeOption> =
+    arrayOf(
+        CursorShapeOption("block", JvTermBundle.message("settings.jvterm.cursorShape.block")),
+        CursorShapeOption("beam", JvTermBundle.message("settings.jvterm.cursorShape.beam")),
+        CursorShapeOption("underline", JvTermBundle.message("settings.jvterm.cursorShape.underline")),
+    )

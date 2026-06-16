@@ -16,6 +16,8 @@
 package io.github.jvterm.intellij.services
 
 import com.intellij.openapi.project.Project
+import io.github.jvterm.intellij.settings.JvTermIntellijSettings
+import io.github.jvterm.intellij.settings.JvTermIntellijSettingsNormalizer
 import io.github.jvterm.workspace.TerminalProfile
 import io.github.jvterm.workspace.TerminalProfileRegistry
 import java.nio.file.Path
@@ -33,25 +35,52 @@ internal object JvTermDefaultProfileFactory {
      * @param project current IntelliJ project.
      * @return local terminal launch profile.
      */
-    fun defaultProfile(project: Project): TerminalProfile = defaultProfile(project.basePath)
+    fun defaultProfile(
+        project: Project,
+        settings: JvTermIntellijSettings.State = JvTermIntellijSettings.getInstance().state,
+    ): TerminalProfile = defaultProfile(project.basePath, settings)
 
     /**
      * Creates a default profile for a nullable project path.
      *
      * @param basePath project base path, or `null` when the IDE has no local project path.
+     * @param settings persisted IntelliJ terminal settings.
      * @return local terminal launch profile.
      */
-    fun defaultProfile(basePath: String?): TerminalProfile {
-        val workingDirectory = workingDirectory(basePath)
+    fun defaultProfile(
+        basePath: String?,
+        settings: JvTermIntellijSettings.State = JvTermIntellijSettings.State(),
+    ): TerminalProfile {
+        val normalized = JvTermIntellijSettingsNormalizer.normalize(settings)
+        val workingDirectory = workingDirectory(basePath, normalized.startDirectory)
         return TerminalProfileRegistry()
-            .initialProfile(emptyList())
-            .copy(workingDirectory = workingDirectory)
+            .configuredProfile(normalized.shellPath, workingDirectory)
+            .copy(
+                displayName = normalized.defaultTabName,
+                environment = JvTermIntellijSettingsNormalizer.parseEnvironmentVariables(normalized.environmentVariables),
+            )
     }
 
-    private fun workingDirectory(basePath: String?): Path =
-        if (basePath.isNullOrBlank()) {
-            Path.of(System.getProperty("user.home"))
-        } else {
-            Path.of(basePath)
+    private fun workingDirectory(
+        basePath: String?,
+        configuredStartDirectory: String,
+    ): Path {
+        if (configuredStartDirectory.isNotBlank()) {
+            return pathOrUserHome(configuredStartDirectory)
         }
+        return if (basePath.isNullOrBlank()) {
+            userHome()
+        } else {
+            pathOrUserHome(basePath)
+        }
+    }
+
+    private fun pathOrUserHome(path: String): Path =
+        try {
+            Path.of(path)
+        } catch (_: RuntimeException) {
+            userHome()
+        }
+
+    private fun userHome(): Path = Path.of(System.getProperty("user.home"))
 }

@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.intellij.services
 
+import io.github.jvterm.intellij.settings.JvTermIntellijSettings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -38,5 +39,39 @@ class JvTermDefaultProfileFactoryTest {
 
         assertEquals(Path.of(System.getProperty("user.home")), profile.workingDirectory)
         assertTrue(profile.command.isNotEmpty())
+    }
+
+    @Test
+    fun `uses configured start directory before project base path`() {
+        val profile =
+            JvTermDefaultProfileFactory.defaultProfile(
+                "C:\\work\\project",
+                JvTermIntellijSettings.State(startDirectory = "C:\\work\\project\\tools"),
+            )
+
+        assertEquals(Path.of("C:\\work\\project\\tools"), profile.workingDirectory)
+    }
+
+    @Test
+    fun `maps plugin launch settings into terminal profile`() {
+        val profile =
+            JvTermDefaultProfileFactory.defaultProfile(
+                "C:\\work\\project",
+                JvTermIntellijSettings.State(
+                    shellPath = "custom-shell.exe",
+                    environmentVariables = "JVTERM_MODE=plugin\nEMPTY=\nignored",
+                    defaultTabName = "Project Shell",
+                ),
+            )
+
+        assertEquals("Project Shell", profile.displayName)
+        assertEquals(listOf("custom-shell.exe"), profile.command)
+        assertEquals(
+            mapOf(
+                "JVTERM_MODE" to "plugin",
+                "EMPTY" to "",
+            ),
+            profile.environment,
+        )
     }
 }

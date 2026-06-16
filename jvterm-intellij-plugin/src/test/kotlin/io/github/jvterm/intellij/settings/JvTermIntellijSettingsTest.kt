@@ -35,6 +35,16 @@ class JvTermIntellijSettingsTest {
     }
 
     @Test
+    fun `default font size matches IntelliJ terminal default`() {
+        val settings =
+            JvTermIntellijSettingsMapper.toSwingSettings(
+                JvTermIntellijSettings.State(themeId = "nord"),
+            )
+
+        assertEquals(JvTermIntellijSettings.DEFAULT_FONT_SIZE, settings.font.size)
+    }
+
+    @Test
     fun `normalizes unknown theme ids to IntelliJ native theme`() {
         assertEquals(
             JvTermIntellijSettings.DEFAULT_THEME_ID,
@@ -86,6 +96,8 @@ class JvTermIntellijSettingsTest {
             JvTermIntellijSettingsNormalizer.normalize(
                 JvTermIntellijSettings.State(
                     themeId = "TOKYO-NIGHT",
+                    fontFamily = "  ",
+                    fallbackFontFamily = "  ",
                     fontSize = 1,
                     columns = 1,
                     rows = Int.MAX_VALUE,
@@ -93,10 +105,15 @@ class JvTermIntellijSettingsTest {
                     cursorShape = "bar",
                     scrollbackLines = -1,
                     lineHeight = Float.POSITIVE_INFINITY,
+                    shellPath = "  ",
+                    environmentVariables = " ONE =first \nmissing\nTWO=second\nONE=last",
+                    defaultTabName = "  ",
                 ),
             )
 
         assertEquals("tokyo-night", state.themeId)
+        assertEquals(JvTermIntellijSettings.DEFAULT_FONT_FAMILY, state.fontFamily)
+        assertEquals(JvTermIntellijSettings.DEFAULT_FONT_FAMILY, state.fallbackFontFamily)
         assertEquals(TerminalConfig.FONT_SIZE_MIN, state.fontSize)
         assertEquals(TerminalConfig.COLUMNS_MIN, state.columns)
         assertEquals(TerminalConfig.ROWS_MAX, state.rows)
@@ -104,6 +121,26 @@ class JvTermIntellijSettingsTest {
         assertEquals("beam", state.cursorShape)
         assertEquals(TerminalConfig.SCROLLBACK_MIN, state.scrollbackLines)
         assertEquals(TerminalConfig.DEFAULT_LINE_HEIGHT, state.lineHeight)
+        assertEquals(TerminalConfig.DEFAULT_SHELL_PATH, state.shellPath)
+        assertEquals("ONE=last\nTWO=second", state.environmentVariables)
+        assertEquals("Local", state.defaultTabName)
+    }
+
+    @Test
+    fun `parses environment variables without accepting malformed entries`() {
+        val environment =
+            JvTermIntellijSettingsNormalizer.parseEnvironmentVariables(
+                " JVM_OPTS =-Xmx1g\nNO_EQUALS\n=missing\nEMPTY=\nPATH=C:\\Tools=StillValue",
+            )
+
+        assertEquals(
+            mapOf(
+                "JVM_OPTS" to "-Xmx1g",
+                "EMPTY" to "",
+                "PATH" to "C:\\Tools=StillValue",
+            ),
+            environment,
+        )
     }
 
     @Test

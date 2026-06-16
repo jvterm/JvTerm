@@ -32,7 +32,6 @@ import javax.swing.JPanel
  * JvTerm modules.
  */
 internal class JvTermTerminalPane private constructor(
-    val tab: TerminalWorkspaceTab,
     val terminal: SwingTerminal,
     val component: JPanel,
 ) {
@@ -41,6 +40,14 @@ internal class JvTermTerminalPane private constructor(
      */
     fun requestFocus() {
         terminal.requestFocusInWindow()
+    }
+
+    /**
+     * Rebuilds the terminal component from the latest IntelliJ settings.
+     */
+    fun reloadSettings() {
+        terminal.reloadSettings()
+        component.background = terminal.background
     }
 
     /**
@@ -75,10 +82,10 @@ internal class JvTermTerminalPane private constructor(
                     border = null
                     background = terminal.background
                     add(terminal, BorderLayout.CENTER)
-                }
+            }
 
             tab.session.notifyRenderDirty()
-            return JvTermTerminalPane(tab, terminal, component)
+            return JvTermTerminalPane(terminal, component)
         }
     }
 }
