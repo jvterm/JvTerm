@@ -15,27 +15,178 @@
  */
 package io.github.jvterm.intellij.settings
 
+import com.intellij.openapi.components.RoamingType
+import com.intellij.openapi.components.SerializablePersistentStateComponent
+import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.SettingsCategory
+import com.intellij.openapi.components.State
+import com.intellij.openapi.components.Storage
+import com.intellij.openapi.components.service
 import com.intellij.util.ui.JBFont
+import com.intellij.util.ui.JBUI
+import io.github.jvterm.render.api.TerminalRenderCursorShape
 import io.github.jvterm.ui.swing.settings.SwingSettings
+import io.github.jvterm.ui.swing.settings.TerminalTheme
+import io.github.jvterm.workspace.config.TerminalConfig
+import java.awt.Font
+import java.util.Locale
+
+private val TerminalTheme.id: String
+    get() = name.lowercase(Locale.ROOT).replace('_', '-')
 
 /**
- * Provides immutable Swing terminal settings for the IntelliJ plugin host.
+ * Application-level IntelliJ settings service for IDE-hosted JvTerm terminals.
  *
- * The first plugin slice intentionally keeps settings static. A later IDE
- * settings bridge can replace this object with a persisted project/application
- * service while preserving the same [SwingSettings] snapshot contract.
+ * IntelliJ persists this service through its native XML persistence model. The
+ * standalone application keeps using TOML through `jvterm-workspace`; this
+ * class is the IntelliJ-only adapter that converts persisted IDE state into a
+ * reusable [SwingSettings] snapshot.
  */
-internal object JvTermIntellijSettings {
+@Service(Service.Level.APP)
+@State(
+    name = "JvTermIntellijSettings",
+    storages = [Storage(value = "jvterm.xml", roamingType = RoamingType.DEFAULT)],
+    category = SettingsCategory.TOOLS,
+)
+class JvTermIntellijSettings :
+    SerializablePersistentStateComponent<JvTermIntellijSettings.State>(State()) {
     /**
-     * Returns the current terminal rendering and input settings snapshot.
+     * Returns the current immutable settings snapshot consumed by `SwingTerminal`.
      *
-     * @return immutable settings consumed by `SwingTerminal`.
+     * @return immutable Swing terminal settings.
      */
-    fun current(): SwingSettings =
-        SwingSettings(
-            font = JBFont.create(SwingSettings.defaultTerminalFont()),
-            padding = java.awt.Insets(8, 8, 8, 8),
+    fun current(): SwingSettings = JvTermIntellijSettingsMapper.toSwingSettings(state)
+
+    /**
+     * Persistent XML state for IntelliJ-hosted terminal preferences.
+     *
+     * Empty [fontFamily] and zero [fontSize] mean "use the plugin default
+     * terminal font". Machine-local launch paths are intentionally absent from
+     * this roamable state.
+     *
+     * @property themeId `intellij` for IDE-derived colors, or a built-in theme id.
+     * @property fontFamily terminal font family, or blank to follow the IDE default.
+     * @property fontSize terminal font size, or zero to follow the IDE default.
+     * @property columns preferred initial terminal columns.
+     * @property rows preferred initial terminal rows.
+     * @property treatAmbiguousAsWide East Asian Ambiguous width policy.
+     * @property cursorBlinkMillis cursor blink period; zero disables blinking.
+     * @property useSystemFallbackFonts whether renderer may scan installed fonts.
+     * @property cursorShape default cursor shape id.
+     * @property pasteOnMiddleClick whether the middle click pastes clipboard text.
+     * @property scrollbackLines maximum retained scrollback rows.
+     * @property lineHeight font metric line-height multiplier.
+     */
+    data class State(
+        @JvmField val themeId: String = DEFAULT_THEME_ID,
+        @JvmField val fontFamily: String = "",
+        @JvmField val fontSize: Int = 0,
+        @JvmField val columns: Int = TerminalConfig.DEFAULT_COLUMNS,
+        @JvmField val rows: Int = TerminalConfig.DEFAULT_ROWS,
+        @JvmField val treatAmbiguousAsWide: Boolean = TerminalConfig.DEFAULT_TREAT_AMBIGUOUS_AS_WIDE,
+        @JvmField val cursorBlinkMillis: Int = TerminalConfig.DEFAULT_CURSOR_BLINK_MILLIS,
+        @JvmField val useSystemFallbackFonts: Boolean = TerminalConfig.DEFAULT_USE_SYSTEM_FALLBACK_FONTS,
+        @JvmField val cursorShape: String = TerminalConfig.DEFAULT_CURSOR_SHAPE,
+        @JvmField val pasteOnMiddleClick: Boolean = TerminalConfig.DEFAULT_PASTE_ON_MIDDLE_CLICK,
+        @JvmField val scrollbackLines: Int = TerminalConfig.DEFAULT_SCROLLBACK_LINES,
+        @JvmField val lineHeight: Float = TerminalConfig.DEFAULT_LINE_HEIGHT,
+    )
+
+    companion object {
+        /**
+         * Theme id that derives colors from the active IntelliJ editor scheme.
+         */
+        const val DEFAULT_THEME_ID: String = "intellij"
+
+        /**
+         * Returns the application-level JvTerm settings service.
+         *
+         * @return IntelliJ settings service.
+         */
+        fun getInstance(): JvTermIntellijSettings = service()
+
+        /**
+         * Returns the current Swing settings snapshot from the application service.
+         *
+         * @return immutable Swing terminal settings.
+         */
+        fun current(): SwingSettings = getInstance().current()
+
+        internal fun normalizeThemeId(themeId: String): String {
+            val normalized = themeId.trim().lowercase(Locale.ROOT)
+            if (normalized == DEFAULT_THEME_ID) return DEFAULT_THEME_ID
+            return TerminalTheme.entries
+                .firstOrNull { it.id == normalized }
+                ?.id
+                ?: DEFAULT_THEME_ID
+        }
+    }
+}
+
+/**
+ * Converts IntelliJ persisted state into host-neutral Swing terminal settings.
+ */
+internal object JvTermIntellijSettingsMapper {
+    /**
+     * Creates a Swing settings snapshot from [state].
+     *
+     * @param state persisted IntelliJ settings state.
+     * @return immutable Swing terminal settings.
+     */
+    fun toSwingSettings(state: JvTermIntellijSettings.State): SwingSettings {
+        val fontSize =
+            if (state.fontSize == 0) {
+                SwingSettings.defaultTerminalFont().size
+            } else {
+                state.fontSize.coerceIn(TerminalConfig.FONT_SIZE_MIN, TerminalConfig.FONT_SIZE_MAX)
+            }
+        val fontFamily =
+            state.fontFamily
+                .takeIf { it.isNotBlank() }
+                ?.let(SwingSettings::resolveFontFamily)
+                ?: SwingSettings.defaultTerminalFont().family
+
+        return SwingSettings(
+            font = JBFont.create(Font(fontFamily, Font.PLAIN, fontSize)),
+            columns = state.columns.coerceIn(TerminalConfig.COLUMNS_MIN, TerminalConfig.COLUMNS_MAX),
+            rows = state.rows.coerceIn(TerminalConfig.ROWS_MIN, TerminalConfig.ROWS_MAX),
+            palette = paletteForThemeId(state.themeId),
+            treatAmbiguousAsWide = state.treatAmbiguousAsWide,
+            cursorBlinkMillis = state.cursorBlinkMillis.coerceIn(
+                TerminalConfig.CURSOR_BLINK_MIN,
+                TerminalConfig.CURSOR_BLINK_MAX,
+            ),
+            useSystemFallbackFonts = state.useSystemFallbackFonts,
+            pasteOnMiddleClick = state.pasteOnMiddleClick,
+            cursorShape = parseCursorShape(state.cursorShape),
+            scrollbackLines = state.scrollbackLines.coerceIn(
+                TerminalConfig.SCROLLBACK_MIN,
+                TerminalConfig.SCROLLBACK_MAX,
+            ),
+            lineHeight = coerceLineHeight(state.lineHeight),
+            padding = JBUI.insets(8),
             shellRequestResizeWindow = false,
             shellRequestWindowManipulation = false,
         )
+    }
+
+    private fun paletteForThemeId(themeId: String) =
+        when (val normalized = JvTermIntellijSettings.normalizeThemeId(themeId)) {
+            JvTermIntellijSettings.DEFAULT_THEME_ID -> JvTermIntellijThemePalette.currentIntellijPalette()
+            else -> TerminalTheme.entries.first { it.id == normalized }.createPalette()
+        }
+
+    private fun parseCursorShape(shape: String): TerminalRenderCursorShape =
+        when (shape.lowercase(Locale.ROOT)) {
+            "beam", "bar" -> TerminalRenderCursorShape.BAR
+            "underline" -> TerminalRenderCursorShape.UNDERLINE
+            else -> TerminalRenderCursorShape.BLOCK
+        }
+
+    private fun coerceLineHeight(lineHeight: Float): Float =
+        if (lineHeight.isFinite()) {
+            lineHeight.coerceIn(TerminalConfig.LINE_HEIGHT_MIN, TerminalConfig.LINE_HEIGHT_MAX)
+        } else {
+            TerminalConfig.DEFAULT_LINE_HEIGHT
+        }
 }
