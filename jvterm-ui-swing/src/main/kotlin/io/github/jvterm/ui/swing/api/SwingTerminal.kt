@@ -21,7 +21,7 @@ import io.github.jvterm.render.cache.TerminalRenderCache
 import io.github.jvterm.session.TerminalSession
 import io.github.jvterm.ui.swing.input.SwingKeyMapper
 import io.github.jvterm.ui.swing.render.GridPainter
-import io.github.jvterm.ui.swing.render.TerminalShellIntegrationDecorations
+import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
 import io.github.jvterm.ui.swing.search.*
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
@@ -92,7 +92,7 @@ class SwingTerminal
         private val keyMapper = SwingKeyMapper()
         private val searchModel = TerminalSearchModel()
         private val searchViewportHighlights = TerminalSearchViewportHighlights()
-        private val shellIntegrationDecorations = TerminalShellIntegrationDecorations()
+        private val shellIntegrationDecorations = TerminalShellIntegrationViewportDecorations()
 
         private val selectionController =
             TerminalSelectionController(
@@ -356,126 +356,6 @@ class SwingTerminal
         }
 
         /**
-         * Records a shell-integration prompt-start marker at the current cursor row.
-         *
-         * Hosts call this after receiving a parsed shell-integration prompt-start
-         * event. The component records only a row decoration; it does not parse
-         * terminal output or retain command text. This method may be called from
-         * any thread.
-         */
-        fun recordShellIntegrationPromptStart() {
-            runOnEdt(
-                Runnable {
-                    shellIntegrationDecorations.recordPromptStart(currentCursorAbsoluteRowOnEdt())
-                    repaint()
-                },
-            )
-        }
-
-        /**
-         * Records a shell-integration prompt-start marker at [absoluteRow].
-         *
-         * This overload lets hosts that already know the terminal absolute row
-         * avoid depending on the current UI render-cache snapshot. This method may
-         * be called from any thread.
-         *
-         * @param absoluteRow absolute terminal row for the prompt-start marker.
-         */
-        fun recordShellIntegrationPromptStart(absoluteRow: Long) {
-            require(absoluteRow >= 0) { "absoluteRow must be >= 0, was $absoluteRow" }
-            runOnEdt(
-                Runnable {
-                    shellIntegrationDecorations.recordPromptStart(absoluteRow)
-                    repaint()
-                },
-            )
-        }
-
-        /**
-         * Records a shell-integration command-start marker at the current cursor row.
-         *
-         * The command-start row is paired with a later non-zero command finish to
-         * draw the failed-command side rail. This method may be called from any
-         * thread.
-         */
-        fun recordShellIntegrationCommandStart() {
-            runOnEdt(
-                Runnable {
-                    shellIntegrationDecorations.recordCommandStart(currentCursorAbsoluteRowOnEdt())
-                },
-            )
-        }
-
-        /**
-         * Records a shell-integration command-start marker at [absoluteRow].
-         *
-         * @param absoluteRow absolute terminal row for the command-start marker.
-         */
-        fun recordShellIntegrationCommandStart(absoluteRow: Long) {
-            require(absoluteRow >= 0) { "absoluteRow must be >= 0, was $absoluteRow" }
-            runOnEdt(
-                Runnable {
-                    shellIntegrationDecorations.recordCommandStart(absoluteRow)
-                },
-            )
-        }
-
-        /**
-         * Records a shell-integration command-finished marker at the current cursor row.
-         *
-         * A non-zero [exitCode] creates a failed-command rail from the previous
-         * command-start row through the finish row. `null` and zero exit codes do
-         * not create a failure decoration. This method may be called from any
-         * thread.
-         *
-         * @param exitCode shell-reported process exit code, or `null` when it was
-         * omitted or malformed.
-         */
-        fun recordShellIntegrationCommandFinished(exitCode: Int?) {
-            runOnEdt(
-                Runnable {
-                    shellIntegrationDecorations.recordCommandFinished(currentCursorAbsoluteRowOnEdt(), exitCode)
-                    repaint()
-                },
-            )
-        }
-
-        /**
-         * Records a shell-integration command-finished marker at [absoluteRow].
-         *
-         * @param absoluteRow absolute terminal row for the command-finished marker.
-         * @param exitCode shell-reported process exit code, or `null` when it was
-         * omitted or malformed.
-         */
-        fun recordShellIntegrationCommandFinished(
-            absoluteRow: Long,
-            exitCode: Int?,
-        ) {
-            require(absoluteRow >= 0) { "absoluteRow must be >= 0, was $absoluteRow" }
-            runOnEdt(
-                Runnable {
-                    shellIntegrationDecorations.recordCommandFinished(absoluteRow, exitCode)
-                    repaint()
-                },
-            )
-        }
-
-        /**
-         * Clears all Swing-side shell-integration decorations.
-         *
-         * This method may be called from any thread. It does not alter terminal
-         * content, scrollback, or command history.
-         */
-        fun clearShellIntegrationDecorations() {
-            runOnEdt(
-                Runnable {
-                    shellIntegrationDecorations.reset()
-                    repaint()
-                },
-            )
-        }
-
-        /**
          * Returns the grid size that fits in this component's current bounds.
          *
          * This method may be called from any thread. EDT callers refresh the
@@ -648,6 +528,7 @@ class SwingTerminal
             hyperlinkController.clearHyperlinkHover()
             resizeSessionToVisibleGridOnEdt()
             refreshRenderCacheFromSession(session)
+            refreshShellIntegrationDecorations(session)
             publishViewportState(renderCache.historySize)
             repaint()
         }
@@ -686,7 +567,10 @@ class SwingTerminal
             updateSearchViewportHighlights()
             hyperlinkController.clearHyperlinkHover()
             resizeSessionToVisibleGridOnEdt()
-            session?.let { refreshRenderCacheFromSession(it) }
+            session?.let {
+                refreshRenderCacheFromSession(it)
+                refreshShellIntegrationDecorations(it)
+            }
             publishViewportState(renderCache.historySize)
             revalidate()
             repaint()
@@ -894,6 +778,7 @@ class SwingTerminal
             if (!scrollModel.scrollBy(delta, historySize)) return false
             if (boundSession != null) {
                 refreshRenderCacheFromSession(boundSession)
+                refreshShellIntegrationDecorations(boundSession)
             }
             updateSearchViewportHighlights()
             publishViewportState(renderCache.historySize)
@@ -909,6 +794,7 @@ class SwingTerminal
             if (!scrollModel.scrollTo(offsetLines, historySize)) return false
             if (boundSession != null) {
                 refreshRenderCacheFromSession(boundSession)
+                refreshShellIntegrationDecorations(boundSession)
             }
             updateSearchViewportHighlights()
             publishViewportState(renderCache.historySize)
@@ -937,6 +823,7 @@ class SwingTerminal
             if (scrollModel.clamp(renderCache.historySize) || renderCache.scrollbackOffset != scrollModel.requestedOffset) {
                 refreshRenderCacheFromSession(boundSession)
             }
+            refreshShellIntegrationDecorations(boundSession)
             refreshSearchForFrameOnEdt()
             publishViewportState(renderCache.historySize)
             val yOffset = contentYOffset(renderCache)
@@ -1219,9 +1106,8 @@ class SwingTerminal
             )
         }
 
-        private fun currentCursorAbsoluteRowOnEdt(): Long {
-            session?.let { refreshRenderCacheFromSession(it) }
-            return renderCache.discardedCount + renderCache.historySize - renderCache.scrollbackOffset + renderCache.cursorRow
+        private fun refreshShellIntegrationDecorations(session: TerminalSession) {
+            shellIntegrationDecorations.updateFrom(session.shellIntegrationState, renderCache)
         }
 
         private fun contentYOffset(cache: TerminalRenderCache): Double {

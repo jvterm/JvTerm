@@ -11,6 +11,8 @@ The target is a modern, secure, xterm-compatible terminal pipeline for contempor
 - `TODO(parser)`: byte/protocol recognition or semantic dispatch is missing.
 - `TODO(core)`: terminal state, grid physics, pen storage, or public API is missing.
 - `TODO(host)`: parser and core both have enough shape, but the integration bridge is incomplete.
+- `TODO(session)`: runtime synchronization, host-side state, or session-owned metadata is missing.
+- `TODO(ui)`: reusable UI presentation, interaction, or rendering behavior is missing.
 - `TODO(input)`: host-bound keyboard/mouse/paste encoding is missing.
 - `TODO(policy)`: feature needs an explicit security or compatibility policy before implementation.
 
@@ -93,7 +95,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ### Reset and Mode Semantics
 - `TODO(core/host)`: richer event API for hyperlink metadata, palette changes, terminal notifications, and any future host-observable state that should not be read from render frames.
-- `TODO(core/host)`: shell integration command range storage, row anchoring, command navigation, command decorations, and command output selection on top of the existing OSC 133 marker event backbone.
+- `TODO(session/host/ui)`: shell integration command text extraction, persistent command history, command navigation, prompt click actions, command output selection, current-directory metadata, rich command metadata, and durable command-range re-anchoring across resize/reflow on top of the existing OSC 133 marker event backbone and basic Swing prompt/failure decorations.
 
 ### Grid Operations
 - `TODO(core)`: rectangular area operations if parser support is added (copy, erase, fill, selective erase).

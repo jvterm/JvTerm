@@ -15,7 +15,7 @@
  */
 package io.github.jvterm.ui.swing.render.painter
 
-import io.github.jvterm.ui.swing.render.TerminalShellIntegrationDecorations
+import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
 import io.github.jvterm.ui.swing.render.cache.AwtColorCache
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
@@ -34,15 +34,14 @@ internal class TerminalShellIntegrationDecorationPainter(
         g: Graphics2D,
         settings: SwingSettings,
         metrics: SwingMetrics,
-        decorations: TerminalShellIntegrationDecorations?,
+        decorations: TerminalShellIntegrationViewportDecorations?,
         row: Int,
-        absoluteRow: Long,
         gridWidth: Int,
     ) {
         if (decorations == null) return
 
         val y = row * metrics.cellHeight
-        if (settings.shellIntegrationFailedCommandRailsVisible && decorations.hasFailedCommandRailAt(absoluteRow)) {
+        if (settings.shellIntegrationFailedCommandRailsVisible && decorations.hasFailedCommandRailAt(row)) {
             val gutterWidth = settings.shellIntegrationDecorationGutterWidth.coerceAtMost(settings.padding.left)
             if (gutterWidth > 0) {
                 val width = minOf(settings.shellIntegrationFailedCommandRailWidth, gutterWidth)
@@ -52,7 +51,7 @@ internal class TerminalShellIntegrationDecorationPainter(
             }
         }
 
-        if (settings.shellIntegrationPromptDividersVisible && decorations.hasPromptDividerAt(absoluteRow)) {
+        if (settings.shellIntegrationPromptDividersVisible && decorations.hasPromptDividerAt(row)) {
             val gutterWidth = settings.shellIntegrationDecorationGutterWidth.coerceAtMost(settings.padding.left)
             val x = -gutterWidth
             val width = gridWidth + gutterWidth

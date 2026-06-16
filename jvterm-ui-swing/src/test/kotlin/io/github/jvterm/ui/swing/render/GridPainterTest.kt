@@ -17,6 +17,7 @@ package io.github.jvterm.ui.swing.render
 
 import io.github.jvterm.render.api.*
 import io.github.jvterm.render.cache.TerminalRenderCache
+import io.github.jvterm.session.TerminalShellIntegrationState
 import io.github.jvterm.ui.swing.api.CellSelection
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
@@ -404,8 +405,10 @@ class GridPainterTest {
         val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 3, rows = 3)
         cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
-        val decorations = TerminalShellIntegrationDecorations()
-        decorations.recordPromptStart(1)
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
 
         GridPainter().paint(
             g = g,
@@ -444,9 +447,11 @@ class GridPainterTest {
         val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 3, rows = 3)
         cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
-        val decorations = TerminalShellIntegrationDecorations()
-        decorations.recordCommandStart(0)
-        decorations.recordCommandFinished(2, exitCode = 2)
+        val state = TerminalShellIntegrationState()
+        state.recordCommandStart(0)
+        state.recordCommandFinished(2, exitCode = 2)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
 
         GridPainter().paint(
             g = g,
@@ -488,10 +493,12 @@ class GridPainterTest {
         val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
         val cache = TerminalRenderCache(columns = 3, rows = 3)
         cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
-        val decorations = TerminalShellIntegrationDecorations()
-        decorations.recordPromptStart(1)
-        decorations.recordCommandStart(0)
-        decorations.recordCommandFinished(2, exitCode = 1)
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordCommandStart(0)
+        state.recordCommandFinished(2, exitCode = 1)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
 
         GridPainter().paint(
             g = g,

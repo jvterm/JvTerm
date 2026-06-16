@@ -237,6 +237,35 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `OSC 133 markers populate shared shell integration state`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 10, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007prompt> \u001B]133;B\u0007\u001B]133;C\u0007run\r\nfailed\u001B]133;D;2\u0007".ascii())
+
+        assertAll(
+            { assertTrue(session.shellIntegrationState.hasPromptDividerAt(0)) },
+            { assertTrue(session.shellIntegrationState.hasFailedCommandRailAt(0)) },
+            { assertTrue(session.shellIntegrationState.hasFailedCommandRailAt(1)) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `resize clears shared shell integration state because rows are reflowed`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 10, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007prompt> ".ascii())
+        assertTrue(session.shellIntegrationState.hasPromptDividerAt(0))
+
+        session.resize(columns = 12, rows = 4)
+
+        assertFalse(session.shellIntegrationState.hasPromptDividerAt(0))
+        session.close()
+    }
+
+    @Test
     fun `parser endOfInput is called once`() {
         val terminal = TerminalBuffers.create(width = 10, height = 3)
         val connector = MockConnector()

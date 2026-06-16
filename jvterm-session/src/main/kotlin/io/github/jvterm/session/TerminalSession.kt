@@ -29,6 +29,9 @@ import io.github.jvterm.input.event.TerminalPasteEvent
 import io.github.jvterm.input.policy.TerminalInputPolicy
 import io.github.jvterm.parser.api.TerminalOutputParser
 import io.github.jvterm.parser.api.TerminalParsers
+import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
+import io.github.jvterm.protocol.ShellIntegrationMarker
 import io.github.jvterm.render.api.TerminalColorPalette
 import io.github.jvterm.render.api.TerminalRenderCursorShape
 import io.github.jvterm.render.api.TerminalRenderFrameConsumer
@@ -52,6 +55,7 @@ import java.util.concurrent.atomic.AtomicLong
  *
  * @property terminal public terminal buffer mutated by host output.
  * @property publisher the render publisher responsible for frames updates.
+ * @property shellIntegrationState shared host-side prompt and command marker state.
  */
 class TerminalSession(
     val terminal: TerminalBuffer,
@@ -63,6 +67,7 @@ class TerminalSession(
     private val inputEncoder: TerminalInputEncoder,
     private val hyperlinkResolver: TerminalHyperlinkResolver = TerminalHyperlinkResolver.NONE,
     private val outboundWriteLock: Any = Any(),
+    val shellIntegrationState: TerminalShellIntegrationState = TerminalShellIntegrationState(),
 ) : TerminalConnectorListener,
     TerminalInputEncoder,
     TerminalRenderFrameReader,
@@ -192,6 +197,7 @@ class TerminalSession(
         val result: Pair<Int, Int>
         synchronized(mutationLock) {
             result = terminal.resize(columns, rows, oldScrollbackOffset)
+            shellIntegrationState.clear()
         }
         connector.resize(columns, rows)
         notifyRenderDirty()
@@ -589,12 +595,19 @@ class TerminalSession(
         ): TerminalSession {
             val outboundWriteLock = Any()
             val hostOutput = ConnectorTerminalHostOutput(connector, outboundWriteLock)
-            val sink = HostCommandAdapter(terminal, hostEvents, hostPolicy)
-            val parser = TerminalParsers.create(sink)
-            val inputEncoder = TerminalInputEncoders.create(terminal, hostOutput, inputPolicy)
             val renderReader =
                 terminal as? TerminalRenderFrameReader
                     ?: error("terminal must implement TerminalRenderFrameReader")
+            val shellIntegrationState = TerminalShellIntegrationState()
+            val recordingHostEvents =
+                ShellIntegrationRecordingHostEventSink(
+                    delegate = hostEvents,
+                    renderReader = renderReader,
+                    state = shellIntegrationState,
+                )
+            val sink = HostCommandAdapter(terminal, recordingHostEvents, hostPolicy)
+            val parser = TerminalParsers.create(sink)
+            val inputEncoder = TerminalInputEncoders.create(terminal, hostOutput, inputPolicy)
 
             // Create a publisher with initial dimensions
             val publisher = TerminalRenderPublisher(terminal.width, terminal.height)
@@ -609,7 +622,88 @@ class TerminalSession(
                 inputEncoder = inputEncoder,
                 hyperlinkResolver = TerminalHyperlinkResolver(sink::hyperlinkUri),
                 outboundWriteLock = outboundWriteLock,
+                shellIntegrationState = shellIntegrationState,
             )
         }
+    }
+}
+
+private class ShellIntegrationRecordingHostEventSink(
+    private val delegate: HostEventSink,
+    private val renderReader: TerminalRenderFrameReader,
+    private val state: TerminalShellIntegrationState,
+) : HostEventSink {
+    override fun bell() {
+        delegate.bell()
+    }
+
+    override fun iconTitleChanged(title: String) {
+        delegate.iconTitleChanged(title)
+    }
+
+    override fun windowTitleChanged(title: String) {
+        delegate.windowTitleChanged(title)
+    }
+
+    override fun resizeWindow(
+        rows: Int,
+        columns: Int,
+    ) {
+        delegate.resizeWindow(rows, columns)
+    }
+
+    override fun moveWindow(
+        x: Int,
+        y: Int,
+    ) {
+        delegate.moveWindow(x, y)
+    }
+
+    override fun minimizeWindow() {
+        delegate.minimizeWindow()
+    }
+
+    override fun deminimizeWindow() {
+        delegate.deminimizeWindow()
+    }
+
+    override fun raiseWindow() {
+        delegate.raiseWindow()
+    }
+
+    override fun lowerWindow() {
+        delegate.lowerWindow()
+    }
+
+    override fun setMaximized(maximize: Boolean) {
+        delegate.setMaximized(maximize)
+    }
+
+    override fun shellIntegrationMarker(event: ShellIntegrationEvent) {
+        var cursorAbsoluteRow = 0L
+        var bottomAbsoluteRow = 0L
+        renderReader.readRenderFrame(scrollbackOffset = 0) { frame ->
+            val firstVisibleRow = frame.discardedCount + frame.historySize
+            cursorAbsoluteRow = firstVisibleRow + frame.cursor.row
+            bottomAbsoluteRow = firstVisibleRow + frame.rows - 1
+        }
+
+        state.observeLiveBottomRow(bottomAbsoluteRow)
+        when (event.marker) {
+            ShellIntegrationMarker.PROMPT_START -> state.recordPromptStart(cursorAbsoluteRow)
+            ShellIntegrationMarker.PROMPT_END -> Unit
+            ShellIntegrationMarker.COMMAND_START -> state.recordCommandStart(cursorAbsoluteRow)
+            ShellIntegrationMarker.COMMAND_FINISHED -> state.recordCommandFinished(cursorAbsoluteRow, event.exitCode)
+        }
+
+        delegate.shellIntegrationMarker(event)
+    }
+
+    override fun showNotification(
+        title: String,
+        body: String,
+        level: NotificationLevel,
+    ) {
+        delegate.showNotification(title, body, level)
     }
 }

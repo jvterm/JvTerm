@@ -77,7 +77,7 @@ internal class GridPainter {
         contentYOffset: Double = 0.0,
         selection: CellSelection? = null,
         searchHighlights: TerminalSearchViewportHighlights? = null,
-        shellIntegrationDecorations: TerminalShellIntegrationDecorations? = null,
+        shellIntegrationDecorations: TerminalShellIntegrationViewportDecorations? = null,
         hoveredHyperlinkId: Int = 0,
         hyperlinkActivationHover: Boolean = false,
     ) {
@@ -111,7 +111,6 @@ internal class GridPainter {
                     metrics = metrics,
                     decorations = shellIntegrationDecorations,
                     row = row,
-                    absoluteRow = absoluteRow(cache, row),
                     gridWidth = gridWidth,
                 )
                 searchPainter.paint(
@@ -180,11 +179,6 @@ internal class GridPainter {
         val clippedRows = ceil((clipBottom - paddingTop - contentYOffset) / metrics.cellHeight).toInt()
         return clippedRows.coerceIn(0, visibleRows)
     }
-
-    private fun absoluteRow(
-        cache: TerminalRenderCache,
-        row: Int,
-    ): Long = cache.discardedCount + cache.historySize - cache.scrollbackOffset + row
 
     private companion object {
         private const val TEXT_LCD_CONTRAST = 140
