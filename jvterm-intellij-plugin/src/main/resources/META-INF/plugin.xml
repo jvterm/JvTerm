@@ -1,0 +1,30 @@
+<idea-plugin>
+    <id>io.github.jvterm.terminal</id>
+
+    <name>JvTerm</name>
+
+    <vendor url="https://github.com/jvterm/JvTerm">JvTerm</vendor>
+
+    <description><![CDATA[
+        JvTerm terminal emulator integration for IntelliJ Platform IDEs.
+        ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <resource-bundle>messages.MyMessageBundle</resource-bundle>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable parentId="tools"
+                                 instance="io.github.jvterm.intellij.settings.JvTermSettingsConfigurable"
+                                 id="io.github.jvterm.terminal.settings"
+                                 key="settings.jvterm.displayName"
+                                 bundle="messages.MyMessageBundle"/>
+
+        <toolWindow id="JvTerm"
+                    anchor="bottom"
+                    canCloseContents="true"
+                    factoryClass="io.github.jvterm.intellij.ui.JvTermToolWindowFactory"
+                    icon="AllIcons.Toolwindows.ToolWindowTerminal"/>
+    </extensions>
+
+</idea-plugin>
