@@ -113,21 +113,6 @@ class JvTermProjectTerminalService(
         return openTab(toolWindow, configuredProfile, settings)
     }
 
-    /**
-     * Closes all open and pending terminal tabs.
-     */
-    fun closeAllTabs() {
-        if (disposed) return
-
-        val contentManager =
-            contentsByTabId.values.firstOrNull()?.manager
-                ?: pendingTabsById.values.firstOrNull()?.content?.manager
-        val contents = contentsByTabId.values.toList() + pendingTabsById.values.map { it.content }
-        for (content in contents) {
-            contentManager?.removeContent(content, true)
-        }
-    }
-
     private fun openTab(
         toolWindow: ToolWindow,
         profile: TerminalProfile,

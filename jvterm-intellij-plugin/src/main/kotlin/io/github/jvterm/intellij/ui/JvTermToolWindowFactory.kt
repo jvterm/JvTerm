@@ -59,7 +59,7 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
             Separator.create(),
             NewTerminalProfileGroup(project, toolWindow, terminalService),
         )
-        toolWindow.setTitleActions(listOf(TerminalOptionsGroup(project, terminalService)))
+        toolWindow.setAdditionalGearActions(TerminalGearActionsGroup(project))
     }
 
     private class NewTerminalAction(
@@ -106,7 +106,7 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
 
         init {
             templatePresentation.description = JvTermBundle.message("action.jvterm.newTerminalProfile.description")
-            templatePresentation.icon = AllIcons.General.ArrowDownSmall
+            templatePresentation.icon = AllIcons.General.ButtonDropTriangle
         }
 
         override fun getChildren(event: AnActionEvent?): Array<AnAction> = profileActions
@@ -136,20 +136,11 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
     }
 
-    private class TerminalOptionsGroup(
+    private class TerminalGearActionsGroup(
         project: Project,
-        terminalService: JvTermProjectTerminalService,
     ) : DefaultActionGroup(
-            "",
-            true,
+            listOf(OpenSettingsAction(project)),
         ) {
-        init {
-            templatePresentation.description = JvTermBundle.message("action.jvterm.options.description")
-            templatePresentation.icon = AllIcons.Actions.MoreHorizontal
-            add(OpenSettingsAction(project))
-            add(CloseAllTerminalsAction(project, terminalService))
-        }
-
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
     }
 
@@ -166,25 +157,6 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
 
         override fun update(event: AnActionEvent) {
             event.presentation.isEnabled = !project.isDisposed
-        }
-
-        override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
-    }
-
-    private class CloseAllTerminalsAction(
-        private val project: Project,
-        private val terminalService: JvTermProjectTerminalService,
-    ) : DumbAwareAction(
-            JvTermBundle.message("action.jvterm.closeAll.text"),
-            JvTermBundle.message("action.jvterm.closeAll.description"),
-            AllIcons.Actions.Close,
-        ) {
-        override fun actionPerformed(event: AnActionEvent) {
-            terminalService.closeAllTabs()
-        }
-
-        override fun update(event: AnActionEvent) {
-            event.presentation.isEnabled = !project.isDisposed && terminalService.hasOpenTabs()
         }
 
         override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.EDT
