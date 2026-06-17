@@ -295,6 +295,118 @@ class TerminalShellIntegrationState(
     }
 
     /**
+     * Returns the retained command record that owns [lineId].
+     *
+     * Ownership uses the same prompt and command range rules as viewport
+     * projection. Prompt-only records are not considered commands and return
+     * [TerminalShellIntegrationCommandRecord.NONE].
+     *
+     * @param lineId stable render line identity to query.
+     * @return owning command record id, or `0` when no command owns the line.
+     */
+    fun commandRecordIdAtLine(lineId: Long): Int {
+        require(lineId > 0L) { "lineId must be positive, was $lineId" }
+        synchronized(lock) {
+            val index = commandIndexAtLineLocked(lineId)
+            return if (index == NO_INDEX) TerminalShellIntegrationCommandRecord.NONE else recordIds[index]
+        }
+    }
+
+    /**
+     * Returns the previous retained command record before [recordId].
+     *
+     * Prompt-only records are skipped. If [recordId] is not retained, no
+     * neighbor is inferred.
+     *
+     * @param recordId retained command record id.
+     * @return previous command record id, or `0` when none exists.
+     */
+    fun previousCommandRecordId(recordId: Int): Int {
+        if (recordId == TerminalShellIntegrationCommandRecord.NONE) return TerminalShellIntegrationCommandRecord.NONE
+        synchronized(lock) {
+            val index = indexForRecordIdLocked(recordId)
+            if (index == NO_INDEX) return TerminalShellIntegrationCommandRecord.NONE
+
+            var candidate = index - 1
+            while (candidate >= 0) {
+                if (isCommandRecordLocked(candidate)) return recordIds[candidate]
+                candidate--
+            }
+            return TerminalShellIntegrationCommandRecord.NONE
+        }
+    }
+
+    /**
+     * Returns the next retained command record after [recordId].
+     *
+     * Prompt-only records are skipped. If [recordId] is not retained, no
+     * neighbor is inferred.
+     *
+     * @param recordId retained command record id.
+     * @return next command record id, or `0` when none exists.
+     */
+    fun nextCommandRecordId(recordId: Int): Int {
+        if (recordId == TerminalShellIntegrationCommandRecord.NONE) return TerminalShellIntegrationCommandRecord.NONE
+        synchronized(lock) {
+            val index = indexForRecordIdLocked(recordId)
+            if (index == NO_INDEX) return TerminalShellIntegrationCommandRecord.NONE
+
+            var candidate = index + 1
+            while (candidate < count) {
+                if (isCommandRecordLocked(candidate)) return recordIds[candidate]
+                candidate++
+            }
+            return TerminalShellIntegrationCommandRecord.NONE
+        }
+    }
+
+    /**
+     * Returns the nearest retained command record before [lineId].
+     *
+     * If [lineId] is inside a command record, the previous command before that
+     * record is returned. If no command owns [lineId], the newest command whose
+     * start line is before [lineId] is returned.
+     *
+     * @param lineId stable render line identity used as the navigation anchor.
+     * @return previous command record id, or `0` when none exists.
+     */
+    fun previousCommandRecordIdBeforeLine(lineId: Long): Int {
+        require(lineId > 0L) { "lineId must be positive, was $lineId" }
+        synchronized(lock) {
+            val owner = commandIndexAtLineLocked(lineId)
+            var index = if (owner == NO_INDEX) count - 1 else owner - 1
+            while (index >= 0) {
+                if (isCommandRecordLocked(index) && commandStartLineIds[index] < lineId) return recordIds[index]
+                index--
+            }
+            return TerminalShellIntegrationCommandRecord.NONE
+        }
+    }
+
+    /**
+     * Returns the nearest retained command record after [lineId].
+     *
+     * If [lineId] is inside a command record, the next command after that
+     * record is returned. If no command owns [lineId], the oldest command whose
+     * start line is after [lineId] is returned.
+     *
+     * @param lineId stable render line identity used as the navigation anchor.
+     * @return next command record id, or `0` when none exists.
+     */
+    fun nextCommandRecordIdAfterLine(lineId: Long): Int {
+        require(lineId > 0L) { "lineId must be positive, was $lineId" }
+        synchronized(lock) {
+            val owner = commandIndexAtLineLocked(lineId)
+            var index = if (owner == NO_INDEX) 0 else owner + 1
+            while (index < count) {
+                if (isCommandRecordLocked(index) && commandStartLineIds[index] > lineId) return recordIds[index]
+                index++
+            }
+            return TerminalShellIntegrationCommandRecord.NONE
+        }
+    }
+
+    /**
      * Copies retained shell command records into caller-owned primitive arrays.
      *
      * Records are copied in chronological order, oldest first. This method
@@ -545,6 +657,50 @@ class TerminalShellIntegrationState(
         }
         return NO_INDEX
     }
+
+    private fun commandIndexAtLineLocked(lineId: Long): Int {
+        var index = 0
+        while (index < count) {
+            if (isCommandRecordAtLineLocked(index, lineId)) return index
+            index++
+        }
+        return NO_INDEX
+    }
+
+    private fun isCommandRecordAtLineLocked(
+        index: Int,
+        lineId: Long,
+    ): Boolean {
+        if (!isCommandRecordLocked(index)) return false
+
+        val promptStart = promptStartLineIds[index]
+        if (promptStart != NO_LINE_ID) {
+            val promptEnd = promptEndLineIds[index]
+            if (promptEnd != NO_LINE_ID) {
+                val first = minOf(promptStart, promptEnd)
+                val last = maxOf(promptStart, promptEnd)
+                if (lineId >= first && lineId <= last) return true
+            } else if (lineId == promptStart) {
+                return true
+            }
+        }
+
+        val start = commandStartLineIds[index]
+        if (lineId == start) return true
+        val end = commandEndLineIds[index]
+        return end != NO_LINE_ID && isLineInCommandOutputRange(index, lineId, start, end)
+    }
+
+    private fun indexForRecordIdLocked(recordId: Int): Int {
+        var index = 0
+        while (index < count) {
+            if (recordIds[index] == recordId) return index
+            index++
+        }
+        return NO_INDEX
+    }
+
+    private fun isCommandRecordLocked(index: Int): Boolean = commandStartLineIds[index] != NO_LINE_ID
 
     private fun isFailedCommandAtLocked(
         index: Int,

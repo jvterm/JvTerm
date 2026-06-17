@@ -311,6 +311,102 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
+    fun `command record lookup by line returns owning command and skips prompt only records`() {
+        val state = TerminalShellIntegrationState()
+        val records = RecordColumns(capacity = 2)
+
+        state.recordPromptStart(10)
+        state.recordPromptEnd(10)
+        state.recordCommandStart(11, includeLine = true)
+        state.recordCommandFinished(12, exitCode = 0)
+        state.recordPromptStart(20)
+
+        records.copyFrom(state)
+        val commandRecordId = records.recordIds[0]
+
+        assertEquals(commandRecordId, state.commandRecordIdAtLine(10))
+        assertEquals(commandRecordId, state.commandRecordIdAtLine(11))
+        assertEquals(commandRecordId, state.commandRecordIdAtLine(12))
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.commandRecordIdAtLine(13))
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.commandRecordIdAtLine(20))
+    }
+
+    @Test
+    fun `previous and next command record ids skip prompt only records`() {
+        val state = TerminalShellIntegrationState()
+        val records = RecordColumns(capacity = 3)
+
+        state.recordCommandStart(10, includeLine = true)
+        state.recordCommandFinished(11, exitCode = 0)
+        state.recordPromptStart(20)
+        state.recordPromptStart(25)
+        state.recordCommandStart(30, includeLine = true)
+        state.recordCommandFinished(31, exitCode = 1)
+
+        records.copyFrom(state)
+        val firstCommandId = records.recordIds[0]
+        val promptOnlyId = records.recordIds[1]
+        val secondCommandId = records.recordIds[2]
+
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.previousCommandRecordId(firstCommandId))
+        assertEquals(secondCommandId, state.nextCommandRecordId(firstCommandId))
+        assertEquals(firstCommandId, state.previousCommandRecordId(promptOnlyId))
+        assertEquals(secondCommandId, state.nextCommandRecordId(promptOnlyId))
+        assertEquals(firstCommandId, state.previousCommandRecordId(secondCommandId))
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.nextCommandRecordId(secondCommandId))
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.previousCommandRecordId(999))
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.nextCommandRecordId(999))
+    }
+
+    @Test
+    fun `line anchored command navigation handles before inside between and after commands`() {
+        val state = TerminalShellIntegrationState()
+        val records = RecordColumns(capacity = 2)
+
+        state.recordCommandStart(10, includeLine = true)
+        state.recordCommandFinished(12, exitCode = 0)
+        state.recordCommandStart(20, includeLine = true)
+        state.recordCommandFinished(22, exitCode = 1)
+
+        records.copyFrom(state)
+        val firstCommandId = records.recordIds[0]
+        val secondCommandId = records.recordIds[1]
+
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.previousCommandRecordIdBeforeLine(9))
+        assertEquals(firstCommandId, state.nextCommandRecordIdAfterLine(9))
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.previousCommandRecordIdBeforeLine(11))
+        assertEquals(secondCommandId, state.nextCommandRecordIdAfterLine(11))
+        assertEquals(firstCommandId, state.previousCommandRecordIdBeforeLine(15))
+        assertEquals(secondCommandId, state.nextCommandRecordIdAfterLine(15))
+        assertEquals(firstCommandId, state.previousCommandRecordIdBeforeLine(21))
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.nextCommandRecordIdAfterLine(21))
+        assertEquals(secondCommandId, state.previousCommandRecordIdBeforeLine(30))
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.nextCommandRecordIdAfterLine(30))
+    }
+
+    @Test
+    fun `command navigation forgets evicted command records`() {
+        val state = TerminalShellIntegrationState(capacity = 2)
+        val records = RecordColumns(capacity = 2)
+
+        state.recordCommandStart(10, includeLine = true)
+        state.recordCommandFinished(11, exitCode = 0)
+        state.recordCommandStart(20, includeLine = true)
+        state.recordCommandFinished(21, exitCode = 0)
+        state.recordCommandStart(30, includeLine = true)
+        state.recordCommandFinished(31, exitCode = 0)
+
+        records.copyFrom(state)
+        val secondCommandId = records.recordIds[0]
+        val thirdCommandId = records.recordIds[1]
+
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.commandRecordIdAtLine(10))
+        assertEquals(secondCommandId, state.nextCommandRecordIdAfterLine(10))
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, state.previousCommandRecordIdBeforeLine(20))
+        assertEquals(thirdCommandId, state.nextCommandRecordId(secondCommandId))
+    }
+
+    @Test
     fun `copy records rejects undersized destination columns`() {
         val state = TerminalShellIntegrationState()
         val records = RecordColumns(capacity = 1)
