@@ -19,6 +19,7 @@ import io.github.jvterm.input.event.*
 import io.github.jvterm.protocol.MouseTrackingMode
 import io.github.jvterm.render.cache.TerminalRenderCache
 import io.github.jvterm.session.TerminalSession
+import io.github.jvterm.session.TerminalShellIntegrationCommandOutputRange
 import io.github.jvterm.session.TerminalShellIntegrationCommandRecord
 import io.github.jvterm.ui.swing.input.SwingKeyMapper
 import io.github.jvterm.ui.swing.render.GridPainter
@@ -94,6 +95,7 @@ class SwingTerminal
         private val searchModel = TerminalSearchModel()
         private val searchViewportHighlights = TerminalSearchViewportHighlights()
         private val shellIntegrationDecorations = TerminalShellIntegrationViewportDecorations()
+        private val commandOutputRangeScratch = LongArray(TerminalShellIntegrationCommandOutputRange.REQUIRED_LONGS)
 
         private val selectionController =
             TerminalSelectionController(
@@ -472,6 +474,60 @@ class SwingTerminal
                     scrollToCommandOnEdt(previous = false)
                 },
             )
+        }
+
+        /**
+         * Returns the command record at component coordinates [x], [y].
+         *
+         * Prompt-only rows and rows without command metadata return
+         * [TerminalShellIntegrationCommandRecord.NONE]. This method is intended
+         * for Swing event handlers and returns `0` when called off the EDT.
+         *
+         * @param x component x coordinate in pixels.
+         * @param y component y coordinate in pixels.
+         * @return command record id at the coordinate, or `0`.
+         */
+        fun commandRecordAt(
+            x: Int,
+            y: Int,
+        ): Int {
+            if (!SwingUtilities.isEventDispatchThread()) return TerminalShellIntegrationCommandRecord.NONE
+            return commandRecordAtOnEdt(x, y)
+        }
+
+        /**
+         * Selects command output for the command under component coordinates [x], [y].
+         *
+         * The selection covers command output only, excluding prompt/input rows
+         * for command records whose start marker was exclusive. This method is
+         * intended for Swing event handlers and returns `false` off the EDT.
+         *
+         * @param x component x coordinate in pixels.
+         * @param y component y coordinate in pixels.
+         * @return true when command output was selected.
+         */
+        fun selectCommandOutputAt(
+            x: Int,
+            y: Int,
+        ): Boolean {
+            if (!SwingUtilities.isEventDispatchThread()) return false
+            val recordId = commandRecordAtOnEdt(x, y)
+            return selectCommandOutputOnEdt(recordId)
+        }
+
+        /**
+         * Selects command output for [recordId].
+         *
+         * The selection covers command output only, excluding prompt/input rows
+         * for command records whose start marker was exclusive. This method is
+         * intended for Swing event handlers and returns `false` off the EDT.
+         *
+         * @param recordId retained command record id.
+         * @return true when command output was selected.
+         */
+        fun selectCommandOutput(recordId: Int): Boolean {
+            if (!SwingUtilities.isEventDispatchThread()) return false
+            return selectCommandOutputOnEdt(recordId)
         }
 
         override fun addNotify() {
@@ -1071,6 +1127,41 @@ class SwingTerminal
             return scrollViewportToOnEdt(desiredOffset.toDouble(), historySize = searchCache.historySize, boundSession = boundSession)
         }
 
+        private fun commandRecordAtOnEdt(
+            x: Int,
+            y: Int,
+        ): Int {
+            val boundSession = session ?: return TerminalShellIntegrationCommandRecord.NONE
+            val cell = cellAt(x, y, renderCache)
+            val row = unpackCellRow(cell)
+            if (row !in 0 until renderCache.rows) return TerminalShellIntegrationCommandRecord.NONE
+            val lineId = renderCache.lineIds[row]
+            if (lineId == NO_LINE_ID) return TerminalShellIntegrationCommandRecord.NONE
+            return boundSession.shellIntegrationState.commandRecordIdAtLine(lineId)
+        }
+
+        private fun selectCommandOutputOnEdt(recordId: Int): Boolean {
+            val boundSession = session ?: return false
+            if (recordId == TerminalShellIntegrationCommandRecord.NONE) return false
+            val shellState = boundSession.shellIntegrationState
+            if (!shellState.copyCommandOutputRange(recordId, commandOutputRangeScratch)) return false
+
+            refreshCommandNavigationCache(boundSession)
+            val startLineId = commandOutputRangeScratch[TerminalShellIntegrationCommandOutputRange.START_LINE_ID_INDEX]
+            val endLineId = commandOutputRangeScratch[TerminalShellIntegrationCommandOutputRange.END_LINE_ID_INDEX]
+            val includeStart = commandOutputRangeScratch[TerminalShellIntegrationCommandOutputRange.START_INCLUSIVE_INDEX] != 0L
+            val startAbsoluteRow = firstCommandOutputAbsoluteRow(searchCache, startLineId, endLineId, includeStart)
+            if (startAbsoluteRow == NO_COMMAND_ABSOLUTE_ROW) return false
+            val endAbsoluteRow = lastLineAbsoluteRow(searchCache, startLineId, endLineId)
+            if (endAbsoluteRow == NO_COMMAND_ABSOLUTE_ROW || endAbsoluteRow < startAbsoluteRow) return false
+
+            selectionController.selectAbsoluteRows(startAbsoluteRow, endAbsoluteRow, searchCache.columns)
+            val desiredOffset = searchCache.discardedCount + searchCache.historySize - startAbsoluteRow
+            scrollViewportToOnEdt(desiredOffset.toDouble(), historySize = searchCache.historySize, boundSession = boundSession)
+            repaint()
+            return true
+        }
+
         private fun currentCommandNavigationLineId(): Long? {
             val row = currentCommandNavigationRow()
             if (row !in 0 until renderCache.rows) return null
@@ -1102,6 +1193,43 @@ class SwingTerminal
             while (row < cache.rows) {
                 if (cache.lineIds[row] == lineId) return firstAbsoluteRow + row
                 row++
+            }
+            return NO_COMMAND_ABSOLUTE_ROW
+        }
+
+        private fun firstCommandOutputAbsoluteRow(
+            cache: TerminalRenderCache,
+            startLineId: Long,
+            endLineId: Long,
+            includeStart: Boolean,
+        ): Long {
+            val firstLineId = minOf(startLineId, endLineId)
+            val lastLineId = maxOf(startLineId, endLineId)
+            val firstAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset
+            var row = 0
+            while (row < cache.rows) {
+                val lineId = cache.lineIds[row]
+                if (lineId >= firstLineId && lineId <= lastLineId && (includeStart || lineId != startLineId)) {
+                    return firstAbsoluteRow + row
+                }
+                row++
+            }
+            return NO_COMMAND_ABSOLUTE_ROW
+        }
+
+        private fun lastLineAbsoluteRow(
+            cache: TerminalRenderCache,
+            startLineId: Long,
+            endLineId: Long,
+        ): Long {
+            val firstLineId = minOf(startLineId, endLineId)
+            val lastLineId = maxOf(startLineId, endLineId)
+            val firstAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset
+            var row = cache.rows - 1
+            while (row >= 0) {
+                val lineId = cache.lineIds[row]
+                if (lineId >= firstLineId && lineId <= lastLineId) return firstAbsoluteRow + row
+                row--
             }
             return NO_COMMAND_ABSOLUTE_ROW
         }

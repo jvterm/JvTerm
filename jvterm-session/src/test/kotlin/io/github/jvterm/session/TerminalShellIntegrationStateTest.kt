@@ -368,6 +368,59 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
+    fun `copy command output range exposes inclusive and exclusive output boundaries`() {
+        val state = TerminalShellIntegrationState()
+        val records = RecordColumns(capacity = 2)
+        val range = LongArray(TerminalShellIntegrationCommandOutputRange.REQUIRED_LONGS)
+
+        state.recordCommandStart(10, includeLine = false)
+        state.recordCommandFinished(12, exitCode = 1)
+        state.recordCommandStart(20, includeLine = true)
+        state.recordCommandFinished(21, exitCode = 0)
+
+        records.copyFrom(state)
+
+        assertTrue(state.copyCommandOutputRange(records.recordIds[0], range))
+        assertContentEquals(longArrayOf(10, 12, 0), range)
+
+        assertTrue(state.copyCommandOutputRange(records.recordIds[1], range))
+        assertContentEquals(longArrayOf(20, 21, 1), range)
+    }
+
+    @Test
+    fun `copy command output range rejects prompt only running missing and empty exclusive output`() {
+        val state = TerminalShellIntegrationState()
+        val records = RecordColumns(capacity = 3)
+        val range = LongArray(TerminalShellIntegrationCommandOutputRange.REQUIRED_LONGS) { STALE_LONG }
+
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        state.recordCommandStart(10, includeLine = true)
+        state.recordCommandStart(20, includeLine = false)
+        state.recordCommandFinished(20, exitCode = 1)
+
+        records.copyFrom(state)
+
+        assertFalse(state.copyCommandOutputRange(records.recordIds[0], range))
+        assertFalse(state.copyCommandOutputRange(records.recordIds[1], range))
+        assertFalse(state.copyCommandOutputRange(records.recordIds[2], range))
+        assertFalse(state.copyCommandOutputRange(999, range))
+        assertContentEquals(longArrayOf(STALE_LONG, STALE_LONG, STALE_LONG), range)
+    }
+
+    @Test
+    fun `copy command output range rejects undersized destination`() {
+        val state = TerminalShellIntegrationState()
+
+        val error =
+            kotlin.test.assertFailsWith<IllegalArgumentException> {
+                state.copyCommandOutputRange(1, LongArray(2))
+            }
+
+        assertTrue(error.message!!.startsWith("destination is too small"))
+    }
+
+    @Test
     fun `previous and next command record ids skip prompt only records`() {
         val state = TerminalShellIntegrationState()
         val records = RecordColumns(capacity = 3)

@@ -79,6 +79,25 @@ internal class TerminalSelectionController(
         selectionCaretAbsoluteRow = null
     }
 
+    fun selectAbsoluteRows(
+        startAbsoluteRow: Long,
+        endAbsoluteRow: Long,
+        columns: Int,
+    ) {
+        require(startAbsoluteRow >= 0L) { "startAbsoluteRow must be >= 0, was $startAbsoluteRow" }
+        require(endAbsoluteRow >= startAbsoluteRow) {
+            "endAbsoluteRow must be >= startAbsoluteRow, was start=$startAbsoluteRow end=$endAbsoluteRow"
+        }
+        require(columns > 0) { "columns must be > 0, was $columns" }
+
+        stopSelectionDrag()
+        selectionIsBlock = false
+        selectionAnchorAbsoluteRow = startAbsoluteRow
+        selectionAnchorColumn = 0
+        selectionCaretAbsoluteRow = endAbsoluteRow
+        selectionCaretColumn = columns
+    }
+
     fun stopSelectionDrag() {
         selectingWithMouse = false
         selectionAutoscrollTimer.stop()

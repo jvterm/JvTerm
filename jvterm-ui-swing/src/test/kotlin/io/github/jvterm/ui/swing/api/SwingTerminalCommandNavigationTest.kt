@@ -25,6 +25,7 @@ import io.github.jvterm.parser.api.TerminalOutputParser
 import io.github.jvterm.render.api.*
 import io.github.jvterm.render.cache.TerminalRenderPublisher
 import io.github.jvterm.session.TerminalSession
+import io.github.jvterm.session.TerminalShellIntegrationCommandRecord
 import io.github.jvterm.transport.TerminalConnector
 import io.github.jvterm.transport.TerminalConnectorListener
 import io.github.jvterm.ui.swing.settings.SwingSettings
@@ -140,6 +141,107 @@ class SwingTerminalCommandNavigationTest {
         session.close()
     }
 
+    @Test
+    fun `command hit testing returns command records for prompt and output rows`() {
+        val reader = CommandFrameReader()
+        val session = commandSession(reader)
+        val component = SwingTerminal(settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) })
+        val firstCommandId = session.shellIntegrationState.commandRecordIdAtLine(lineIdForAbsoluteRow(3))
+        val secondCommandId = session.shellIntegrationState.commandRecordIdAtLine(lineIdForAbsoluteRow(6))
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(component.preferredGridSize(12, 2))
+            component.bind(session)
+
+            assertEquals(secondCommandId, component.commandRecordAt(0, 0))
+            assertEquals(secondCommandId, component.commandRecordAt(0, component.height - 1))
+
+            component.scrollToScrollbackOffset(3)
+            assertEquals(firstCommandId, component.commandRecordAt(0, 0))
+            assertEquals(TerminalShellIntegrationCommandRecord.NONE, component.commandRecordAt(0, component.height - 1))
+
+            component.scrollToScrollbackOffset(1)
+            assertEquals(secondCommandId, component.commandRecordAt(0, 0))
+            assertEquals(secondCommandId, component.commandRecordAt(0, component.height - 1))
+        }
+
+        session.close()
+    }
+
+    @Test
+    fun `select command output excludes prompt input line for exclusive command start`() {
+        val reader = CommandFrameReader()
+        val session = commandSession(reader)
+        val component = SwingTerminal(settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) })
+        val firstCommandId = session.shellIntegrationState.commandRecordIdAtLine(lineIdForAbsoluteRow(1))
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(component.preferredGridSize(12, 2))
+            component.bind(session)
+
+            assertEquals(true, component.selectCommandOutput(firstCommandId))
+            assertEquals(3, component.viewportState().renderOffset)
+            assertEquals(CellSelection(0, 0, 12, 0), component.currentSelection())
+        }
+
+        session.close()
+    }
+
+    @Test
+    fun `select command output includes start line for inclusive command start`() {
+        val reader = CommandFrameReader()
+        val session = commandSession(reader)
+        val component = SwingTerminal(settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) })
+        val secondCommandId = session.shellIntegrationState.commandRecordIdAtLine(lineIdForAbsoluteRow(6))
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(component.preferredGridSize(12, 2))
+            component.bind(session)
+
+            assertEquals(true, component.selectCommandOutput(secondCommandId))
+            assertEquals(0, component.viewportState().renderOffset)
+            assertEquals(CellSelection(0, 0, 12, 1), component.currentSelection())
+        }
+
+        session.close()
+    }
+
+    @Test
+    fun `select command output at prompt only row is a no op`() {
+        val reader = CommandFrameReader()
+        val session = commandSession(reader)
+        val component = SwingTerminal(settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) })
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(component.preferredGridSize(12, 2))
+            component.bind(session)
+            component.scrollToScrollbackOffset(2)
+
+            assertEquals(false, component.selectCommandOutputAt(0, 0))
+            assertEquals(null, component.currentSelection())
+        }
+
+        session.close()
+    }
+
+    @Test
+    fun `select command output ignores evicted command record`() {
+        val reader = CommandFrameReader()
+        val session = commandSession(reader, capacity = 1)
+        val component = SwingTerminal(settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) })
+        val evictedCommandId = 1
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(component.preferredGridSize(12, 2))
+            component.bind(session)
+
+            assertEquals(false, component.selectCommandOutput(evictedCommandId))
+            assertEquals(null, component.currentSelection())
+        }
+
+        session.close()
+    }
+
     private fun commandSession(
         renderReader: TerminalRenderFrameReader,
         capacity: Int = 8,
@@ -161,7 +263,7 @@ class SwingTerminalCommandNavigationTest {
         val state = session.shellIntegrationState
         state.recordPromptStart(lineIdForAbsoluteRow(1))
         state.recordPromptEnd(lineIdForAbsoluteRow(1))
-        state.recordCommandStart(lineIdForAbsoluteRow(2), includeLine = true)
+        state.recordCommandStart(lineIdForAbsoluteRow(2), includeLine = false)
         state.recordCommandFinished(lineIdForAbsoluteRow(3), exitCode = 0)
         state.recordPromptStart(lineIdForAbsoluteRow(4))
         state.recordPromptStart(lineIdForAbsoluteRow(5))

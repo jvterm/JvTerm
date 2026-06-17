@@ -31,6 +31,32 @@ object TerminalShellIntegrationCommandRecord {
 }
 
 /**
+ * Primitive column layout for command-output range copies.
+ */
+object TerminalShellIntegrationCommandOutputRange {
+    /**
+     * Required number of `Long` slots for one copied command-output range.
+     */
+    const val REQUIRED_LONGS: Int = 3
+
+    /**
+     * Destination index containing the command-start line id.
+     */
+    const val START_LINE_ID_INDEX: Int = 0
+
+    /**
+     * Destination index containing the command-end line id.
+     */
+    const val END_LINE_ID_INDEX: Int = 1
+
+    /**
+     * Destination index containing `1` when the start line is command output,
+     * or `0` when the start line is prompt/input and should be excluded.
+     */
+    const val START_INCLUSIVE_INDEX: Int = 2
+}
+
+/**
  * Primitive lifecycle vocabulary for session-owned shell command records.
  *
  * These values are intentionally `Int` constants rather than enum instances so
@@ -313,6 +339,47 @@ class TerminalShellIntegrationState(
             val promptStart = promptStartLineIds[index]
             if (promptStart != NO_LINE_ID) return promptStart
             return commandStartLineIds[index]
+        }
+    }
+
+    /**
+     * Copies the command-output line range for [recordId].
+     *
+     * The destination layout is defined by
+     * [TerminalShellIntegrationCommandOutputRange]. Unfinished commands,
+     * prompt-only records, unknown records, and records with no selectable
+     * output return `false` and leave the destination unchanged.
+     *
+     * @param recordId retained command record id.
+     * @param destination destination `Long` columns.
+     * @param destinationOffset first destination slot.
+     * @return true when a complete output range was copied.
+     */
+    fun copyCommandOutputRange(
+        recordId: Int,
+        destination: LongArray,
+        destinationOffset: Int = 0,
+    ): Boolean {
+        require(destinationOffset >= 0) { "destinationOffset must be >= 0, was $destinationOffset" }
+        require(destinationOffset + TerminalShellIntegrationCommandOutputRange.REQUIRED_LONGS <= destination.size) {
+            "destination is too small for offset=$destinationOffset size=${destination.size}"
+        }
+        if (recordId == TerminalShellIntegrationCommandRecord.NONE) return false
+
+        synchronized(lock) {
+            val index = indexForRecordIdLocked(recordId)
+            if (index == NO_INDEX || !isCommandRecordLocked(index)) return false
+
+            val start = commandStartLineIds[index]
+            val end = commandEndLineIds[index]
+            if (start == NO_LINE_ID || end == NO_LINE_ID) return false
+            if (!hasFlag(index, FLAG_COMMAND_START_INCLUSIVE) && start == end) return false
+
+            destination[destinationOffset + TerminalShellIntegrationCommandOutputRange.START_LINE_ID_INDEX] = start
+            destination[destinationOffset + TerminalShellIntegrationCommandOutputRange.END_LINE_ID_INDEX] = end
+            destination[destinationOffset + TerminalShellIntegrationCommandOutputRange.START_INCLUSIVE_INDEX] =
+                if (hasFlag(index, FLAG_COMMAND_START_INCLUSIVE)) 1L else 0L
+            return true
         }
     }
 
