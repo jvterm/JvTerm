@@ -23,6 +23,11 @@ object TerminalShellIntegrationCommandRecord {
      * No command record is associated with the projected row.
      */
     const val NONE: Int = 0
+
+    /**
+     * No command exit code is known for the record.
+     */
+    const val UNKNOWN_EXIT_CODE: Int = Int.MIN_VALUE
 }
 
 /**
@@ -96,7 +101,7 @@ class TerminalShellIntegrationState(
     private val promptEndLineIds = LongArray(capacity) { NO_LINE_ID }
     private val commandStartLineIds = LongArray(capacity) { NO_LINE_ID }
     private val commandEndLineIds = LongArray(capacity) { NO_LINE_ID }
-    private val exitCodes = IntArray(capacity) { NO_EXIT_CODE }
+    private val exitCodes = IntArray(capacity) { TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE }
     private val recordIds = IntArray(capacity)
     private val lifecycles = IntArray(capacity)
     private val flags = IntArray(capacity)
@@ -160,7 +165,7 @@ class TerminalShellIntegrationState(
             }
             commandStartLineIds[index] = lineId
             commandEndLineIds[index] = NO_LINE_ID
-            exitCodes[index] = NO_EXIT_CODE
+            exitCodes[index] = TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE
             lifecycles[index] = TerminalShellIntegrationCommandLifecycle.RUNNING
             flags[index] =
                 if (includeLine) flags[index] or FLAG_COMMAND_START_INCLUSIVE else flags[index] and FLAG_COMMAND_START_INCLUSIVE.inv()
@@ -189,7 +194,7 @@ class TerminalShellIntegrationState(
             if (index == NO_INDEX || commandStartLineIds[index] == NO_LINE_ID) return
 
             commandEndLineIds[index] = lineId
-            exitCodes[index] = exitCode ?: NO_EXIT_CODE
+            exitCodes[index] = exitCode ?: TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE
             lifecycles[index] = lifecycleForExitCode(exitCode)
         }
     }
@@ -240,6 +245,106 @@ class TerminalShellIntegrationState(
         require(lineId > 0L) { "lineId must be positive, was $lineId" }
         synchronized(lock) {
             return failedCommandIndexAtLocked(lineId) != NO_INDEX
+        }
+    }
+
+    /**
+     * Returns the current number of retained shell command records.
+     *
+     * Records are retained in chronological order from oldest to newest until
+     * bounded eviction removes the oldest entries.
+     *
+     * @return number of retained command timeline records.
+     */
+    fun recordCount(): Int =
+        synchronized(lock) {
+            count
+        }
+
+    /**
+     * Copies retained shell command records into caller-owned primitive arrays.
+     *
+     * Records are copied in chronological order, oldest first. This method
+     * clears exactly [maxRecords] destination slots starting at
+     * [destinationOffset] before copying, so callers can safely reuse
+     * destination buffers across calls without retaining stale records. Exit
+     * codes use [TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE] when
+     * omitted, malformed, not finished, or otherwise unknown.
+     *
+     * @param recordIds destination record-id column.
+     * @param lifecycleStates destination lifecycle-state column.
+     * @param promptStartLineIds destination prompt-start line-id column.
+     * @param promptEndLineIds destination prompt-end line-id column.
+     * @param commandStartLineIds destination command-start line-id column.
+     * @param commandEndLineIds destination command-end line-id column.
+     * @param exitCodes destination exit-code column.
+     * @param destinationOffset first destination index in all destination arrays.
+     * @param maxRecords maximum number of destination records to clear and copy.
+     * @return number of actual records copied.
+     */
+    fun copyRecords(
+        recordIds: IntArray,
+        lifecycleStates: IntArray,
+        promptStartLineIds: LongArray,
+        promptEndLineIds: LongArray,
+        commandStartLineIds: LongArray,
+        commandEndLineIds: LongArray,
+        exitCodes: IntArray,
+        destinationOffset: Int,
+        maxRecords: Int,
+    ): Int {
+        require(destinationOffset >= 0) { "destinationOffset must be >= 0, was $destinationOffset" }
+        require(maxRecords >= 0) { "maxRecords must be >= 0, was $maxRecords" }
+        require(destinationOffset + maxRecords <= recordIds.size) {
+            "recordIds is too small for offset=$destinationOffset maxRecords=$maxRecords size=${recordIds.size}"
+        }
+        require(destinationOffset + maxRecords <= lifecycleStates.size) {
+            "lifecycleStates is too small for offset=$destinationOffset maxRecords=$maxRecords size=${lifecycleStates.size}"
+        }
+        require(destinationOffset + maxRecords <= promptStartLineIds.size) {
+            "promptStartLineIds is too small for offset=$destinationOffset maxRecords=$maxRecords size=${promptStartLineIds.size}"
+        }
+        require(destinationOffset + maxRecords <= promptEndLineIds.size) {
+            "promptEndLineIds is too small for offset=$destinationOffset maxRecords=$maxRecords size=${promptEndLineIds.size}"
+        }
+        require(destinationOffset + maxRecords <= commandStartLineIds.size) {
+            "commandStartLineIds is too small for offset=$destinationOffset maxRecords=$maxRecords size=${commandStartLineIds.size}"
+        }
+        require(destinationOffset + maxRecords <= commandEndLineIds.size) {
+            "commandEndLineIds is too small for offset=$destinationOffset maxRecords=$maxRecords size=${commandEndLineIds.size}"
+        }
+        require(destinationOffset + maxRecords <= exitCodes.size) {
+            "exitCodes is too small for offset=$destinationOffset maxRecords=$maxRecords size=${exitCodes.size}"
+        }
+
+        clearRecords(
+            recordIds,
+            lifecycleStates,
+            promptStartLineIds,
+            promptEndLineIds,
+            commandStartLineIds,
+            commandEndLineIds,
+            exitCodes,
+            destinationOffset,
+            maxRecords,
+        )
+        if (maxRecords == 0) return 0
+
+        synchronized(lock) {
+            val copied = minOf(count, maxRecords)
+            var index = 0
+            while (index < copied) {
+                val destinationIndex = destinationOffset + index
+                recordIds[destinationIndex] = this.recordIds[index]
+                lifecycleStates[destinationIndex] = lifecycles[index]
+                promptStartLineIds[destinationIndex] = this.promptStartLineIds[index]
+                promptEndLineIds[destinationIndex] = this.promptEndLineIds[index]
+                commandStartLineIds[destinationIndex] = this.commandStartLineIds[index]
+                commandEndLineIds[destinationIndex] = this.commandEndLineIds[index]
+                exitCodes[destinationIndex] = this.exitCodes[index]
+                index++
+            }
+            return copied
         }
     }
 
@@ -349,7 +454,7 @@ class TerminalShellIntegrationState(
         promptEndLineIds[index] = NO_LINE_ID
         commandStartLineIds[index] = NO_LINE_ID
         commandEndLineIds[index] = NO_LINE_ID
-        exitCodes[index] = NO_EXIT_CODE
+        exitCodes[index] = TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE
         recordIds[index] = nextRecordIdLocked()
         lifecycles[index] = TerminalShellIntegrationCommandLifecycle.NONE
         flags[index] = 0
@@ -572,8 +677,6 @@ class TerminalShellIntegrationState(
         private const val NO_INDEX = -1
         private const val NO_LINE_ID = 0L
         private const val NO_OBSERVED_ROW = Long.MIN_VALUE
-        private const val NO_EXIT_CODE = Int.MIN_VALUE
-
         private const val FLAG_COMMAND_START_INCLUSIVE = 1 shl 0
 
         private fun clearViewport(
@@ -595,6 +698,31 @@ class TerminalShellIntegrationState(
                 commandEnds[index] = false
                 commandRecordIds[index] = TerminalShellIntegrationCommandRecord.NONE
                 commandLifecycleStates[index] = TerminalShellIntegrationCommandLifecycle.NONE
+                index++
+            }
+        }
+
+        private fun clearRecords(
+            recordIds: IntArray,
+            lifecycleStates: IntArray,
+            promptStartLineIds: LongArray,
+            promptEndLineIds: LongArray,
+            commandStartLineIds: LongArray,
+            commandEndLineIds: LongArray,
+            exitCodes: IntArray,
+            destinationOffset: Int,
+            maxRecords: Int,
+        ) {
+            val end = destinationOffset + maxRecords
+            var index = destinationOffset
+            while (index < end) {
+                recordIds[index] = TerminalShellIntegrationCommandRecord.NONE
+                lifecycleStates[index] = TerminalShellIntegrationCommandLifecycle.NONE
+                promptStartLineIds[index] = NO_LINE_ID
+                promptEndLineIds[index] = NO_LINE_ID
+                commandStartLineIds[index] = NO_LINE_ID
+                commandEndLineIds[index] = NO_LINE_ID
+                exitCodes[index] = TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE
                 index++
             }
         }

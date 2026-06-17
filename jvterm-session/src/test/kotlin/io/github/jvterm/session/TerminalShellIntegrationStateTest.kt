@@ -156,6 +156,140 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
+    fun `copy records exposes retained command timeline in chronological primitive columns`() {
+        val state = TerminalShellIntegrationState()
+        val records = RecordColumns(capacity = 4)
+
+        state.recordPromptStart(10)
+        state.recordPromptEnd(11)
+        state.recordCommandStart(12, includeLine = true)
+        state.recordCommandFinished(14, exitCode = 7)
+        state.recordCommandStart(20, includeLine = false)
+        state.recordCommandFinished(21, exitCode = 0)
+
+        val copied = records.copyFrom(state)
+
+        assertEquals(2, state.recordCount())
+        assertEquals(2, copied)
+        assertTrue(records.recordIds[0] != TerminalShellIntegrationCommandRecord.NONE)
+        assertTrue(records.recordIds[1] != TerminalShellIntegrationCommandRecord.NONE)
+        assertTrue(records.recordIds[0] != records.recordIds[1])
+        assertContentEquals(
+            intArrayOf(
+                TerminalShellIntegrationCommandLifecycle.FAILED,
+                TerminalShellIntegrationCommandLifecycle.SUCCEEDED,
+                TerminalShellIntegrationCommandLifecycle.NONE,
+                TerminalShellIntegrationCommandLifecycle.NONE,
+            ),
+            records.lifecycleStates,
+        )
+        assertContentEquals(longArrayOf(10, 0, 0, 0), records.promptStartLineIds)
+        assertContentEquals(longArrayOf(11, 0, 0, 0), records.promptEndLineIds)
+        assertContentEquals(longArrayOf(12, 20, 0, 0), records.commandStartLineIds)
+        assertContentEquals(longArrayOf(14, 21, 0, 0), records.commandEndLineIds)
+        assertContentEquals(
+            intArrayOf(
+                7,
+                0,
+                TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE,
+                TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE,
+            ),
+            records.exitCodes,
+        )
+    }
+
+    @Test
+    fun `copy records honors destination offset max records and clears reusable buffers`() {
+        val state = TerminalShellIntegrationState()
+        val records = RecordColumns(capacity = 5)
+        records.fillStaleValues()
+
+        state.recordCommandStart(3, includeLine = true)
+        state.recordCommandFinished(4, exitCode = null)
+        state.recordCommandStart(6, includeLine = true)
+        state.recordCommandFinished(7, exitCode = 2)
+
+        val copied =
+            state.copyRecords(
+                recordIds = records.recordIds,
+                lifecycleStates = records.lifecycleStates,
+                promptStartLineIds = records.promptStartLineIds,
+                promptEndLineIds = records.promptEndLineIds,
+                commandStartLineIds = records.commandStartLineIds,
+                commandEndLineIds = records.commandEndLineIds,
+                exitCodes = records.exitCodes,
+                destinationOffset = 1,
+                maxRecords = 3,
+            )
+
+        assertEquals(2, copied)
+        assertEquals(STALE_INT, records.recordIds[0])
+        assertEquals(TerminalShellIntegrationCommandRecord.NONE, records.recordIds[3])
+        assertEquals(STALE_INT, records.recordIds[4])
+        assertContentEquals(
+            intArrayOf(
+                STALE_INT,
+                TerminalShellIntegrationCommandLifecycle.FINISHED_UNKNOWN,
+                TerminalShellIntegrationCommandLifecycle.FAILED,
+                TerminalShellIntegrationCommandLifecycle.NONE,
+                STALE_INT,
+            ),
+            records.lifecycleStates,
+        )
+        assertContentEquals(longArrayOf(STALE_LONG, 3, 6, 0, STALE_LONG), records.commandStartLineIds)
+        assertContentEquals(longArrayOf(STALE_LONG, 4, 7, 0, STALE_LONG), records.commandEndLineIds)
+    }
+
+    @Test
+    fun `copy records returns newest retained records after bounded eviction`() {
+        val state = TerminalShellIntegrationState(capacity = 2)
+        val records = RecordColumns(capacity = 3)
+
+        state.recordCommandStart(1, includeLine = true)
+        state.recordCommandFinished(2, exitCode = 1)
+        state.recordCommandStart(3, includeLine = true)
+        state.recordCommandFinished(4, exitCode = 0)
+        state.recordPromptStart(5)
+
+        val copied = records.copyFrom(state)
+
+        assertEquals(2, copied)
+        assertContentEquals(longArrayOf(0, 5, 0), records.promptStartLineIds)
+        assertContentEquals(longArrayOf(3, 0, 0), records.commandStartLineIds)
+        assertContentEquals(
+            intArrayOf(
+                TerminalShellIntegrationCommandLifecycle.SUCCEEDED,
+                TerminalShellIntegrationCommandLifecycle.PROMPT_ONLY,
+                TerminalShellIntegrationCommandLifecycle.NONE,
+            ),
+            records.lifecycleStates,
+        )
+    }
+
+    @Test
+    fun `copy records rejects undersized destination columns`() {
+        val state = TerminalShellIntegrationState()
+        val records = RecordColumns(capacity = 1)
+
+        val error =
+            kotlin.test.assertFailsWith<IllegalArgumentException> {
+                state.copyRecords(
+                    recordIds = records.recordIds,
+                    lifecycleStates = records.lifecycleStates,
+                    promptStartLineIds = records.promptStartLineIds,
+                    promptEndLineIds = records.promptEndLineIds,
+                    commandStartLineIds = records.commandStartLineIds,
+                    commandEndLineIds = records.commandEndLineIds,
+                    exitCodes = records.exitCodes,
+                    destinationOffset = 0,
+                    maxRecords = 2,
+                )
+            }
+
+        assertTrue(error.message!!.startsWith("recordIds is too small"))
+    }
+
+    @Test
     fun `new prompt marks unfinished command as abandoned`() {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(2)
@@ -685,4 +819,44 @@ class TerminalShellIntegrationStateTest {
         val commandRecordIds: IntArray,
         val commandLifecycleStates: IntArray,
     )
+
+    private class RecordColumns(
+        capacity: Int,
+    ) {
+        val recordIds = IntArray(capacity)
+        val lifecycleStates = IntArray(capacity)
+        val promptStartLineIds = LongArray(capacity)
+        val promptEndLineIds = LongArray(capacity)
+        val commandStartLineIds = LongArray(capacity)
+        val commandEndLineIds = LongArray(capacity)
+        val exitCodes = IntArray(capacity) { TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE }
+
+        fun copyFrom(state: TerminalShellIntegrationState): Int =
+            state.copyRecords(
+                recordIds = recordIds,
+                lifecycleStates = lifecycleStates,
+                promptStartLineIds = promptStartLineIds,
+                promptEndLineIds = promptEndLineIds,
+                commandStartLineIds = commandStartLineIds,
+                commandEndLineIds = commandEndLineIds,
+                exitCodes = exitCodes,
+                destinationOffset = 0,
+                maxRecords = recordIds.size,
+            )
+
+        fun fillStaleValues() {
+            recordIds.fill(STALE_INT)
+            lifecycleStates.fill(STALE_INT)
+            promptStartLineIds.fill(STALE_LONG)
+            promptEndLineIds.fill(STALE_LONG)
+            commandStartLineIds.fill(STALE_LONG)
+            commandEndLineIds.fill(STALE_LONG)
+            exitCodes.fill(STALE_INT)
+        }
+    }
+
+    private companion object {
+        private const val STALE_INT = -7
+        private const val STALE_LONG = -7L
+    }
 }
