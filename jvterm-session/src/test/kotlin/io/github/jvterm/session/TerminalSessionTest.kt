@@ -911,6 +911,8 @@ class TerminalSessionTest {
             failedCommandRails = BooleanArray(frame.rows)
             val commandStarts = BooleanArray(frame.rows)
             val commandEnds = BooleanArray(frame.rows)
+            val commandRecordIds = IntArray(frame.rows)
+            val commandLifecycleStates = IntArray(frame.rows)
             shellIntegrationState.copyViewport(
                 lineIds = lineIds,
                 rowCount = frame.rows,
@@ -918,6 +920,8 @@ class TerminalSessionTest {
                 failedCommandRails = failedCommandRails,
                 commandStarts = commandStarts,
                 commandEnds = commandEnds,
+                commandRecordIds = commandRecordIds,
+                commandLifecycleStates = commandLifecycleStates,
             )
         }
         return ShellDecorationSnapshot(promptDividers, failedCommandRails)
@@ -926,7 +930,25 @@ class TerminalSessionTest {
     private data class ShellDecorationSnapshot(
         val promptDividers: BooleanArray,
         val failedCommandRails: BooleanArray,
-    )
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as ShellDecorationSnapshot
+
+            if (!promptDividers.contentEquals(other.promptDividers)) return false
+            if (!failedCommandRails.contentEquals(other.failedCommandRails)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = promptDividers.contentHashCode()
+            result = 31 * result + failedCommandRails.contentHashCode()
+            return result
+        }
+    }
 
     private fun String.ascii(): ByteArray = toByteArray(StandardCharsets.US_ASCII)
 

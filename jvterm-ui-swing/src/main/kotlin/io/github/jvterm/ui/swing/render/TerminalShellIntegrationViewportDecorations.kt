@@ -30,10 +30,14 @@ internal class TerminalShellIntegrationViewportDecorations {
     private var failedCommandRails = BooleanArray(0)
     private var commandStarts = BooleanArray(0)
     private var commandEnds = BooleanArray(0)
+    private var commandRecordIds = IntArray(0)
+    private var commandLifecycleStates = IntArray(0)
     private var nextPromptDividers = BooleanArray(0)
     private var nextFailedCommandRails = BooleanArray(0)
     private var nextCommandStarts = BooleanArray(0)
     private var nextCommandEnds = BooleanArray(0)
+    private var nextCommandRecordIds = IntArray(0)
+    private var nextCommandLifecycleStates = IntArray(0)
     private var rowCount = 0
 
     /**
@@ -53,6 +57,8 @@ internal class TerminalShellIntegrationViewportDecorations {
             failedCommandRails = nextFailedCommandRails,
             commandStarts = nextCommandStarts,
             commandEnds = nextCommandEnds,
+            commandRecordIds = nextCommandRecordIds,
+            commandLifecycleStates = nextCommandLifecycleStates,
         )
         val changed = decorationsChanged(cache.rows)
         swapBuffers()
@@ -87,16 +93,30 @@ internal class TerminalShellIntegrationViewportDecorations {
      */
     fun hasCommandEndAt(row: Int): Boolean = row in 0 until rowCount && commandEnds[row]
 
+    /**
+     * Returns the stable command record id associated with visible [row], or zero.
+     */
+    fun commandRecordIdAt(row: Int): Int = if (row in 0 until rowCount) commandRecordIds[row] else 0
+
+    /**
+     * Returns the command lifecycle associated with visible [row], or zero.
+     */
+    fun commandLifecycleAt(row: Int): Int = if (row in 0 until rowCount) commandLifecycleStates[row] else 0
+
     private fun ensureCapacity(rows: Int) {
         if (promptDividers.size >= rows) return
         promptDividers = BooleanArray(rows)
         failedCommandRails = BooleanArray(rows)
         commandStarts = BooleanArray(rows)
         commandEnds = BooleanArray(rows)
+        commandRecordIds = IntArray(rows)
+        commandLifecycleStates = IntArray(rows)
         nextPromptDividers = BooleanArray(rows)
         nextFailedCommandRails = BooleanArray(rows)
         nextCommandStarts = BooleanArray(rows)
         nextCommandEnds = BooleanArray(rows)
+        nextCommandRecordIds = IntArray(rows)
+        nextCommandLifecycleStates = IntArray(rows)
     }
 
     private fun decorationsChanged(nextRowCount: Int): Boolean {
@@ -108,6 +128,8 @@ internal class TerminalShellIntegrationViewportDecorations {
             if (failedCommandRails[row] != nextFailedCommandRails[row]) return true
             if (commandStarts[row] != nextCommandStarts[row]) return true
             if (commandEnds[row] != nextCommandEnds[row]) return true
+            if (commandRecordIds[row] != nextCommandRecordIds[row]) return true
+            if (commandLifecycleStates[row] != nextCommandLifecycleStates[row]) return true
             row++
         }
         return false
@@ -129,5 +151,13 @@ internal class TerminalShellIntegrationViewportDecorations {
         prompt = commandEnds
         commandEnds = nextCommandEnds
         nextCommandEnds = prompt
+
+        var ids = commandRecordIds
+        commandRecordIds = nextCommandRecordIds
+        nextCommandRecordIds = ids
+
+        ids = commandLifecycleStates
+        commandLifecycleStates = nextCommandLifecycleStates
+        nextCommandLifecycleStates = ids
     }
 }

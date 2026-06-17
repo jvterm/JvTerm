@@ -28,6 +28,8 @@ class TerminalShellIntegrationStateTest {
         val failedCommandRails = BooleanArray(5)
         val commandStarts = BooleanArray(5)
         val commandEnds = BooleanArray(5)
+        val commandRecordIds = IntArray(5)
+        val commandLifecycleStates = IntArray(5)
 
         state.recordPromptStart(11)
         state.recordPromptEnd(11)
@@ -40,10 +42,32 @@ class TerminalShellIntegrationStateTest {
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
         )
 
         assertContentEquals(booleanArrayOf(false, true, false, false, false), promptDividers)
         assertContentEquals(booleanArrayOf(false, false, true, true, true), failedCommandRails)
+        assertContentEquals(
+            intArrayOf(
+                TerminalShellIntegrationCommandRecord.NONE,
+                commandRecordIds[1],
+                commandRecordIds[1],
+                commandRecordIds[1],
+                commandRecordIds[1],
+            ),
+            commandRecordIds,
+        )
+        assertContentEquals(
+            intArrayOf(
+                TerminalShellIntegrationCommandLifecycle.NONE,
+                TerminalShellIntegrationCommandLifecycle.FAILED,
+                TerminalShellIntegrationCommandLifecycle.FAILED,
+                TerminalShellIntegrationCommandLifecycle.FAILED,
+                TerminalShellIntegrationCommandLifecycle.FAILED,
+            ),
+            commandLifecycleStates,
+        )
     }
 
     @Test
@@ -53,6 +77,8 @@ class TerminalShellIntegrationStateTest {
         val failedCommandRails = BooleanArray(3)
         val commandStarts = BooleanArray(3)
         val commandEnds = BooleanArray(3)
+        val commandRecordIds = IntArray(3)
+        val commandLifecycleStates = IntArray(3)
 
         state.recordCommandStart(5, includeLine = true)
         state.recordCommandFinished(10, exitCode = 1)
@@ -63,6 +89,8 @@ class TerminalShellIntegrationStateTest {
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
         )
 
         assertContentEquals(booleanArrayOf(false, false, false), promptDividers)
@@ -85,6 +113,85 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
+    fun `viewport projection exposes successful and unknown command lifecycle states`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(5)
+        val failedCommandRails = BooleanArray(5)
+        val commandStarts = BooleanArray(5)
+        val commandEnds = BooleanArray(5)
+        val commandRecordIds = IntArray(5)
+        val commandLifecycleStates = IntArray(5)
+
+        state.recordCommandStart(1, includeLine = true)
+        state.recordCommandFinished(2, exitCode = 0)
+        state.recordCommandStart(4, includeLine = true)
+        state.recordCommandFinished(5, exitCode = null)
+        state.copyViewport(
+            lineIds = longArrayOf(1, 2, 3, 4, 5),
+            rowCount = 5,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
+        )
+
+        assertContentEquals(booleanArrayOf(false, false, false, false, false), failedCommandRails)
+        assertContentEquals(
+            intArrayOf(commandRecordIds[0], commandRecordIds[0], 0, commandRecordIds[3], commandRecordIds[3]),
+            commandRecordIds,
+        )
+        assertContentEquals(
+            intArrayOf(
+                TerminalShellIntegrationCommandLifecycle.SUCCEEDED,
+                TerminalShellIntegrationCommandLifecycle.SUCCEEDED,
+                TerminalShellIntegrationCommandLifecycle.NONE,
+                TerminalShellIntegrationCommandLifecycle.FINISHED_UNKNOWN,
+                TerminalShellIntegrationCommandLifecycle.FINISHED_UNKNOWN,
+            ),
+            commandLifecycleStates,
+        )
+    }
+
+    @Test
+    fun `new prompt marks unfinished command as abandoned`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(2)
+        val failedCommandRails = BooleanArray(2)
+        val commandStarts = BooleanArray(2)
+        val commandEnds = BooleanArray(2)
+        val commandRecordIds = IntArray(2)
+        val commandLifecycleStates = IntArray(2)
+
+        state.recordCommandStart(10, includeLine = true)
+        state.recordPromptStart(20)
+        state.copyViewport(
+            lineIds = longArrayOf(10, 20),
+            rowCount = 2,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
+        )
+
+        assertContentEquals(booleanArrayOf(false, true), promptDividers)
+        assertContentEquals(booleanArrayOf(false, false), failedCommandRails)
+        assertTrue(commandRecordIds[0] != TerminalShellIntegrationCommandRecord.NONE)
+        assertTrue(commandRecordIds[1] != TerminalShellIntegrationCommandRecord.NONE)
+        assertTrue(commandRecordIds[0] != commandRecordIds[1])
+        assertContentEquals(
+            intArrayOf(
+                TerminalShellIntegrationCommandLifecycle.ABANDONED,
+                TerminalShellIntegrationCommandLifecycle.PROMPT_ONLY,
+            ),
+            commandLifecycleStates,
+        )
+    }
+
+    @Test
     fun `duplicate command starts close over the newest active command only`() {
         val state = TerminalShellIntegrationState()
 
@@ -104,6 +211,8 @@ class TerminalShellIntegrationStateTest {
         val failedCommandRails = BooleanArray(2)
         val commandStarts = BooleanArray(2)
         val commandEnds = BooleanArray(2)
+        val commandRecordIds = IntArray(2)
+        val commandLifecycleStates = IntArray(2)
 
         state.recordPromptEnd(1)
         state.copyViewport(
@@ -113,6 +222,8 @@ class TerminalShellIntegrationStateTest {
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
         )
 
         assertContentEquals(booleanArrayOf(false, false), promptDividers)
@@ -210,6 +321,8 @@ class TerminalShellIntegrationStateTest {
         val failedCommandRails = BooleanArray(4)
         val commandStarts = BooleanArray(4)
         val commandEnds = BooleanArray(4)
+        val commandRecordIds = IntArray(4)
+        val commandLifecycleStates = IntArray(4)
 
         state.recordPromptStart(40)
         state.recordCommandStart(41, includeLine = true)
@@ -221,6 +334,8 @@ class TerminalShellIntegrationStateTest {
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
         )
 
         assertContentEquals(booleanArrayOf(false, false, true, false), promptDividers)
@@ -234,6 +349,8 @@ class TerminalShellIntegrationStateTest {
         val failedCommandRails = BooleanArray(4)
         val commandStarts = BooleanArray(4)
         val commandEnds = BooleanArray(4)
+        val commandRecordIds = IntArray(4)
+        val commandLifecycleStates = IntArray(4)
 
         state.recordCommandStart(10, includeLine = false)
         state.recordCommandFinished(12, exitCode = 1)
@@ -244,12 +361,23 @@ class TerminalShellIntegrationStateTest {
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
         )
 
         assertContentEquals(booleanArrayOf(false, false, false, false), promptDividers)
         assertContentEquals(booleanArrayOf(false, true, true, false), failedCommandRails)
         assertContentEquals(booleanArrayOf(true, false, false, false), commandStarts)
         assertContentEquals(booleanArrayOf(false, false, true, false), commandEnds)
+        assertContentEquals(
+            intArrayOf(
+                commandRecordIds[0],
+                commandRecordIds[0],
+                commandRecordIds[0],
+                TerminalShellIntegrationCommandRecord.NONE,
+            ),
+            commandRecordIds,
+        )
     }
 
     @Test
@@ -259,6 +387,8 @@ class TerminalShellIntegrationStateTest {
         val failedCommandRails = BooleanArray(3)
         val commandStarts = BooleanArray(3)
         val commandEnds = BooleanArray(3)
+        val commandRecordIds = IntArray(3)
+        val commandLifecycleStates = IntArray(3)
 
         state.recordCommandStart(10, includeLine = true)
         state.recordCommandFinished(11, exitCode = 1)
@@ -269,6 +399,8 @@ class TerminalShellIntegrationStateTest {
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
         )
 
         assertContentEquals(booleanArrayOf(false, false, false), promptDividers)
@@ -282,6 +414,8 @@ class TerminalShellIntegrationStateTest {
         val failedCommandRails = BooleanArray(5)
         val commandStarts = BooleanArray(5)
         val commandEnds = BooleanArray(5)
+        val commandRecordIds = IntArray(5)
+        val commandLifecycleStates = IntArray(5)
 
         state.recordCommandStart(10, includeLine = false)
         state.recordCommandFinished(12, exitCode = 1)
@@ -292,12 +426,24 @@ class TerminalShellIntegrationStateTest {
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
         )
 
         assertContentEquals(booleanArrayOf(false, false, false, false, false), promptDividers)
         assertContentEquals(booleanArrayOf(false, true, true, true, true), failedCommandRails)
         assertContentEquals(booleanArrayOf(true, false, false, false, false), commandStarts)
         assertContentEquals(booleanArrayOf(false, false, false, true, false), commandEnds)
+        assertContentEquals(
+            intArrayOf(
+                commandRecordIds[0],
+                commandRecordIds[0],
+                commandRecordIds[0],
+                commandRecordIds[0],
+                commandRecordIds[0],
+            ),
+            commandRecordIds,
+        )
     }
 
     @Test
@@ -307,6 +453,8 @@ class TerminalShellIntegrationStateTest {
         val failedCommandRails = BooleanArray(2)
         val commandStarts = BooleanArray(2)
         val commandEnds = BooleanArray(2)
+        val commandRecordIds = IntArray(2)
+        val commandLifecycleStates = IntArray(2)
 
         state.recordCommandStart(10, includeLine = false)
         state.recordCommandFinished(10, exitCode = 1)
@@ -317,6 +465,8 @@ class TerminalShellIntegrationStateTest {
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
         )
 
         assertContentEquals(booleanArrayOf(false, false), promptDividers)
@@ -330,6 +480,8 @@ class TerminalShellIntegrationStateTest {
         val failedCommandRails = BooleanArray(3)
         val commandStarts = BooleanArray(3)
         val commandEnds = BooleanArray(3)
+        val commandRecordIds = IntArray(3)
+        val commandLifecycleStates = IntArray(3)
 
         state.recordPromptStart(9)
         state.copyViewport(
@@ -339,6 +491,8 @@ class TerminalShellIntegrationStateTest {
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
         )
 
         assertContentEquals(booleanArrayOf(true, false, false), promptDividers)

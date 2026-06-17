@@ -17,6 +17,8 @@ package io.github.jvterm.ui.swing.render
 
 import io.github.jvterm.render.api.*
 import io.github.jvterm.render.cache.TerminalRenderCache
+import io.github.jvterm.session.TerminalShellIntegrationCommandLifecycle
+import io.github.jvterm.session.TerminalShellIntegrationCommandRecord
 import io.github.jvterm.session.TerminalShellIntegrationState
 import io.github.jvterm.ui.swing.api.CellSelection
 import io.github.jvterm.ui.swing.settings.SwingMetrics
@@ -580,12 +582,17 @@ class GridPainterTest {
 
         decorations.updateFrom(state, cache)
 
+        val commandRecordId = decorations.commandRecordIdAt(0)
         assertTrue(decorations.hasCommandStartAt(0))
         assertFalse(decorations.hasFailedCommandRailAt(0))
         assertTrue(decorations.hasFailedCommandRailAt(1))
         assertTrue(decorations.hasFailedCommandRailAt(2))
         assertTrue(decorations.hasFailedCommandRailAt(3))
         assertTrue(decorations.hasCommandEndAt(3))
+        assertTrue(commandRecordId != TerminalShellIntegrationCommandRecord.NONE)
+        assertEquals(commandRecordId, decorations.commandRecordIdAt(1))
+        assertEquals(commandRecordId, decorations.commandRecordIdAt(3))
+        assertEquals(TerminalShellIntegrationCommandLifecycle.FAILED, decorations.commandLifecycleAt(3))
     }
 
     private fun BufferedImage.containsColorInRange(

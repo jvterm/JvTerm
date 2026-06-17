@@ -16,6 +16,60 @@
 package io.github.jvterm.session
 
 /**
+ * Primitive command-record id vocabulary used by shell-integration viewport projections.
+ */
+object TerminalShellIntegrationCommandRecord {
+    /**
+     * No command record is associated with the projected row.
+     */
+    const val NONE: Int = 0
+}
+
+/**
+ * Primitive lifecycle vocabulary for session-owned shell command records.
+ *
+ * These values are intentionally `Int` constants rather than enum instances so
+ * viewport projections can use reusable primitive arrays with no per-row
+ * allocation.
+ */
+object TerminalShellIntegrationCommandLifecycle {
+    /**
+     * No command lifecycle is associated with the projected row.
+     */
+    const val NONE: Int = 0
+
+    /**
+     * A prompt marker was observed, but no command start has attached to it.
+     */
+    const val PROMPT_ONLY: Int = 1
+
+    /**
+     * A command start marker was observed and no command finish has arrived yet.
+     */
+    const val RUNNING: Int = 2
+
+    /**
+     * A command finished with exit code zero.
+     */
+    const val SUCCEEDED: Int = 3
+
+    /**
+     * A command finished with a non-zero exit code.
+     */
+    const val FAILED: Int = 4
+
+    /**
+     * A command finished without a known exit code.
+     */
+    const val FINISHED_UNKNOWN: Int = 5
+
+    /**
+     * A newer prompt or command marker superseded an unfinished command.
+     */
+    const val ABANDONED: Int = 6
+}
+
+/**
  * Session-owned OSC 133 shell command timeline.
  *
  * This model intentionally lives outside terminal core. Core owns bytes already
@@ -26,9 +80,9 @@ package io.github.jvterm.session
  *
  * Storage is data-oriented: each command field is a primitive column, records
  * are append-only until bounded eviction, and paint paths consume only projected
- * primitive boolean arrays. All methods are thread-safe. Writers are normally
- * invoked from the serialized session parser path; readers are UI threads that
- * snapshot visible rows before painting.
+ * primitive arrays. All methods are thread-safe. Writers are normally invoked
+ * from the serialized session parser path; readers are UI threads that snapshot
+ * visible rows before painting.
  */
 class TerminalShellIntegrationState(
     private val capacity: Int = DEFAULT_CAPACITY,
@@ -43,12 +97,14 @@ class TerminalShellIntegrationState(
     private val commandStartLineIds = LongArray(capacity) { NO_LINE_ID }
     private val commandEndLineIds = LongArray(capacity) { NO_LINE_ID }
     private val exitCodes = IntArray(capacity) { NO_EXIT_CODE }
-    private val states = IntArray(capacity)
+    private val recordIds = IntArray(capacity)
+    private val lifecycles = IntArray(capacity)
     private val flags = IntArray(capacity)
 
     private var count = 0
     private var activePromptIndex = NO_INDEX
     private var activeCommandIndex = NO_INDEX
+    private var nextRecordId = 1
     private var lastObservedBottomRow = NO_OBSERVED_ROW
 
     /**
@@ -59,10 +115,11 @@ class TerminalShellIntegrationState(
     fun recordPromptStart(lineId: Long) {
         require(lineId > 0L) { "lineId must be positive, was $lineId" }
         synchronized(lock) {
+            abandonActiveCommandLocked()
             activeCommandIndex = NO_INDEX
             val index = appendCommandLocked()
             promptStartLineIds[index] = lineId
-            states[index] = states[index] or STATE_PROMPT_STARTED
+            lifecycles[index] = TerminalShellIntegrationCommandLifecycle.PROMPT_ONLY
             activePromptIndex = index
         }
     }
@@ -79,7 +136,6 @@ class TerminalShellIntegrationState(
             if (index == NO_INDEX) return
 
             promptEndLineIds[index] = lineId
-            states[index] = states[index] or STATE_PROMPT_ENDED
         }
     }
 
@@ -99,10 +155,13 @@ class TerminalShellIntegrationState(
         require(lineId > 0L) { "lineId must be positive, was $lineId" }
         synchronized(lock) {
             val index = attachablePromptIndexLocked()
+            if (activeCommandIndex != NO_INDEX && activeCommandIndex != index) {
+                abandonActiveCommandLocked()
+            }
             commandStartLineIds[index] = lineId
             commandEndLineIds[index] = NO_LINE_ID
             exitCodes[index] = NO_EXIT_CODE
-            states[index] = states[index] or STATE_COMMAND_STARTED
+            lifecycles[index] = TerminalShellIntegrationCommandLifecycle.RUNNING
             flags[index] =
                 if (includeLine) flags[index] or FLAG_COMMAND_START_INCLUSIVE else flags[index] and FLAG_COMMAND_START_INCLUSIVE.inv()
             activeCommandIndex = index
@@ -131,7 +190,7 @@ class TerminalShellIntegrationState(
 
             commandEndLineIds[index] = lineId
             exitCodes[index] = exitCode ?: NO_EXIT_CODE
-            states[index] = states[index] or STATE_COMMAND_FINISHED
+            lifecycles[index] = lifecycleForExitCode(exitCode)
         }
     }
 
@@ -188,7 +247,8 @@ class TerminalShellIntegrationState(
      * Copies projected shell decorations for a visible viewport.
      *
      * Existing values in [promptDividers], [failedCommandRails],
-     * [commandStarts], and [commandEnds] are
+     * [commandStarts], [commandEnds], [commandRecordIds], and
+     * [commandLifecycleStates] are
      * overwritten for exactly [rowCount] rows starting at [destinationOffset].
      *
      * @param lineIds stable line identities for visible viewport rows.
@@ -197,7 +257,11 @@ class TerminalShellIntegrationState(
      * @param failedCommandRails destination flags for failed-command rails.
      * @param commandStarts destination flags for command-output start rows.
      * @param commandEnds destination flags for command-output end rows.
-     * @param destinationOffset first destination index in both arrays.
+     * @param commandRecordIds destination command-record ids for rows owned by
+     *   a projected prompt or command range.
+     * @param commandLifecycleStates destination lifecycle states for rows with
+     *   a projected command record.
+     * @param destinationOffset first destination index in all destination arrays.
      */
     fun copyViewport(
         lineIds: LongArray,
@@ -206,6 +270,8 @@ class TerminalShellIntegrationState(
         failedCommandRails: BooleanArray,
         commandStarts: BooleanArray,
         commandEnds: BooleanArray,
+        commandRecordIds: IntArray,
+        commandLifecycleStates: IntArray,
         destinationOffset: Int = 0,
     ) {
         require(rowCount >= 0) { "rowCount must be >= 0, was $rowCount" }
@@ -225,8 +291,23 @@ class TerminalShellIntegrationState(
         require(destinationOffset + rowCount <= commandEnds.size) {
             "commandEnds is too small for offset=$destinationOffset rowCount=$rowCount size=${commandEnds.size}"
         }
+        require(destinationOffset + rowCount <= commandRecordIds.size) {
+            "commandRecordIds is too small for offset=$destinationOffset rowCount=$rowCount size=${commandRecordIds.size}"
+        }
+        require(destinationOffset + rowCount <= commandLifecycleStates.size) {
+            "commandLifecycleStates is too small for offset=$destinationOffset rowCount=$rowCount size=${commandLifecycleStates.size}"
+        }
 
-        clearViewport(promptDividers, failedCommandRails, commandStarts, commandEnds, destinationOffset, rowCount)
+        clearViewport(
+            promptDividers,
+            failedCommandRails,
+            commandStarts,
+            commandEnds,
+            commandRecordIds,
+            commandLifecycleStates,
+            destinationOffset,
+            rowCount,
+        )
         if (rowCount == 0) return
 
         synchronized(lock) {
@@ -235,6 +316,14 @@ class TerminalShellIntegrationState(
                 projectPromptDividerLocked(index, lineIds, rowCount, promptDividers, destinationOffset)
                 projectFailedCommandRailLocked(index, lineIds, rowCount, failedCommandRails, destinationOffset)
                 projectCommandBoundaryLocked(index, lineIds, rowCount, commandStarts, commandEnds, destinationOffset)
+                projectCommandRecordLocked(
+                    index,
+                    lineIds,
+                    rowCount,
+                    commandRecordIds,
+                    commandLifecycleStates,
+                    destinationOffset,
+                )
                 index++
             }
         }
@@ -261,7 +350,8 @@ class TerminalShellIntegrationState(
         commandStartLineIds[index] = NO_LINE_ID
         commandEndLineIds[index] = NO_LINE_ID
         exitCodes[index] = NO_EXIT_CODE
-        states[index] = STATE_EMPTY
+        recordIds[index] = nextRecordIdLocked()
+        lifecycles[index] = TerminalShellIntegrationCommandLifecycle.NONE
         flags[index] = 0
         return index
     }
@@ -278,11 +368,26 @@ class TerminalShellIntegrationState(
         commandStartLineIds.copyInto(commandStartLineIds, destinationOffset = 0, startIndex = 1, endIndex = count)
         commandEndLineIds.copyInto(commandEndLineIds, destinationOffset = 0, startIndex = 1, endIndex = count)
         exitCodes.copyInto(exitCodes, destinationOffset = 0, startIndex = 1, endIndex = count)
-        states.copyInto(states, destinationOffset = 0, startIndex = 1, endIndex = count)
+        recordIds.copyInto(recordIds, destinationOffset = 0, startIndex = 1, endIndex = count)
+        lifecycles.copyInto(lifecycles, destinationOffset = 0, startIndex = 1, endIndex = count)
         flags.copyInto(flags, destinationOffset = 0, startIndex = 1, endIndex = count)
         count--
         activePromptIndex = shiftIndexAfterEviction(activePromptIndex)
         activeCommandIndex = shiftIndexAfterEviction(activeCommandIndex)
+    }
+
+    private fun nextRecordIdLocked(): Int {
+        val id = nextRecordId
+        nextRecordId = if (nextRecordId == Int.MAX_VALUE) 1 else nextRecordId + 1
+        return id
+    }
+
+    private fun abandonActiveCommandLocked() {
+        val index = activeCommandIndex
+        if (index != NO_INDEX && commandEndLineIds[index] == NO_LINE_ID) {
+            lifecycles[index] = TerminalShellIntegrationCommandLifecycle.ABANDONED
+        }
+        activeCommandIndex = NO_INDEX
     }
 
     private fun shiftIndexAfterEviction(index: Int): Int =
@@ -304,8 +409,7 @@ class TerminalShellIntegrationState(
         index: Int,
         lineId: Long,
     ): Boolean {
-        if (!hasState(index, STATE_COMMAND_FINISHED)) return false
-        if (exitCodes[index] <= 0) return false
+        if (lifecycles[index] != TerminalShellIntegrationCommandLifecycle.FAILED) return false
         val start = commandStartLineIds[index]
         val end = commandEndLineIds[index]
         if (start == NO_LINE_ID || end == NO_LINE_ID) return false
@@ -338,8 +442,7 @@ class TerminalShellIntegrationState(
         failedCommandRails: BooleanArray,
         destinationOffset: Int,
     ) {
-        if (!hasState(index, STATE_COMMAND_FINISHED)) return
-        if (exitCodes[index] <= 0) return
+        if (lifecycles[index] != TerminalShellIntegrationCommandLifecycle.FAILED) return
         val start = commandStartLineIds[index]
         val end = commandEndLineIds[index]
         if (start == NO_LINE_ID || end == NO_LINE_ID) return
@@ -362,15 +465,51 @@ class TerminalShellIntegrationState(
         commandEnds: BooleanArray,
         destinationOffset: Int,
     ) {
-        if (!hasState(index, STATE_COMMAND_STARTED)) return
         val start = commandStartLineIds[index]
         if (start != NO_LINE_ID) {
             projectFirstMatchingRow(lineIds, rowCount, commandStarts, destinationOffset, start)
         }
-        if (!hasState(index, STATE_COMMAND_FINISHED)) return
         val end = commandEndLineIds[index]
         if (end != NO_LINE_ID) {
             projectFirstMatchingRow(lineIds, rowCount, commandEnds, destinationOffset, end)
+        }
+    }
+
+    private fun projectCommandRecordLocked(
+        index: Int,
+        lineIds: LongArray,
+        rowCount: Int,
+        commandRecordIds: IntArray,
+        commandLifecycleStates: IntArray,
+        destinationOffset: Int,
+    ) {
+        val lifecycle = lifecycles[index]
+        if (lifecycle == TerminalShellIntegrationCommandLifecycle.NONE) return
+        val id = recordIds[index]
+        if (id == TerminalShellIntegrationCommandRecord.NONE) return
+
+        val promptStart = promptStartLineIds[index]
+        if (promptStart != NO_LINE_ID) {
+            projectRecordLine(lineIds, rowCount, commandRecordIds, commandLifecycleStates, destinationOffset, promptStart, id, lifecycle)
+        }
+
+        val start = commandStartLineIds[index]
+        if (start == NO_LINE_ID) return
+        projectRecordLine(lineIds, rowCount, commandRecordIds, commandLifecycleStates, destinationOffset, start, id, lifecycle)
+        val end = commandEndLineIds[index]
+        if (end == NO_LINE_ID) {
+            return
+        }
+
+        var row = 0
+        while (row < rowCount) {
+            val lineId = lineIds[row]
+            if (isLineInCommandOutputRange(index, lineId, start, end)) {
+                val destinationIndex = destinationOffset + row
+                commandRecordIds[destinationIndex] = id
+                commandLifecycleStates[destinationIndex] = lifecycle
+            }
+            row++
         }
     }
 
@@ -386,15 +525,17 @@ class TerminalShellIntegrationState(
         return hasFlag(index, FLAG_COMMAND_START_INCLUSIVE) || lineId != start
     }
 
-    private fun hasState(
-        index: Int,
-        state: Int,
-    ): Boolean = states[index] and state != 0
-
     private fun hasFlag(
         index: Int,
         flag: Int,
     ): Boolean = flags[index] and flag != 0
+
+    private fun lifecycleForExitCode(exitCode: Int?): Int =
+        when {
+            exitCode == null -> TerminalShellIntegrationCommandLifecycle.FINISHED_UNKNOWN
+            exitCode == 0 -> TerminalShellIntegrationCommandLifecycle.SUCCEEDED
+            else -> TerminalShellIntegrationCommandLifecycle.FAILED
+        }
 
     private fun clearLocked() {
         count = 0
@@ -421,6 +562,8 @@ class TerminalShellIntegrationState(
             failedCommandRails: BooleanArray,
             commandStarts: BooleanArray,
             commandEnds: BooleanArray,
+            commandRecordIds: IntArray,
+            commandLifecycleStates: IntArray,
             destinationOffset: Int,
             rowCount: Int,
         ) {
@@ -431,6 +574,8 @@ class TerminalShellIntegrationState(
                 failedCommandRails[index] = false
                 commandStarts[index] = false
                 commandEnds[index] = false
+                commandRecordIds[index] = TerminalShellIntegrationCommandRecord.NONE
+                commandLifecycleStates[index] = TerminalShellIntegrationCommandLifecycle.NONE
                 index++
             }
         }
@@ -446,6 +591,28 @@ class TerminalShellIntegrationState(
             while (row < rowCount) {
                 if (lineIds[row] == lineId) {
                     destination[destinationOffset + row] = true
+                    return
+                }
+                row++
+            }
+        }
+
+        private fun projectRecordLine(
+            lineIds: LongArray,
+            rowCount: Int,
+            commandRecordIds: IntArray,
+            commandLifecycleStates: IntArray,
+            destinationOffset: Int,
+            lineId: Long,
+            commandRecordId: Int,
+            lifecycle: Int,
+        ) {
+            var row = 0
+            while (row < rowCount) {
+                if (lineIds[row] == lineId) {
+                    val destinationIndex = destinationOffset + row
+                    commandRecordIds[destinationIndex] = commandRecordId
+                    commandLifecycleStates[destinationIndex] = lifecycle
                     return
                 }
                 row++
