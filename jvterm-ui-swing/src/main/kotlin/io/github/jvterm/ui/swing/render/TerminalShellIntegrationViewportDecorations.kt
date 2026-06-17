@@ -21,9 +21,9 @@ import io.github.jvterm.session.TerminalShellIntegrationState
 /**
  * Renderer-local snapshot of shell integration decorations for one viewport.
  *
- * The shared [TerminalShellIntegrationState] is session-owned and thread-safe.
- * Swing copies the visible rows into these primitive arrays before painting so
- * the row paint loop performs only array lookups.
+ * The shared [TerminalShellIntegrationState] is a session-owned command
+ * timeline. Swing projects the visible rows into these primitive arrays before
+ * painting so the row paint loop performs only array lookups.
  */
 internal class TerminalShellIntegrationViewportDecorations {
     private var promptDividers = BooleanArray(0)

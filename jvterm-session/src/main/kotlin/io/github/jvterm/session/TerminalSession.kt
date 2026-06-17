@@ -197,7 +197,6 @@ class TerminalSession(
         val result: Pair<Int, Int>
         synchronized(mutationLock) {
             result = terminal.resize(columns, rows, oldScrollbackOffset)
-            shellIntegrationState.clear()
         }
         connector.resize(columns, rows)
         notifyRenderDirty()
@@ -693,7 +692,7 @@ private class ShellIntegrationRecordingHostEventSink(
         state.observeLiveBottomRow(bottomAbsoluteRow)
         when (event.marker) {
             ShellIntegrationMarker.PROMPT_START -> state.recordPromptStart(cursorAbsoluteRow)
-            ShellIntegrationMarker.PROMPT_END -> Unit
+            ShellIntegrationMarker.PROMPT_END -> state.recordPromptEnd(cursorAbsoluteRow)
             ShellIntegrationMarker.COMMAND_START -> state.recordCommandStart(cursorAbsoluteRow)
             ShellIntegrationMarker.COMMAND_FINISHED -> {
                 val finishedRow =

@@ -22,12 +22,13 @@ import kotlin.test.assertTrue
 
 class TerminalShellIntegrationStateTest {
     @Test
-    fun `prompt rows and failed command ranges copy into viewport flags`() {
+    fun `prompt command lifecycle projects prompt dividers and failed command rails into viewport`() {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(5)
         val failedCommandRails = BooleanArray(5)
 
         state.recordPromptStart(11)
+        state.recordPromptEnd(11)
         state.recordCommandStart(12)
         state.recordCommandFinished(14, exitCode = 7)
         state.copyViewport(
@@ -42,7 +43,26 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
-    fun `zero null and missing exit states do not create failed command ranges`() {
+    fun `viewport projection clips command ranges without allocating intermediate records`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(3)
+        val failedCommandRails = BooleanArray(3)
+
+        state.recordCommandStart(5)
+        state.recordCommandFinished(10, exitCode = 1)
+        state.copyViewport(
+            firstAbsoluteRow = 7,
+            rowCount = 3,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+        )
+
+        assertContentEquals(booleanArrayOf(false, false, false), promptDividers)
+        assertContentEquals(booleanArrayOf(true, true, true), failedCommandRails)
+    }
+
+    @Test
+    fun `zero null and missing command starts do not create failed command ranges`() {
         val state = TerminalShellIntegrationState()
 
         state.recordCommandStart(1)
@@ -54,6 +74,37 @@ class TerminalShellIntegrationStateTest {
         assertFalse(state.hasFailedCommandRailAt(1))
         assertFalse(state.hasFailedCommandRailAt(4))
         assertFalse(state.hasFailedCommandRailAt(8))
+    }
+
+    @Test
+    fun `duplicate command starts close over the newest active command only`() {
+        val state = TerminalShellIntegrationState()
+
+        state.recordCommandStart(1)
+        state.recordCommandStart(3)
+        state.recordCommandFinished(4, exitCode = 2)
+
+        assertFalse(state.hasFailedCommandRailAt(1))
+        assertTrue(state.hasFailedCommandRailAt(3))
+        assertTrue(state.hasFailedCommandRailAt(4))
+    }
+
+    @Test
+    fun `prompt end without prompt start is ignored`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(2)
+        val failedCommandRails = BooleanArray(2)
+
+        state.recordPromptEnd(1)
+        state.copyViewport(
+            firstAbsoluteRow = 0,
+            rowCount = 2,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+        )
+
+        assertContentEquals(booleanArrayOf(false, false), promptDividers)
+        assertContentEquals(booleanArrayOf(false, false), failedCommandRails)
     }
 
     @Test
@@ -71,7 +122,7 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
-    fun `bounded storage evicts oldest prompt rows`() {
+    fun `bounded command timeline evicts oldest records`() {
         val state = TerminalShellIntegrationState(capacity = 2)
 
         state.recordPromptStart(1)
@@ -81,5 +132,20 @@ class TerminalShellIntegrationStateTest {
         assertFalse(state.hasPromptDividerAt(1))
         assertTrue(state.hasPromptDividerAt(2))
         assertTrue(state.hasPromptDividerAt(3))
+    }
+
+    @Test
+    fun `evicting active prompt prevents command start from attaching to removed record`() {
+        val state = TerminalShellIntegrationState(capacity = 1)
+
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        state.recordCommandStart(3)
+        state.recordCommandFinished(4, exitCode = 1)
+
+        assertFalse(state.hasFailedCommandRailAt(1))
+        assertTrue(state.hasPromptDividerAt(2))
+        assertTrue(state.hasFailedCommandRailAt(3))
+        assertTrue(state.hasFailedCommandRailAt(4))
     }
 }

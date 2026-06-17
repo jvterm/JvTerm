@@ -267,7 +267,7 @@ class TerminalSessionTest {
     }
 
     @Test
-    fun `resize clears shared shell integration state because rows are reflowed`() {
+    fun `resize preserves shared shell integration timeline`() {
         val connector = MockConnector()
         val session = createStartedSession(connector, columns = 10, rows = 4)
 
@@ -276,7 +276,7 @@ class TerminalSessionTest {
 
         session.resize(columns = 12, rows = 4)
 
-        assertFalse(session.shellIntegrationState.hasPromptDividerAt(0))
+        assertTrue(session.shellIntegrationState.hasPromptDividerAt(0))
         session.close()
     }
 
