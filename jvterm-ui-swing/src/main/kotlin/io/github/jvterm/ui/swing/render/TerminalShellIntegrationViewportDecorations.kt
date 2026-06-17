@@ -42,9 +42,8 @@ internal class TerminalShellIntegrationViewportDecorations {
         cache: TerminalRenderCache,
     ): Boolean {
         ensureCapacity(cache.rows)
-        val firstAbsoluteRow = cache.discardedCount + cache.historySize - cache.scrollbackOffset
         state.copyViewport(
-            firstAbsoluteRow = firstAbsoluteRow,
+            lineIds = cache.lineIds,
             rowCount = cache.rows,
             promptDividers = nextPromptDividers,
             failedCommandRails = nextFailedCommandRails,

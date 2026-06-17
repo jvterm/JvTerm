@@ -679,33 +679,55 @@ private class ShellIntegrationRecordingHostEventSink(
     }
 
     override fun shellIntegrationMarker(event: ShellIntegrationEvent) {
-        var cursorAbsoluteRow = 0L
+        var cursorLineId = NO_LINE_ID
+        var previousLineId = NO_LINE_ID
         var cursorColumn = 0
         var bottomAbsoluteRow = 0L
         renderReader.readRenderFrame(scrollbackOffset = 0) { frame ->
             val firstVisibleRow = frame.discardedCount + frame.historySize
-            cursorAbsoluteRow = firstVisibleRow + frame.cursor.row
-            cursorColumn = frame.cursor.column
+            val cursor = frame.cursor
+            cursorColumn = cursor.column
+            if (cursor.row in 0 until frame.rows) {
+                cursorLineId = frame.lineId(cursor.row)
+            }
+            if (cursor.row > 0 && cursor.row - 1 < frame.rows) {
+                previousLineId = frame.lineId(cursor.row - 1)
+            }
             bottomAbsoluteRow = firstVisibleRow + frame.rows - 1
         }
 
         state.observeLiveBottomRow(bottomAbsoluteRow)
         when (event.marker) {
-            ShellIntegrationMarker.PROMPT_START -> state.recordPromptStart(cursorAbsoluteRow)
-            ShellIntegrationMarker.PROMPT_END -> state.recordPromptEnd(cursorAbsoluteRow)
-            ShellIntegrationMarker.COMMAND_START -> state.recordCommandStart(cursorAbsoluteRow)
+            ShellIntegrationMarker.PROMPT_START -> recordIfAssigned(cursorLineId, state::recordPromptStart)
+            ShellIntegrationMarker.PROMPT_END -> recordIfAssigned(cursorLineId, state::recordPromptEnd)
+            ShellIntegrationMarker.COMMAND_START -> recordIfAssigned(cursorLineId, state::recordCommandStart)
             ShellIntegrationMarker.COMMAND_FINISHED -> {
-                val finishedRow =
-                    if (cursorColumn == 0 && cursorAbsoluteRow > 0L) {
-                        cursorAbsoluteRow - 1L
+                val finishedLineId =
+                    if (cursorColumn == 0 && previousLineId != NO_LINE_ID) {
+                        previousLineId
                     } else {
-                        cursorAbsoluteRow
+                        cursorLineId
                     }
-                state.recordCommandFinished(finishedRow, event.exitCode)
+                if (finishedLineId != NO_LINE_ID) {
+                    state.recordCommandFinished(finishedLineId, event.exitCode)
+                }
             }
         }
 
         delegate.shellIntegrationMarker(event)
+    }
+
+    private inline fun recordIfAssigned(
+        lineId: Long,
+        record: (Long) -> Unit,
+    ) {
+        if (lineId != NO_LINE_ID) {
+            record(lineId)
+        }
+    }
+
+    private companion object {
+        private const val NO_LINE_ID = 0L
     }
 
     override fun showNotification(

@@ -20,8 +20,9 @@ package io.github.jvterm.session
  *
  * This model intentionally lives outside terminal core. Core owns bytes already
  * committed to the terminal grid; shell integration markers are host metadata
- * about prompt and command lifecycle. The timeline stores bounded primitive
- * command records and projects them into caller-owned viewport decoration arrays.
+ * about prompt and command lifecycle. Records are anchored to stable core line
+ * identities, not absolute row numbers, so scrollback movement and resize
+ * reflow do not detach decorations from the content they describe.
  *
  * Storage is data-oriented: each command field is a primitive column, records
  * are append-only until bounded eviction, and paint paths consume only projected
@@ -39,28 +40,28 @@ class TerminalShellIntegrationState
         }
 
         private val lock = Any()
-        private val promptStartRows = LongArray(capacity) { NO_ROW }
-        private val promptEndRows = LongArray(capacity) { NO_ROW }
-        private val commandStartRows = LongArray(capacity) { NO_ROW }
-        private val commandEndRows = LongArray(capacity) { NO_ROW }
+        private val promptStartLineIds = LongArray(capacity) { NO_LINE_ID }
+        private val promptEndLineIds = LongArray(capacity) { NO_LINE_ID }
+        private val commandStartLineIds = LongArray(capacity) { NO_LINE_ID }
+        private val commandEndLineIds = LongArray(capacity) { NO_LINE_ID }
         private val exitCodes = IntArray(capacity) { NO_EXIT_CODE }
         private val states = IntArray(capacity)
 
         private var count = 0
         private var activePromptIndex = NO_INDEX
         private var activeCommandIndex = NO_INDEX
-        private var lastObservedBottomRow = NO_ROW
+        private var lastObservedBottomRow = NO_OBSERVED_ROW
 
         /**
          * Records the start of a shell prompt.
          *
-         * @param absoluteRow absolute render row where the prompt begins.
+         * @param lineId stable render line identity where the prompt begins.
          */
-        fun recordPromptStart(absoluteRow: Long) {
-            require(absoluteRow >= 0) { "absoluteRow must be >= 0, was $absoluteRow" }
+        fun recordPromptStart(lineId: Long) {
+            require(lineId > 0L) { "lineId must be positive, was $lineId" }
             synchronized(lock) {
                 val index = appendCommandLocked()
-                promptStartRows[index] = absoluteRow
+                promptStartLineIds[index] = lineId
                 states[index] = states[index] or STATE_PROMPT_STARTED
                 activePromptIndex = index
             }
@@ -69,15 +70,15 @@ class TerminalShellIntegrationState
         /**
          * Records the end of the active shell prompt.
          *
-         * @param absoluteRow absolute render row where prompt printing ended.
+         * @param lineId stable render line identity where prompt printing ended.
          */
-        fun recordPromptEnd(absoluteRow: Long) {
-            require(absoluteRow >= 0) { "absoluteRow must be >= 0, was $absoluteRow" }
+        fun recordPromptEnd(lineId: Long) {
+            require(lineId > 0L) { "lineId must be positive, was $lineId" }
             synchronized(lock) {
                 val index = activePromptIndex
                 if (index == NO_INDEX) return
 
-                promptEndRows[index] = absoluteRow
+                promptEndLineIds[index] = lineId
                 states[index] = states[index] or STATE_PROMPT_ENDED
             }
         }
@@ -88,14 +89,14 @@ class TerminalShellIntegrationState
          * If no prompt record is active, an orphan command record is created so
          * the lifecycle remains represented without inventing a prompt marker.
          *
-         * @param absoluteRow absolute render row where command output begins.
+         * @param lineId stable render line identity where command output begins.
          */
-        fun recordCommandStart(absoluteRow: Long) {
-            require(absoluteRow >= 0) { "absoluteRow must be >= 0, was $absoluteRow" }
+        fun recordCommandStart(lineId: Long) {
+            require(lineId > 0L) { "lineId must be positive, was $lineId" }
             synchronized(lock) {
                 val index = attachablePromptIndexLocked()
-                commandStartRows[index] = absoluteRow
-                commandEndRows[index] = NO_ROW
+                commandStartLineIds[index] = lineId
+                commandEndLineIds[index] = NO_LINE_ID
                 exitCodes[index] = NO_EXIT_CODE
                 states[index] = states[index] or STATE_COMMAND_STARTED
                 activeCommandIndex = index
@@ -109,53 +110,55 @@ class TerminalShellIntegrationState
          * matching command-start marker was observed. Omitted or malformed exit
          * status remains `null` at the protocol layer and is stored as unknown.
          *
-         * @param absoluteRow absolute render row where command completion was observed.
+         * @param lineId stable render line identity where command completion was observed.
          * @param exitCode shell-reported exit code, or null if omitted/malformed.
          */
         fun recordCommandFinished(
-            absoluteRow: Long,
+            lineId: Long,
             exitCode: Int?,
         ) {
-            require(absoluteRow >= 0) { "absoluteRow must be >= 0, was $absoluteRow" }
+            require(lineId > 0L) { "lineId must be positive, was $lineId" }
             synchronized(lock) {
                 val index = activeCommandIndex
                 activeCommandIndex = NO_INDEX
-                if (index == NO_INDEX || commandStartRows[index] == NO_ROW) return
+                if (index == NO_INDEX || commandStartLineIds[index] == NO_LINE_ID) return
 
-                commandEndRows[index] = absoluteRow
+                commandEndLineIds[index] = lineId
                 exitCodes[index] = exitCode ?: NO_EXIT_CODE
                 states[index] = states[index] or STATE_COMMAND_FINISHED
             }
         }
 
         /**
-         * Observes the newest live viewport bottom row and clears stale timeline
-         * state if the terminal history has been destructively rewound.
+         * Observes the newest live viewport bottom row.
+         *
+         * Shell decorations are anchored by line identity, so resize/reflow and
+         * history rewrites naturally stop projecting stale records when their
+         * source lines disappear. The bottom row is retained only as diagnostic
+         * session state and deliberately does not clear records on row-number
+         * regressions.
          *
          * @param bottomAbsoluteRow absolute row of the live viewport bottom.
          */
         fun observeLiveBottomRow(bottomAbsoluteRow: Long) {
             require(bottomAbsoluteRow >= 0) { "bottomAbsoluteRow must be >= 0, was $bottomAbsoluteRow" }
             synchronized(lock) {
-                if (lastObservedBottomRow != NO_ROW && bottomAbsoluteRow < lastObservedBottomRow) {
-                    clearLocked()
-                }
                 lastObservedBottomRow = bottomAbsoluteRow
             }
         }
 
         /**
-         * Returns whether [absoluteRow] has a prompt divider.
+         * Returns whether [lineId] has a prompt divider.
          *
-         * @param absoluteRow absolute render row to query.
-         * @return true when a prompt-start marker is anchored to the row.
+         * @param lineId stable render line identity to query.
+         * @return true when a prompt-start marker is anchored to the line.
          */
-        fun hasPromptDividerAt(absoluteRow: Long): Boolean {
-            require(absoluteRow >= 0) { "absoluteRow must be >= 0, was $absoluteRow" }
+        fun hasPromptDividerAtLine(lineId: Long): Boolean {
+            require(lineId > 0L) { "lineId must be positive, was $lineId" }
             synchronized(lock) {
                 var index = 0
                 while (index < count) {
-                    if (promptStartRows[index] == absoluteRow) return true
+                    if (promptStartLineIds[index] == lineId) return true
                     index++
                 }
                 return false
@@ -163,15 +166,15 @@ class TerminalShellIntegrationState
         }
 
         /**
-         * Returns whether [absoluteRow] belongs to a failed command range.
+         * Returns whether [lineId] belongs to a failed command range.
          *
-         * @param absoluteRow absolute render row to query.
-         * @return true when the row is within a completed non-zero command range.
+         * @param lineId stable render line identity to query.
+         * @return true when the line is within a completed non-zero command range.
          */
-        fun hasFailedCommandRailAt(absoluteRow: Long): Boolean {
-            require(absoluteRow >= 0) { "absoluteRow must be >= 0, was $absoluteRow" }
+        fun hasFailedCommandRailAtLine(lineId: Long): Boolean {
+            require(lineId > 0L) { "lineId must be positive, was $lineId" }
             synchronized(lock) {
-                return failedCommandIndexAtLocked(absoluteRow) != NO_INDEX
+                return failedCommandIndexAtLocked(lineId) != NO_INDEX
             }
         }
 
@@ -181,7 +184,7 @@ class TerminalShellIntegrationState
          * Existing values in [promptDividers] and [failedCommandRails] are
          * overwritten for exactly [rowCount] rows starting at [destinationOffset].
          *
-         * @param firstAbsoluteRow absolute row represented by viewport row zero.
+         * @param lineIds stable line identities for visible viewport rows.
          * @param rowCount number of viewport rows to copy.
          * @param promptDividers destination flags for prompt-start dividers.
          * @param failedCommandRails destination flags for failed-command rails.
@@ -189,14 +192,16 @@ class TerminalShellIntegrationState
          */
         @JvmOverloads
         fun copyViewport(
-            firstAbsoluteRow: Long,
+            lineIds: LongArray,
             rowCount: Int,
             promptDividers: BooleanArray,
             failedCommandRails: BooleanArray,
             destinationOffset: Int = 0,
         ) {
-            require(firstAbsoluteRow >= 0) { "firstAbsoluteRow must be >= 0, was $firstAbsoluteRow" }
             require(rowCount >= 0) { "rowCount must be >= 0, was $rowCount" }
+            require(rowCount <= lineIds.size) {
+                "lineIds is too small for rowCount=$rowCount size=${lineIds.size}"
+            }
             require(destinationOffset >= 0) { "destinationOffset must be >= 0, was $destinationOffset" }
             require(destinationOffset + rowCount <= promptDividers.size) {
                 "promptDividers is too small for offset=$destinationOffset rowCount=$rowCount size=${promptDividers.size}"
@@ -209,11 +214,10 @@ class TerminalShellIntegrationState
             if (rowCount == 0) return
 
             synchronized(lock) {
-                val lastAbsoluteRow = firstAbsoluteRow + rowCount - 1
                 var index = 0
                 while (index < count) {
-                    projectPromptDividerLocked(index, firstAbsoluteRow, lastAbsoluteRow, promptDividers, destinationOffset)
-                    projectFailedCommandRailLocked(index, firstAbsoluteRow, lastAbsoluteRow, failedCommandRails, destinationOffset)
+                    projectPromptDividerLocked(index, lineIds, rowCount, promptDividers, destinationOffset)
+                    projectFailedCommandRailLocked(index, lineIds, rowCount, failedCommandRails, destinationOffset)
                     index++
                 }
             }
@@ -225,7 +229,7 @@ class TerminalShellIntegrationState
         fun clear() {
             synchronized(lock) {
                 clearLocked()
-                lastObservedBottomRow = NO_ROW
+                lastObservedBottomRow = NO_OBSERVED_ROW
             }
         }
 
@@ -235,10 +239,10 @@ class TerminalShellIntegrationState
             }
             val index = count
             count++
-            promptStartRows[index] = NO_ROW
-            promptEndRows[index] = NO_ROW
-            commandStartRows[index] = NO_ROW
-            commandEndRows[index] = NO_ROW
+            promptStartLineIds[index] = NO_LINE_ID
+            promptEndLineIds[index] = NO_LINE_ID
+            commandStartLineIds[index] = NO_LINE_ID
+            commandEndLineIds[index] = NO_LINE_ID
             exitCodes[index] = NO_EXIT_CODE
             states[index] = STATE_EMPTY
             return index
@@ -246,15 +250,15 @@ class TerminalShellIntegrationState
 
         private fun attachablePromptIndexLocked(): Int {
             val prompt = activePromptIndex
-            if (prompt != NO_INDEX && commandStartRows[prompt] == NO_ROW) return prompt
+            if (prompt != NO_INDEX && commandStartLineIds[prompt] == NO_LINE_ID) return prompt
             return appendCommandLocked()
         }
 
         private fun evictOldestLocked() {
-            promptStartRows.copyInto(promptStartRows, destinationOffset = 0, startIndex = 1, endIndex = count)
-            promptEndRows.copyInto(promptEndRows, destinationOffset = 0, startIndex = 1, endIndex = count)
-            commandStartRows.copyInto(commandStartRows, destinationOffset = 0, startIndex = 1, endIndex = count)
-            commandEndRows.copyInto(commandEndRows, destinationOffset = 0, startIndex = 1, endIndex = count)
+            promptStartLineIds.copyInto(promptStartLineIds, destinationOffset = 0, startIndex = 1, endIndex = count)
+            promptEndLineIds.copyInto(promptEndLineIds, destinationOffset = 0, startIndex = 1, endIndex = count)
+            commandStartLineIds.copyInto(commandStartLineIds, destinationOffset = 0, startIndex = 1, endIndex = count)
+            commandEndLineIds.copyInto(commandEndLineIds, destinationOffset = 0, startIndex = 1, endIndex = count)
             exitCodes.copyInto(exitCodes, destinationOffset = 0, startIndex = 1, endIndex = count)
             states.copyInto(states, destinationOffset = 0, startIndex = 1, endIndex = count)
             count--
@@ -268,10 +272,10 @@ class TerminalShellIntegrationState
                 else -> index - 1
             }
 
-        private fun failedCommandIndexAtLocked(absoluteRow: Long): Int {
+        private fun failedCommandIndexAtLocked(lineId: Long): Int {
             var index = 0
             while (index < count) {
-                if (isFailedCommandAtLocked(index, absoluteRow)) return index
+                if (isFailedCommandAtLocked(index, lineId)) return index
                 index++
             }
             return NO_INDEX
@@ -279,50 +283,56 @@ class TerminalShellIntegrationState
 
         private fun isFailedCommandAtLocked(
             index: Int,
-            absoluteRow: Long,
+            lineId: Long,
         ): Boolean {
             if (!hasState(index, STATE_COMMAND_FINISHED)) return false
             if (exitCodes[index] <= 0) return false
-            val start = commandStartRows[index]
-            val end = commandEndRows[index]
-            if (start == NO_ROW || end == NO_ROW) return false
-            return absoluteRow in minOf(start, end)..maxOf(start, end)
+            val start = commandStartLineIds[index]
+            val end = commandEndLineIds[index]
+            if (start == NO_LINE_ID || end == NO_LINE_ID) return false
+            return lineId in minOf(start, end)..maxOf(start, end)
         }
 
         private fun projectPromptDividerLocked(
             index: Int,
-            firstAbsoluteRow: Long,
-            lastAbsoluteRow: Long,
+            lineIds: LongArray,
+            rowCount: Int,
             promptDividers: BooleanArray,
             destinationOffset: Int,
         ) {
-            val promptStart = promptStartRows[index]
-            if (promptStart !in firstAbsoluteRow..lastAbsoluteRow) return
-            promptDividers[destinationOffset + (promptStart - firstAbsoluteRow).toInt()] = true
+            val promptStart = promptStartLineIds[index]
+            if (promptStart == NO_LINE_ID) return
+            var row = 0
+            while (row < rowCount) {
+                if (lineIds[row] == promptStart) {
+                    promptDividers[destinationOffset + row] = true
+                    return
+                }
+                row++
+            }
         }
 
         private fun projectFailedCommandRailLocked(
             index: Int,
-            firstAbsoluteRow: Long,
-            lastAbsoluteRow: Long,
+            lineIds: LongArray,
+            rowCount: Int,
             failedCommandRails: BooleanArray,
             destinationOffset: Int,
         ) {
             if (!hasState(index, STATE_COMMAND_FINISHED)) return
             if (exitCodes[index] <= 0) return
-            val start = commandStartRows[index]
-            val end = commandEndRows[index]
-            if (start == NO_ROW || end == NO_ROW) return
+            val start = commandStartLineIds[index]
+            val end = commandEndLineIds[index]
+            if (start == NO_LINE_ID || end == NO_LINE_ID) return
 
-            val first = maxOf(minOf(start, end), firstAbsoluteRow)
-            val last = minOf(maxOf(start, end), lastAbsoluteRow)
-            if (first > last) return
-
-            var row = first
-            var destination = destinationOffset + (first - firstAbsoluteRow).toInt()
-            while (row <= last) {
-                failedCommandRails[destination] = true
-                destination++
+            val first = minOf(start, end)
+            val last = maxOf(start, end)
+            var row = 0
+            while (row < rowCount) {
+                val lineId = lineIds[row]
+                if (lineId in first..last) {
+                    failedCommandRails[destinationOffset + row] = true
+                }
                 row++
             }
         }
@@ -341,7 +351,8 @@ class TerminalShellIntegrationState
         private companion object {
             private const val DEFAULT_CAPACITY = 4096
             private const val NO_INDEX = -1
-            private const val NO_ROW = Long.MIN_VALUE
+            private const val NO_LINE_ID = 0L
+            private const val NO_OBSERVED_ROW = Long.MIN_VALUE
             private const val NO_EXIT_CODE = Int.MIN_VALUE
 
             private const val STATE_EMPTY = 0

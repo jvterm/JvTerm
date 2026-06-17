@@ -87,6 +87,29 @@ internal class Line(
     var renderGeneration: Long = 0L
         internal set
 
+    /**
+     * Stable identity of the logical buffer line represented by this physical row.
+     *
+     * The identifier moves with row content through scroll operations and is
+     * preserved by resize reflow so host metadata such as shell integration
+     * markers can remain anchored to content without using fragile absolute row
+     * numbers. `0` is reserved for unassigned sentinel lines.
+     */
+    var lineId: Long = 0L
+        private set
+
+    /**
+     * Assigns a new logical line identity.
+     *
+     * This is intentionally separate from [clear]: many erase operations clear
+     * cell contents while preserving the row's logical identity, whereas scroll
+     * and history destruction create fresh logical lines.
+     */
+    fun assignLineId(lineId: Long) {
+        require(lineId > 0L) { "lineId must be positive, was $lineId" }
+        this.lineId = lineId
+    }
+
     // Internal raw accessors: used by GridWriter and TerminalResizer only
 
     /**

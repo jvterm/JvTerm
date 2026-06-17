@@ -243,10 +243,11 @@ class TerminalSessionTest {
 
         connector.feedFromHost("\u001B]133;A\u0007prompt> \u001B]133;B\u0007\u001B]133;C\u0007run\r\nfailed\u001B]133;D;2\u0007".ascii())
 
+        val decorations = session.shellDecorations()
         assertAll(
-            { assertTrue(session.shellIntegrationState.hasPromptDividerAt(0)) },
-            { assertTrue(session.shellIntegrationState.hasFailedCommandRailAt(0)) },
-            { assertTrue(session.shellIntegrationState.hasFailedCommandRailAt(1)) },
+            { assertTrue(decorations.promptDividers[0]) },
+            { assertTrue(decorations.failedCommandRails[0]) },
+            { assertTrue(decorations.failedCommandRails[1]) },
         )
         session.close()
     }
@@ -258,10 +259,11 @@ class TerminalSessionTest {
 
         connector.feedFromHost("\u001B]133;C\u0007failed\r\n\u001B]133;D;2\u0007\u001B]133;A\u0007PS> ".ascii())
 
+        val decorations = session.shellDecorations()
         assertAll(
-            { assertTrue(session.shellIntegrationState.hasFailedCommandRailAt(0)) },
-            { assertFalse(session.shellIntegrationState.hasFailedCommandRailAt(1)) },
-            { assertTrue(session.shellIntegrationState.hasPromptDividerAt(1)) },
+            { assertTrue(decorations.failedCommandRails[0]) },
+            { assertFalse(decorations.failedCommandRails[1]) },
+            { assertTrue(decorations.promptDividers[1]) },
         )
         session.close()
     }
@@ -272,11 +274,15 @@ class TerminalSessionTest {
         val session = createStartedSession(connector, columns = 10, rows = 4)
 
         connector.feedFromHost("\u001B]133;A\u0007prompt> ".ascii())
-        assertTrue(session.shellIntegrationState.hasPromptDividerAt(0))
+        assertTrue(session.shellDecorations().promptDividers[0])
 
-        session.resize(columns = 12, rows = 4)
+        session.resize(columns = 4, rows = 4)
 
-        assertTrue(session.shellIntegrationState.hasPromptDividerAt(0))
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertTrue(decorations.promptDividers[0]) },
+            { assertFalse(decorations.promptDividers[1]) },
+        )
         session.close()
     }
 
@@ -859,6 +865,33 @@ class TerminalSessionTest {
         session.start(columns, rows)
         return session
     }
+
+    private fun TerminalSession.shellDecorations(): ShellDecorationSnapshot {
+        var promptDividers = BooleanArray(0)
+        var failedCommandRails = BooleanArray(0)
+        readRenderFrame { frame ->
+            val lineIds = LongArray(frame.rows)
+            var row = 0
+            while (row < frame.rows) {
+                lineIds[row] = frame.lineId(row)
+                row++
+            }
+            promptDividers = BooleanArray(frame.rows)
+            failedCommandRails = BooleanArray(frame.rows)
+            shellIntegrationState.copyViewport(
+                lineIds = lineIds,
+                rowCount = frame.rows,
+                promptDividers = promptDividers,
+                failedCommandRails = failedCommandRails,
+            )
+        }
+        return ShellDecorationSnapshot(promptDividers, failedCommandRails)
+    }
+
+    private data class ShellDecorationSnapshot(
+        val promptDividers: BooleanArray,
+        val failedCommandRails: BooleanArray,
+    )
 
     private fun String.ascii(): ByteArray = toByteArray(StandardCharsets.US_ASCII)
 

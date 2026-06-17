@@ -102,6 +102,20 @@ interface TerminalRenderFrame {
     fun lineGeneration(row: Int): Long
 
     /**
+     * Returns the stable logical line identity for visible [row].
+     *
+     * The identity is owned by core and moves with content through scrolling
+     * and resize reflow. It is intended for renderer-side metadata projection
+     * such as shell integration decorations; renderers must treat `0` as
+     * "identity unavailable".
+     *
+     * @param row zero-based visible row index.
+     * @return stable logical line id, or `0` when the frame implementation does
+     * not expose one.
+     */
+    fun lineId(row: Int): Long = 0L
+
+    /**
      * Reports whether visible [row] soft-wraps into the next row.
      *
      * @param row zero-based visible row index.

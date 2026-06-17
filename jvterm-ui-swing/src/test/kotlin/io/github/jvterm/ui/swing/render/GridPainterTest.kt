@@ -407,7 +407,7 @@ class GridPainterTest {
         val cache = TerminalRenderCache(columns = 3, rows = 3)
         cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
         val state = TerminalShellIntegrationState()
-        state.recordPromptStart(1)
+        state.recordPromptStart(2)
         val decorations = TerminalShellIntegrationViewportDecorations()
         decorations.updateFrom(state, cache)
 
@@ -449,8 +449,8 @@ class GridPainterTest {
         val cache = TerminalRenderCache(columns = 3, rows = 3)
         cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
         val state = TerminalShellIntegrationState()
-        state.recordCommandStart(0)
-        state.recordCommandFinished(2, exitCode = 2)
+        state.recordCommandStart(2)
+        state.recordCommandFinished(3, exitCode = 2)
         val decorations = TerminalShellIntegrationViewportDecorations()
         decorations.updateFrom(state, cache)
 
@@ -495,9 +495,9 @@ class GridPainterTest {
         val cache = TerminalRenderCache(columns = 3, rows = 3)
         cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
         val state = TerminalShellIntegrationState()
-        state.recordPromptStart(1)
-        state.recordCommandStart(0)
-        state.recordCommandFinished(2, exitCode = 1)
+        state.recordPromptStart(2)
+        state.recordCommandStart(1)
+        state.recordCommandFinished(3, exitCode = 1)
         val decorations = TerminalShellIntegrationViewportDecorations()
         decorations.updateFrom(state, cache)
 
@@ -531,6 +531,7 @@ class GridPainterTest {
                 palette = settings.palette,
                 historySize = 100,
                 scrollbackOffset = 20,
+                lineIds = longArrayOf(80, 81, 82),
             ),
         )
         val state = TerminalShellIntegrationState()
@@ -540,7 +541,7 @@ class GridPainterTest {
 
         decorations.updateFrom(state, cache)
 
-        assertTrue(state.hasPromptDividerAt(81))
+        assertTrue(state.hasPromptDividerAtLine(81))
         assertTrue(decorations.hasPromptDividerAt(1))
         assertFalse(decorations.hasPromptDividerAt(0))
     }
@@ -555,7 +556,7 @@ class GridPainterTest {
         assertTrue(decorations.updateFrom(state, cache))
         assertFalse(decorations.updateFrom(state, cache))
 
-        state.recordPromptStart(1)
+        state.recordPromptStart(2)
 
         assertTrue(decorations.updateFrom(state, cache))
         assertTrue(decorations.hasPromptDividerAt(1))
@@ -660,6 +661,7 @@ class GridPainterTest {
         override val historySize: Int = 0,
         override val scrollbackOffset: Int = 0,
         override val discardedCount: Long = 0L,
+        private val lineIds: LongArray = LongArray(lines.size) { row -> row + 1L },
     ) : TerminalRenderFrameReader,
         TerminalRenderFrame {
         override val columns: Int = lines.maxOf { it.length }
@@ -682,6 +684,8 @@ class GridPainterTest {
         }
 
         override fun lineGeneration(row: Int): Long = 1
+
+        override fun lineId(row: Int): Long = lineIds[row]
 
         override fun lineWrapped(row: Int): Boolean = false
 

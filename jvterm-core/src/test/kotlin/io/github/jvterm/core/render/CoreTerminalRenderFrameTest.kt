@@ -63,6 +63,66 @@ class CoreTerminalRenderFrameTest {
     }
 
     @Test
+    fun `render frame exposes positive unique line ids for visible rows`() {
+        val buffer = DefaultTerminalBuffer(initialWidth = 3, initialHeight = 2)
+        val reader = buffer as TerminalRenderFrameReader
+
+        reader.readRenderFrame { frame ->
+            val first = frame.lineId(0)
+            val second = frame.lineId(1)
+
+            assertAll(
+                { assertTrue(first > 0L) },
+                { assertTrue(second > 0L) },
+                { assertNotEquals(first, second) },
+            )
+        }
+    }
+
+    @Test
+    fun `line ids move with content when the live viewport scrolls`() {
+        val buffer = DefaultTerminalBuffer(initialWidth = 4, initialHeight = 2)
+        val reader = buffer as TerminalRenderFrameReader
+        buffer.writeText("one")
+        buffer.carriageReturn()
+        buffer.newLine()
+        buffer.writeText("two")
+
+        var secondLineId = 0L
+        reader.readRenderFrame { frame ->
+            secondLineId = frame.lineId(1)
+        }
+
+        buffer.carriageReturn()
+        buffer.newLine()
+
+        reader.readRenderFrame { frame ->
+            assertEquals(secondLineId, frame.lineId(0))
+        }
+    }
+
+    @Test
+    fun `resize reflow preserves logical line id across rewrapped physical rows`() {
+        val buffer = DefaultTerminalBuffer(initialWidth = 8, initialHeight = 3)
+        val reader = buffer as TerminalRenderFrameReader
+        buffer.writeText("abcdef")
+
+        var sourceLineId = 0L
+        reader.readRenderFrame { frame ->
+            sourceLineId = frame.lineId(0)
+        }
+
+        buffer.resize(newWidth = 3, newHeight = 3)
+
+        reader.readRenderFrame { frame ->
+            assertAll(
+                { assertEquals(sourceLineId, frame.lineId(0)) },
+                { assertEquals(sourceLineId, frame.lineId(1)) },
+            )
+        }
+    }
+
+    @Test
     fun `empty line copies empty flags and default attrs`() {
         val buffer = DefaultTerminalBuffer(initialWidth = 3, initialHeight = 1)
         val reader = buffer as TerminalRenderFrameReader

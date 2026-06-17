@@ -32,7 +32,7 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandStart(12)
         state.recordCommandFinished(14, exitCode = 7)
         state.copyViewport(
-            firstAbsoluteRow = 10,
+            lineIds = longArrayOf(10, 11, 12, 13, 14),
             rowCount = 5,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
@@ -51,7 +51,7 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandStart(5)
         state.recordCommandFinished(10, exitCode = 1)
         state.copyViewport(
-            firstAbsoluteRow = 7,
+            lineIds = longArrayOf(7, 8, 9),
             rowCount = 3,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
@@ -71,9 +71,9 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandFinished(5, exitCode = null)
         state.recordCommandFinished(8, exitCode = 2)
 
-        assertFalse(state.hasFailedCommandRailAt(1))
-        assertFalse(state.hasFailedCommandRailAt(4))
-        assertFalse(state.hasFailedCommandRailAt(8))
+        assertFalse(state.hasFailedCommandRailAtLine(1))
+        assertFalse(state.hasFailedCommandRailAtLine(4))
+        assertFalse(state.hasFailedCommandRailAtLine(8))
     }
 
     @Test
@@ -84,9 +84,9 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandStart(3)
         state.recordCommandFinished(4, exitCode = 2)
 
-        assertFalse(state.hasFailedCommandRailAt(1))
-        assertTrue(state.hasFailedCommandRailAt(3))
-        assertTrue(state.hasFailedCommandRailAt(4))
+        assertFalse(state.hasFailedCommandRailAtLine(1))
+        assertTrue(state.hasFailedCommandRailAtLine(3))
+        assertTrue(state.hasFailedCommandRailAtLine(4))
     }
 
     @Test
@@ -97,7 +97,7 @@ class TerminalShellIntegrationStateTest {
 
         state.recordPromptEnd(1)
         state.copyViewport(
-            firstAbsoluteRow = 0,
+            lineIds = longArrayOf(1, 2),
             rowCount = 2,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
@@ -108,7 +108,7 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
-    fun `timeline rewind clears stale prompt and command rows`() {
+    fun `destructive row rewind does not clear identity anchored records`() {
         val state = TerminalShellIntegrationState()
 
         state.observeLiveBottomRow(100)
@@ -117,8 +117,8 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandFinished(95, exitCode = 1)
         state.observeLiveBottomRow(10)
 
-        assertFalse(state.hasPromptDividerAt(90))
-        assertFalse(state.hasFailedCommandRailAt(91))
+        assertTrue(state.hasPromptDividerAtLine(90))
+        assertTrue(state.hasFailedCommandRailAtLine(91))
     }
 
     @Test
@@ -129,9 +129,9 @@ class TerminalShellIntegrationStateTest {
         state.recordPromptStart(2)
         state.recordPromptStart(3)
 
-        assertFalse(state.hasPromptDividerAt(1))
-        assertTrue(state.hasPromptDividerAt(2))
-        assertTrue(state.hasPromptDividerAt(3))
+        assertFalse(state.hasPromptDividerAtLine(1))
+        assertTrue(state.hasPromptDividerAtLine(2))
+        assertTrue(state.hasPromptDividerAtLine(3))
     }
 
     @Test
@@ -143,9 +143,47 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandStart(3)
         state.recordCommandFinished(4, exitCode = 1)
 
-        assertFalse(state.hasFailedCommandRailAt(1))
-        assertTrue(state.hasPromptDividerAt(2))
-        assertTrue(state.hasFailedCommandRailAt(3))
-        assertTrue(state.hasFailedCommandRailAt(4))
+        assertFalse(state.hasFailedCommandRailAtLine(1))
+        assertTrue(state.hasPromptDividerAtLine(2))
+        assertTrue(state.hasFailedCommandRailAtLine(3))
+        assertTrue(state.hasFailedCommandRailAtLine(4))
+    }
+
+    @Test
+    fun `viewport projection follows line ids when visible row positions change`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(4)
+        val failedCommandRails = BooleanArray(4)
+
+        state.recordPromptStart(40)
+        state.recordCommandStart(41)
+        state.recordCommandFinished(42, exitCode = 1)
+        state.copyViewport(
+            lineIds = longArrayOf(70, 42, 40, 41),
+            rowCount = 4,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+        )
+
+        assertContentEquals(booleanArrayOf(false, false, true, false), promptDividers)
+        assertContentEquals(booleanArrayOf(false, true, false, true), failedCommandRails)
+    }
+
+    @Test
+    fun `prompt divider is projected once when resize reflow exposes duplicate physical rows`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(3)
+        val failedCommandRails = BooleanArray(3)
+
+        state.recordPromptStart(9)
+        state.copyViewport(
+            lineIds = longArrayOf(9, 9, 9),
+            rowCount = 3,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+        )
+
+        assertContentEquals(booleanArrayOf(true, false, false), promptDividers)
+        assertContentEquals(booleanArrayOf(false, false, false), failedCommandRails)
     }
 }

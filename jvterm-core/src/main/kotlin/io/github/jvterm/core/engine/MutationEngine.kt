@@ -97,7 +97,7 @@ internal class MutationEngine(
         if (state.isFullViewportScroll) {
             repeat(n) {
                 val line = state.ring.push()
-                line.clear(blankAttr, blankExtendedAttr)
+                state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
                 state.markLineChanged(line)
             }
         } else {
@@ -106,7 +106,7 @@ internal class MutationEngine(
             repeat(n) {
                 state.ring.rotateUp(absTop, absBottom)
                 val line = state.ring[absBottom]
-                line.clear(blankAttr, blankExtendedAttr)
+                state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
                 state.markLineChanged(line)
             }
         }
@@ -130,7 +130,7 @@ internal class MutationEngine(
         repeat(n) {
             state.ring.rotateDown(absTop, absBottom)
             val line = state.ring[absTop]
-            line.clear(blankAttr, blankExtendedAttr)
+            state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
             state.markLineChanged(line)
         }
         state.markStructureChanged()
@@ -616,7 +616,7 @@ internal class MutationEngine(
                     repeat(times) {
                         state.ring.rotateDown(absCursorRow, absBottom)
                         val line = state.ring[absCursorRow]
-                        line.clear(blankAttr, blankExtendedAttr)
+                        state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
                         state.markLineChanged(line)
                     }
                     state.markStructureChanged()
@@ -651,7 +651,7 @@ internal class MutationEngine(
                     repeat(times) {
                         state.ring.rotateUp(absCursorRow, absBottom)
                         val line = state.ring[absBottom]
-                        line.clear(blankAttr, blankExtendedAttr)
+                        state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
                         state.markLineChanged(line)
                     }
                     state.markStructureChanged()
@@ -848,7 +848,7 @@ internal class MutationEngine(
             if (state.modes.isLeftRightMarginMode) {
                 line.clearRange(leftMargin, rightMargin + 1, blankAttr, blankExtendedAttr)
             } else {
-                line.clear(blankAttr, blankExtendedAttr)
+                state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
             }
             line.wrapped = false
             state.markLineChanged(line)
@@ -914,7 +914,7 @@ internal class MutationEngine(
 
             for (row in cRow + 1 until height) {
                 val line = getLine(row)
-                line.clear(blankAttr, blankExtendedAttr)
+                state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
                 state.markLineChanged(line)
             }
         }
@@ -927,7 +927,7 @@ internal class MutationEngine(
 
             for (row in 0 until cRow) {
                 val line = getLine(row)
-                line.clear(blankAttr, blankExtendedAttr)
+                state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
                 state.markLineChanged(line)
             }
 
@@ -1038,7 +1038,7 @@ internal class MutationEngine(
     private fun clearViewportInternal() {
         for (row in 0 until height.coerceAtMost(state.ring.size)) {
             val line = getLine(row)
-            line.clear(blankAttr, blankExtendedAttr)
+            state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
             state.markLineChanged(line)
         }
     }
@@ -1144,7 +1144,7 @@ internal class MutationEngine(
             // Fill the screen with uppercase 'E's using the default blank attributes
             for (viewportRow in 0 until height) {
                 val line = state.ring[state.resolveRingIndex(viewportRow)]
-                line.clear(blankAttr, blankExtendedAttr)
+                state.clearLineAsNew(line, blankAttr, blankExtendedAttr)
                 for (col in 0 until width) {
                     line.setCell(col, 'E'.code, blankAttr, blankExtendedAttr)
                 }

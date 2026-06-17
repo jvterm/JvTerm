@@ -115,6 +115,15 @@ class TerminalRenderCache(
         private set
 
     /**
+     * Cached per-row stable logical line identities.
+     *
+     * These ids are copied every frame and move with terminal content through
+     * scroll and resize reflow. `0` means the source frame did not expose an id.
+     */
+    var lineIds: LongArray = LongArray(0)
+        private set
+
+    /**
      * Cached per-row soft-wrap flags.
      */
     var lineWrapped: BooleanArray = BooleanArray(0)
@@ -366,6 +375,7 @@ class TerminalRenderCache(
         var nextHasBlinkingText = false
         while (row < frame.rows) {
             val lineGeneration = frame.lineGeneration(row)
+            lineIds[row] = frame.lineId(row)
             val wrapped = frame.lineWrapped(row)
 
             if (
@@ -448,6 +458,7 @@ class TerminalRenderCache(
         nextClusterCodepointCount = 0
 
         lineGenerations = LongArray(newRows) { UNINITIALIZED_GENERATION }
+        lineIds = LongArray(newRows)
         lineWrapped = BooleanArray(newRows)
         lineHasBlinkingText = BooleanArray(newRows)
         hasBlinkingText = false
