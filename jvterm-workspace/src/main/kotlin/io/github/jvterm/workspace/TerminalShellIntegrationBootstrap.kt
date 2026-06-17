@@ -113,10 +113,10 @@ internal object TerminalShellIntegrationBootstrap {
                 ${'$'}success = ${'$'}?
                 ${'$'}nativeExitCode = ${'$'}global:LASTEXITCODE
                 if (${'$'}global:__JvTermCommandStarted) {
-                    if (${'$'}success) {
-                        ${'$'}exitCode = 0
-                    } elseif (${'$'}nativeExitCode -is [int] -and ${'$'}nativeExitCode -ne ${'$'}global:__JvTermLastExitCodeBeforeCommand) {
+                    if (${'$'}nativeExitCode -is [int] -and ${'$'}nativeExitCode -ne ${'$'}global:__JvTermLastExitCodeBeforeCommand) {
                         ${'$'}exitCode = ${'$'}nativeExitCode
+                    } elseif (${'$'}success) {
+                        ${'$'}exitCode = 0
                     } else {
                         ${'$'}exitCode = 1
                     }
@@ -125,6 +125,9 @@ internal object TerminalShellIntegrationBootstrap {
                 }
                 global:__JvTermOsc133 'A'
                 ${'$'}promptText = & ${'$'}global:__JvTermOriginalPrompt
+                if (${'$'}nativeExitCode -is [int]) {
+                    ${'$'}global:LASTEXITCODE = ${'$'}nativeExitCode
+                }
                 ${'$'}promptText + ([string][char]27) + ']133;B' + ([string][char]7)
             }
             ${'$'}command = Get-Command PSConsoleHostReadLine -CommandType Function -ErrorAction SilentlyContinue

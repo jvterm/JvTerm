@@ -269,6 +269,22 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `OSC 133 prompt start abandons unfinished command before stale finish marker`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 20, rows = 4)
+
+        connector.feedFromHost("\u001B]133;C\u0007partial\r\n\u001B]133;A\u0007PS> \u001B]133;D;2\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertFalse(decorations.failedCommandRails[0]) },
+            { assertFalse(decorations.failedCommandRails[1]) },
+            { assertTrue(decorations.promptDividers[1]) },
+        )
+        session.close()
+    }
+
+    @Test
     fun `resize preserves shared shell integration timeline`() {
         val connector = MockConnector()
         val session = createStartedSession(connector, columns = 10, rows = 4)

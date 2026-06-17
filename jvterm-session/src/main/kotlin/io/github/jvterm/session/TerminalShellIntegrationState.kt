@@ -60,6 +60,7 @@ class TerminalShellIntegrationState
         fun recordPromptStart(lineId: Long) {
             require(lineId > 0L) { "lineId must be positive, was $lineId" }
             synchronized(lock) {
+                activeCommandIndex = NO_INDEX
                 val index = appendCommandLocked()
                 promptStartLineIds[index] = lineId
                 states[index] = states[index] or STATE_PROMPT_STARTED

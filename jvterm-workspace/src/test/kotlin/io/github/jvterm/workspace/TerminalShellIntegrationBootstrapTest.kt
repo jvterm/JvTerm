@@ -48,17 +48,31 @@ class TerminalShellIntegrationBootstrapTest {
     }
 
     @Test
+    fun `PowerShell bootstrap prefers changed native exit code before success fallback`() {
+        val script = integratedPowerShellScript()
+
+        assertTrue(
+            script.indexOf("if (\$nativeExitCode -is [int]") < script.indexOf("elseif (\$success)"),
+            "native LASTEXITCODE branch must be evaluated before PowerShell success fallback",
+        )
+        assertTrue(script.contains("\$global:LASTEXITCODE = \$nativeExitCode"))
+    }
+
+    @Test
     fun `PowerShell profile with existing NoExit does not duplicate it`() {
         val profile =
             TerminalProfile(
                 id = "powershell",
                 displayName = "PowerShell",
-                command = listOf("powershell.exe", "-NoLogo", "-NoExit"),
+                command = listOf("powershell.exe", "-NoLogo", "/NoExit"),
             )
 
         val integrated = TerminalShellIntegrationBootstrap.apply(profile, enabled = true)
 
-        assertEquals(1, integrated.command.count { it.equals("-NoExit", ignoreCase = true) })
+        assertEquals(
+            1,
+            integrated.command.count { it.equals("-NoExit", ignoreCase = true) || it.equals("/NoExit", ignoreCase = true) },
+        )
     }
 
     @Test
@@ -105,4 +119,14 @@ class TerminalShellIntegrationBootstrapTest {
     }
 
     private fun decodePowerShellScript(encoded: String): String = String(Base64.getDecoder().decode(encoded), Charsets.UTF_16LE)
+
+    private fun integratedPowerShellScript(): String {
+        val profile =
+            TerminalProfile(
+                id = "powershell",
+                displayName = "PowerShell",
+                command = listOf("pwsh.exe"),
+            )
+        return decodePowerShellScript(TerminalShellIntegrationBootstrap.apply(profile, enabled = true).command.last())
+    }
 }

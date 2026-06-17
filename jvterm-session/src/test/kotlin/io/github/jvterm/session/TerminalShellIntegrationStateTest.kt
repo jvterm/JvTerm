@@ -108,6 +108,48 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
+    fun `new prompt abandons unfinished command so stale finish marker cannot create a failed range`() {
+        val state = TerminalShellIntegrationState()
+
+        state.recordCommandStart(10)
+        state.recordPromptStart(20)
+        state.recordCommandFinished(19, exitCode = 1)
+
+        assertFalse(state.hasFailedCommandRailAtLine(10))
+        assertTrue(state.hasPromptDividerAtLine(20))
+    }
+
+    @Test
+    fun `repeated command finish closes only the active command once`() {
+        val state = TerminalShellIntegrationState()
+
+        state.recordCommandStart(10)
+        state.recordCommandFinished(11, exitCode = 1)
+        state.recordCommandFinished(20, exitCode = 1)
+
+        assertTrue(state.hasFailedCommandRailAtLine(10))
+        assertTrue(state.hasFailedCommandRailAtLine(11))
+        assertFalse(state.hasFailedCommandRailAtLine(20))
+    }
+
+    @Test
+    fun `prompt end applies only to newest prompt after duplicate prompt starts`() {
+        val state = TerminalShellIntegrationState()
+
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        state.recordPromptEnd(3)
+        state.recordCommandStart(4)
+        state.recordCommandFinished(5, exitCode = 1)
+
+        assertTrue(state.hasPromptDividerAtLine(1))
+        assertTrue(state.hasPromptDividerAtLine(2))
+        assertFalse(state.hasFailedCommandRailAtLine(3))
+        assertTrue(state.hasFailedCommandRailAtLine(4))
+        assertTrue(state.hasFailedCommandRailAtLine(5))
+    }
+
+    @Test
     fun `destructive row rewind does not clear identity anchored records`() {
         val state = TerminalShellIntegrationState()
 
