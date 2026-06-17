@@ -212,6 +212,94 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
+    fun `exclusive command start excludes prompt input line from failed rail`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(4)
+        val failedCommandRails = BooleanArray(4)
+        val commandStarts = BooleanArray(4)
+        val commandEnds = BooleanArray(4)
+
+        state.recordCommandStart(10, includeLine = false)
+        state.recordCommandFinished(12, exitCode = 1)
+        state.copyViewport(
+            lineIds = longArrayOf(10, 11, 12, 13),
+            rowCount = 4,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
+        )
+
+        assertContentEquals(booleanArrayOf(false, false, false, false), promptDividers)
+        assertContentEquals(booleanArrayOf(false, true, true, false), failedCommandRails)
+        assertContentEquals(booleanArrayOf(true, false, false, false), commandStarts)
+        assertContentEquals(booleanArrayOf(false, false, true, false), commandEnds)
+    }
+
+    @Test
+    fun `inclusive command start includes same line output in failed rail`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(3)
+        val failedCommandRails = BooleanArray(3)
+
+        state.recordCommandStart(10, includeLine = true)
+        state.recordCommandFinished(11, exitCode = 1)
+        state.copyViewport(
+            lineIds = longArrayOf(10, 11, 12),
+            rowCount = 3,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+        )
+
+        assertContentEquals(booleanArrayOf(false, false, false), promptDividers)
+        assertContentEquals(booleanArrayOf(true, true, false), failedCommandRails)
+    }
+
+    @Test
+    fun `failed rail covers duplicate physical rows from command output reflow`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(5)
+        val failedCommandRails = BooleanArray(5)
+        val commandStarts = BooleanArray(5)
+        val commandEnds = BooleanArray(5)
+
+        state.recordCommandStart(10, includeLine = false)
+        state.recordCommandFinished(12, exitCode = 1)
+        state.copyViewport(
+            lineIds = longArrayOf(10, 11, 11, 12, 12),
+            rowCount = 5,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
+        )
+
+        assertContentEquals(booleanArrayOf(false, false, false, false, false), promptDividers)
+        assertContentEquals(booleanArrayOf(false, true, true, true, true), failedCommandRails)
+        assertContentEquals(booleanArrayOf(true, false, false, false, false), commandStarts)
+        assertContentEquals(booleanArrayOf(false, false, false, true, false), commandEnds)
+    }
+
+    @Test
+    fun `exclusive command with no output does not draw a failed rail`() {
+        val state = TerminalShellIntegrationState()
+        val promptDividers = BooleanArray(2)
+        val failedCommandRails = BooleanArray(2)
+
+        state.recordCommandStart(10, includeLine = false)
+        state.recordCommandFinished(10, exitCode = 1)
+        state.copyViewport(
+            lineIds = longArrayOf(10, 11),
+            rowCount = 2,
+            promptDividers = promptDividers,
+            failedCommandRails = failedCommandRails,
+        )
+
+        assertContentEquals(booleanArrayOf(false, false), promptDividers)
+        assertContentEquals(booleanArrayOf(false, false), failedCommandRails)
+    }
+
+    @Test
     fun `prompt divider is projected once when resize reflow exposes duplicate physical rows`() {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(3)

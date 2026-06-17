@@ -563,6 +563,31 @@ class GridPainterTest {
         assertFalse(decorations.updateFrom(state, cache))
     }
 
+    @Test
+    fun `shell integration viewport snapshot exposes command boundaries and exact failed rails`() {
+        val cache = TerminalRenderCache(columns = 3, rows = 4)
+        cache.updateFrom(
+            TextRowsFrame(
+                lines = arrayOf("cmd", "aaa", "bbb", "ccc"),
+                palette = TerminalColorPalette(),
+                lineIds = longArrayOf(10, 11, 11, 12),
+            ),
+        )
+        val state = TerminalShellIntegrationState()
+        state.recordCommandStart(10, includeLine = false)
+        state.recordCommandFinished(12, exitCode = 1)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+
+        decorations.updateFrom(state, cache)
+
+        assertTrue(decorations.hasCommandStartAt(0))
+        assertFalse(decorations.hasFailedCommandRailAt(0))
+        assertTrue(decorations.hasFailedCommandRailAt(1))
+        assertTrue(decorations.hasFailedCommandRailAt(2))
+        assertTrue(decorations.hasFailedCommandRailAt(3))
+        assertTrue(decorations.hasCommandEndAt(3))
+    }
+
     private fun BufferedImage.containsColorInRange(
         argb: Int,
         xStart: Int,

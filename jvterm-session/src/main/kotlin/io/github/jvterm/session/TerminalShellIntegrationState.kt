@@ -46,6 +46,7 @@ class TerminalShellIntegrationState
         private val commandEndLineIds = LongArray(capacity) { NO_LINE_ID }
         private val exitCodes = IntArray(capacity) { NO_EXIT_CODE }
         private val states = IntArray(capacity)
+        private val flags = IntArray(capacity)
 
         private var count = 0
         private var activePromptIndex = NO_INDEX
@@ -91,8 +92,13 @@ class TerminalShellIntegrationState
          * the lifecycle remains represented without inventing a prompt marker.
          *
          * @param lineId stable render line identity where command output begins.
+         * @param includeLine whether [lineId] itself belongs to command output.
          */
-        fun recordCommandStart(lineId: Long) {
+        @JvmOverloads
+        fun recordCommandStart(
+            lineId: Long,
+            includeLine: Boolean = true,
+        ) {
             require(lineId > 0L) { "lineId must be positive, was $lineId" }
             synchronized(lock) {
                 val index = attachablePromptIndexLocked()
@@ -100,6 +106,8 @@ class TerminalShellIntegrationState
                 commandEndLineIds[index] = NO_LINE_ID
                 exitCodes[index] = NO_EXIT_CODE
                 states[index] = states[index] or STATE_COMMAND_STARTED
+                flags[index] =
+                    if (includeLine) flags[index] or FLAG_COMMAND_START_INCLUSIVE else flags[index] and FLAG_COMMAND_START_INCLUSIVE.inv()
                 activeCommandIndex = index
             }
         }
@@ -189,6 +197,8 @@ class TerminalShellIntegrationState
          * @param rowCount number of viewport rows to copy.
          * @param promptDividers destination flags for prompt-start dividers.
          * @param failedCommandRails destination flags for failed-command rails.
+         * @param commandStarts optional destination flags for command-output start rows.
+         * @param commandEnds optional destination flags for command-output end rows.
          * @param destinationOffset first destination index in both arrays.
          */
         @JvmOverloads
@@ -197,6 +207,8 @@ class TerminalShellIntegrationState
             rowCount: Int,
             promptDividers: BooleanArray,
             failedCommandRails: BooleanArray,
+            commandStarts: BooleanArray? = null,
+            commandEnds: BooleanArray? = null,
             destinationOffset: Int = 0,
         ) {
             require(rowCount >= 0) { "rowCount must be >= 0, was $rowCount" }
@@ -210,8 +222,18 @@ class TerminalShellIntegrationState
             require(destinationOffset + rowCount <= failedCommandRails.size) {
                 "failedCommandRails is too small for offset=$destinationOffset rowCount=$rowCount size=${failedCommandRails.size}"
             }
+            if (commandStarts != null) {
+                require(destinationOffset + rowCount <= commandStarts.size) {
+                    "commandStarts is too small for offset=$destinationOffset rowCount=$rowCount size=${commandStarts.size}"
+                }
+            }
+            if (commandEnds != null) {
+                require(destinationOffset + rowCount <= commandEnds.size) {
+                    "commandEnds is too small for offset=$destinationOffset rowCount=$rowCount size=${commandEnds.size}"
+                }
+            }
 
-            clearViewport(promptDividers, failedCommandRails, destinationOffset, rowCount)
+            clearViewport(promptDividers, failedCommandRails, commandStarts, commandEnds, destinationOffset, rowCount)
             if (rowCount == 0) return
 
             synchronized(lock) {
@@ -219,6 +241,7 @@ class TerminalShellIntegrationState
                 while (index < count) {
                     projectPromptDividerLocked(index, lineIds, rowCount, promptDividers, destinationOffset)
                     projectFailedCommandRailLocked(index, lineIds, rowCount, failedCommandRails, destinationOffset)
+                    projectCommandBoundaryLocked(index, lineIds, rowCount, commandStarts, commandEnds, destinationOffset)
                     index++
                 }
             }
@@ -246,6 +269,7 @@ class TerminalShellIntegrationState
             commandEndLineIds[index] = NO_LINE_ID
             exitCodes[index] = NO_EXIT_CODE
             states[index] = STATE_EMPTY
+            flags[index] = 0
             return index
         }
 
@@ -262,6 +286,7 @@ class TerminalShellIntegrationState
             commandEndLineIds.copyInto(commandEndLineIds, destinationOffset = 0, startIndex = 1, endIndex = count)
             exitCodes.copyInto(exitCodes, destinationOffset = 0, startIndex = 1, endIndex = count)
             states.copyInto(states, destinationOffset = 0, startIndex = 1, endIndex = count)
+            flags.copyInto(flags, destinationOffset = 0, startIndex = 1, endIndex = count)
             count--
             activePromptIndex = shiftIndexAfterEviction(activePromptIndex)
             activeCommandIndex = shiftIndexAfterEviction(activeCommandIndex)
@@ -291,7 +316,7 @@ class TerminalShellIntegrationState
             val start = commandStartLineIds[index]
             val end = commandEndLineIds[index]
             if (start == NO_LINE_ID || end == NO_LINE_ID) return false
-            return lineId in minOf(start, end)..maxOf(start, end)
+            return isLineInCommandOutputRange(index, lineId, start, end)
         }
 
         private fun projectPromptDividerLocked(
@@ -326,22 +351,57 @@ class TerminalShellIntegrationState
             val end = commandEndLineIds[index]
             if (start == NO_LINE_ID || end == NO_LINE_ID) return
 
-            val first = minOf(start, end)
-            val last = maxOf(start, end)
             var row = 0
             while (row < rowCount) {
                 val lineId = lineIds[row]
-                if (lineId in first..last) {
+                if (isLineInCommandOutputRange(index, lineId, start, end)) {
                     failedCommandRails[destinationOffset + row] = true
                 }
                 row++
             }
         }
 
+        private fun projectCommandBoundaryLocked(
+            index: Int,
+            lineIds: LongArray,
+            rowCount: Int,
+            commandStarts: BooleanArray?,
+            commandEnds: BooleanArray?,
+            destinationOffset: Int,
+        ) {
+            if (!hasState(index, STATE_COMMAND_STARTED)) return
+            val start = commandStartLineIds[index]
+            if (start != NO_LINE_ID && commandStarts != null) {
+                projectFirstMatchingRow(lineIds, rowCount, commandStarts, destinationOffset, start)
+            }
+            if (!hasState(index, STATE_COMMAND_FINISHED)) return
+            val end = commandEndLineIds[index]
+            if (end != NO_LINE_ID && commandEnds != null) {
+                projectFirstMatchingRow(lineIds, rowCount, commandEnds, destinationOffset, end)
+            }
+        }
+
+        private fun isLineInCommandOutputRange(
+            index: Int,
+            lineId: Long,
+            start: Long,
+            end: Long,
+        ): Boolean {
+            val first = minOf(start, end)
+            val last = maxOf(start, end)
+            if (lineId !in first..last) return false
+            return hasFlag(index, FLAG_COMMAND_START_INCLUSIVE) || lineId != start
+        }
+
         private fun hasState(
             index: Int,
             state: Int,
         ): Boolean = states[index] and state != 0
+
+        private fun hasFlag(
+            index: Int,
+            flag: Int,
+        ): Boolean = flags[index] and flag != 0
 
         private fun clearLocked() {
             count = 0
@@ -361,10 +421,13 @@ class TerminalShellIntegrationState
             private const val STATE_PROMPT_ENDED = 1 shl 1
             private const val STATE_COMMAND_STARTED = 1 shl 2
             private const val STATE_COMMAND_FINISHED = 1 shl 3
+            private const val FLAG_COMMAND_START_INCLUSIVE = 1 shl 0
 
             private fun clearViewport(
                 promptDividers: BooleanArray,
                 failedCommandRails: BooleanArray,
+                commandStarts: BooleanArray?,
+                commandEnds: BooleanArray?,
                 destinationOffset: Int,
                 rowCount: Int,
             ) {
@@ -373,7 +436,26 @@ class TerminalShellIntegrationState
                 while (index < end) {
                     promptDividers[index] = false
                     failedCommandRails[index] = false
+                    commandStarts?.set(index, false)
+                    commandEnds?.set(index, false)
                     index++
+                }
+            }
+
+            private fun projectFirstMatchingRow(
+                lineIds: LongArray,
+                rowCount: Int,
+                destination: BooleanArray,
+                destinationOffset: Int,
+                lineId: Long,
+            ) {
+                var row = 0
+                while (row < rowCount) {
+                    if (lineIds[row] == lineId) {
+                        destination[destinationOffset + row] = true
+                        return
+                    }
+                    row++
                 }
             }
         }

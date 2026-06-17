@@ -700,7 +700,11 @@ private class ShellIntegrationRecordingHostEventSink(
         when (event.marker) {
             ShellIntegrationMarker.PROMPT_START -> recordIfAssigned(cursorLineId, state::recordPromptStart)
             ShellIntegrationMarker.PROMPT_END -> recordIfAssigned(cursorLineId, state::recordPromptEnd)
-            ShellIntegrationMarker.COMMAND_START -> recordIfAssigned(cursorLineId, state::recordCommandStart)
+            ShellIntegrationMarker.COMMAND_START -> {
+                if (cursorLineId != NO_LINE_ID) {
+                    state.recordCommandStart(cursorLineId, includeLine = cursorColumn == 0)
+                }
+            }
             ShellIntegrationMarker.COMMAND_FINISHED -> {
                 val finishedLineId =
                     if (cursorColumn == 0 && previousLineId != NO_LINE_ID) {

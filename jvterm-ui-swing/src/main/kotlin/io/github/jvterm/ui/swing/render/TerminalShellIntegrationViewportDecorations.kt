@@ -28,8 +28,12 @@ import io.github.jvterm.session.TerminalShellIntegrationState
 internal class TerminalShellIntegrationViewportDecorations {
     private var promptDividers = BooleanArray(0)
     private var failedCommandRails = BooleanArray(0)
+    private var commandStarts = BooleanArray(0)
+    private var commandEnds = BooleanArray(0)
     private var nextPromptDividers = BooleanArray(0)
     private var nextFailedCommandRails = BooleanArray(0)
+    private var nextCommandStarts = BooleanArray(0)
+    private var nextCommandEnds = BooleanArray(0)
     private var rowCount = 0
 
     /**
@@ -47,6 +51,8 @@ internal class TerminalShellIntegrationViewportDecorations {
             rowCount = cache.rows,
             promptDividers = nextPromptDividers,
             failedCommandRails = nextFailedCommandRails,
+            commandStarts = nextCommandStarts,
+            commandEnds = nextCommandEnds,
         )
         val changed = decorationsChanged(cache.rows)
         swapBuffers()
@@ -71,12 +77,26 @@ internal class TerminalShellIntegrationViewportDecorations {
      */
     fun hasFailedCommandRailAt(row: Int): Boolean = row in 0 until rowCount && failedCommandRails[row]
 
+    /**
+     * Returns whether visible [row] is the command-output start row.
+     */
+    fun hasCommandStartAt(row: Int): Boolean = row in 0 until rowCount && commandStarts[row]
+
+    /**
+     * Returns whether visible [row] is the command-output end row.
+     */
+    fun hasCommandEndAt(row: Int): Boolean = row in 0 until rowCount && commandEnds[row]
+
     private fun ensureCapacity(rows: Int) {
         if (promptDividers.size >= rows) return
         promptDividers = BooleanArray(rows)
         failedCommandRails = BooleanArray(rows)
+        commandStarts = BooleanArray(rows)
+        commandEnds = BooleanArray(rows)
         nextPromptDividers = BooleanArray(rows)
         nextFailedCommandRails = BooleanArray(rows)
+        nextCommandStarts = BooleanArray(rows)
+        nextCommandEnds = BooleanArray(rows)
     }
 
     private fun decorationsChanged(nextRowCount: Int): Boolean {
@@ -86,6 +106,8 @@ internal class TerminalShellIntegrationViewportDecorations {
         while (row < nextRowCount) {
             if (promptDividers[row] != nextPromptDividers[row]) return true
             if (failedCommandRails[row] != nextFailedCommandRails[row]) return true
+            if (commandStarts[row] != nextCommandStarts[row]) return true
+            if (commandEnds[row] != nextCommandEnds[row]) return true
             row++
         }
         return false
@@ -99,5 +121,13 @@ internal class TerminalShellIntegrationViewportDecorations {
         prompt = failedCommandRails
         failedCommandRails = nextFailedCommandRails
         nextFailedCommandRails = prompt
+
+        prompt = commandStarts
+        commandStarts = nextCommandStarts
+        nextCommandStarts = prompt
+
+        prompt = commandEnds
+        commandEnds = nextCommandEnds
+        nextCommandEnds = prompt
     }
 }

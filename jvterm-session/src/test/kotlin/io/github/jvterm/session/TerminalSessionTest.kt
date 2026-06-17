@@ -246,7 +246,22 @@ class TerminalSessionTest {
         val decorations = session.shellDecorations()
         assertAll(
             { assertTrue(decorations.promptDividers[0]) },
-            { assertTrue(decorations.failedCommandRails[0]) },
+            { assertFalse(decorations.failedCommandRails[0]) },
+            { assertTrue(decorations.failedCommandRails[1]) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start on command line excludes that line from failed rail`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 20, rows = 4)
+
+        connector.feedFromHost("PS> cmd\u001B]133;C\u0007\r\nfailed\u001B]133;D;2\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertFalse(decorations.failedCommandRails[0]) },
             { assertTrue(decorations.failedCommandRails[1]) },
         )
         session.close()
