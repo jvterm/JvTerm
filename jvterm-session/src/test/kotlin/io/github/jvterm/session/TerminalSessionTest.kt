@@ -253,6 +253,70 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `OSC 133 command start captures same line command text after prompt end`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007PS> \u001B]133;B\u0007git status\u001B]133;C\u0007\r\nok\u001B]133;D;0\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        val recordId = decorations.commandRecordIds[0]
+        assertAll(
+            { assertTrue(recordId != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertEquals("git status", session.shellIntegrationState.commandText(recordId)) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start captures previous line command text at column zero`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007PS> \u001B]133;B\u0007git status\r\n\u001B]133;C\u0007output\u001B]133;D;1\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        val recordId = decorations.commandRecordIds[1]
+        assertAll(
+            { assertTrue(recordId != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertEquals("git status", session.shellIntegrationState.commandText(recordId)) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start stores unknown command text without prompt end`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("PS> git status\u001B]133;C\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        val recordId = decorations.commandRecordIds[0]
+        assertAll(
+            { assertTrue(recordId != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertNull(session.shellIntegrationState.commandText(recordId)) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start stores unknown command text after orphan prompt end`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("PS> \u001B]133;B\u0007git status\u001B]133;C\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        val recordId = decorations.commandRecordIds[0]
+        assertAll(
+            { assertTrue(recordId != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertNull(session.shellIntegrationState.commandText(recordId)) },
+        )
+        session.close()
+    }
+
+    @Test
     fun `OSC 133 command start on command line excludes that line from failed rail`() {
         val connector = MockConnector()
         val session = createStartedSession(connector, columns = 20, rows = 4)

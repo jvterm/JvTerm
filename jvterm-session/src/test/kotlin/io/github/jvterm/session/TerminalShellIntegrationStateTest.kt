@@ -267,6 +267,50 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
+    fun `command text metadata is queried by retained record id`() {
+        val state = TerminalShellIntegrationState()
+        val records = RecordColumns(capacity = 1)
+
+        state.recordCommandStart(1, includeLine = true, commandText = "git status")
+
+        records.copyFrom(state)
+
+        assertEquals("git status", state.commandText(records.recordIds[0]))
+    }
+
+    @Test
+    fun `oversized command text is stored as unknown`() {
+        val state = TerminalShellIntegrationState(maxCommandTextLength = 4)
+        val records = RecordColumns(capacity = 1)
+
+        state.recordCommandStart(1, includeLine = true, commandText = "12345")
+
+        records.copyFrom(state)
+
+        kotlin.test.assertNull(state.commandText(records.recordIds[0]))
+    }
+
+    @Test
+    fun `command text metadata is removed on eviction and clear`() {
+        val state = TerminalShellIntegrationState(capacity = 1)
+        val records = RecordColumns(capacity = 1)
+
+        state.recordCommandStart(1, includeLine = true, commandText = "old")
+        records.copyFrom(state)
+        val oldRecordId = records.recordIds[0]
+        state.recordCommandStart(2, includeLine = true, commandText = "new")
+        records.copyFrom(state)
+        val newRecordId = records.recordIds[0]
+
+        assertEquals(null, state.commandText(oldRecordId))
+        assertEquals("new", state.commandText(newRecordId))
+
+        state.clear()
+
+        assertEquals(null, state.commandText(newRecordId))
+    }
+
+    @Test
     fun `copy records rejects undersized destination columns`() {
         val state = TerminalShellIntegrationState()
         val records = RecordColumns(capacity = 1)

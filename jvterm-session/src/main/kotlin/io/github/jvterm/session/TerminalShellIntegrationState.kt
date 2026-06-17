@@ -88,12 +88,18 @@ object TerminalShellIntegrationCommandLifecycle {
  * primitive arrays. All methods are thread-safe. Writers are normally invoked
  * from the serialized session parser path; readers are UI threads that snapshot
  * visible rows before painting.
+ *
+ * @param capacity maximum retained command records before oldest-record eviction.
+ * @param maxCommandTextLength maximum retained UTF-16 command-text length per
+ *   record; longer extracted text is stored as unknown.
  */
 class TerminalShellIntegrationState(
     private val capacity: Int = DEFAULT_CAPACITY,
+    private val maxCommandTextLength: Int = DEFAULT_COMMAND_TEXT_LENGTH,
 ) {
     init {
         require(capacity > 0) { "capacity must be > 0, was $capacity" }
+        require(maxCommandTextLength >= 0) { "maxCommandTextLength must be >= 0, was $maxCommandTextLength" }
     }
 
     private val lock = Any()
@@ -105,6 +111,7 @@ class TerminalShellIntegrationState(
     private val recordIds = IntArray(capacity)
     private val lifecycles = IntArray(capacity)
     private val flags = IntArray(capacity)
+    private val commandTexts = arrayOfNulls<String>(capacity)
 
     private var count = 0
     private var activePromptIndex = NO_INDEX
@@ -152,10 +159,12 @@ class TerminalShellIntegrationState(
      *
      * @param lineId stable render line identity where command output begins.
      * @param includeLine whether [lineId] itself belongs to command output.
+     * @param commandText bounded command text captured between prompt end and command start, or `null` when unknown.
      */
     fun recordCommandStart(
         lineId: Long,
         includeLine: Boolean,
+        commandText: String? = null,
     ) {
         require(lineId > 0L) { "lineId must be positive, was $lineId" }
         synchronized(lock) {
@@ -167,6 +176,7 @@ class TerminalShellIntegrationState(
             commandEndLineIds[index] = NO_LINE_ID
             exitCodes[index] = TerminalShellIntegrationCommandRecord.UNKNOWN_EXIT_CODE
             lifecycles[index] = TerminalShellIntegrationCommandLifecycle.RUNNING
+            commandTexts[index] = boundedCommandText(commandText)
             flags[index] =
                 if (includeLine) flags[index] or FLAG_COMMAND_START_INCLUSIVE else flags[index] and FLAG_COMMAND_START_INCLUSIVE.inv()
             activeCommandIndex = index
@@ -260,6 +270,29 @@ class TerminalShellIntegrationState(
         synchronized(lock) {
             count
         }
+
+    /**
+     * Returns the retained command text for [recordId].
+     *
+     * Command text is optional metadata captured from the render frame at the
+     * command-start marker. `null` means the text was unavailable, ambiguous,
+     * too large for the configured bound, or the record has been evicted.
+     *
+     * @param recordId stable command record id previously exposed by viewport
+     *   or record projection APIs.
+     * @return captured command text, or `null` when no safe text is retained.
+     */
+    fun commandText(recordId: Int): String? {
+        if (recordId == TerminalShellIntegrationCommandRecord.NONE) return null
+        synchronized(lock) {
+            var index = 0
+            while (index < count) {
+                if (recordIds[index] == recordId) return commandTexts[index]
+                index++
+            }
+            return null
+        }
+    }
 
     /**
      * Copies retained shell command records into caller-owned primitive arrays.
@@ -458,6 +491,7 @@ class TerminalShellIntegrationState(
         recordIds[index] = nextRecordIdLocked()
         lifecycles[index] = TerminalShellIntegrationCommandLifecycle.NONE
         flags[index] = 0
+        commandTexts[index] = null
         return index
     }
 
@@ -476,7 +510,9 @@ class TerminalShellIntegrationState(
         recordIds.copyInto(recordIds, destinationOffset = 0, startIndex = 1, endIndex = count)
         lifecycles.copyInto(lifecycles, destinationOffset = 0, startIndex = 1, endIndex = count)
         flags.copyInto(flags, destinationOffset = 0, startIndex = 1, endIndex = count)
+        commandTexts.copyInto(commandTexts, destinationOffset = 0, startIndex = 1, endIndex = count)
         count--
+        commandTexts[count] = null
         activePromptIndex = shiftIndexAfterEviction(activePromptIndex)
         activeCommandIndex = shiftIndexAfterEviction(activeCommandIndex)
     }
@@ -666,7 +702,19 @@ class TerminalShellIntegrationState(
             else -> TerminalShellIntegrationCommandLifecycle.FAILED
         }
 
+    private fun boundedCommandText(commandText: String?): String? =
+        when {
+            commandText == null -> null
+            commandText.length <= maxCommandTextLength -> commandText
+            else -> null
+        }
+
     private fun clearLocked() {
+        var index = 0
+        while (index < count) {
+            commandTexts[index] = null
+            index++
+        }
         count = 0
         activePromptIndex = NO_INDEX
         activeCommandIndex = NO_INDEX
@@ -674,6 +722,7 @@ class TerminalShellIntegrationState(
 
     private companion object {
         private const val DEFAULT_CAPACITY = 4096
+        private const val DEFAULT_COMMAND_TEXT_LENGTH = 4096
         private const val NO_INDEX = -1
         private const val NO_LINE_ID = 0L
         private const val NO_OBSERVED_ROW = Long.MIN_VALUE
