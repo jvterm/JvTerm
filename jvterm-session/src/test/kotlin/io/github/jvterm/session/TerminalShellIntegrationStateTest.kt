@@ -26,16 +26,20 @@ class TerminalShellIntegrationStateTest {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(5)
         val failedCommandRails = BooleanArray(5)
+        val commandStarts = BooleanArray(5)
+        val commandEnds = BooleanArray(5)
 
         state.recordPromptStart(11)
         state.recordPromptEnd(11)
-        state.recordCommandStart(12)
+        state.recordCommandStart(12, includeLine = true)
         state.recordCommandFinished(14, exitCode = 7)
         state.copyViewport(
             lineIds = longArrayOf(10, 11, 12, 13, 14),
             rowCount = 5,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
         )
 
         assertContentEquals(booleanArrayOf(false, true, false, false, false), promptDividers)
@@ -47,14 +51,18 @@ class TerminalShellIntegrationStateTest {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(3)
         val failedCommandRails = BooleanArray(3)
+        val commandStarts = BooleanArray(3)
+        val commandEnds = BooleanArray(3)
 
-        state.recordCommandStart(5)
+        state.recordCommandStart(5, includeLine = true)
         state.recordCommandFinished(10, exitCode = 1)
         state.copyViewport(
             lineIds = longArrayOf(7, 8, 9),
             rowCount = 3,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
         )
 
         assertContentEquals(booleanArrayOf(false, false, false), promptDividers)
@@ -65,9 +73,9 @@ class TerminalShellIntegrationStateTest {
     fun `zero null and missing command starts do not create failed command ranges`() {
         val state = TerminalShellIntegrationState()
 
-        state.recordCommandStart(1)
+        state.recordCommandStart(1, includeLine = true)
         state.recordCommandFinished(3, exitCode = 0)
-        state.recordCommandStart(4)
+        state.recordCommandStart(4, includeLine = true)
         state.recordCommandFinished(5, exitCode = null)
         state.recordCommandFinished(8, exitCode = 2)
 
@@ -80,8 +88,8 @@ class TerminalShellIntegrationStateTest {
     fun `duplicate command starts close over the newest active command only`() {
         val state = TerminalShellIntegrationState()
 
-        state.recordCommandStart(1)
-        state.recordCommandStart(3)
+        state.recordCommandStart(1, includeLine = true)
+        state.recordCommandStart(3, includeLine = true)
         state.recordCommandFinished(4, exitCode = 2)
 
         assertFalse(state.hasFailedCommandRailAtLine(1))
@@ -94,6 +102,8 @@ class TerminalShellIntegrationStateTest {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(2)
         val failedCommandRails = BooleanArray(2)
+        val commandStarts = BooleanArray(2)
+        val commandEnds = BooleanArray(2)
 
         state.recordPromptEnd(1)
         state.copyViewport(
@@ -101,6 +111,8 @@ class TerminalShellIntegrationStateTest {
             rowCount = 2,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
         )
 
         assertContentEquals(booleanArrayOf(false, false), promptDividers)
@@ -111,7 +123,7 @@ class TerminalShellIntegrationStateTest {
     fun `new prompt abandons unfinished command so stale finish marker cannot create a failed range`() {
         val state = TerminalShellIntegrationState()
 
-        state.recordCommandStart(10)
+        state.recordCommandStart(10, includeLine = true)
         state.recordPromptStart(20)
         state.recordCommandFinished(19, exitCode = 1)
 
@@ -123,7 +135,7 @@ class TerminalShellIntegrationStateTest {
     fun `repeated command finish closes only the active command once`() {
         val state = TerminalShellIntegrationState()
 
-        state.recordCommandStart(10)
+        state.recordCommandStart(10, includeLine = true)
         state.recordCommandFinished(11, exitCode = 1)
         state.recordCommandFinished(20, exitCode = 1)
 
@@ -139,7 +151,7 @@ class TerminalShellIntegrationStateTest {
         state.recordPromptStart(1)
         state.recordPromptStart(2)
         state.recordPromptEnd(3)
-        state.recordCommandStart(4)
+        state.recordCommandStart(4, includeLine = true)
         state.recordCommandFinished(5, exitCode = 1)
 
         assertTrue(state.hasPromptDividerAtLine(1))
@@ -155,7 +167,7 @@ class TerminalShellIntegrationStateTest {
 
         state.observeLiveBottomRow(100)
         state.recordPromptStart(90)
-        state.recordCommandStart(91)
+        state.recordCommandStart(91, includeLine = true)
         state.recordCommandFinished(95, exitCode = 1)
         state.observeLiveBottomRow(10)
 
@@ -182,7 +194,7 @@ class TerminalShellIntegrationStateTest {
 
         state.recordPromptStart(1)
         state.recordPromptStart(2)
-        state.recordCommandStart(3)
+        state.recordCommandStart(3, includeLine = true)
         state.recordCommandFinished(4, exitCode = 1)
 
         assertFalse(state.hasFailedCommandRailAtLine(1))
@@ -196,15 +208,19 @@ class TerminalShellIntegrationStateTest {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(4)
         val failedCommandRails = BooleanArray(4)
+        val commandStarts = BooleanArray(4)
+        val commandEnds = BooleanArray(4)
 
         state.recordPromptStart(40)
-        state.recordCommandStart(41)
+        state.recordCommandStart(41, includeLine = true)
         state.recordCommandFinished(42, exitCode = 1)
         state.copyViewport(
             lineIds = longArrayOf(70, 42, 40, 41),
             rowCount = 4,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
         )
 
         assertContentEquals(booleanArrayOf(false, false, true, false), promptDividers)
@@ -241,6 +257,8 @@ class TerminalShellIntegrationStateTest {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(3)
         val failedCommandRails = BooleanArray(3)
+        val commandStarts = BooleanArray(3)
+        val commandEnds = BooleanArray(3)
 
         state.recordCommandStart(10, includeLine = true)
         state.recordCommandFinished(11, exitCode = 1)
@@ -249,6 +267,8 @@ class TerminalShellIntegrationStateTest {
             rowCount = 3,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
         )
 
         assertContentEquals(booleanArrayOf(false, false, false), promptDividers)
@@ -285,6 +305,8 @@ class TerminalShellIntegrationStateTest {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(2)
         val failedCommandRails = BooleanArray(2)
+        val commandStarts = BooleanArray(2)
+        val commandEnds = BooleanArray(2)
 
         state.recordCommandStart(10, includeLine = false)
         state.recordCommandFinished(10, exitCode = 1)
@@ -293,6 +315,8 @@ class TerminalShellIntegrationStateTest {
             rowCount = 2,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
         )
 
         assertContentEquals(booleanArrayOf(false, false), promptDividers)
@@ -304,6 +328,8 @@ class TerminalShellIntegrationStateTest {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(3)
         val failedCommandRails = BooleanArray(3)
+        val commandStarts = BooleanArray(3)
+        val commandEnds = BooleanArray(3)
 
         state.recordPromptStart(9)
         state.copyViewport(
@@ -311,6 +337,8 @@ class TerminalShellIntegrationStateTest {
             rowCount = 3,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
         )
 
         assertContentEquals(booleanArrayOf(true, false, false), promptDividers)

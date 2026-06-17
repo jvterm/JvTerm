@@ -909,11 +909,15 @@ class TerminalSessionTest {
             }
             promptDividers = BooleanArray(frame.rows)
             failedCommandRails = BooleanArray(frame.rows)
+            val commandStarts = BooleanArray(frame.rows)
+            val commandEnds = BooleanArray(frame.rows)
             shellIntegrationState.copyViewport(
                 lineIds = lineIds,
                 rowCount = frame.rows,
                 promptDividers = promptDividers,
                 failedCommandRails = failedCommandRails,
+                commandStarts = commandStarts,
+                commandEnds = commandEnds,
             )
         }
         return ShellDecorationSnapshot(promptDividers, failedCommandRails)
