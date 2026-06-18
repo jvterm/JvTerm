@@ -42,7 +42,7 @@ class SwingViewportControllerTest {
     @Nested
     inner class GridSizing {
         @Test
-        fun `visible grid size uses padding and cell metrics`() {
+        fun `visible grid size uses left horizontal padding and vertical padding`() {
             val controller = SwingViewportController { _, _, _, _, _ -> }
 
             val size =
@@ -53,7 +53,7 @@ class SwingViewportControllerTest {
                     componentHeight = 130,
                 )
 
-            assertEquals(20, size.width)
+            assertEquals(21, size.width)
             assertEquals(6, size.height)
             assertEquals(size, controller.visibleGridSizeSnapshot())
         }

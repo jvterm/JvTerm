@@ -144,6 +144,7 @@ class TerminalShellIntegrationState(
     private var activeCommandIndex = NO_INDEX
     private var nextRecordId = 1
     private var lastObservedBottomRow = NO_OBSERVED_ROW
+    private var firstPromptStartLineId = NO_LINE_ID
 
     /**
      * Records the start of a shell prompt.
@@ -159,6 +160,9 @@ class TerminalShellIntegrationState(
             promptStartLineIds[index] = lineId
             lifecycles[index] = TerminalShellIntegrationCommandLifecycle.PROMPT_ONLY
             activePromptIndex = index
+            if (firstPromptStartLineId == NO_LINE_ID) {
+                firstPromptStartLineId = lineId
+            }
         }
     }
 
@@ -268,6 +272,35 @@ class TerminalShellIntegrationState(
                 index++
             }
             return false
+        }
+    }
+
+    /**
+     * Returns the first prompt-start line id observed since the timeline was
+     * created or last cleared.
+     *
+     * The value is not affected by bounded record eviction. UI layers use it to
+     * avoid drawing a visual divider above the original prompt because that
+     * divider would not separate two command blocks.
+     *
+     * @return first prompt-start line id, or `0` when no prompt was recorded.
+     */
+    fun firstPromptStartLineId(): Long =
+        synchronized(lock) {
+            firstPromptStartLineId
+        }
+
+    /**
+     * Returns whether [lineId] is the first prompt-start line observed since
+     * the timeline was created or last cleared.
+     *
+     * @param lineId stable render line identity to query.
+     * @return true when [lineId] is the original prompt-start line.
+     */
+    fun isFirstPromptStartLine(lineId: Long): Boolean {
+        require(lineId > 0L) { "lineId must be positive, was $lineId" }
+        synchronized(lock) {
+            return firstPromptStartLineId == lineId
         }
     }
 
@@ -963,6 +996,7 @@ class TerminalShellIntegrationState(
         count = 0
         activePromptIndex = NO_INDEX
         activeCommandIndex = NO_INDEX
+        firstPromptStartLineId = NO_LINE_ID
     }
 
     private companion object {

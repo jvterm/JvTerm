@@ -60,6 +60,7 @@ internal class TerminalShellIntegrationViewportDecorations {
             commandRecordIds = nextCommandRecordIds,
             commandLifecycleStates = nextCommandLifecycleStates,
         )
+        suppressFirstPromptDivider(state, cache)
         val changed = decorationsChanged(cache.rows)
         swapBuffers()
         rowCount = cache.rows
@@ -102,6 +103,23 @@ internal class TerminalShellIntegrationViewportDecorations {
      * Returns the command lifecycle associated with visible [row], or zero.
      */
     fun commandLifecycleAt(row: Int): Int = if (row in 0 until rowCount) commandLifecycleStates[row] else 0
+
+    private fun suppressFirstPromptDivider(
+        state: TerminalShellIntegrationState,
+        cache: TerminalRenderCache,
+    ) {
+        val firstPromptLineId = state.firstPromptStartLineId()
+        if (firstPromptLineId == NO_LINE_ID) return
+
+        var row = 0
+        while (row < cache.rows) {
+            if (cache.lineIds[row] == firstPromptLineId) {
+                nextPromptDividers[row] = false
+                return
+            }
+            row++
+        }
+    }
 
     private fun ensureCapacity(rows: Int) {
         if (promptDividers.size >= rows) return
@@ -159,5 +177,9 @@ internal class TerminalShellIntegrationViewportDecorations {
         ids = commandLifecycleStates
         commandLifecycleStates = nextCommandLifecycleStates
         nextCommandLifecycleStates = ids
+    }
+
+    private companion object {
+        private const val NO_LINE_ID = 0L
     }
 }

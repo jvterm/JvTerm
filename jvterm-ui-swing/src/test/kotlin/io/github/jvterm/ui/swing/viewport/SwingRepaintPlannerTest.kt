@@ -17,7 +17,11 @@ package io.github.jvterm.ui.swing.viewport
 
 import io.github.jvterm.render.api.*
 import io.github.jvterm.render.cache.TerminalRenderCache
+import io.github.jvterm.session.TerminalShellIntegrationState
+import io.github.jvterm.ui.swing.render.TerminalShellIntegrationRowLayout
+import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
 import io.github.jvterm.ui.swing.settings.SwingMetrics
+import io.github.jvterm.ui.swing.settings.SwingSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -314,6 +318,39 @@ class SwingRepaintPlannerTest {
     }
 
     @Test
+    fun `cursor blink repaint uses shell integration row layout`() {
+        val frame = MutableFrame(columns = 4, rows = 4, lineIds = longArrayOf(1, 2, 3, 4))
+        frame.cursor = cursor(column = 2, row = 1, blinking = true, generation = 1)
+        val cache = TerminalRenderCache(columns = 4, rows = 4)
+        cache.updateFrom(frame.reader)
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+        val rowLayout = TerminalShellIntegrationRowLayout()
+        val settings = SwingSettings(shellIntegrationPromptDividerGap = 6)
+        rowLayout.update(settings, METRICS, decorations, cache.rows)
+
+        val repaintSink = RecordingRepaintSink()
+        SwingRepaintPlanner().requestCursorBlinkRepaint(
+            cache = cache,
+            metrics = METRICS,
+            componentWidth = WIDTH,
+            componentHeight = HEIGHT,
+            contentYOffset = 0.0,
+            padding = PADDING,
+            repaintSink = repaintSink,
+            rowLayout = rowLayout,
+        )
+
+        assertEquals(
+            listOf(Region(2 * CELL_WIDTH, CELL_HEIGHT + settings.shellIntegrationPromptDividerGap, CELL_WIDTH, CELL_HEIGHT)),
+            repaintSink.regions,
+        )
+    }
+
+    @Test
     fun `blinking text repaint coalesces visible blinking row runs`() {
         val frame = MutableFrame(columns = 4, rows = 4)
         frame.setBlink(row = 1, column = 0, blink = true)
@@ -504,6 +541,7 @@ class SwingRepaintPlannerTest {
     private class MutableFrame(
         override val columns: Int,
         override val rows: Int,
+        private val lineIds: LongArray = LongArray(rows) { row -> row + 1L },
     ) : TerminalRenderFrame {
         private val textRows =
             Array(rows) { row ->
@@ -562,6 +600,8 @@ class SwingRepaintPlannerTest {
         }
 
         override fun lineGeneration(row: Int): Long = lineGenerations[row]
+
+        override fun lineId(row: Int): Long = lineIds[row]
 
         override fun lineWrapped(row: Int): Boolean = false
 

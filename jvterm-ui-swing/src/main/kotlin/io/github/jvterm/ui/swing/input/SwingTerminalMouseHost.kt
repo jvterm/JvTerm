@@ -36,7 +36,10 @@ internal interface SwingTerminalMouseHost {
         cache: TerminalRenderCache,
     ): Long
 
-    fun contentYOffset(cache: TerminalRenderCache): Double
+    fun terminalPixelYAt(
+        y: Int,
+        cache: TerminalRenderCache,
+    ): Int
 
     fun visibleGridRows(): Int
 

@@ -389,7 +389,7 @@ class GridPainterTest {
     }
 
     @Test
-    fun `shell integration prompt marker paints configurable divider in left gutter and grid`() {
+    fun `shell integration prompt marker paints full width divider before prompt row`() {
         val image = BufferedImage(120, 80, BufferedImage.TYPE_INT_ARGB)
         val g = image.createGraphics()
         val settings =
@@ -401,6 +401,7 @@ class GridPainterTest {
                         defaultBackground = BLACK,
                     ),
                 shellIntegrationPromptDividerColor = GREEN,
+                shellIntegrationPromptDividerGap = 6,
                 shellIntegrationDecorationGutterWidth = 8,
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
                 padding = Insets(0, 8, 0, 0),
@@ -409,9 +410,12 @@ class GridPainterTest {
         val cache = TerminalRenderCache(columns = 3, rows = 3)
         cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
         val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
         state.recordPromptStart(2)
         val decorations = TerminalShellIntegrationViewportDecorations()
         decorations.updateFrom(state, cache)
+        val rowLayout = TerminalShellIntegrationRowLayout()
+        rowLayout.update(settings, metrics, decorations, cache.rows)
 
         GridPainter().paint(
             g = g,
@@ -422,11 +426,67 @@ class GridPainterTest {
             height = image.height,
             cursorBlinkVisible = true,
             shellIntegrationDecorations = decorations,
+            shellIntegrationRowLayout = rowLayout,
         )
         g.dispose()
 
-        assertEquals(GREEN, image.getRGB(0, metrics.cellHeight))
-        assertEquals(GREEN, image.getRGB(settings.padding.left, metrics.cellHeight))
+        val dividerBandTop = metrics.cellHeight
+        val promptRowTop = metrics.cellHeight + settings.shellIntegrationPromptDividerGap
+        val dividerY = dividerBandTop + (settings.shellIntegrationPromptDividerGap - settings.shellIntegrationPromptDividerThickness) / 2
+        assertEquals(GREEN, image.getRGB(0, dividerY))
+        assertEquals(GREEN, image.getRGB(image.width - 1, dividerY))
+        assertEquals(BLACK, image.getRGB(image.width - 1, dividerBandTop))
+        assertEquals(BLACK, image.getRGB(image.width - 1, promptRowTop))
+        assertEquals(BLACK, image.getRGB(image.width - 1, dividerY + settings.shellIntegrationPromptDividerThickness))
+    }
+
+    @Test
+    fun `shell integration prompt divider gap offsets rows from the prompt block`() {
+        val image = BufferedImage(120, 100, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                palette =
+                    TerminalColorPalette(
+                        defaultForeground = WHITE,
+                        defaultBackground = BLACK,
+                    ),
+                selectionBackground = BLUE,
+                shellIntegrationPromptDividerColor = GREEN,
+                shellIntegrationPromptDividerGap = 6,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
+            )
+        val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+        val rowLayout = TerminalShellIntegrationRowLayout()
+        rowLayout.update(settings, metrics, decorations, cache.rows)
+
+        GridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+            selection = CellSelection(0, 2, 3, 2),
+            shellIntegrationDecorations = decorations,
+            shellIntegrationRowLayout = rowLayout,
+        )
+        g.dispose()
+
+        val normalRowTwoTop = metrics.cellHeight * 2
+        val shiftedRowTwoTop = normalRowTwoTop + settings.shellIntegrationPromptDividerGap
+        assertEquals(BLACK, image.getRGB(1, normalRowTwoTop))
+        assertEquals(BLUE, image.getRGB(1, shiftedRowTwoTop))
     }
 
     @Test
@@ -538,11 +598,13 @@ class GridPainterTest {
         )
         val state = TerminalShellIntegrationState()
         state.observeLiveBottomRow(102)
+        state.recordPromptStart(80)
         state.recordPromptStart(81)
         val decorations = TerminalShellIntegrationViewportDecorations()
 
         decorations.updateFrom(state, cache)
 
+        assertTrue(state.hasPromptDividerAtLine(80))
         assertTrue(state.hasPromptDividerAtLine(81))
         assertTrue(decorations.hasPromptDividerAt(1))
         assertFalse(decorations.hasPromptDividerAt(0))
@@ -558,6 +620,7 @@ class GridPainterTest {
         assertTrue(decorations.updateFrom(state, cache))
         assertFalse(decorations.updateFrom(state, cache))
 
+        state.recordPromptStart(1)
         state.recordPromptStart(2)
 
         assertTrue(decorations.updateFrom(state, cache))

@@ -26,6 +26,7 @@ import io.github.jvterm.ui.swing.input.SwingTerminalMouseHost
 import io.github.jvterm.ui.swing.render.GridPainter
 import io.github.jvterm.ui.swing.render.SwingRenderFrameController
 import io.github.jvterm.ui.swing.render.SwingRenderFrameHost
+import io.github.jvterm.ui.swing.render.TerminalShellIntegrationRowLayout
 import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
 import io.github.jvterm.ui.swing.search.*
 import io.github.jvterm.ui.swing.settings.SwingMetrics
@@ -73,6 +74,7 @@ class SwingTerminal
         private val renderCache = TerminalRenderCache(settings.columns, settings.rows)
         private val searchCache = TerminalRenderCache(settings.columns, settings.rows)
         private val shellIntegrationDecorations = TerminalShellIntegrationViewportDecorations()
+        private val shellIntegrationRowLayout = TerminalShellIntegrationRowLayout()
 
         private val selectionController =
             TerminalSelectionController(
@@ -228,7 +230,10 @@ class SwingTerminal
                         cache: TerminalRenderCache,
                     ): Long = this@SwingTerminal.cellAt(x, y, cache)
 
-                    override fun contentYOffset(cache: TerminalRenderCache): Double = this@SwingTerminal.contentYOffset(cache)
+                    override fun terminalPixelYAt(
+                        y: Int,
+                        cache: TerminalRenderCache,
+                    ): Int = this@SwingTerminal.terminalPixelYAt(y, cache)
 
                     override fun visibleGridRows(): Int = this@SwingTerminal.visibleGridRows()
 
@@ -273,6 +278,8 @@ class SwingTerminal
                     override val renderCache: TerminalRenderCache get() = this@SwingTerminal.renderCache
                     override val settings: SwingSettings get() = this@SwingTerminal.settings
                     override val metrics: SwingMetrics get() = this@SwingTerminal.metrics
+                    override val shellIntegrationRowLayout: TerminalShellIntegrationRowLayout
+                        get() = this@SwingTerminal.shellIntegrationRowLayout
                     override val componentWidth: Int get() = this@SwingTerminal.width
                     override val componentHeight: Int get() = this@SwingTerminal.height
                     override val cursorPresentationEnabled: Boolean get() = this@SwingTerminal.cursorPresentationEnabled
@@ -630,6 +637,7 @@ class SwingTerminal
                     selection = selectionController.getViewportSelection(renderCache),
                     searchHighlights = searchController.viewportHighlights,
                     shellIntegrationDecorations = shellIntegrationDecorations,
+                    shellIntegrationRowLayout = shellIntegrationRowLayout,
                     hoveredHyperlinkId = hyperlinkController.hoveredHyperlinkId,
                     hyperlinkActivationHover = hyperlinkController.hyperlinkActivationHover,
                 )
@@ -648,6 +656,7 @@ class SwingTerminal
             selectionController.clearSelection()
             searchController.reset(renderCache.rows)
             shellIntegrationDecorations.reset()
+            shellIntegrationRowLayout.reset()
             selectionController.stopSelectionDrag()
             lastResizedColumns = NO_RESIZE_DIMENSION
             lastResizedRows = NO_RESIZE_DIMENSION
@@ -667,6 +676,7 @@ class SwingTerminal
             selectionController.clearSelection()
             searchController.reset(renderCache.rows)
             shellIntegrationDecorations.reset()
+            shellIntegrationRowLayout.reset()
             selectionController.stopSelectionDrag()
             lastResizedColumns = NO_RESIZE_DIMENSION
             lastResizedRows = NO_RESIZE_DIMENSION
@@ -780,10 +790,27 @@ class SwingTerminal
             val padding = settings.padding
             val column = ((x - padding.left) / metrics.cellWidth).coerceIn(0, cache.columns - 1)
             val row =
-                ((y - padding.top - contentYOffset(cache)) / metrics.cellHeight)
-                    .toInt()
-                    .coerceIn(0, cache.rows - 1)
+                if (cache === renderCache && shellIntegrationRowLayout.rowCount == cache.rows) {
+                    val localY = floorLocalY(y, padding.top, contentYOffset(cache))
+                    shellIntegrationRowLayout.rowAt(localY)
+                } else {
+                    ((y - padding.top - contentYOffset(cache)) / metrics.cellHeight)
+                        .toInt()
+                        .coerceIn(0, cache.rows - 1)
+                }
             return packCell(column, row)
+        }
+
+        private fun terminalPixelYAt(
+            y: Int,
+            cache: TerminalRenderCache,
+        ): Int {
+            val localY = floorLocalY(y, settings.padding.top, contentYOffset(cache))
+            if (cache === renderCache && shellIntegrationRowLayout.rowCount == cache.rows) {
+                val row = shellIntegrationRowLayout.rowAt(localY)
+                return shellIntegrationRowLayout.terminalPixelY(localY, row)
+            }
+            return localY.coerceIn(0, maxOf(0, cache.rows * metrics.cellHeight - 1))
         }
 
         private fun scrollViewportByOnEdt(
@@ -857,7 +884,7 @@ class SwingTerminal
         ): Dimension {
             val padding = settings.padding
             return Dimension(
-                columns * metrics.cellWidth + padding.left + padding.right,
+                columns * metrics.cellWidth + padding.left,
                 rows * metrics.cellHeight + padding.top + padding.bottom,
             )
         }
@@ -902,7 +929,8 @@ class SwingTerminal
         }
 
         private fun refreshShellIntegrationDecorations(session: TerminalSession): Boolean =
-            shellIntegrationDecorations.updateFrom(session.shellIntegrationState, renderCache)
+            shellIntegrationDecorations.updateFrom(session.shellIntegrationState, renderCache) or
+                shellIntegrationRowLayout.update(settings, metrics, shellIntegrationDecorations, renderCache.rows)
 
         private fun contentYOffset(cache: TerminalRenderCache): Double =
             viewportController.contentYOffset(cache.rows, requestedRenderRows(), metrics.cellHeight)
@@ -930,5 +958,11 @@ class SwingTerminal
                 column: Int,
                 row: Int,
             ): Long = (column.toLong() shl 32) or (row.toLong() and 0xffff_ffffL)
+
+            private fun floorLocalY(
+                y: Int,
+                paddingTop: Int,
+                contentYOffset: Double,
+            ): Int = kotlin.math.floor(y.toDouble() - paddingTop.toDouble() - contentYOffset).toInt()
         }
     }

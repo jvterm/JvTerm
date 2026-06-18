@@ -36,7 +36,8 @@ internal class TerminalShellIntegrationDecorationPainter(
         metrics: SwingMetrics,
         decorations: TerminalShellIntegrationViewportDecorations?,
         row: Int,
-        gridWidth: Int,
+        componentWidth: Int,
+        dividerBandHeight: Int,
     ) {
         if (decorations == null) return
 
@@ -52,11 +53,23 @@ internal class TerminalShellIntegrationDecorationPainter(
         }
 
         if (settings.shellIntegrationPromptDividersVisible && decorations.hasPromptDividerAt(row)) {
-            val gutterWidth = settings.shellIntegrationDecorationGutterWidth.coerceAtMost(settings.padding.left)
-            val x = -gutterWidth
-            val width = gridWidth + gutterWidth
+            val x = -settings.padding.left
+            val width = componentWidth
+            val dividerY = promptDividerY(settings, y, dividerBandHeight)
             g.color = colorCache.color(settings.shellIntegrationPromptDividerColor)
-            g.fillRect(x, y, width, settings.shellIntegrationPromptDividerThickness)
+            g.fillRect(x, dividerY, width, settings.shellIntegrationPromptDividerThickness)
         }
+    }
+
+    private fun promptDividerY(
+        settings: SwingSettings,
+        rowY: Int,
+        dividerBandHeight: Int,
+    ): Int {
+        val gap = dividerBandHeight
+        if (gap == 0) return rowY
+
+        val centeredInset = maxOf(0, gap - settings.shellIntegrationPromptDividerThickness) / 2
+        return rowY - gap + centeredInset
     }
 }

@@ -81,6 +81,7 @@ internal class SwingRenderFrameController(
             padding = host.settings.padding,
             repaintSink = repaintSink,
             forceFullRepaint = shellIntegrationDecorationsChanged,
+            rowLayout = host.shellIntegrationRowLayout,
         )
     }
 
@@ -96,6 +97,7 @@ internal class SwingRenderFrameController(
                 contentYOffset = yOffset,
                 padding = host.settings.padding,
                 repaintSink = repaintSink,
+                rowLayout = host.shellIntegrationRowLayout,
             )
         }
         repaintPlanner.requestBlinkingTextRepaint(
@@ -106,6 +108,7 @@ internal class SwingRenderFrameController(
             contentYOffset = yOffset,
             padding = host.settings.padding,
             repaintSink = repaintSink,
+            rowLayout = host.shellIntegrationRowLayout,
         )
     }
 
@@ -120,6 +123,7 @@ internal class SwingRenderFrameController(
             contentYOffset = yOffset,
             padding = host.settings.padding,
             repaintSink = repaintSink,
+            rowLayout = host.shellIntegrationRowLayout,
         )
     }
 }

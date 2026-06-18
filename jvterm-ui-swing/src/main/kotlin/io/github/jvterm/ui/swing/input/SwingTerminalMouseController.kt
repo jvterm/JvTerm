@@ -134,7 +134,7 @@ internal class SwingTerminalMouseController(
         val gridWidth = host.renderCache.columns * host.metrics.cellWidth
         val gridHeight = host.renderCache.rows * host.metrics.cellHeight
         val pixelX = (event.x - padding.left).coerceIn(0, gridWidth - 1)
-        val pixelY = (event.y - padding.top - host.contentYOffset(host.renderCache)).toInt().coerceIn(0, gridHeight - 1)
+        val pixelY = host.terminalPixelYAt(event.y, host.renderCache).coerceIn(0, gridHeight - 1)
 
         val mouseEvent =
             TerminalMouseEvent(

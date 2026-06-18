@@ -275,7 +275,10 @@ class SwingTerminalMouseControllerTest {
             cache: TerminalRenderCache,
         ): Long = 0L
 
-        override fun contentYOffset(cache: TerminalRenderCache): Double = 0.0
+        override fun terminalPixelYAt(
+            y: Int,
+            cache: TerminalRenderCache,
+        ): Int = y
 
         override fun visibleGridRows(): Int = 24
 

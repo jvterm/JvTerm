@@ -165,7 +165,7 @@ internal class SwingViewportController(
             componentWidth: Int,
         ): Int {
             val padding = settings.padding
-            return maxOf(1, (componentWidth - padding.left - padding.right) / metrics.cellWidth)
+            return maxOf(1, (componentWidth - padding.left) / metrics.cellWidth)
         }
 
         private fun packVisibleGridSize(

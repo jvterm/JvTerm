@@ -78,6 +78,7 @@ internal class GridPainter {
         selection: CellSelection? = null,
         searchHighlights: TerminalSearchViewportHighlights? = null,
         shellIntegrationDecorations: TerminalShellIntegrationViewportDecorations? = null,
+        shellIntegrationRowLayout: TerminalShellIntegrationRowLayout? = null,
         hoveredHyperlinkId: Int = 0,
         hyperlinkActivationHover: Boolean = false,
     ) {
@@ -97,13 +98,19 @@ internal class GridPainter {
         backgroundPainter.clear(g, palette, width, height)
 
         val padding = settings.padding
-        val firstRow = firstPaintRow(clip, metrics, contentYOffset, padding.top)
-        val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentYOffset, padding.top, padding.bottom)
+        val rowLayout = shellIntegrationRowLayout?.takeIf { it.rowCount == cache.rows }
+        val firstRow = firstPaintRow(clip, metrics, contentYOffset, padding.top, rowLayout)
+        val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentYOffset, padding.top, padding.bottom, rowLayout)
         g.translate(padding.left.toDouble(), padding.top.toDouble() + contentYOffset)
+        var appliedPromptDividerOffset = 0
         try {
-            val gridWidth = cache.columns * metrics.cellWidth
             var row = firstRow
             while (row < rows) {
+                val promptDividerOffset = rowLayout?.translationForRow(row) ?: 0
+                if (appliedPromptDividerOffset != promptDividerOffset) {
+                    g.translate(0.0, (promptDividerOffset - appliedPromptDividerOffset).toDouble())
+                    appliedPromptDividerOffset = promptDividerOffset
+                }
                 backgroundPainter.paintRow(g, cache, palette, metrics, row)
                 shellIntegrationDecorationPainter.paint(
                     g = g,
@@ -111,7 +118,8 @@ internal class GridPainter {
                     metrics = metrics,
                     decorations = shellIntegrationDecorations,
                     row = row,
-                    gridWidth = gridWidth,
+                    componentWidth = width,
+                    dividerBandHeight = rowLayout?.dividerBandHeight ?: 0,
                 )
                 searchPainter.paint(
                     g = g,
@@ -137,6 +145,11 @@ internal class GridPainter {
                 row++
             }
 
+            val cursorPromptDividerOffset = rowLayout?.translationForRow(cache.cursorRow) ?: 0
+            if (appliedPromptDividerOffset != cursorPromptDividerOffset) {
+                g.translate(0.0, (cursorPromptDividerOffset - appliedPromptDividerOffset).toDouble())
+                appliedPromptDividerOffset = cursorPromptDividerOffset
+            }
             cursorPainter.paint(
                 g,
                 cache,
@@ -148,6 +161,9 @@ internal class GridPainter {
                 cursorVisible = cursorVisible,
             )
         } finally {
+            if (appliedPromptDividerOffset != 0) {
+                g.translate(0.0, -appliedPromptDividerOffset.toDouble())
+            }
             g.translate(-padding.left.toDouble(), -(padding.top.toDouble() + contentYOffset))
         }
     }
@@ -157,8 +173,13 @@ internal class GridPainter {
         metrics: SwingMetrics,
         contentYOffset: Double,
         paddingTop: Int,
+        rowLayout: TerminalShellIntegrationRowLayout?,
     ): Int {
         if (clip == null) return 0
+        if (rowLayout != null) {
+            val localY = floor(clip.y.toDouble() - paddingTop.toDouble() - contentYOffset).toInt()
+            return rowLayout.rowAt(localY)
+        }
         return maxOf(0, floor((clip.y - paddingTop - contentYOffset) / metrics.cellHeight).toInt())
     }
 
@@ -170,13 +191,27 @@ internal class GridPainter {
         contentYOffset: Double,
         paddingTop: Int,
         paddingBottom: Int,
+        rowLayout: TerminalShellIntegrationRowLayout?,
     ): Int {
-        val visibleRows = minOf(cache.rows, maxOf(1, (componentHeight - paddingTop - paddingBottom) / metrics.cellHeight) + 2)
+        val availableHeight = componentHeight - paddingTop - paddingBottom
+        val visibleRows =
+            if (rowLayout != null) {
+                val localBottom = ceil(availableHeight.toDouble() - contentYOffset).toInt()
+                minOf(cache.rows, rowLayout.rowAt(localBottom) + 2)
+            } else {
+                minOf(cache.rows, maxOf(1, availableHeight / metrics.cellHeight) + 2)
+            }
         if (clip == null || clip.height <= 0) return visibleRows
 
         val clipBottom = clip.y + clip.height
         if (clipBottom <= 0) return 0
-        val clippedRows = ceil((clipBottom - paddingTop - contentYOffset) / metrics.cellHeight).toInt()
+        val clippedRows =
+            if (rowLayout != null) {
+                val localBottom = ceil(clipBottom.toDouble() - paddingTop.toDouble() - contentYOffset).toInt()
+                rowLayout.rowAt(localBottom) + 1
+            } else {
+                ceil((clipBottom - paddingTop - contentYOffset) / metrics.cellHeight).toInt()
+            }
         return clippedRows.coerceIn(0, visibleRows)
     }
 

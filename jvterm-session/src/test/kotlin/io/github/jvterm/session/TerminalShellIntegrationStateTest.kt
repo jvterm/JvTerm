@@ -23,6 +23,24 @@ import kotlin.test.assertTrue
 
 class TerminalShellIntegrationStateTest {
     @Test
+    fun `first prompt start line is stable until state is cleared`() {
+        val state = TerminalShellIntegrationState(capacity = 2)
+
+        assertEquals(0L, state.firstPromptStartLineId())
+        state.recordPromptStart(10)
+        state.recordPromptStart(20)
+        state.recordPromptStart(30)
+
+        assertEquals(10L, state.firstPromptStartLineId())
+        assertTrue(state.isFirstPromptStartLine(10))
+        assertFalse(state.isFirstPromptStartLine(20))
+
+        state.clear()
+
+        assertEquals(0L, state.firstPromptStartLineId())
+    }
+
+    @Test
     fun `prompt command lifecycle projects prompt dividers and failed command rails into viewport`() {
         val state = TerminalShellIntegrationState()
         val promptDividers = BooleanArray(5)

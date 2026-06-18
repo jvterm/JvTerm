@@ -28,6 +28,7 @@ internal interface SwingRenderFrameHost {
     val renderCache: TerminalRenderCache
     val settings: SwingSettings
     val metrics: SwingMetrics
+    val shellIntegrationRowLayout: TerminalShellIntegrationRowLayout
     val componentWidth: Int
     val componentHeight: Int
     val cursorPresentationEnabled: Boolean
