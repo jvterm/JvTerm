@@ -110,11 +110,7 @@ internal class TerminalCommandInteractionController(
         return if (lineId == NO_LINE_ID) null else lineId
     }
 
-    private fun currentCommandNavigationRow(): Int {
-        val visibleRows = host.visibleGridRows()
-        if (host.renderCache.rows > visibleRows && host.renderCache.scrollbackOffset > host.committedScrollbackOffset) return 1
-        return 0
-    }
+    private fun currentCommandNavigationRow(): Int = host.commandNavigationAnchorRow()
 
     private fun refreshCommandNavigationCache(boundSession: TerminalSession) {
         val historySize = host.renderCache.historySize

@@ -103,14 +103,27 @@ class SwingTerminalMouseControllerTest {
     @Nested
     inner class WheelRouting {
         @Test
-        fun `mouse wheel is ignored when no scrollback history exists`() {
+        fun `mouse wheel delegates even when no scrollback history exists`() {
             val host = RecordingMouseHost()
             val controller = SwingTerminalMouseController(host)
             val event = mouseWheel(rotation = 1.0)
 
             controller.wheelListener.mouseWheelMoved(event)
 
-            assertEquals(0, host.scrollCount)
+            assertEquals(1, host.scrollCount)
+            assertEquals(0, host.lastScrollHistorySize)
+            assertTrue(event.isConsumed)
+        }
+
+        @Test
+        fun `mouse wheel is not consumed when viewport reports no movement`() {
+            val host = RecordingMouseHost(scrollResult = false)
+            val controller = SwingTerminalMouseController(host)
+            val event = mouseWheel(rotation = 1.0)
+
+            controller.wheelListener.mouseWheelMoved(event)
+
+            assertEquals(1, host.scrollCount)
             assertFalse(event.isConsumed)
         }
 
@@ -244,6 +257,7 @@ class SwingTerminalMouseControllerTest {
         override val session: TerminalSession? = null,
         override val settings: SwingSettings = SwingSettings(padding = Insets(0, 0, 0, 0)),
         private val hyperlinkPressHandled: Boolean = false,
+        private val scrollResult: Boolean = true,
     ) : SwingTerminalMouseHost {
         override val metrics =
             SwingMetrics(
@@ -289,7 +303,7 @@ class SwingTerminalMouseControllerTest {
             scrollCount++
             lastScrollDelta = delta
             lastScrollHistorySize = historySize
-            return true
+            return scrollResult
         }
 
         override fun pasteClipboardText(): Boolean {

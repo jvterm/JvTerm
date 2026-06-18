@@ -40,9 +40,10 @@ internal class SwingViewportController(
     private val viewportRenderOffsetSnapshot = AtomicInteger(0)
     private val viewportVisibleRowsSnapshot = AtomicInteger(1)
     private val viewportRequestedRowsSnapshot = AtomicInteger(1)
-
-    val committedScrollbackOffset: Int
-        get() = scrollModel.offset
+    private val viewportVisualOffsetPixelsSnapshot = AtomicLong(doubleToRawLongBits(0.0))
+    private val viewportVisualRangePixelsSnapshot = AtomicInteger(0)
+    private val viewportHeightPixelsSnapshot = AtomicInteger(0)
+    private val viewportContentHeightPixelsSnapshot = AtomicInteger(0)
 
     val requestedOffset: Int
         get() = scrollModel.requestedOffset
@@ -121,6 +122,14 @@ internal class SwingViewportController(
 
     fun clamp(historySize: Int): Boolean = scrollModel.clamp(historySize)
 
+    fun updateVisualMetrics(
+        historySize: Int,
+        cellHeight: Int,
+        visualOverflowPixels: Int,
+    ): Boolean = scrollModel.updateVisualMetrics(historySize, cellHeight, visualOverflowPixels)
+
+    fun scrollToVisualOffsetPixels(offsetPixels: Double): Boolean = scrollModel.scrollToVisualOffset(offsetPixels)
+
     fun resizeRequestedOffset(): Int = scrollModel.requestedOffset
 
     fun resizeFraction(): Double = scrollModel.preciseScrollbackOffset - scrollModel.offset
@@ -134,42 +143,19 @@ internal class SwingViewportController(
         scrollModel.scrollTo(newPrecise, newHistorySize)
     }
 
-    fun contentYOffset(
-        cacheRows: Int,
+    fun contentOriginY(
         cacheScrollbackOffset: Int,
-        terminalRows: Int,
-        viewportPixelHeight: Int,
-        visualHeightForTerminalRows: Int,
         cellHeight: Int,
     ): Double {
-        require(cacheRows >= 0) { "cacheRows must be >= 0, was $cacheRows" }
         require(cacheScrollbackOffset >= 0) {
             "cacheScrollbackOffset must be >= 0, was $cacheScrollbackOffset"
         }
-        require(terminalRows > 0) { "terminalRows must be > 0, was $terminalRows" }
         require(cellHeight > 0) { "cellHeight must be > 0, was $cellHeight" }
-        require(viewportPixelHeight >= 0) {
-            "viewportPixelHeight must be >= 0, was $viewportPixelHeight"
+        if (cacheScrollbackOffset != scrollModel.requestedOffset) return 0.0
+        if (scrollModel.requestedOffset == 0) {
+            return -scrollModel.liveVisualOverflowPixels.toDouble() + scrollModel.visualScrollOffsetPixels
         }
-        require(visualHeightForTerminalRows >= 0) {
-            "visualHeightForTerminalRows must be >= 0, was $visualHeightForTerminalRows"
-        }
-
-        val smoothYOffset =
-            if (
-                cacheRows > 1 &&
-                scrollModel.needsOverscan &&
-                cacheScrollbackOffset == scrollModel.requestedOffset
-            ) {
-                scrollModel.contentYOffset(cellHeight)
-            } else {
-                0.0
-            }
-        val liveBottomRows = terminalRows + cacheScrollbackOffset
-        if (cacheRows < liveBottomRows || visualHeightForTerminalRows <= viewportPixelHeight) return smoothYOffset
-
-        val bottomAnchorYOffset = (viewportPixelHeight - visualHeightForTerminalRows).toDouble()
-        return minOf(smoothYOffset, bottomAnchorYOffset)
+        return scrollModel.contentYOffset(cellHeight)
     }
 
     fun viewportStateSnapshot(): TerminalViewportState =
@@ -179,32 +165,48 @@ internal class SwingViewportController(
             renderOffset = viewportRenderOffsetSnapshot.get(),
             visibleRows = viewportVisibleRowsSnapshot.get(),
             requestedRows = viewportRequestedRowsSnapshot.get(),
+            visualScrollOffsetPixels = longBitsToDouble(viewportVisualOffsetPixelsSnapshot.get()),
+            visualScrollRangePixels = viewportVisualRangePixelsSnapshot.get(),
+            viewportHeightPixels = viewportHeightPixelsSnapshot.get(),
+            contentHeightPixels = viewportContentHeightPixelsSnapshot.get(),
         )
 
     fun publishViewportState(
         historySize: Int,
         visibleRows: Int,
         renderRows: Int,
+        viewportHeightPixels: Int,
+        contentHeightPixels: Int,
         notifyListener: Boolean = true,
     ) {
         val requestedRows = scrollModel.requestedRows(renderRows)
         val scrollbackOffset = scrollModel.preciseScrollbackOffset
         val renderOffset = scrollModel.requestedOffset
+        val state =
+            TerminalViewportState(
+                historySize = historySize,
+                scrollbackOffset = scrollbackOffset,
+                renderOffset = renderOffset,
+                visibleRows = visibleRows,
+                requestedRows = requestedRows,
+                visualScrollOffsetPixels = scrollModel.visualScrollOffsetPixels,
+                visualScrollRangePixels = scrollModel.visualScrollRangePixels,
+                viewportHeightPixels = viewportHeightPixels,
+                contentHeightPixels = contentHeightPixels,
+            )
 
         viewportHistorySizeSnapshot.set(historySize)
         viewportScrollbackOffsetSnapshot.set(doubleToRawLongBits(scrollbackOffset))
         viewportRenderOffsetSnapshot.set(renderOffset)
         viewportVisibleRowsSnapshot.set(visibleRows)
         viewportRequestedRowsSnapshot.set(requestedRows)
+        viewportVisualOffsetPixelsSnapshot.set(doubleToRawLongBits(state.visualScrollOffsetPixels))
+        viewportVisualRangePixelsSnapshot.set(state.visualScrollRangePixels)
+        viewportHeightPixelsSnapshot.set(state.viewportHeightPixels)
+        viewportContentHeightPixelsSnapshot.set(state.contentHeightPixels)
         if (!notifyListener) return
 
-        listener.viewportChanged(
-            historySize = historySize,
-            scrollbackOffset = scrollbackOffset,
-            renderOffset = renderOffset,
-            visibleRows = visibleRows,
-            requestedRows = requestedRows,
-        )
+        listener.viewportStateChanged(state)
     }
 
     private companion object {

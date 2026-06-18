@@ -54,6 +54,36 @@ class TerminalShellIntegrationBootstrapIntegrationTest {
     }
 
     @Test
+    fun `generated Bash bootstrap continues markers after clear when Bash is installed`() {
+        val bash = installedExecutable("bash", "bash.exe")
+        assumeTrue(bash != null, "bash is not installed")
+
+        val profile =
+            TerminalProfile(
+                id = "bash",
+                displayName = "Bash",
+                command = listOf(bash!!),
+                environment = mapOf("TERM" to "xterm-256color"),
+            )
+        val integrated = TerminalShellIntegrationBootstrap.apply(profile, enabled = true)
+        val bootstrap = integrated.environment.getValue("PROMPT_COMMAND")
+        val result =
+            runProcess(
+                listOf(
+                    bash,
+                    "--noprofile",
+                    "--norc",
+                    "-c",
+                    "$bootstrap; __jvterm_preexec; { clear >/dev/null 2>&1 || printf '\\033[H\\033[2J\\033[3J'; }; true; __jvterm_prompt_command; __jvterm_preexec; false; __jvterm_prompt_command",
+                ),
+                environment = integrated.environment,
+            )
+
+        assertEquals(1, result.exitCode)
+        assertMarkerOrder(result.stdout, "A", "C", "D;0", "A", "C", "D;1", "A")
+    }
+
+    @Test
     fun `generated zsh bootstrap emits prompt command and lifecycle markers when zsh is installed`(
         @TempDir tempDir: Path,
     ) {

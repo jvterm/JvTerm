@@ -82,13 +82,13 @@ internal class SwingTerminalMouseController(
     private fun handleMouseWheel(event: MouseWheelEvent) {
         if (handleMouseTracking(event, TerminalMouseEventType.WHEEL)) return
         val historySize = host.renderCache.historySize
-        if (historySize == 0) return
 
         val delta = wheelScrollLines(event)
         if (delta == 0.0) return
 
-        host.scrollViewportBy(delta, historySize)
-        event.consume()
+        if (host.scrollViewportBy(delta, historySize)) {
+            event.consume()
+        }
     }
 
     private fun isMouseTrackingIntercepted(event: MouseEvent): Boolean {

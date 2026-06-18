@@ -332,6 +332,29 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `OSC 133 decorations re-anchor after clear screen and history`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost(
+            (
+                "\u001B]133;A\u0007PS> \u001B]133;B\u0007bad\u001B]133;C\u0007\r\n" +
+                    "failed\u001B]133;D;1\u0007" +
+                    "\u001B[H\u001B[2J\u001B[3J" +
+                    "\u001B]133;A\u0007PS> \u001B]133;B\u0007"
+            ).ascii(),
+        )
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertTrue(decorations.lineIds.all { it > 0L }, "clear-history render frame exposed a zero line id") },
+            { assertTrue(decorations.promptDividers.any { it }, "new prompt marker did not re-anchor after clear") },
+            { assertFalse(decorations.failedCommandRails.any { it }, "stale failed-command rail survived clear-history") },
+        )
+        session.close()
+    }
+
+    @Test
     fun `OSC 133 command finish at next prompt line excludes prompt row from failed range`() {
         val connector = MockConnector()
         val session = createStartedSession(connector, columns = 20, rows = 4)
@@ -1014,6 +1037,7 @@ class TerminalSessionTest {
     }
 
     private fun TerminalSession.shellDecorations(): ShellDecorationSnapshot {
+        var lineIds = LongArray(0)
         var promptDividers = BooleanArray(0)
         var failedCommandRails = BooleanArray(0)
         var commandStarts = BooleanArray(0)
@@ -1021,7 +1045,7 @@ class TerminalSessionTest {
         var commandRecordIds = IntArray(0)
         var commandLifecycleStates = IntArray(0)
         readRenderFrame { frame ->
-            val lineIds = LongArray(frame.rows)
+            lineIds = LongArray(frame.rows)
             var row = 0
             while (row < frame.rows) {
                 lineIds[row] = frame.lineId(row)
@@ -1045,6 +1069,7 @@ class TerminalSessionTest {
             )
         }
         return ShellDecorationSnapshot(
+            lineIds = lineIds,
             promptDividers = promptDividers,
             failedCommandRails = failedCommandRails,
             commandStarts = commandStarts,
@@ -1055,6 +1080,7 @@ class TerminalSessionTest {
     }
 
     private data class ShellDecorationSnapshot(
+        val lineIds: LongArray,
         val promptDividers: BooleanArray,
         val failedCommandRails: BooleanArray,
         val commandStarts: BooleanArray,

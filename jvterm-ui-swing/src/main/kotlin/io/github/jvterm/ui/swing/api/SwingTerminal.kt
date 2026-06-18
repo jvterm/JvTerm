@@ -26,8 +26,8 @@ import io.github.jvterm.ui.swing.input.SwingTerminalMouseHost
 import io.github.jvterm.ui.swing.render.GridPainter
 import io.github.jvterm.ui.swing.render.SwingRenderFrameController
 import io.github.jvterm.ui.swing.render.SwingRenderFrameHost
-import io.github.jvterm.ui.swing.render.TerminalShellIntegrationRowLayout
 import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
+import io.github.jvterm.ui.swing.render.TerminalVisualViewportGeometry
 import io.github.jvterm.ui.swing.search.*
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
@@ -74,7 +74,8 @@ class SwingTerminal
         private val renderCache = TerminalRenderCache(settings.columns, settings.rows)
         private val searchCache = TerminalRenderCache(settings.columns, settings.rows)
         private val shellIntegrationDecorations = TerminalShellIntegrationViewportDecorations()
-        private val shellIntegrationRowLayout = TerminalShellIntegrationRowLayout()
+        private val visualGeometry = TerminalVisualViewportGeometry()
+        private var liveVisualOverflowPixels: Int = 0
 
         private val selectionController =
             TerminalSelectionController(
@@ -82,10 +83,7 @@ class SwingTerminal
                     override val settings: SwingSettings get() = this@SwingTerminal.settings
                     override val metrics: SwingMetrics get() = this@SwingTerminal.metrics
                     override val renderCache: TerminalRenderCache get() = this@SwingTerminal.renderCache
-                    override val contentYOffset: Double get() =
-                        this@SwingTerminal.contentYOffset(
-                            this@SwingTerminal.renderCache,
-                        )
+                    override val contentYOffset: Double get() = this@SwingTerminal.visualGeometry.contentOriginY
                     override val componentWidth: Int get() = this@SwingTerminal.width
                     override val componentHeight: Int get() = this@SwingTerminal.height
 
@@ -111,7 +109,6 @@ class SwingTerminal
                     override val session: TerminalSession? get() = this@SwingTerminal.session
                     override val renderCache: TerminalRenderCache get() = this@SwingTerminal.renderCache
                     override val searchCache: TerminalRenderCache get() = this@SwingTerminal.searchCache
-                    override val committedScrollbackOffset: Int get() = this@SwingTerminal.viewportController.committedScrollbackOffset
 
                     override fun cellAt(
                         x: Int,
@@ -120,6 +117,8 @@ class SwingTerminal
                     ): Long = this@SwingTerminal.cellAt(x, y, cache)
 
                     override fun visibleGridRows(): Int = this@SwingTerminal.visibleGridRows()
+
+                    override fun commandNavigationAnchorRow(): Int = this@SwingTerminal.commandNavigationAnchorRow()
 
                     override fun refreshRenderCacheFromSession(session: TerminalSession) =
                         this@SwingTerminal.refreshRenderCacheFromSession(session)
@@ -278,8 +277,8 @@ class SwingTerminal
                     override val renderCache: TerminalRenderCache get() = this@SwingTerminal.renderCache
                     override val settings: SwingSettings get() = this@SwingTerminal.settings
                     override val metrics: SwingMetrics get() = this@SwingTerminal.metrics
-                    override val shellIntegrationRowLayout: TerminalShellIntegrationRowLayout
-                        get() = this@SwingTerminal.shellIntegrationRowLayout
+                    override val visualGeometry: TerminalVisualViewportGeometry
+                        get() = this@SwingTerminal.visualGeometry
                     override val componentWidth: Int get() = this@SwingTerminal.width
                     override val componentHeight: Int get() = this@SwingTerminal.height
                     override val cursorPresentationEnabled: Boolean get() = this@SwingTerminal.cursorPresentationEnabled
@@ -310,8 +309,6 @@ class SwingTerminal
                     override fun publishViewportState(historySize: Int) {
                         this@SwingTerminal.publishViewportState(historySize)
                     }
-
-                    override fun contentYOffset(cache: TerminalRenderCache): Double = this@SwingTerminal.contentYOffset(cache)
 
                     override fun repaint() {
                         this@SwingTerminal.repaint()
@@ -491,6 +488,24 @@ class SwingTerminal
         }
 
         /**
+         * Scrolls to an absolute visual-pixel offset from the live viewport.
+         *
+         * This richer viewport coordinate includes Swing-owned prompt divider
+         * bands before terminal history rows. `0.0` is the live bottom, and
+         * larger values move farther back visually.
+         *
+         * @param offsetPixels requested visual pixel offset from live output.
+         */
+        fun scrollToVisualOffsetPixels(offsetPixels: Double) {
+            require(!offsetPixels.isNaN()) { "offsetPixels must not be NaN" }
+            runOnEdt(
+                Runnable {
+                    scrollViewportToVisualPixelsOnEdt(offsetPixels)
+                },
+            )
+        }
+
+        /**
          * Scrolls to the nearest previous shell command.
          *
          * The component uses session-owned OSC 133 command metadata and reveals
@@ -633,11 +648,10 @@ class SwingTerminal
                     cursorVisible = cursorPresentationEnabled,
                     cursorBlinkVisible = cursorBlinkVisible,
                     textBlinkVisible = cursorBlinkVisible,
-                    contentYOffset = contentYOffset(renderCache),
+                    visualGeometry = visualGeometry,
                     selection = selectionController.getViewportSelection(renderCache),
                     searchHighlights = searchController.viewportHighlights,
                     shellIntegrationDecorations = shellIntegrationDecorations,
-                    shellIntegrationRowLayout = shellIntegrationRowLayout,
                     hoveredHyperlinkId = hyperlinkController.hoveredHyperlinkId,
                     hyperlinkActivationHover = hyperlinkController.hyperlinkActivationHover,
                 )
@@ -656,7 +670,8 @@ class SwingTerminal
             selectionController.clearSelection()
             searchController.reset(renderCache.rows)
             shellIntegrationDecorations.reset()
-            shellIntegrationRowLayout.reset()
+            visualGeometry.reset()
+            liveVisualOverflowPixels = 0
             selectionController.stopSelectionDrag()
             lastResizedColumns = NO_RESIZE_DIMENSION
             lastResizedRows = NO_RESIZE_DIMENSION
@@ -676,7 +691,8 @@ class SwingTerminal
             selectionController.clearSelection()
             searchController.reset(renderCache.rows)
             shellIntegrationDecorations.reset()
-            shellIntegrationRowLayout.reset()
+            visualGeometry.reset()
+            liveVisualOverflowPixels = 0
             selectionController.stopSelectionDrag()
             lastResizedColumns = NO_RESIZE_DIMENSION
             lastResizedRows = NO_RESIZE_DIMENSION
@@ -790,13 +806,10 @@ class SwingTerminal
             val padding = settings.padding
             val column = ((x - padding.left) / metrics.cellWidth).coerceIn(0, cache.columns - 1)
             val row =
-                if (cache === renderCache && shellIntegrationRowLayout.rowCount == cache.rows) {
-                    val localY = floorLocalY(y, padding.top, contentYOffset(cache))
-                    shellIntegrationRowLayout.rowAt(localY)
+                if (cache === renderCache && visualGeometry.rowCount == cache.rows) {
+                    visualGeometry.rowAtComponentY(y, padding.top)
                 } else {
-                    ((y - padding.top - contentYOffset(cache)) / metrics.cellHeight)
-                        .toInt()
-                        .coerceIn(0, cache.rows - 1)
+                    ((y - padding.top) / metrics.cellHeight).coerceIn(0, cache.rows - 1)
                 }
             return packCell(column, row)
         }
@@ -805,11 +818,10 @@ class SwingTerminal
             y: Int,
             cache: TerminalRenderCache,
         ): Int {
-            val localY = floorLocalY(y, settings.padding.top, contentYOffset(cache))
-            if (cache === renderCache && shellIntegrationRowLayout.rowCount == cache.rows) {
-                val row = shellIntegrationRowLayout.rowAt(localY)
-                return shellIntegrationRowLayout.terminalPixelY(localY, row)
+            if (cache === renderCache && visualGeometry.rowCount == cache.rows) {
+                return visualGeometry.terminalPixelYAtComponentY(y, settings.padding.top)
             }
+            val localY = y - settings.padding.top
             return localY.coerceIn(0, maxOf(0, cache.rows * metrics.cellHeight - 1))
         }
 
@@ -819,6 +831,21 @@ class SwingTerminal
             boundSession: TerminalSession? = session,
         ): Boolean {
             if (!viewportController.scrollBy(delta, historySize)) return false
+            if (boundSession != null) {
+                refreshRenderCacheFromSession(boundSession)
+                refreshShellIntegrationDecorations(boundSession)
+            }
+            searchController.updateViewportHighlights()
+            publishViewportState(renderCache.historySize)
+            repaint()
+            return true
+        }
+
+        private fun scrollViewportToVisualPixelsOnEdt(
+            offsetPixels: Double,
+            boundSession: TerminalSession? = session,
+        ): Boolean {
+            if (!viewportController.scrollToVisualOffsetPixels(offsetPixels)) return false
             if (boundSession != null) {
                 refreshRenderCacheFromSession(boundSession)
                 refreshShellIntegrationDecorations(boundSession)
@@ -879,6 +906,8 @@ class SwingTerminal
                 historySize = historySize,
                 visibleRows = visibleGridRows(),
                 renderRows = visibleRenderRows(),
+                viewportHeightPixels = viewportController.viewportPixelHeight(settings, height),
+                contentHeightPixels = visualContentHeightPixels(),
                 notifyListener = notifyListener,
             )
         }
@@ -927,6 +956,20 @@ class SwingTerminal
 
         private fun requestedRenderRows(): Int = viewportController.requestedRows(visibleRenderRows())
 
+        private fun visualContentHeightPixels(): Int =
+            if (visualGeometry.rowCount == renderCache.rows) {
+                visualGeometry.visualHeight
+            } else {
+                renderCache.rows * metrics.cellHeight
+            }
+
+        private fun commandNavigationAnchorRow(): Int =
+            if (visualGeometry.rowCount == renderCache.rows) {
+                visualGeometry.firstFullyVisibleRow()
+            } else {
+                0
+            }
+
         private fun refreshRenderCacheFromSession(session: TerminalSession) {
             renderCache.updateFrom(
                 reader = session,
@@ -935,25 +978,36 @@ class SwingTerminal
             )
         }
 
-        private fun refreshShellIntegrationDecorations(session: TerminalSession): Boolean =
-            shellIntegrationDecorations.updateFrom(session.shellIntegrationState, renderCache) or
-                shellIntegrationRowLayout.update(settings, metrics, shellIntegrationDecorations, renderCache.rows)
-
-        private fun contentYOffset(cache: TerminalRenderCache): Double {
+        private fun refreshShellIntegrationDecorations(session: TerminalSession): Boolean {
+            val decorationsChanged = shellIntegrationDecorations.updateFrom(session.shellIntegrationState, renderCache)
             val terminalRows = visibleGridRows()
-            val layout = shellIntegrationRowLayout.takeIf { cache === renderCache && it.rowCount == cache.rows }
-            val terminalRowsInCache = minOf(cache.rows, terminalRows)
-            val visualHeightForTerminalRows =
-                layout?.visualHeightForRows(terminalRowsInCache)
-                    ?: terminalRowsInCache * metrics.cellHeight
-            return viewportController.contentYOffset(
-                cacheRows = cache.rows,
-                cacheScrollbackOffset = cache.scrollbackOffset,
-                terminalRows = terminalRows,
-                viewportPixelHeight = viewportController.viewportPixelHeight(settings, height),
-                visualHeightForTerminalRows = visualHeightForTerminalRows,
-                cellHeight = metrics.cellHeight,
-            )
+            val viewportPixelHeight = viewportController.viewportPixelHeight(settings, height)
+            val layoutChanged =
+                visualGeometry.updateLayout(
+                    settings = settings,
+                    metrics = metrics,
+                    decorations = shellIntegrationDecorations,
+                    rows = renderCache.rows,
+                    terminalRows = terminalRows,
+                    viewportPixelHeight = viewportPixelHeight,
+                )
+            if (renderCache.scrollbackOffset == 0) {
+                liveVisualOverflowPixels = visualGeometry.liveVisualOverflowPixels
+            }
+            val visualMetricsChanged =
+                viewportController.updateVisualMetrics(
+                    historySize = renderCache.historySize,
+                    cellHeight = metrics.cellHeight,
+                    visualOverflowPixels = liveVisualOverflowPixels,
+                )
+            val originChanged =
+                visualGeometry.updateContentOrigin(
+                    viewportController.contentOriginY(
+                        cacheScrollbackOffset = renderCache.scrollbackOffset,
+                        cellHeight = metrics.cellHeight,
+                    ),
+                )
+            return decorationsChanged or layoutChanged or visualMetricsChanged or originChanged
         }
 
         private fun buildMetrics(settings: SwingSettings): SwingMetrics {
@@ -979,11 +1033,5 @@ class SwingTerminal
                 column: Int,
                 row: Int,
             ): Long = (column.toLong() shl 32) or (row.toLong() and 0xffff_ffffL)
-
-            private fun floorLocalY(
-                y: Int,
-                paddingTop: Int,
-                contentYOffset: Double,
-            ): Int = kotlin.math.floor(y.toDouble() - paddingTop.toDouble() - contentYOffset).toInt()
         }
     }

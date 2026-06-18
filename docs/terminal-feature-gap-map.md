@@ -95,7 +95,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ### Reset and Mode Semantics
 - `TODO(core/host)`: richer event API for hyperlink metadata, palette changes, terminal notifications, and any future host-observable state that should not be read from render frames.
-- `TODO(session/host/ui)`: shell integration persistent command history, multiline command text extraction, prompt click actions, full command output copy/export, current-directory metadata, rich command metadata, and WSL-specific shell bootstrap handling, on top of the existing OSC 133 marker event backbone, PowerShell/Bash/Git Bash/zsh/fish bootstraps, bounded single-line command text metadata, command timeline, primitive command lookup/navigation, Swing previous/next command navigation, command hit-testing/output selection, and basic Swing prompt/failure decorations.
+- `TODO(session/host/ui)`: shell integration persistent command history, multiline command text extraction, prompt click actions, full command output copy/export, current-directory metadata, rich command metadata, and WSL-specific shell bootstrap handling, on top of the existing OSC 133 marker event backbone, PowerShell/Bash/Git Bash/zsh/fish bootstraps, bounded single-line command text metadata, command timeline, primitive command lookup/navigation, Swing previous/next command navigation, command hit-testing/output selection, pixel-aware prompt dividers, and failed-command decorations.
 
 ### Grid Operations
 - `TODO(core)`: rectangular area operations if parser support is added (copy, erase, fill, selective erase).
@@ -143,7 +143,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 - `TODO(host)`: richer font fallback policy, bundled/host-provided font resolver host, script/run-level shaping, and fallback cache eviction.
 - `TODO(host)`: richer font measurement policy for script/run-level shaping, fallback run metrics, and backend painter integrations beyond the current Java2D/Swing path.
 - `TODO(host)`: custom line spacing/height metrics in the renderer.
-- `TODO(host)`: UI scrollback controls, scrollbar policy, selection behavior while scrolled, and auto-follow/offset-retention policy.
+- `TODO(host/ui)`: richer UI scrollback controls, selection behavior while scrolled, and auto-follow/offset-retention policy beyond the current pixel-aware Swing scrollbar and visual viewport mapping.
 - `TODO(host)`: accessibility/export APIs.
 - `TODO(host)`: performance benchmarks for large scrollback, resize, and dense SGR streams.
 

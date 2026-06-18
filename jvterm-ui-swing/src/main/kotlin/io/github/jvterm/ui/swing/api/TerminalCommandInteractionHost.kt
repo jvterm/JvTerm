@@ -25,7 +25,6 @@ internal interface TerminalCommandInteractionHost {
     val session: TerminalSession?
     val renderCache: TerminalRenderCache
     val searchCache: TerminalRenderCache
-    val committedScrollbackOffset: Int
 
     fun cellAt(
         x: Int,
@@ -34,6 +33,8 @@ internal interface TerminalCommandInteractionHost {
     ): Long
 
     fun visibleGridRows(): Int
+
+    fun commandNavigationAnchorRow(): Int
 
     fun refreshRenderCacheFromSession(session: TerminalSession)
 

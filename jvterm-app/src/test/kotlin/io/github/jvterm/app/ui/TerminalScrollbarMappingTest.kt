@@ -48,4 +48,18 @@ class TerminalScrollbarMappingTest {
         assertEquals(42, TerminalScrollbarMapping.maximum(historySize = 12, visibleRows = 30))
         assertEquals(13, TerminalScrollbarMapping.maximum(historySize = 12, visibleRows = 0))
     }
+
+    @Test
+    fun `visual pixel viewport maps divider overflow without history rows`() {
+        assertEquals(8, TerminalScrollbarMapping.valueForVisualViewport(visualScrollRangePixels = 8, visualScrollOffsetPixels = 0.0))
+        assertEquals(4, TerminalScrollbarMapping.valueForVisualViewport(visualScrollRangePixels = 8, visualScrollOffsetPixels = 4.2))
+        assertEquals(8, TerminalScrollbarMapping.visualOffsetForValue(visualScrollRangePixels = 8, value = 0))
+        assertEquals(0, TerminalScrollbarMapping.visualOffsetForValue(visualScrollRangePixels = 8, value = 8))
+    }
+
+    @Test
+    fun `visual maximum includes pixel viewport extent`() {
+        assertEquals(108, TerminalScrollbarMapping.visualMaximum(visualScrollRangePixels = 8, viewportHeightPixels = 100))
+        assertEquals(9, TerminalScrollbarMapping.visualMaximum(visualScrollRangePixels = 8, viewportHeightPixels = 0))
+    }
 }

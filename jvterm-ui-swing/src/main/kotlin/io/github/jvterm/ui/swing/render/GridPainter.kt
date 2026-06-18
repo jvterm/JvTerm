@@ -74,11 +74,10 @@ internal class GridPainter {
         cursorBlinkVisible: Boolean,
         textBlinkVisible: Boolean = true,
         cursorVisible: Boolean = true,
-        contentYOffset: Double = 0.0,
+        visualGeometry: TerminalVisualViewportGeometry? = null,
         selection: CellSelection? = null,
         searchHighlights: TerminalSearchViewportHighlights? = null,
         shellIntegrationDecorations: TerminalShellIntegrationViewportDecorations? = null,
-        shellIntegrationRowLayout: TerminalShellIntegrationRowLayout? = null,
         hoveredHyperlinkId: Int = 0,
         hyperlinkActivationHover: Boolean = false,
     ) {
@@ -98,15 +97,16 @@ internal class GridPainter {
         backgroundPainter.clear(g, palette, width, height)
 
         val padding = settings.padding
-        val rowLayout = shellIntegrationRowLayout?.takeIf { it.rowCount == cache.rows }
-        val firstRow = firstPaintRow(clip, metrics, contentYOffset, padding.top, rowLayout)
-        val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentYOffset, padding.top, padding.bottom, rowLayout)
-        g.translate(padding.left.toDouble(), padding.top.toDouble() + contentYOffset)
+        val geometry = visualGeometry?.takeIf { it.rowCount == cache.rows }
+        val contentOriginY = geometry?.contentOriginY ?: 0.0
+        val firstRow = firstPaintRow(clip, metrics, contentOriginY, padding.top, geometry)
+        val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentOriginY, padding.top, padding.bottom, geometry)
+        g.translate(padding.left.toDouble(), padding.top.toDouble() + contentOriginY)
         var appliedPromptDividerOffset = 0
         try {
             var row = firstRow
             while (row < rows) {
-                val promptDividerOffset = rowLayout?.translationForRow(row) ?: 0
+                val promptDividerOffset = geometry?.translationForRow(row) ?: 0
                 if (appliedPromptDividerOffset != promptDividerOffset) {
                     g.translate(0.0, (promptDividerOffset - appliedPromptDividerOffset).toDouble())
                     appliedPromptDividerOffset = promptDividerOffset
@@ -119,7 +119,7 @@ internal class GridPainter {
                     decorations = shellIntegrationDecorations,
                     row = row,
                     componentWidth = width,
-                    dividerBandHeight = rowLayout?.dividerBandHeight ?: 0,
+                    dividerBandHeight = geometry?.dividerBandHeight ?: 0,
                 )
                 searchPainter.paint(
                     g = g,
@@ -145,7 +145,7 @@ internal class GridPainter {
                 row++
             }
 
-            val cursorPromptDividerOffset = rowLayout?.translationForRow(cache.cursorRow) ?: 0
+            val cursorPromptDividerOffset = geometry?.translationForRow(cache.cursorRow) ?: 0
             if (appliedPromptDividerOffset != cursorPromptDividerOffset) {
                 g.translate(0.0, (cursorPromptDividerOffset - appliedPromptDividerOffset).toDouble())
                 appliedPromptDividerOffset = cursorPromptDividerOffset
@@ -164,23 +164,22 @@ internal class GridPainter {
             if (appliedPromptDividerOffset != 0) {
                 g.translate(0.0, -appliedPromptDividerOffset.toDouble())
             }
-            g.translate(-padding.left.toDouble(), -(padding.top.toDouble() + contentYOffset))
+            g.translate(-padding.left.toDouble(), -(padding.top.toDouble() + contentOriginY))
         }
     }
 
     private fun firstPaintRow(
         clip: Rectangle?,
         metrics: SwingMetrics,
-        contentYOffset: Double,
+        contentOriginY: Double,
         paddingTop: Int,
-        rowLayout: TerminalShellIntegrationRowLayout?,
+        geometry: TerminalVisualViewportGeometry?,
     ): Int {
         if (clip == null) return 0
-        if (rowLayout != null) {
-            val localY = floor(clip.y.toDouble() - paddingTop.toDouble() - contentYOffset).toInt()
-            return rowLayout.rowAt(localY)
+        if (geometry != null) {
+            return geometry.firstPaintRow(clip, paddingTop)
         }
-        return maxOf(0, floor((clip.y - paddingTop - contentYOffset) / metrics.cellHeight).toInt())
+        return maxOf(0, floor((clip.y - paddingTop - contentOriginY) / metrics.cellHeight).toInt())
     }
 
     private fun lastPaintRowExclusive(
@@ -188,16 +187,15 @@ internal class GridPainter {
         cache: TerminalRenderCache,
         metrics: SwingMetrics,
         componentHeight: Int,
-        contentYOffset: Double,
+        contentOriginY: Double,
         paddingTop: Int,
         paddingBottom: Int,
-        rowLayout: TerminalShellIntegrationRowLayout?,
+        geometry: TerminalVisualViewportGeometry?,
     ): Int {
         val availableHeight = componentHeight - paddingTop - paddingBottom
         val visibleRows =
-            if (rowLayout != null) {
-                val localBottom = ceil(availableHeight.toDouble() - contentYOffset).toInt()
-                minOf(cache.rows, rowLayout.rowAt(localBottom) + 2)
+            if (geometry != null) {
+                geometry.visibleRowsExclusive(componentHeight, paddingTop, paddingBottom)
             } else {
                 minOf(cache.rows, maxOf(1, availableHeight / metrics.cellHeight) + 2)
             }
@@ -206,11 +204,10 @@ internal class GridPainter {
         val clipBottom = clip.y + clip.height
         if (clipBottom <= 0) return 0
         val clippedRows =
-            if (rowLayout != null) {
-                val localBottom = ceil(clipBottom.toDouble() - paddingTop.toDouble() - contentYOffset).toInt()
-                rowLayout.rowAt(localBottom) + 1
+            if (geometry != null) {
+                geometry.lastPaintRowExclusive(clip, componentHeight, paddingTop, paddingBottom)
             } else {
-                ceil((clipBottom - paddingTop - contentYOffset) / metrics.cellHeight).toInt()
+                ceil((clipBottom - paddingTop - contentOriginY) / metrics.cellHeight).toInt()
             }
         return clippedRows.coerceIn(0, visibleRows)
     }

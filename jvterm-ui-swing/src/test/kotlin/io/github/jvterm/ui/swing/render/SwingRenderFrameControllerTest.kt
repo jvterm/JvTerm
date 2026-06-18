@@ -142,7 +142,7 @@ class SwingRenderFrameControllerTest {
                 overlineY = 0,
                 cursorStrokeWidth = 2,
             )
-        override val shellIntegrationRowLayout = TerminalShellIntegrationRowLayout()
+        override val visualGeometry = TerminalVisualViewportGeometry()
         override val componentWidth = 800
         override val componentHeight = 480
         override val cursorPresentationEnabled = true
@@ -191,8 +191,6 @@ class SwingRenderFrameControllerTest {
             semanticCalls += "publishViewportState"
             publishHistorySizes += historySize
         }
-
-        override fun contentYOffset(cache: TerminalRenderCache): Double = 0.0
 
         override fun repaint() {
             fullRepaintCount++

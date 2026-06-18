@@ -104,11 +104,31 @@ class SwingViewportControllerTest {
             val listener = RecordingViewportListener()
             val controller = SwingViewportController(listener)
 
+            controller.updateVisualMetrics(historySize = 100, cellHeight = 20, visualOverflowPixels = 0)
             assertTrue(controller.scrollTo(offsetLines = 12.5, historySize = 100))
-            controller.publishViewportState(historySize = 100, visibleRows = 24, renderRows = 25)
+            controller.publishViewportState(
+                historySize = 100,
+                visibleRows = 24,
+                renderRows = 25,
+                viewportHeightPixels = 480,
+                contentHeightPixels = 500,
+            )
 
             val snapshot = controller.viewportStateSnapshot()
-            assertEquals(TerminalViewportState(100, 12.5, 13, 24, 26), snapshot)
+            assertEquals(
+                TerminalViewportState(
+                    historySize = 100,
+                    scrollbackOffset = 12.5,
+                    renderOffset = 13,
+                    visibleRows = 24,
+                    requestedRows = 26,
+                    visualScrollOffsetPixels = 250.0,
+                    visualScrollRangePixels = 2000,
+                    viewportHeightPixels = 480,
+                    contentHeightPixels = 500,
+                ),
+                snapshot,
+            )
             assertEquals(snapshot, listener.lastState)
         }
 
@@ -117,15 +137,31 @@ class SwingViewportControllerTest {
             val listener = RecordingViewportListener()
             val controller = SwingViewportController(listener)
 
+            controller.updateVisualMetrics(historySize = 10, cellHeight = 20, visualOverflowPixels = 0)
             controller.scrollTo(offsetLines = 3.0, historySize = 10)
             controller.publishViewportState(
                 historySize = 10,
                 visibleRows = 5,
                 renderRows = 6,
+                viewportHeightPixels = 100,
+                contentHeightPixels = 120,
                 notifyListener = false,
             )
 
-            assertEquals(TerminalViewportState(10, 3.0, 3, 5, 6), controller.viewportStateSnapshot())
+            assertEquals(
+                TerminalViewportState(
+                    historySize = 10,
+                    scrollbackOffset = 3.0,
+                    renderOffset = 3,
+                    visibleRows = 5,
+                    requestedRows = 6,
+                    visualScrollOffsetPixels = 60.0,
+                    visualScrollRangePixels = 200,
+                    viewportHeightPixels = 100,
+                    contentHeightPixels = 120,
+                ),
+                controller.viewportStateSnapshot(),
+            )
             assertEquals(0, listener.callCount)
         }
     }
@@ -150,58 +186,63 @@ class SwingViewportControllerTest {
         }
 
         @Test
-        fun `contentYOffset uses terminal cell height for smooth scroll`() {
+        fun `contentOriginY uses terminal cell height for smooth scroll`() {
             val controller = SwingViewportController { _, _, _, _, _ -> }
 
             controller.scrollTo(offsetLines = 2.25, historySize = 10)
 
             assertEquals(
                 -15.0,
-                controller.contentYOffset(
-                    cacheRows = 8,
+                controller.contentOriginY(
                     cacheScrollbackOffset = 3,
-                    terminalRows = 6,
-                    viewportPixelHeight = 120,
-                    visualHeightForTerminalRows = 120,
                     cellHeight = 20,
                 ),
             )
         }
 
         @Test
-        fun `contentYOffset does not bottom anchor partial render overscan by itself`() {
+        fun `contentOriginY keeps exact row offsets unshifted`() {
             val controller = SwingViewportController { _, _, _, _, _ -> }
 
             controller.scrollTo(offsetLines = 1.0, historySize = 10)
 
             assertEquals(
                 0.0,
-                controller.contentYOffset(
-                    cacheRows = 7,
+                controller.contentOriginY(
                     cacheScrollbackOffset = 1,
-                    terminalRows = 6,
-                    viewportPixelHeight = 134,
-                    visualHeightForTerminalRows = 120,
                     cellHeight = 20,
                 ),
             )
         }
 
         @Test
-        fun `contentYOffset bottom anchors live viewport when dividers overflow terminal rows`() {
+        fun `contentOriginY bottom anchors live viewport when dividers overflow terminal rows`() {
             val controller = SwingViewportController { _, _, _, _, _ -> }
+
+            controller.updateVisualMetrics(historySize = 0, cellHeight = 20, visualOverflowPixels = 12)
 
             assertEquals(
                 -12.0,
-                controller.contentYOffset(
-                    cacheRows = 6,
+                controller.contentOriginY(
                     cacheScrollbackOffset = 0,
-                    terminalRows = 6,
-                    viewportPixelHeight = 120,
-                    visualHeightForTerminalRows = 132,
                     cellHeight = 20,
                 ),
             )
+        }
+
+        @Test
+        fun `visual scroll consumes divider overflow before requesting history rows`() {
+            val controller = SwingViewportController { _, _, _, _, _ -> }
+
+            controller.updateVisualMetrics(historySize = 10, cellHeight = 20, visualOverflowPixels = 12)
+
+            assertTrue(controller.scrollToVisualOffsetPixels(6.0))
+            assertEquals(0, controller.requestedOffset)
+            assertEquals(-6.0, controller.contentOriginY(cacheScrollbackOffset = 0, cellHeight = 20))
+
+            assertTrue(controller.scrollToVisualOffsetPixels(22.0))
+            assertEquals(1, controller.requestedOffset)
+            assertEquals(-10.0, controller.contentOriginY(cacheScrollbackOffset = 1, cellHeight = 20))
         }
 
         @Test
@@ -221,14 +262,30 @@ class SwingViewportControllerTest {
 
             controller.scrollTo(offsetLines = 4.5, historySize = 10)
             controller.reset()
+            controller.updateVisualMetrics(historySize = 10, cellHeight = 20, visualOverflowPixels = 0)
             controller.publishViewportState(
                 historySize = 10,
                 visibleRows = 4,
                 renderRows = 4,
+                viewportHeightPixels = 80,
+                contentHeightPixels = 80,
                 notifyListener = false,
             )
 
-            assertEquals(TerminalViewportState(10, 0.0, 0, 4, 4), controller.viewportStateSnapshot())
+            assertEquals(
+                TerminalViewportState(
+                    historySize = 10,
+                    scrollbackOffset = 0.0,
+                    renderOffset = 0,
+                    visibleRows = 4,
+                    requestedRows = 4,
+                    visualScrollOffsetPixels = 0.0,
+                    visualScrollRangePixels = 200,
+                    viewportHeightPixels = 80,
+                    contentHeightPixels = 80,
+                ),
+                controller.viewportStateSnapshot(),
+            )
         }
 
         @Test
@@ -255,10 +312,22 @@ class SwingViewportControllerTest {
             callCount++
             lastState = TerminalViewportState(historySize, scrollbackOffset, renderOffset, visibleRows, requestedRows)
         }
+
+        override fun viewportStateChanged(state: TerminalViewportState) {
+            callCount++
+            lastState = state
+        }
     }
 
     private fun SwingViewportController.viewportOffsetForAssertion(): Double {
-        publishViewportState(historySize = 100, visibleRows = 1, renderRows = 1, notifyListener = false)
+        publishViewportState(
+            historySize = 100,
+            visibleRows = 1,
+            renderRows = 1,
+            viewportHeightPixels = 20,
+            contentHeightPixels = 20,
+            notifyListener = false,
+        )
         return viewportStateSnapshot().scrollbackOffset
     }
 }

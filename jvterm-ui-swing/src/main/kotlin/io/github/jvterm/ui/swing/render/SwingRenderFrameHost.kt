@@ -28,7 +28,7 @@ internal interface SwingRenderFrameHost {
     val renderCache: TerminalRenderCache
     val settings: SwingSettings
     val metrics: SwingMetrics
-    val shellIntegrationRowLayout: TerminalShellIntegrationRowLayout
+    val visualGeometry: TerminalVisualViewportGeometry
     val componentWidth: Int
     val componentHeight: Int
     val cursorPresentationEnabled: Boolean
@@ -48,8 +48,6 @@ internal interface SwingRenderFrameHost {
     fun refreshSearchForFrame()
 
     fun publishViewportState(historySize: Int)
-
-    fun contentYOffset(cache: TerminalRenderCache): Double
 
     fun repaint()
 

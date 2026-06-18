@@ -1011,6 +1011,7 @@ internal class MutationEngine(
             for (row in 0 until height) {
                 val srcLine = buffer.ring[visibleTop + row]
                 val destLine = newRing.push()
+                destLine.assignLineId(if (srcLine.lineId > 0L) srcLine.lineId else state.allocateLineId())
                 for (col in 0 until width) {
                     val raw = srcLine.rawCodepoint(col)
                     val attr = srcLine.getPackedAttr(col)

@@ -20,11 +20,16 @@ import kotlin.math.floor
 /**
  * EDT-confined scrollback viewport model for Swing wheel input.
  *
- * Wheel devices can report fractional line deltas. The terminal grid remains
- * line-addressed, but the Swing renderer can request one overscan row and
- * translate the snapshot by sub-row pixels for smooth scrollback composition.
+ * The terminal render reader remains line-addressed, but the Swing viewport is
+ * pixel-addressed. Prompt dividers and fractional component heights can create
+ * visual overflow without adding terminal scrollback rows, so this model keeps
+ * one pixel scroll position and derives the whole-row render request from it.
  */
 internal class SwingScrollModel {
+    private var visualOffsetPixels: Double = 0.0
+    private var visualOverflowPixels: Int = 0
+    private var cellHeight: Int = 1
+    private var historySize: Int = 0
     private var preciseOffset: Double = 0.0
     private var committedOffset: Int = 0
     private var renderOffset: Int = 0
@@ -52,6 +57,24 @@ internal class SwingScrollModel {
         get() = renderOffset
 
     /**
+     * Current visual pixel offset from the live bottom.
+     */
+    val visualScrollOffsetPixels: Double
+        get() = visualOffsetPixels
+
+    /**
+     * Maximum visual pixel offset from the live bottom.
+     */
+    val visualScrollRangePixels: Int
+        get() = visualOverflowPixels + historySize * cellHeight
+
+    /**
+     * Local live-viewport visual overflow consumed before terminal history rows.
+     */
+    val liveVisualOverflowPixels: Int
+        get() = visualOverflowPixels
+
+    /**
      * Whether the current viewport needs one row of overscan.
      */
     val needsOverscan: Boolean
@@ -61,6 +84,10 @@ internal class SwingScrollModel {
      * Clears scrollback state back to the live viewport.
      */
     fun reset() {
+        visualOffsetPixels = 0.0
+        visualOverflowPixels = 0
+        cellHeight = 1
+        historySize = 0
         preciseOffset = 0.0
         committedOffset = 0
         renderOffset = 0
@@ -73,15 +100,30 @@ internal class SwingScrollModel {
      * @return true when the requested render offset changed.
      */
     fun clamp(historySize: Int): Boolean {
-        val nextPrecise = preciseOffset.coerceIn(0.0, historySize.toDouble())
-        val nextCommitted = committed(nextPrecise, historySize)
-        val nextRenderOffset = renderOffset(nextPrecise, historySize)
-        val changed = nextRenderOffset != renderOffset
-        preciseOffset = nextPrecise
-        committedOffset = nextCommitted
-        renderOffset = nextRenderOffset
-        fraction = fractionalPart(nextPrecise)
-        return changed
+        require(historySize >= 0) { "historySize must be >= 0, was $historySize" }
+        this.historySize = historySize
+        return clampVisualOffset()
+    }
+
+    /**
+     * Updates pixel metrics used to derive row-based render requests.
+     *
+     * @return true when the requested render offset changed.
+     */
+    fun updateVisualMetrics(
+        historySize: Int,
+        cellHeight: Int,
+        visualOverflowPixels: Int,
+    ): Boolean {
+        require(historySize >= 0) { "historySize must be >= 0, was $historySize" }
+        require(cellHeight > 0) { "cellHeight must be > 0, was $cellHeight" }
+        require(visualOverflowPixels >= 0) {
+            "visualOverflowPixels must be >= 0, was $visualOverflowPixels"
+        }
+        this.historySize = historySize
+        this.cellHeight = cellHeight
+        this.visualOverflowPixels = visualOverflowPixels
+        return clampVisualOffset()
     }
 
     /**
@@ -94,16 +136,29 @@ internal class SwingScrollModel {
         historySize: Int,
     ): Boolean {
         require(!offsetLines.isNaN()) { "offsetLines must not be NaN" }
+        require(historySize >= 0) { "historySize must be >= 0, was $historySize" }
 
-        val nextPrecise = offsetLines.coerceIn(0.0, historySize.toDouble())
-        if (nextPrecise == preciseOffset) return false
+        this.historySize = historySize
+        val nextVisual =
+            if (offsetLines <= 0.0) {
+                0.0
+            } else {
+                visualOverflowPixels.toDouble() + offsetLines.coerceAtMost(historySize.toDouble()) * cellHeight
+            }
+        return scrollToVisualOffset(nextVisual)
+    }
 
-        val nextCommitted = committed(nextPrecise, historySize)
-        val nextRenderOffset = renderOffset(nextPrecise, historySize)
-        preciseOffset = nextPrecise
-        committedOffset = nextCommitted
-        renderOffset = nextRenderOffset
-        fraction = fractionalPart(nextPrecise)
+    /**
+     * Moves to an absolute visual pixel offset from the live bottom.
+     *
+     * @return true when the visual offset changed.
+     */
+    fun scrollToVisualOffset(offsetPixels: Double): Boolean {
+        require(!offsetPixels.isNaN()) { "offsetPixels must not be NaN" }
+        val nextVisual = offsetPixels.coerceIn(0.0, visualScrollRangePixels.toDouble())
+        if (nextVisual == visualOffsetPixels) return false
+        visualOffsetPixels = nextVisual
+        recomputeDerivedOffsets()
         return true
     }
 
@@ -119,7 +174,8 @@ internal class SwingScrollModel {
         require(!deltaLines.isNaN()) { "deltaLines must not be NaN" }
         if (deltaLines == 0.0) return false
 
-        return scrollTo(preciseOffset + deltaLines, historySize)
+        this.historySize = historySize
+        return scrollToVisualOffset(visualOffsetPixels + deltaLines * cellHeight)
     }
 
     /**
@@ -155,6 +211,22 @@ internal class SwingScrollModel {
         val offsetFraction = fractionalPart(offset)
         if (offsetFraction == 0.0) return committed
         return (committed + 1).coerceIn(0, historySize)
+    }
+
+    private fun clampVisualOffset(): Boolean {
+        val oldRenderOffset = renderOffset
+        visualOffsetPixels = visualOffsetPixels.coerceIn(0.0, visualScrollRangePixels.toDouble())
+        recomputeDerivedOffsets()
+        return oldRenderOffset != renderOffset
+    }
+
+    private fun recomputeDerivedOffsets() {
+        val historyPixels = maxOf(0.0, visualOffsetPixels - visualOverflowPixels.toDouble())
+        val nextPrecise = (historyPixels / cellHeight).coerceIn(0.0, historySize.toDouble())
+        preciseOffset = nextPrecise
+        committedOffset = committed(nextPrecise, historySize)
+        renderOffset = renderOffset(nextPrecise, historySize)
+        fraction = fractionalPart(nextPrecise)
     }
 
     private fun fractionalPart(offset: Double): Double = offset - floor(offset)

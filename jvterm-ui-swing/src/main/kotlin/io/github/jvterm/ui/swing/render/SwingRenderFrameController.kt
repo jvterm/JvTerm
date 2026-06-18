@@ -68,36 +68,36 @@ internal class SwingRenderFrameController(
         if (host.clampViewport(host.renderCache.historySize) || host.renderCache.scrollbackOffset != host.requestedViewportOffset()) {
             host.refreshRenderCacheFromSession(boundSession)
         }
-        val shellIntegrationDecorationsChanged = host.refreshShellIntegrationDecorations(boundSession)
+        var shellIntegrationDecorationsChanged = host.refreshShellIntegrationDecorations(boundSession)
+        if (host.renderCache.scrollbackOffset != host.requestedViewportOffset()) {
+            host.refreshRenderCacheFromSession(boundSession)
+            shellIntegrationDecorationsChanged = host.refreshShellIntegrationDecorations(boundSession) || shellIntegrationDecorationsChanged
+        }
         host.refreshSearchForFrame()
         host.publishViewportState(host.renderCache.historySize)
-        val yOffset = host.contentYOffset(host.renderCache)
         repaintPlanner.requestFrameRepaint(
             cache = host.renderCache,
             metrics = host.metrics,
             componentWidth = host.componentWidth,
             componentHeight = host.componentHeight,
-            contentYOffset = yOffset,
             padding = host.settings.padding,
             repaintSink = repaintSink,
             forceFullRepaint = shellIntegrationDecorationsChanged,
-            rowLayout = host.shellIntegrationRowLayout,
+            visualGeometry = host.visualGeometry,
         )
     }
 
     fun repaintBlinkState() {
         if (host.session == null) return
-        val yOffset = host.contentYOffset(host.renderCache)
         if (host.cursorPresentationEnabled) {
             repaintPlanner.requestCursorBlinkRepaint(
                 cache = host.renderCache,
                 metrics = host.metrics,
                 componentWidth = host.componentWidth,
                 componentHeight = host.componentHeight,
-                contentYOffset = yOffset,
                 padding = host.settings.padding,
                 repaintSink = repaintSink,
-                rowLayout = host.shellIntegrationRowLayout,
+                visualGeometry = host.visualGeometry,
             )
         }
         repaintPlanner.requestBlinkingTextRepaint(
@@ -105,25 +105,22 @@ internal class SwingRenderFrameController(
             metrics = host.metrics,
             componentWidth = host.componentWidth,
             componentHeight = host.componentHeight,
-            contentYOffset = yOffset,
             padding = host.settings.padding,
             repaintSink = repaintSink,
-            rowLayout = host.shellIntegrationRowLayout,
+            visualGeometry = host.visualGeometry,
         )
     }
 
     fun repaintCursorState() {
         if (host.session == null) return
-        val yOffset = host.contentYOffset(host.renderCache)
         repaintPlanner.requestCursorRepaint(
             cache = host.renderCache,
             metrics = host.metrics,
             componentWidth = host.componentWidth,
             componentHeight = host.componentHeight,
-            contentYOffset = yOffset,
             padding = host.settings.padding,
             repaintSink = repaintSink,
-            rowLayout = host.shellIntegrationRowLayout,
+            visualGeometry = host.visualGeometry,
         )
     }
 }

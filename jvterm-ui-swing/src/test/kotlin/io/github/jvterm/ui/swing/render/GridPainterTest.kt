@@ -414,8 +414,14 @@ class GridPainterTest {
         state.recordPromptStart(2)
         val decorations = TerminalShellIntegrationViewportDecorations()
         decorations.updateFrom(state, cache)
-        val rowLayout = TerminalShellIntegrationRowLayout()
-        rowLayout.update(settings, metrics, decorations, cache.rows)
+        val geometry =
+            visualGeometry(
+                settings = settings,
+                metrics = metrics,
+                decorations = decorations,
+                rows = cache.rows,
+                viewportPixelHeight = image.height,
+            )
 
         GridPainter().paint(
             g = g,
@@ -426,7 +432,7 @@ class GridPainterTest {
             height = image.height,
             cursorBlinkVisible = true,
             shellIntegrationDecorations = decorations,
-            shellIntegrationRowLayout = rowLayout,
+            visualGeometry = geometry,
         )
         g.dispose()
 
@@ -466,8 +472,14 @@ class GridPainterTest {
         state.recordPromptStart(2)
         val decorations = TerminalShellIntegrationViewportDecorations()
         decorations.updateFrom(state, cache)
-        val rowLayout = TerminalShellIntegrationRowLayout()
-        rowLayout.update(settings, metrics, decorations, cache.rows)
+        val geometry =
+            visualGeometry(
+                settings = settings,
+                metrics = metrics,
+                decorations = decorations,
+                rows = cache.rows,
+                viewportPixelHeight = image.height,
+            )
 
         GridPainter().paint(
             g = g,
@@ -479,7 +491,7 @@ class GridPainterTest {
             cursorBlinkVisible = true,
             selection = CellSelection(0, 2, 3, 2),
             shellIntegrationDecorations = decorations,
-            shellIntegrationRowLayout = rowLayout,
+            visualGeometry = geometry,
         )
         g.dispose()
 
@@ -514,8 +526,15 @@ class GridPainterTest {
         state.recordPromptStart(2)
         val decorations = TerminalShellIntegrationViewportDecorations()
         decorations.updateFrom(state, cache)
-        val rowLayout = TerminalShellIntegrationRowLayout()
-        rowLayout.update(settings, metrics, decorations, cache.rows)
+        val geometry =
+            visualGeometry(
+                settings = settings,
+                metrics = metrics,
+                decorations = decorations,
+                rows = cache.rows,
+                viewportPixelHeight = image.height,
+                contentOriginY = -metrics.cellHeight.toDouble(),
+            )
 
         GridPainter().paint(
             g = g,
@@ -525,9 +544,8 @@ class GridPainterTest {
             width = image.width,
             height = image.height,
             cursorBlinkVisible = true,
-            contentYOffset = -metrics.cellHeight.toDouble(),
             shellIntegrationDecorations = decorations,
-            shellIntegrationRowLayout = rowLayout,
+            visualGeometry = geometry,
         )
         g.dispose()
 
@@ -738,6 +756,26 @@ class GridPainterTest {
         }
         return false
     }
+
+    private fun visualGeometry(
+        settings: SwingSettings,
+        metrics: SwingMetrics,
+        decorations: TerminalShellIntegrationViewportDecorations,
+        rows: Int,
+        viewportPixelHeight: Int,
+        contentOriginY: Double = 0.0,
+    ): TerminalVisualViewportGeometry =
+        TerminalVisualViewportGeometry().also {
+            it.updateLayout(
+                settings = settings,
+                metrics = metrics,
+                decorations = decorations,
+                rows = rows,
+                terminalRows = rows,
+                viewportPixelHeight = viewportPixelHeight,
+            )
+            it.updateContentOrigin(contentOriginY)
+        }
 
     private class TextFrame(
         private val text: String,

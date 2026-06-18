@@ -61,6 +61,7 @@ internal class TerminalShellIntegrationViewportDecorations {
             commandLifecycleStates = nextCommandLifecycleStates,
         )
         suppressFirstPromptDivider(state, cache)
+        suppressTopEdgeDivider(cache)
         val changed = decorationsChanged(cache.rows)
         swapBuffers()
         rowCount = cache.rows
@@ -118,6 +119,13 @@ internal class TerminalShellIntegrationViewportDecorations {
                 return
             }
             row++
+        }
+    }
+
+    private fun suppressTopEdgeDivider(cache: TerminalRenderCache) {
+        if (cache.rows == 0) return
+        if (cache.scrollbackOffset >= cache.historySize) {
+            nextPromptDividers[0] = false
         }
     }
 
