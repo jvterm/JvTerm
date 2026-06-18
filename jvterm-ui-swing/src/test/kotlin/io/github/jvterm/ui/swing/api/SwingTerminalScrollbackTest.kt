@@ -209,7 +209,9 @@ class SwingTerminalScrollbackTest {
             component.setSize(30, 20)
             component.bind(session)
         }
-        component.scrollToScrollbackOffset(4)
+        SwingUtilities.invokeAndWait {
+            component.scrollToScrollbackOffset(4)
+        }
 
         drainEdt()
         val state = component.viewportState()
