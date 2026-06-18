@@ -126,12 +126,12 @@ internal class SwingScrollModel {
      * Returns the vertical content translation for the current fractional
      * scroll position.
      */
-    fun contentYOffset(leadingVisualStride: Int): Double {
-        require(leadingVisualStride > 0) {
-            "leadingVisualStride must be > 0, was $leadingVisualStride"
+    fun contentYOffset(cellHeight: Int): Double {
+        require(cellHeight > 0) {
+            "cellHeight must be > 0, was $cellHeight"
         }
         if (!needsOverscan) return 0.0
-        return -(1.0 - fraction) * leadingVisualStride
+        return -(1.0 - fraction) * cellHeight
     }
 
     /**

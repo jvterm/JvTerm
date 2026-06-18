@@ -150,20 +150,20 @@ class SwingViewportControllerTest {
         }
 
         @Test
-        fun `contentYOffset uses divider aware leading stride for smooth scroll`() {
+        fun `contentYOffset uses terminal cell height for smooth scroll`() {
             val controller = SwingViewportController { _, _, _, _, _ -> }
 
             controller.scrollTo(offsetLines = 2.25, historySize = 10)
 
             assertEquals(
-                -19.5,
+                -15.0,
                 controller.contentYOffset(
                     cacheRows = 8,
                     cacheScrollbackOffset = 3,
                     terminalRows = 6,
                     viewportPixelHeight = 120,
                     visualHeightForTerminalRows = 120,
-                    leadingVisualStride = 26,
+                    cellHeight = 20,
                 ),
             )
         }
@@ -182,7 +182,7 @@ class SwingViewportControllerTest {
                     terminalRows = 6,
                     viewportPixelHeight = 134,
                     visualHeightForTerminalRows = 120,
-                    leadingVisualStride = 20,
+                    cellHeight = 20,
                 ),
             )
         }
@@ -199,7 +199,7 @@ class SwingViewportControllerTest {
                     terminalRows = 6,
                     viewportPixelHeight = 120,
                     visualHeightForTerminalRows = 132,
-                    leadingVisualStride = 20,
+                    cellHeight = 20,
                 ),
             )
         }

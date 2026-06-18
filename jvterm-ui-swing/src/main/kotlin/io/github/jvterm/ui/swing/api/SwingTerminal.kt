@@ -946,14 +946,13 @@ class SwingTerminal
             val visualHeightForTerminalRows =
                 layout?.visualHeightForRows(terminalRowsInCache)
                     ?: terminalRowsInCache * metrics.cellHeight
-            val leadingVisualStride = layout?.leadingVisualStride() ?: metrics.cellHeight
             return viewportController.contentYOffset(
                 cacheRows = cache.rows,
                 cacheScrollbackOffset = cache.scrollbackOffset,
                 terminalRows = terminalRows,
                 viewportPixelHeight = viewportController.viewportPixelHeight(settings, height),
                 visualHeightForTerminalRows = visualHeightForTerminalRows,
-                leadingVisualStride = leadingVisualStride,
+                cellHeight = metrics.cellHeight,
             )
         }
 

@@ -490,6 +490,53 @@ class GridPainterTest {
     }
 
     @Test
+    fun `fractional scroll keeps prompt divider attached to following prompt row`() {
+        val image = BufferedImage(120, 80, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                palette =
+                    TerminalColorPalette(
+                        defaultForeground = WHITE,
+                        defaultBackground = BLACK,
+                    ),
+                shellIntegrationPromptDividerColor = GREEN,
+                shellIntegrationPromptDividerGap = 6,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
+            )
+        val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("old", "cmd", "out"), palette = settings.palette))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+        val rowLayout = TerminalShellIntegrationRowLayout()
+        rowLayout.update(settings, metrics, decorations, cache.rows)
+
+        GridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+            contentYOffset = -metrics.cellHeight.toDouble(),
+            shellIntegrationDecorations = decorations,
+            shellIntegrationRowLayout = rowLayout,
+        )
+        g.dispose()
+
+        val dividerY = (settings.shellIntegrationPromptDividerGap - settings.shellIntegrationPromptDividerThickness) / 2
+        assertEquals(GREEN, image.getRGB(0, dividerY))
+        assertEquals(GREEN, image.getRGB(image.width - 1, dividerY))
+    }
+
+    @Test
     fun `shell integration failed command paints configurable rail only for non zero exit code`() {
         val image = BufferedImage(120, 80, BufferedImage.TYPE_INT_ARGB)
         val g = image.createGraphics()

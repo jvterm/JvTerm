@@ -140,13 +140,14 @@ internal class SwingViewportController(
         terminalRows: Int,
         viewportPixelHeight: Int,
         visualHeightForTerminalRows: Int,
-        leadingVisualStride: Int,
+        cellHeight: Int,
     ): Double {
         require(cacheRows >= 0) { "cacheRows must be >= 0, was $cacheRows" }
         require(cacheScrollbackOffset >= 0) {
             "cacheScrollbackOffset must be >= 0, was $cacheScrollbackOffset"
         }
         require(terminalRows > 0) { "terminalRows must be > 0, was $terminalRows" }
+        require(cellHeight > 0) { "cellHeight must be > 0, was $cellHeight" }
         require(viewportPixelHeight >= 0) {
             "viewportPixelHeight must be >= 0, was $viewportPixelHeight"
         }
@@ -160,7 +161,7 @@ internal class SwingViewportController(
                 scrollModel.needsOverscan &&
                 cacheScrollbackOffset == scrollModel.requestedOffset
             ) {
-                scrollModel.contentYOffset(leadingVisualStride)
+                scrollModel.contentYOffset(cellHeight)
             } else {
                 0.0
             }

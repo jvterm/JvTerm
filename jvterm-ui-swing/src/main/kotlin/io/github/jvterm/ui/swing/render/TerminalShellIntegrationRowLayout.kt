@@ -134,17 +134,6 @@ internal class TerminalShellIntegrationRowLayout {
     }
 
     /**
-     * Returns the visual distance from row 0 to row 1.
-     *
-     * Smooth scrolling uses this value when the render cache contains one
-     * leading overscan row. A divider before row 1 is part of that transition.
-     */
-    fun leadingVisualStride(): Int {
-        if (rowCount < 2) return cellHeight
-        return rowTop(1) - rowTop(0)
-    }
-
-    /**
      * Returns the graphics translation needed before painting [row] with
      * painters that still use terminal-native `row * cellHeight` coordinates.
      */

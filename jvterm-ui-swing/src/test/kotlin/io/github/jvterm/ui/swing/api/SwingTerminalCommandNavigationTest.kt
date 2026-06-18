@@ -46,6 +46,7 @@ class SwingTerminalCommandNavigationTest {
             component.bind(session)
             component.scrollToPreviousCommand()
         }
+        SwingUtilities.invokeAndWait {}
 
         assertEquals(1, reader.lastRequestedOffset)
         assertEquals(1, component.viewportState().renderOffset)
@@ -64,6 +65,7 @@ class SwingTerminalCommandNavigationTest {
             component.scrollToScrollbackOffset(4)
             component.scrollToNextCommand()
         }
+        SwingUtilities.invokeAndWait {}
 
         assertEquals(1, reader.lastRequestedOffset)
         assertEquals(1, component.viewportState().renderOffset)
