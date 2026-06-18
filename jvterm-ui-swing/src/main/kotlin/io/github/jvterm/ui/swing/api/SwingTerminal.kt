@@ -29,13 +29,11 @@ import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.SwingSettingsProvider
 import io.github.jvterm.ui.swing.settings.TerminalClipboardAction
 import io.github.jvterm.ui.swing.viewport.SwingRepaintPlanner
-import io.github.jvterm.ui.swing.viewport.SwingScrollModel
+import io.github.jvterm.ui.swing.viewport.SwingViewportController
 import io.github.jvterm.ui.swing.viewport.TerminalRepaintSink
 import java.awt.*
 import java.awt.event.*
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.atomic.AtomicLong
 import javax.swing.JComponent
 import javax.swing.SwingUtilities
 import javax.swing.Timer
@@ -68,12 +66,6 @@ class SwingTerminal
         private var lastResizedColumns: Int = NO_RESIZE_DIMENSION
         private var lastResizedRows: Int = NO_RESIZE_DIMENSION
         private val renderPending = AtomicBoolean(false)
-        private val visibleGridSizeSnapshot = AtomicLong(packVisibleGridSize(1, 1))
-        private val viewportHistorySizeSnapshot = AtomicInteger(0)
-        private val viewportScrollbackOffsetSnapshot = AtomicLong(doubleToRawLongBits(0.0))
-        private val viewportRenderOffsetSnapshot = AtomicInteger(0)
-        private val viewportVisibleRowsSnapshot = AtomicInteger(1)
-        private val viewportRequestedRowsSnapshot = AtomicInteger(1)
         private val publishedFrameRunnable =
             Runnable {
                 renderPending.set(false)
@@ -84,7 +76,7 @@ class SwingTerminal
 
         private val painter = GridPainter()
         private val repaintPlanner = SwingRepaintPlanner()
-        private val scrollModel = SwingScrollModel()
+        private val viewportController = SwingViewportController(hostServices.viewportListener)
         private val renderCache = TerminalRenderCache(settings.columns, settings.rows)
         private val searchCache = TerminalRenderCache(settings.columns, settings.rows)
         private val keyMapper = SwingKeyMapper()
@@ -125,7 +117,7 @@ class SwingTerminal
                     override val session: TerminalSession? get() = this@SwingTerminal.session
                     override val renderCache: TerminalRenderCache get() = this@SwingTerminal.renderCache
                     override val searchCache: TerminalRenderCache get() = this@SwingTerminal.searchCache
-                    override val committedScrollbackOffset: Int get() = this@SwingTerminal.scrollModel.offset
+                    override val committedScrollbackOffset: Int get() = this@SwingTerminal.viewportController.committedScrollbackOffset
 
                     override fun cellAt(
                         x: Int,
@@ -397,13 +389,8 @@ class SwingTerminal
          * @return dimension where width is columns and height is rows.
          */
         fun visibleGridSize(): Dimension {
-            val packed =
-                if (SwingUtilities.isEventDispatchThread()) {
-                    updateVisibleGridSizeOnEdt()
-                } else {
-                    visibleGridSizeSnapshot.get()
-                }
-            return Dimension(unpackVisibleColumns(packed), unpackVisibleRows(packed))
+            if (!SwingUtilities.isEventDispatchThread()) return viewportController.visibleGridSizeSnapshot()
+            return viewportController.visibleGridSizeOnEdt(settings, metrics, width, height)
         }
 
         /**
@@ -419,13 +406,7 @@ class SwingTerminal
             if (SwingUtilities.isEventDispatchThread()) {
                 publishViewportState(renderCache.historySize, notifyListener = false)
             }
-            return TerminalViewportState(
-                historySize = viewportHistorySizeSnapshot.get(),
-                scrollbackOffset = longBitsToDouble(viewportScrollbackOffsetSnapshot.get()),
-                renderOffset = viewportRenderOffsetSnapshot.get(),
-                visibleRows = viewportVisibleRowsSnapshot.get(),
-                requestedRows = viewportRequestedRowsSnapshot.get(),
-            )
+            return viewportController.viewportStateSnapshot()
         }
 
         /**
@@ -878,7 +859,7 @@ class SwingTerminal
             historySize: Int = renderCache.historySize,
             boundSession: TerminalSession? = session,
         ): Boolean {
-            if (!scrollModel.scrollBy(delta, historySize)) return false
+            if (!viewportController.scrollBy(delta, historySize)) return false
             if (boundSession != null) {
                 refreshRenderCacheFromSession(boundSession)
                 refreshShellIntegrationDecorations(boundSession)
@@ -894,7 +875,7 @@ class SwingTerminal
             historySize: Int = renderCache.historySize,
             boundSession: TerminalSession? = session,
         ): Boolean {
-            if (!scrollModel.scrollTo(offsetLines, historySize)) return false
+            if (!viewportController.scrollTo(offsetLines, historySize)) return false
             if (boundSession != null) {
                 refreshRenderCacheFromSession(boundSession)
                 refreshShellIntegrationDecorations(boundSession)
@@ -923,7 +904,7 @@ class SwingTerminal
             val boundSession = session ?: return
             resetCursorBlinkOnEdt(forceRepaint = false)
             refreshRenderCacheFromSession(boundSession)
-            if (scrollModel.clamp(renderCache.historySize) || renderCache.scrollbackOffset != scrollModel.requestedOffset) {
+            if (viewportController.clamp(renderCache.historySize) || renderCache.scrollbackOffset != viewportController.requestedOffset) {
                 refreshRenderCacheFromSession(boundSession)
             }
             val shellIntegrationDecorationsChanged = refreshShellIntegrationDecorations(boundSession)
@@ -1004,32 +985,14 @@ class SwingTerminal
         }
 
         private fun resetScrollbackState() {
-            scrollModel.reset()
+            viewportController.reset()
         }
 
         private fun publishViewportState(
             historySize: Int,
             notifyListener: Boolean = true,
         ) {
-            val visibleRows = visibleGridRows()
-            val requestedRows = scrollModel.requestedRows(visibleRows)
-            val scrollbackOffset = scrollModel.preciseScrollbackOffset
-            val renderOffset = scrollModel.requestedOffset
-
-            viewportHistorySizeSnapshot.set(historySize)
-            viewportScrollbackOffsetSnapshot.set(doubleToRawLongBits(scrollbackOffset))
-            viewportRenderOffsetSnapshot.set(renderOffset)
-            viewportVisibleRowsSnapshot.set(visibleRows)
-            viewportRequestedRowsSnapshot.set(requestedRows)
-            if (!notifyListener) return
-
-            hostServices.viewportListener.viewportChanged(
-                historySize = historySize,
-                scrollbackOffset = scrollbackOffset,
-                renderOffset = renderOffset,
-                visibleRows = visibleRows,
-                requestedRows = requestedRows,
-            )
+            viewportController.publishViewportState(historySize, visibleGridRows(), notifyListener)
         }
 
         fun preferredGridSize(
@@ -1044,13 +1007,13 @@ class SwingTerminal
         }
 
         private fun resizeSessionToVisibleGridOnEdt() {
-            val packedGridSize = updateVisibleGridSizeOnEdt()
+            val visibleGridSize = viewportController.visibleGridSizeOnEdt(settings, metrics, width, height)
             publishViewportState(renderCache.historySize)
             val boundSession = session ?: return
             if (width <= 0 || height <= 0) return
 
-            val columns = unpackVisibleColumns(packedGridSize)
-            val rows = unpackVisibleRows(packedGridSize)
+            val columns = visibleGridSize.width
+            val rows = visibleGridSize.height
             if (columns == lastResizedColumns && rows == lastResizedRows) return
 
             lastResizedColumns = columns
@@ -1060,24 +1023,14 @@ class SwingTerminal
             // reflow changes history size and line wrapping. The resizer uses the integer
             // offset to locate the top visible logical line; we restore the fractional part
             // afterwards so smooth-scroll state survives the resize.
-            val oldOffset = scrollModel.requestedOffset
-            val oldFraction = scrollModel.preciseScrollbackOffset - scrollModel.offset
+            val oldOffset = viewportController.resizeRequestedOffset()
+            val oldFraction = viewportController.resizeFraction()
 
             val (newOffset, newHistorySize) = boundSession.resize(columns, rows, oldOffset)
 
             // Re-anchor the scroll model to the reflowed position, preserving the
             // fractional sub-row that was in-flight before the resize.
-            val newPrecise = (newOffset + oldFraction).coerceIn(0.0, newHistorySize.toDouble())
-            scrollModel.scrollTo(newPrecise, newHistorySize)
-        }
-
-        private fun updateVisibleGridSizeOnEdt(): Long {
-            val padding = settings.padding
-            val columns = maxOf(1, (width - padding.left - padding.right) / metrics.cellWidth)
-            val rows = maxOf(1, (height - padding.top - padding.bottom) / metrics.cellHeight)
-            val packed = packVisibleGridSize(columns, rows)
-            visibleGridSizeSnapshot.set(packed)
-            return packed
+            viewportController.anchorAfterResize(newOffset, newHistorySize, oldFraction)
         }
 
         private fun wheelScrollLines(event: MouseWheelEvent): Double =
@@ -1087,17 +1040,14 @@ class SwingTerminal
                 else -> -event.preciseWheelRotation
             }
 
-        private fun visibleGridRows(): Int {
-            val padding = settings.padding
-            return maxOf(1, (height - padding.top - padding.bottom) / metrics.cellHeight)
-        }
+        private fun visibleGridRows(): Int = viewportController.visibleGridRows(settings, metrics, height)
 
-        private fun requestedRenderRows(): Int = scrollModel.requestedRows(visibleGridRows())
+        private fun requestedRenderRows(): Int = viewportController.requestedRows(visibleGridRows())
 
         private fun refreshRenderCacheFromSession(session: TerminalSession) {
             renderCache.updateFrom(
                 reader = session,
-                scrollbackOffset = scrollModel.requestedOffset,
+                scrollbackOffset = viewportController.requestedOffset,
                 viewportRows = requestedRenderRows(),
             )
         }
@@ -1105,10 +1055,8 @@ class SwingTerminal
         private fun refreshShellIntegrationDecorations(session: TerminalSession): Boolean =
             shellIntegrationDecorations.updateFrom(session.shellIntegrationState, renderCache)
 
-        private fun contentYOffset(cache: TerminalRenderCache): Double {
-            if (cache.rows < requestedRenderRows()) return 0.0
-            return scrollModel.contentYOffset(metrics.cellHeight)
-        }
+        private fun contentYOffset(cache: TerminalRenderCache): Double =
+            viewportController.contentYOffset(cache.rows, requestedRenderRows(), metrics.cellHeight)
 
         private fun buildMetrics(settings: SwingSettings): SwingMetrics {
             val metricsSource: FontMetrics = getFontMetrics(settings.font)
@@ -1129,15 +1077,6 @@ class SwingTerminal
 
             private fun cursorTimerDelay(settings: SwingSettings): Int = maxOf(MIN_TIMER_DELAY_MILLIS, settings.cursorBlinkMillis)
 
-            private fun packVisibleGridSize(
-                columns: Int,
-                rows: Int,
-            ): Long = (columns.toLong() shl 32) or (rows.toLong() and 0xffff_ffffL)
-
-            private fun unpackVisibleColumns(packed: Long): Int = (packed ushr 32).toInt()
-
-            private fun unpackVisibleRows(packed: Long): Int = packed.toInt()
-
             private fun packCell(
                 column: Int,
                 row: Int,
@@ -1146,9 +1085,5 @@ class SwingTerminal
             private fun unpackCellColumn(packed: Long): Int = (packed ushr 32).toInt()
 
             private fun unpackCellRow(packed: Long): Int = packed.toInt()
-
-            private fun doubleToRawLongBits(value: Double): Long = java.lang.Double.doubleToRawLongBits(value)
-
-            private fun longBitsToDouble(value: Long): Double = java.lang.Double.longBitsToDouble(value)
         }
     }
