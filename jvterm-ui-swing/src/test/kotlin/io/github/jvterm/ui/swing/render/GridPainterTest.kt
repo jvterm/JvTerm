@@ -401,7 +401,6 @@ class GridPainterTest {
                         defaultBackground = BLACK,
                     ),
                 shellIntegrationPromptDividerColor = GREEN,
-                shellIntegrationPromptDividerGap = 6,
                 shellIntegrationDecorationGutterWidth = 8,
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
                 padding = Insets(0, 8, 0, 0),
@@ -416,9 +415,7 @@ class GridPainterTest {
         decorations.updateFrom(state, cache)
         val geometry =
             visualGeometry(
-                settings = settings,
                 metrics = metrics,
-                decorations = decorations,
                 rows = cache.rows,
                 viewportPixelHeight = image.height,
             )
@@ -436,18 +433,15 @@ class GridPainterTest {
         )
         g.dispose()
 
-        val dividerBandTop = metrics.cellHeight
-        val promptRowTop = metrics.cellHeight + settings.shellIntegrationPromptDividerGap
-        val dividerY = dividerBandTop + (settings.shellIntegrationPromptDividerGap - settings.shellIntegrationPromptDividerThickness) / 2
+        val dividerY = metrics.cellHeight
         assertEquals(GREEN, image.getRGB(0, dividerY))
         assertEquals(GREEN, image.getRGB(image.width - 1, dividerY))
-        assertEquals(BLACK, image.getRGB(image.width - 1, dividerBandTop))
-        assertEquals(BLACK, image.getRGB(image.width - 1, promptRowTop))
+        assertEquals(BLACK, image.getRGB(image.width - 1, dividerY - 1))
         assertEquals(BLACK, image.getRGB(image.width - 1, dividerY + settings.shellIntegrationPromptDividerThickness))
     }
 
     @Test
-    fun `shell integration prompt divider gap offsets rows from the prompt block`() {
+    fun `shell integration prompt divider does not offset row painting`() {
         val image = BufferedImage(120, 100, BufferedImage.TYPE_INT_ARGB)
         val g = image.createGraphics()
         val settings =
@@ -460,7 +454,6 @@ class GridPainterTest {
                     ),
                 selectionBackground = BLUE,
                 shellIntegrationPromptDividerColor = GREEN,
-                shellIntegrationPromptDividerGap = 6,
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
                 padding = Insets(0, 0, 0, 0),
             )
@@ -474,9 +467,7 @@ class GridPainterTest {
         decorations.updateFrom(state, cache)
         val geometry =
             visualGeometry(
-                settings = settings,
                 metrics = metrics,
-                decorations = decorations,
                 rows = cache.rows,
                 viewportPixelHeight = image.height,
             )
@@ -496,9 +487,7 @@ class GridPainterTest {
         g.dispose()
 
         val normalRowTwoTop = metrics.cellHeight * 2
-        val shiftedRowTwoTop = normalRowTwoTop + settings.shellIntegrationPromptDividerGap
-        assertEquals(BLACK, image.getRGB(1, normalRowTwoTop))
-        assertEquals(BLUE, image.getRGB(1, shiftedRowTwoTop))
+        assertEquals(BLUE, image.getRGB(1, normalRowTwoTop))
     }
 
     @Test
@@ -514,7 +503,6 @@ class GridPainterTest {
                         defaultBackground = BLACK,
                     ),
                 shellIntegrationPromptDividerColor = GREEN,
-                shellIntegrationPromptDividerGap = 6,
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
                 padding = Insets(0, 0, 0, 0),
             )
@@ -528,9 +516,7 @@ class GridPainterTest {
         decorations.updateFrom(state, cache)
         val geometry =
             visualGeometry(
-                settings = settings,
                 metrics = metrics,
-                decorations = decorations,
                 rows = cache.rows,
                 viewportPixelHeight = image.height,
                 contentOriginY = -metrics.cellHeight.toDouble(),
@@ -549,7 +535,7 @@ class GridPainterTest {
         )
         g.dispose()
 
-        val dividerY = (settings.shellIntegrationPromptDividerGap - settings.shellIntegrationPromptDividerThickness) / 2
+        val dividerY = 0
         assertEquals(GREEN, image.getRGB(0, dividerY))
         assertEquals(GREEN, image.getRGB(image.width - 1, dividerY))
     }
@@ -758,20 +744,15 @@ class GridPainterTest {
     }
 
     private fun visualGeometry(
-        settings: SwingSettings,
         metrics: SwingMetrics,
-        decorations: TerminalShellIntegrationViewportDecorations,
         rows: Int,
         viewportPixelHeight: Int,
         contentOriginY: Double = 0.0,
     ): TerminalVisualViewportGeometry =
         TerminalVisualViewportGeometry().also {
             it.updateLayout(
-                settings = settings,
                 metrics = metrics,
-                decorations = decorations,
                 rows = rows,
-                terminalRows = rows,
                 viewportPixelHeight = viewportPixelHeight,
             )
             it.updateContentOrigin(contentOriginY)

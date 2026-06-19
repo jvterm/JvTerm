@@ -21,7 +21,6 @@ import io.github.jvterm.session.TerminalShellIntegrationState
 import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
 import io.github.jvterm.ui.swing.render.TerminalVisualViewportGeometry
 import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -310,7 +309,7 @@ class SwingRepaintPlannerTest {
     }
 
     @Test
-    fun `cursor blink repaint uses visual viewport geometry`() {
+    fun `cursor blink repaint remains fixed pitch with prompt dividers`() {
         val frame = MutableFrame(columns = 4, rows = 4, lineIds = longArrayOf(1, 2, 3, 4))
         frame.cursor = cursor(column = 2, row = 1, blinking = true, generation = 1)
         val cache = TerminalRenderCache(columns = 4, rows = 4)
@@ -320,8 +319,7 @@ class SwingRepaintPlannerTest {
         state.recordPromptStart(2)
         val decorations = TerminalShellIntegrationViewportDecorations()
         decorations.updateFrom(state, cache)
-        val settings = SwingSettings(shellIntegrationPromptDividerGap = 6)
-        val geometry = visualGeometry(cache.rows, settings = settings, decorations = decorations)
+        val geometry = visualGeometry(cache.rows)
 
         val repaintSink = RecordingRepaintSink()
         SwingRepaintPlanner().requestCursorBlinkRepaint(
@@ -335,7 +333,7 @@ class SwingRepaintPlannerTest {
         )
 
         assertEquals(
-            listOf(Region(2 * CELL_WIDTH, CELL_HEIGHT + settings.shellIntegrationPromptDividerGap, CELL_WIDTH, CELL_HEIGHT)),
+            listOf(Region(2 * CELL_WIDTH, CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT)),
             repaintSink.regions,
         )
     }
@@ -486,17 +484,12 @@ class SwingRepaintPlannerTest {
 
     private fun visualGeometry(
         rows: Int,
-        settings: SwingSettings = SwingSettings(),
-        decorations: TerminalShellIntegrationViewportDecorations? = null,
         contentOriginY: Double = 0.0,
     ): TerminalVisualViewportGeometry =
         TerminalVisualViewportGeometry().also {
             it.updateLayout(
-                settings = settings,
                 metrics = METRICS,
-                decorations = decorations,
                 rows = rows,
-                terminalRows = rows,
                 viewportPixelHeight = HEIGHT,
             )
             it.updateContentOrigin(contentOriginY)

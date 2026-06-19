@@ -64,8 +64,6 @@ import java.util.*
  * failed-command rails.
  * @property shellIntegrationPromptDividerThickness prompt divider thickness in
  * pixels.
- * @property shellIntegrationPromptDividerGap visual band height inserted before
- * prompt rows that draw a prompt divider.
  * @property shellIntegrationFailedCommandRailWidth failed-command rail width in
  * pixels.
  * @property shellIntegrationDecorationGutterWidth maximum pixels used to paint
@@ -101,7 +99,6 @@ data class SwingSettings
         val shellIntegrationPromptDividerColor: Int = DEFAULT_SHELL_INTEGRATION_PROMPT_DIVIDER_COLOR,
         val shellIntegrationFailedCommandRailColor: Int = DEFAULT_SHELL_INTEGRATION_FAILED_COMMAND_RAIL_COLOR,
         val shellIntegrationPromptDividerThickness: Int = 1,
-        val shellIntegrationPromptDividerGap: Int = 6,
         val shellIntegrationFailedCommandRailWidth: Int = 3,
         val shellIntegrationDecorationGutterWidth: Int = 8,
         val padding: Insets = Insets(12, 12, 12, 12),
@@ -126,9 +123,6 @@ data class SwingSettings
             }
             require(shellIntegrationPromptDividerThickness > 0) {
                 "shellIntegrationPromptDividerThickness must be > 0, was $shellIntegrationPromptDividerThickness"
-            }
-            require(shellIntegrationPromptDividerGap >= 0) {
-                "shellIntegrationPromptDividerGap must be >= 0, was $shellIntegrationPromptDividerGap"
             }
             require(shellIntegrationFailedCommandRailWidth > 0) {
                 "shellIntegrationFailedCommandRailWidth must be > 0, was $shellIntegrationFailedCommandRailWidth"

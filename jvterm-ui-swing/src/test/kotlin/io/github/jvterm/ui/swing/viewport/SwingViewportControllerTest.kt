@@ -216,33 +216,27 @@ class SwingViewportControllerTest {
         }
 
         @Test
-        fun `contentOriginY bottom anchors live viewport when dividers overflow terminal rows`() {
+        fun `visual metrics reject decorator overflow for fixed grid geometry`() {
             val controller = SwingViewportController { _, _, _, _, _ -> }
 
-            controller.updateVisualMetrics(historySize = 0, cellHeight = 20, visualOverflowPixels = 12)
-
-            assertEquals(
-                -12.0,
-                controller.contentOriginY(
-                    cacheScrollbackOffset = 0,
-                    cellHeight = 20,
-                ),
-            )
+            assertThrows(IllegalArgumentException::class.java) {
+                controller.updateVisualMetrics(historySize = 0, cellHeight = 20, visualOverflowPixels = 12)
+            }
         }
 
         @Test
-        fun `visual scroll consumes divider overflow before requesting history rows`() {
+        fun `visual pixel scroll maps directly to fixed row scrollback`() {
             val controller = SwingViewportController { _, _, _, _, _ -> }
 
-            controller.updateVisualMetrics(historySize = 10, cellHeight = 20, visualOverflowPixels = 12)
+            controller.updateVisualMetrics(historySize = 10, cellHeight = 20, visualOverflowPixels = 0)
 
-            assertTrue(controller.scrollToVisualOffsetPixels(6.0))
-            assertEquals(0, controller.requestedOffset)
-            assertEquals(-6.0, controller.contentOriginY(cacheScrollbackOffset = 0, cellHeight = 20))
-
-            assertTrue(controller.scrollToVisualOffsetPixels(22.0))
+            assertTrue(controller.scrollToVisualOffsetPixels(10.0))
             assertEquals(1, controller.requestedOffset)
             assertEquals(-10.0, controller.contentOriginY(cacheScrollbackOffset = 1, cellHeight = 20))
+
+            assertTrue(controller.scrollToVisualOffsetPixels(20.0))
+            assertEquals(1, controller.requestedOffset)
+            assertEquals(0.0, controller.contentOriginY(cacheScrollbackOffset = 1, cellHeight = 20))
         }
 
         @Test

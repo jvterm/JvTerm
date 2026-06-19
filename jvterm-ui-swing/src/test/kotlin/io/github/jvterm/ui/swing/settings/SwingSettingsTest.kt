@@ -133,7 +133,6 @@ class SwingSettingsTest {
         assertEquals(0x33FFFFFF, settings.shellIntegrationPromptDividerColor)
         assertEquals(0xFFE74856.toInt(), settings.shellIntegrationFailedCommandRailColor)
         assertEquals(1, settings.shellIntegrationPromptDividerThickness)
-        assertEquals(6, settings.shellIntegrationPromptDividerGap)
         assertEquals(3, settings.shellIntegrationFailedCommandRailWidth)
         assertEquals(8, settings.shellIntegrationDecorationGutterWidth)
         assertEquals(Insets(12, 12, 12, 12), settings.padding)
@@ -143,9 +142,6 @@ class SwingSettingsTest {
     fun settingsRejectInvalidShellIntegrationDecorationDimensions() {
         assertFailsWith<IllegalArgumentException> {
             SwingSettings(shellIntegrationPromptDividerThickness = 0)
-        }
-        assertFailsWith<IllegalArgumentException> {
-            SwingSettings(shellIntegrationPromptDividerGap = -1)
         }
         assertFailsWith<IllegalArgumentException> {
             SwingSettings(shellIntegrationFailedCommandRailWidth = 0)

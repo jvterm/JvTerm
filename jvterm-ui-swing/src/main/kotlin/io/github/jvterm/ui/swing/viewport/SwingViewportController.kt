@@ -152,9 +152,6 @@ internal class SwingViewportController(
         }
         require(cellHeight > 0) { "cellHeight must be > 0, was $cellHeight" }
         if (cacheScrollbackOffset != scrollModel.requestedOffset) return 0.0
-        if (scrollModel.requestedOffset == 0) {
-            return -scrollModel.liveVisualOverflowPixels.toDouble() + scrollModel.visualScrollOffsetPixels
-        }
         return scrollModel.contentYOffset(cellHeight)
     }
 

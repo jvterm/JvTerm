@@ -305,7 +305,7 @@ class SwingTerminalScrollbackTest {
     }
 
     @Test
-    fun `prompt divider overflow is published and scrollable without core history`() {
+    fun `prompt dividers do not create scrollable overflow without core history`() {
         val reader = DividerOverflowFrameReader()
         val shellIntegrationState = TerminalShellIntegrationState()
         shellIntegrationState.recordPromptStart(1)
@@ -327,7 +327,6 @@ class SwingTerminalScrollbackTest {
                 settings =
                     SwingSettings(
                         padding = Insets(0, 0, 0, 0),
-                        shellIntegrationPromptDividerGap = 8,
                     ),
             )
 
@@ -338,7 +337,7 @@ class SwingTerminalScrollbackTest {
             val liveState = component.viewportState()
             assertEquals(0, liveState.historySize)
             assertEquals(0, liveState.renderOffset)
-            assertEquals(8, liveState.visualScrollRangePixels)
+            assertEquals(0, liveState.visualScrollRangePixels)
             assertEquals(0.0, liveState.visualScrollOffsetPixels)
 
             val image = BufferedImage(component.width, component.height, BufferedImage.TYPE_INT_ARGB)
@@ -361,7 +360,55 @@ class SwingTerminalScrollbackTest {
         val scrolledState = component.viewportState()
         assertEquals(0.0, scrolledState.scrollbackOffset)
         assertEquals(0, scrolledState.renderOffset)
-        assertEquals(8.0, scrolledState.visualScrollOffsetPixels)
+        assertEquals(0.0, scrolledState.visualScrollOffsetPixels)
+        session.close()
+    }
+
+    @Test
+    fun `enabling prompt dividers does not resize terminal geometry`() {
+        val connector = RecordingConnector()
+        val shellIntegrationState = TerminalShellIntegrationState()
+        shellIntegrationState.recordPromptStart(1)
+        shellIntegrationState.recordPromptStart(2)
+        val terminal = TerminalBuffers.create(width = 3, height = 3, maxHistory = 0)
+        val session =
+            TerminalSession(
+                terminal = terminal,
+                publisher = TerminalRenderPublisher(3, 3),
+                renderReader = DividerOverflowFrameReader(),
+                responseReader = terminal,
+                connector = connector,
+                parser = NoOpParser,
+                inputEncoder = NoOpInputEncoder,
+                shellIntegrationState = shellIntegrationState,
+            )
+        val settingsProvider =
+            MutableSettingsProvider(
+                SwingSettings(
+                    padding = Insets(0, 0, 0, 0),
+                    shellIntegrationPromptDividersVisible = false,
+                ),
+            )
+        val component = SwingTerminal(settingsProvider = settingsProvider)
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(component.preferredGridSize(3, 3))
+            component.bind(session)
+        }
+        drainEdt()
+
+        assertEquals(1, connector.resizeCount.get())
+        assertEquals(3, connector.lastColumns.get())
+        assertEquals(3, connector.lastRows.get())
+
+        settingsProvider.settings = settingsProvider.settings.copy(shellIntegrationPromptDividersVisible = true)
+        component.reloadSettings()
+        drainEdt()
+
+        assertEquals(1, connector.resizeCount.get())
+        assertEquals(3, connector.lastColumns.get())
+        assertEquals(3, connector.lastRows.get())
+        assertEquals(3, component.visibleGridSize().height)
         session.close()
     }
 
@@ -632,6 +679,37 @@ class SwingTerminalScrollbackTest {
         ) = Unit
 
         override fun close() = Unit
+    }
+
+    private class RecordingConnector : TerminalConnector {
+        val resizeCount = AtomicInteger()
+        val lastColumns = AtomicInteger()
+        val lastRows = AtomicInteger()
+
+        override fun start(listener: TerminalConnectorListener) = Unit
+
+        override fun write(
+            bytes: ByteArray,
+            offset: Int,
+            length: Int,
+        ) = Unit
+
+        override fun resize(
+            columns: Int,
+            rows: Int,
+        ) {
+            resizeCount.incrementAndGet()
+            lastColumns.set(columns)
+            lastRows.set(rows)
+        }
+
+        override fun close() = Unit
+    }
+
+    private class MutableSettingsProvider(
+        var settings: SwingSettings,
+    ) : SwingSettingsProvider {
+        override fun currentSettings(): SwingSettings = settings
     }
 
     private object NoOpParser : TerminalOutputParser {

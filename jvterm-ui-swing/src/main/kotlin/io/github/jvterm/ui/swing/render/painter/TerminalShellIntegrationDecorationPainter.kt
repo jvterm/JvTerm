@@ -20,6 +20,7 @@ import io.github.jvterm.ui.swing.render.cache.AwtColorCache
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import java.awt.Graphics2D
+import java.awt.geom.Rectangle2D
 
 /**
  * Paints shell-integration prompt dividers and failed-command side rails.
@@ -27,6 +28,8 @@ import java.awt.Graphics2D
 internal class TerminalShellIntegrationDecorationPainter(
     private val colorCache: AwtColorCache,
 ) {
+    private val dividerScratch = Rectangle2D.Double()
+
     /**
      * Paints shell-integration decorations for one visible row.
      */
@@ -37,7 +40,6 @@ internal class TerminalShellIntegrationDecorationPainter(
         decorations: TerminalShellIntegrationViewportDecorations?,
         row: Int,
         componentWidth: Int,
-        dividerBandHeight: Int,
     ) {
         if (decorations == null) return
 
@@ -55,21 +57,27 @@ internal class TerminalShellIntegrationDecorationPainter(
         if (settings.shellIntegrationPromptDividersVisible && decorations.hasPromptDividerAt(row)) {
             val x = -settings.padding.left
             val width = componentWidth
-            val dividerY = promptDividerY(settings, y, dividerBandHeight)
             g.color = colorCache.color(settings.shellIntegrationPromptDividerColor)
-            g.fillRect(x, dividerY, width, settings.shellIntegrationPromptDividerThickness)
+            dividerScratch.setRect(
+                x.toDouble(),
+                y.toDouble(),
+                width.toDouble(),
+                promptDividerUserHeight(g, settings),
+            )
+            g.fill(dividerScratch)
         }
     }
 
-    private fun promptDividerY(
+    private fun promptDividerUserHeight(
+        g: Graphics2D,
         settings: SwingSettings,
-        rowY: Int,
-        dividerBandHeight: Int,
-    ): Int {
-        val gap = dividerBandHeight
-        if (gap == 0) return rowY
+    ): Double {
+        val scaleY = g.transform.scaleY
+        val physicalPixelHeight = if (scaleY > 0.0) 1.0 / scaleY else 1.0
+        return minOf(settings.shellIntegrationPromptDividerThickness.toDouble(), physicalPixelHeight).coerceAtLeast(MIN_USER_HEIGHT)
+    }
 
-        val centeredInset = maxOf(0, gap - settings.shellIntegrationPromptDividerThickness) / 2
-        return rowY - gap + centeredInset
+    private companion object {
+        private const val MIN_USER_HEIGHT = 0.05
     }
 }

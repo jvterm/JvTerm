@@ -29,7 +29,6 @@ import io.github.jvterm.render.api.TerminalRenderFrameReader
 import io.github.jvterm.render.cache.TerminalRenderCache
 import io.github.jvterm.session.TerminalShellIntegrationState
 import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -37,117 +36,65 @@ import kotlin.test.assertTrue
 
 class TerminalVisualViewportGeometryTest {
     @Test
-    fun `divider band is inserted before second and later prompt rows`() {
-        val settings = SwingSettings(shellIntegrationPromptDividerGap = 6)
+    fun `prompt dividers do not change fixed row pitch or visible height`() {
         val cache = TerminalRenderCache(columns = 3, rows = 3)
         cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(1, 2, 3)))
         val state = TerminalShellIntegrationState()
         state.recordPromptStart(1)
         state.recordPromptStart(2)
+        state.recordPromptStart(3)
         val decorations = TerminalShellIntegrationViewportDecorations()
         decorations.updateFrom(state, cache)
         val layout = TerminalVisualViewportGeometry()
 
         assertTrue(
             layout.updateLayout(
-                settings = settings,
                 metrics = METRICS,
-                decorations = decorations,
                 rows = cache.rows,
-                terminalRows = 3,
                 viewportPixelHeight = METRICS.cellHeight * 3,
             ),
         )
 
-        assertFalse(layout.hasDividerBefore(0))
-        assertTrue(layout.hasDividerBefore(1))
         assertEquals(0, layout.rowTop(0))
-        assertEquals(METRICS.cellHeight + settings.shellIntegrationPromptDividerGap, layout.rowTop(1))
-        assertEquals(METRICS.cellHeight * 2 + settings.shellIntegrationPromptDividerGap, layout.rowTop(2))
-        assertEquals(METRICS.cellHeight * 2 + settings.shellIntegrationPromptDividerGap, layout.visualHeightForRows(2))
-        assertEquals(settings.shellIntegrationPromptDividerGap, layout.liveVisualOverflowPixels)
+        assertEquals(METRICS.cellHeight, layout.rowTop(1))
+        assertEquals(METRICS.cellHeight * 2, layout.rowTop(2))
+        assertEquals(METRICS.cellHeight * 3, layout.visualHeight)
+        assertEquals(METRICS.cellHeight * 3, layout.visualHeightForRows(3))
     }
 
     @Test
-    fun `hit testing assigns divider band to following prompt row`() {
-        val settings = SwingSettings(shellIntegrationPromptDividerGap = 6)
-        val cache = TerminalRenderCache(columns = 3, rows = 3)
-        cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(1, 2, 3)))
-        val state = TerminalShellIntegrationState()
-        state.recordPromptStart(1)
-        state.recordPromptStart(2)
-        val decorations = TerminalShellIntegrationViewportDecorations()
-        decorations.updateFrom(state, cache)
-        val layout = TerminalVisualViewportGeometry()
-        layout.updateLayout(
-            settings = settings,
-            metrics = METRICS,
-            decorations = decorations,
-            rows = cache.rows,
-            terminalRows = 3,
-            viewportPixelHeight = METRICS.cellHeight * 3,
-        )
+    fun `pixel to row mapping remains exact with consecutive prompt rows`() {
+        val layout = fixedPromptLayout()
 
+        assertEquals(0, layout.rowAt(0))
         assertEquals(0, layout.rowAt(METRICS.cellHeight - 1))
         assertEquals(1, layout.rowAt(METRICS.cellHeight))
-        assertEquals(1, layout.rowAt(METRICS.cellHeight + settings.shellIntegrationPromptDividerGap - 1))
-        assertEquals(1, layout.rowAt(layout.rowTop(1)))
+        assertEquals(1, layout.rowAt(METRICS.cellHeight * 2 - 1))
+        assertEquals(2, layout.rowAt(METRICS.cellHeight * 2))
     }
 
     @Test
-    fun `terminal pixel y excludes divider band`() {
-        val settings = SwingSettings(shellIntegrationPromptDividerGap = 6)
-        val cache = TerminalRenderCache(columns = 3, rows = 3)
-        cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(1, 2, 3)))
-        val state = TerminalShellIntegrationState()
-        state.recordPromptStart(1)
-        state.recordPromptStart(2)
-        val decorations = TerminalShellIntegrationViewportDecorations()
-        decorations.updateFrom(state, cache)
-        val layout = TerminalVisualViewportGeometry()
-        layout.updateLayout(
-            settings = settings,
-            metrics = METRICS,
-            decorations = decorations,
-            rows = cache.rows,
-            terminalRows = 3,
-            viewportPixelHeight = METRICS.cellHeight * 3,
-        )
+    fun `terminal pixel y is unchanged by prompt decorations`() {
+        val layout = fixedPromptLayout()
 
         assertEquals(METRICS.cellHeight, layout.terminalPixelY(METRICS.cellHeight, row = 1))
-        assertEquals(METRICS.cellHeight, layout.terminalPixelY(layout.rowTop(1), row = 1))
-        assertEquals(METRICS.cellHeight + 3, layout.terminalPixelY(layout.rowTop(1) + 3, row = 1))
+        assertEquals(METRICS.cellHeight + 3, layout.terminalPixelY(METRICS.cellHeight + 3, row = 1))
+        assertEquals(METRICS.cellHeight * 2 + 4, layout.terminalPixelY(METRICS.cellHeight * 2 + 4, row = 2))
     }
 
     @Test
-    fun `component hit testing subtracts content origin before row lookup`() {
-        val settings = SwingSettings(shellIntegrationPromptDividerGap = 6)
-        val cache = TerminalRenderCache(columns = 3, rows = 3)
-        cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(1, 2, 3)))
-        val state = TerminalShellIntegrationState()
-        state.recordPromptStart(1)
-        state.recordPromptStart(2)
-        val decorations = TerminalShellIntegrationViewportDecorations()
-        decorations.updateFrom(state, cache)
-        val layout = TerminalVisualViewportGeometry()
-        layout.updateLayout(
-            settings = settings,
-            metrics = METRICS,
-            decorations = decorations,
-            rows = cache.rows,
-            terminalRows = 3,
-            viewportPixelHeight = METRICS.cellHeight * 3,
-        )
+    fun `component hit testing subtracts content origin before fixed row lookup`() {
+        val layout = fixedPromptLayout()
 
         assertTrue(layout.updateContentOrigin(-6.0))
 
-        assertEquals(1, layout.rowAtComponentY(y = METRICS.cellHeight, paddingTop = 0))
-        assertEquals(METRICS.cellHeight, layout.terminalPixelYAtComponentY(y = METRICS.cellHeight, paddingTop = 0))
+        val componentY = METRICS.cellHeight - 6
+        assertEquals(1, layout.rowAtComponentY(y = componentY, paddingTop = 0))
+        assertEquals(METRICS.cellHeight, layout.terminalPixelYAtComponentY(y = componentY, paddingTop = 0))
     }
 
     @Test
     fun `top retained row suppresses divider because there is no previous row to separate`() {
-        val settings = SwingSettings(shellIntegrationPromptDividerGap = 6)
         val cache = TerminalRenderCache(columns = 3, rows = 2)
         cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(10, 11), historySize = 0, scrollbackOffset = 0))
         val state = TerminalShellIntegrationState()
@@ -162,7 +109,6 @@ class TerminalVisualViewportGeometryTest {
 
     @Test
     fun `live viewport keeps row zero divider when retained history has a previous row`() {
-        val settings = SwingSettings(shellIntegrationPromptDividerGap = 6)
         val cache = TerminalRenderCache(columns = 3, rows = 2)
         cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(10, 11), historySize = 5, scrollbackOffset = 0))
         val state = TerminalShellIntegrationState()
@@ -173,6 +119,24 @@ class TerminalVisualViewportGeometryTest {
         assertTrue(decorations.updateFrom(state, cache))
 
         assertTrue(decorations.hasPromptDividerAt(0))
+    }
+
+    private fun fixedPromptLayout(): TerminalVisualViewportGeometry {
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(1, 2, 3)))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        state.recordPromptStart(3)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+        return TerminalVisualViewportGeometry().also {
+            it.updateLayout(
+                metrics = METRICS,
+                rows = cache.rows,
+                viewportPixelHeight = METRICS.cellHeight * 3,
+            )
+        }
     }
 
     private class TextRowsFrame(

@@ -102,15 +102,9 @@ internal class GridPainter {
         val firstRow = firstPaintRow(clip, metrics, contentOriginY, padding.top, geometry)
         val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentOriginY, padding.top, padding.bottom, geometry)
         g.translate(padding.left.toDouble(), padding.top.toDouble() + contentOriginY)
-        var appliedPromptDividerOffset = 0
         try {
             var row = firstRow
             while (row < rows) {
-                val promptDividerOffset = geometry?.translationForRow(row) ?: 0
-                if (appliedPromptDividerOffset != promptDividerOffset) {
-                    g.translate(0.0, (promptDividerOffset - appliedPromptDividerOffset).toDouble())
-                    appliedPromptDividerOffset = promptDividerOffset
-                }
                 backgroundPainter.paintRow(g, cache, palette, metrics, row)
                 shellIntegrationDecorationPainter.paint(
                     g = g,
@@ -119,7 +113,6 @@ internal class GridPainter {
                     decorations = shellIntegrationDecorations,
                     row = row,
                     componentWidth = width,
-                    dividerBandHeight = geometry?.dividerBandHeight ?: 0,
                 )
                 searchPainter.paint(
                     g = g,
@@ -145,11 +138,6 @@ internal class GridPainter {
                 row++
             }
 
-            val cursorPromptDividerOffset = geometry?.translationForRow(cache.cursorRow) ?: 0
-            if (appliedPromptDividerOffset != cursorPromptDividerOffset) {
-                g.translate(0.0, (cursorPromptDividerOffset - appliedPromptDividerOffset).toDouble())
-                appliedPromptDividerOffset = cursorPromptDividerOffset
-            }
             cursorPainter.paint(
                 g,
                 cache,
@@ -161,9 +149,6 @@ internal class GridPainter {
                 cursorVisible = cursorVisible,
             )
         } finally {
-            if (appliedPromptDividerOffset != 0) {
-                g.translate(0.0, -appliedPromptDividerOffset.toDouble())
-            }
             g.translate(-padding.left.toDouble(), -(padding.top.toDouble() + contentOriginY))
         }
     }

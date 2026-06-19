@@ -16,102 +16,58 @@
 package io.github.jvterm.ui.swing.render
 
 import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
 import java.awt.Rectangle
 import kotlin.math.ceil
 import kotlin.math.floor
 
 /**
- * EDT-owned pixel geometry for the current Swing render-cache viewport.
+ * EDT-owned fixed-row pixel geometry for the current Swing render-cache viewport.
  *
- * Terminal row coordinates remain terminal-native. This model adds UI-only
- * visual bands such as prompt dividers, stores the content origin used for the
- * current paint, and exposes all row-to-pixel conversions so painting, repaint
- * planning, hit testing, mouse reporting, and command navigation consume the
- * same coordinate system.
+ * Terminal rows always have the same pitch as the PTY-visible grid:
+ * `rowTop(row) = row * cellHeight`. Shell-integration prompt metadata is a
+ * renderer decoration only and must not change row height, viewport capacity,
+ * hit testing, cursor geometry, mouse coordinates, or scrollback math.
  */
 internal class TerminalVisualViewportGeometry {
-    private var rowTops = IntArray(0)
-    private var dividerBeforeRows = BooleanArray(0)
-
     var rowCount: Int = 0
         private set
     var cellHeight: Int = 0
-        private set
-    var dividerBandHeight: Int = 0
         private set
     var visualHeight: Int = 0
         private set
     var viewportPixelHeight: Int = 0
         private set
-    var liveVisualOverflowPixels: Int = 0
-        private set
     var contentOriginY: Double = 0.0
         private set
 
     /**
-     * Rebuilds row positions and divider bands for the current render cache.
+     * Rebuilds fixed row positions for the current render cache.
      *
-     * @return true when visible row positions or divider flags changed.
+     * @return true when fixed geometry metrics changed.
      */
     fun updateLayout(
-        settings: SwingSettings,
         metrics: SwingMetrics,
-        decorations: TerminalShellIntegrationViewportDecorations?,
         rows: Int,
-        terminalRows: Int,
         viewportPixelHeight: Int,
     ): Boolean {
         require(rows >= 0) { "rows must be >= 0, was $rows" }
-        require(terminalRows > 0) { "terminalRows must be > 0, was $terminalRows" }
         require(viewportPixelHeight >= 0) { "viewportPixelHeight must be >= 0, was $viewportPixelHeight" }
-        ensureCapacity(rows)
 
         val previousRowCount = rowCount
         val previousCellHeight = cellHeight
-        val previousDividerBandHeight = dividerBandHeight
         val previousVisualHeight = visualHeight
         val previousViewportPixelHeight = this.viewportPixelHeight
-        val previousLiveVisualOverflowPixels = liveVisualOverflowPixels
-        val bandHeight =
-            if (settings.shellIntegrationPromptDividersVisible) {
-                settings.shellIntegrationPromptDividerGap
-            } else {
-                0
-            }
 
         rowCount = rows
         cellHeight = metrics.cellHeight
-        dividerBandHeight = bandHeight
         this.viewportPixelHeight = viewportPixelHeight
+        visualHeight = rows * metrics.cellHeight
 
-        var changed =
+        val changed =
             previousRowCount != rows ||
                 previousCellHeight != metrics.cellHeight ||
-                previousDividerBandHeight != bandHeight ||
+                previousVisualHeight != visualHeight ||
                 previousViewportPixelHeight != viewportPixelHeight
-        var y = 0
-        var row = 0
-        while (row < rows) {
-            val hasDivider = bandHeight > 0 && decorations != null && decorations.hasPromptDividerAt(row)
-            if (hasDivider) y += bandHeight
-            if (rowTops[row] != y) {
-                changed = true
-                rowTops[row] = y
-            }
-            if (dividerBeforeRows[row] != hasDivider) {
-                changed = true
-                dividerBeforeRows[row] = hasDivider
-            }
-            y += metrics.cellHeight
-            row++
-        }
-
-        visualHeight = y
-        if (previousVisualHeight != visualHeight) changed = true
-        liveVisualOverflowPixels = maxOf(0, visualHeightForRows(minOf(rows, terminalRows)) - viewportPixelHeight)
-        if (previousLiveVisualOverflowPixels != liveVisualOverflowPixels) changed = true
-        clearUnusedRows(rows, previousRowCount)
         return changed
     }
 
@@ -133,54 +89,27 @@ internal class TerminalVisualViewportGeometry {
     fun reset() {
         rowCount = 0
         cellHeight = 0
-        dividerBandHeight = 0
         visualHeight = 0
         viewportPixelHeight = 0
-        liveVisualOverflowPixels = 0
         contentOriginY = 0.0
     }
 
     /**
-     * Returns true when [row] has a prompt divider band immediately before it.
+     * Returns the fixed visual top of terminal [row], excluding [contentOriginY].
      */
-    fun hasDividerBefore(row: Int): Boolean = row in 0 until rowCount && dividerBeforeRows[row]
+    fun rowTop(row: Int): Int = row * cellHeight
 
     /**
-     * Returns the visual top of terminal [row], excluding [contentOriginY].
-     */
-    fun rowTop(row: Int): Int {
-        if (row !in 0 until rowCount) return row * cellHeight
-        return rowTops[row]
-    }
-
-    /**
-     * Returns the visual bottom of terminal [row], excluding [contentOriginY].
+     * Returns the fixed visual bottom of terminal [row], excluding [contentOriginY].
      */
     fun rowBottom(row: Int): Int = rowTop(row) + cellHeight
 
     /**
-     * Returns the visual height occupied by the first [rows] terminal rows.
+     * Returns the fixed visual height occupied by the first [rows] terminal rows.
      */
     fun visualHeightForRows(rows: Int): Int {
         val safeRows = rows.coerceIn(0, rowCount)
-        if (safeRows == 0) return 0
-        return rowBottom(safeRows - 1)
-    }
-
-    /**
-     * Returns the graphics translation needed before painting [row].
-     */
-    fun translationForRow(row: Int): Int = rowTop(row) - row * cellHeight
-
-    /**
-     * Returns the visual y coordinate for the divider before [row].
-     */
-    fun dividerY(
-        row: Int,
-        thickness: Int,
-    ): Int {
-        val centeredInset = maxOf(0, dividerBandHeight - thickness) / 2
-        return rowTop(row) - dividerBandHeight + centeredInset
+        return safeRows * cellHeight
     }
 
     /**
@@ -188,20 +117,7 @@ internal class TerminalVisualViewportGeometry {
      */
     fun rowAt(visualY: Int): Int {
         if (rowCount <= 0) return 0
-        if (visualY <= 0) return 0
-        if (visualY >= visualHeight) return rowCount - 1
-
-        var low = 0
-        var high = rowCount - 1
-        while (low <= high) {
-            val mid = (low + high) ushr 1
-            if (visualY < rowBottom(mid)) {
-                high = mid - 1
-            } else {
-                low = mid + 1
-            }
-        }
-        return low.coerceIn(0, rowCount - 1)
+        return (visualY / cellHeight).coerceIn(0, rowCount - 1)
     }
 
     /**
@@ -258,7 +174,7 @@ internal class TerminalVisualViewportGeometry {
         paddingBottom: Int,
     ): Int {
         val availableHeight = componentHeight - paddingTop - paddingBottom
-        val visibleRows = minOf(rowCount, rowAt(ceil(availableHeight.toDouble() - contentOriginY).toInt()) + 2)
+        val visibleRows = minOf(rowCount, maxOf(1, ceil((availableHeight.toDouble() - contentOriginY) / cellHeight).toInt()) + 1)
         if (clip == null || clip.height <= 0) return visibleRows
 
         val clipBottom = clip.y + clip.height
@@ -276,7 +192,7 @@ internal class TerminalVisualViewportGeometry {
         paddingBottom: Int,
     ): Int {
         val availableHeight = componentHeight - paddingTop - paddingBottom
-        return minOf(rowCount, rowAt(ceil(availableHeight.toDouble() - contentOriginY).toInt()) + 2)
+        return minOf(rowCount, maxOf(1, ceil((availableHeight.toDouble() - contentOriginY) / cellHeight).toInt()) + 1)
     }
 
     /**
@@ -284,28 +200,6 @@ internal class TerminalVisualViewportGeometry {
      */
     fun firstFullyVisibleRow(): Int {
         if (rowCount <= 0) return 0
-        var row = rowAt(ceil(-contentOriginY).toInt())
-        while (row < rowCount && rowTop(row).toDouble() + contentOriginY < 0.0) {
-            row++
-        }
-        return row.coerceIn(0, rowCount - 1)
-    }
-
-    private fun ensureCapacity(rows: Int) {
-        if (rowTops.size >= rows) return
-        rowTops = rowTops.copyOf(rows)
-        dividerBeforeRows = dividerBeforeRows.copyOf(rows)
-    }
-
-    private fun clearUnusedRows(
-        rows: Int,
-        previousRows: Int,
-    ) {
-        var row = rows
-        while (row < previousRows && row < dividerBeforeRows.size) {
-            rowTops[row] = 0
-            dividerBeforeRows[row] = false
-            row++
-        }
+        return ceil(-contentOriginY / cellHeight).toInt().coerceIn(0, rowCount - 1)
     }
 }

@@ -75,7 +75,6 @@ class SwingTerminal
         private val searchCache = TerminalRenderCache(settings.columns, settings.rows)
         private val shellIntegrationDecorations = TerminalShellIntegrationViewportDecorations()
         private val visualGeometry = TerminalVisualViewportGeometry()
-        private var liveVisualOverflowPixels: Int = 0
 
         private val selectionController =
             TerminalSelectionController(
@@ -490,9 +489,8 @@ class SwingTerminal
         /**
          * Scrolls to an absolute visual-pixel offset from the live viewport.
          *
-         * This richer viewport coordinate includes Swing-owned prompt divider
-         * bands before terminal history rows. `0.0` is the live bottom, and
-         * larger values move farther back visually.
+         * The offset is row-native scrollback expressed in pixels using the
+         * current fixed cell height. `0.0` is the live bottom.
          *
          * @param offsetPixels requested visual pixel offset from live output.
          */
@@ -671,7 +669,6 @@ class SwingTerminal
             searchController.reset(renderCache.rows)
             shellIntegrationDecorations.reset()
             visualGeometry.reset()
-            liveVisualOverflowPixels = 0
             selectionController.stopSelectionDrag()
             lastResizedColumns = NO_RESIZE_DIMENSION
             lastResizedRows = NO_RESIZE_DIMENSION
@@ -692,7 +689,6 @@ class SwingTerminal
             searchController.reset(renderCache.rows)
             shellIntegrationDecorations.reset()
             visualGeometry.reset()
-            liveVisualOverflowPixels = 0
             selectionController.stopSelectionDrag()
             lastResizedColumns = NO_RESIZE_DIMENSION
             lastResizedRows = NO_RESIZE_DIMENSION
@@ -980,25 +976,18 @@ class SwingTerminal
 
         private fun refreshShellIntegrationDecorations(session: TerminalSession): Boolean {
             val decorationsChanged = shellIntegrationDecorations.updateFrom(session.shellIntegrationState, renderCache)
-            val terminalRows = visibleGridRows()
             val viewportPixelHeight = viewportController.viewportPixelHeight(settings, height)
             val layoutChanged =
                 visualGeometry.updateLayout(
-                    settings = settings,
                     metrics = metrics,
-                    decorations = shellIntegrationDecorations,
                     rows = renderCache.rows,
-                    terminalRows = terminalRows,
                     viewportPixelHeight = viewportPixelHeight,
                 )
-            if (renderCache.scrollbackOffset == 0) {
-                liveVisualOverflowPixels = visualGeometry.liveVisualOverflowPixels
-            }
             val visualMetricsChanged =
                 viewportController.updateVisualMetrics(
                     historySize = renderCache.historySize,
                     cellHeight = metrics.cellHeight,
-                    visualOverflowPixels = liveVisualOverflowPixels,
+                    visualOverflowPixels = 0,
                 )
             val originChanged =
                 visualGeometry.updateContentOrigin(

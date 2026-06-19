@@ -32,11 +32,10 @@ package io.github.jvterm.ui.swing.api
  * @property visibleRows number of terminal rows that fit in the component.
  * @property requestedRows number of rows requested from the render cache,
  * including overscan when needed.
- * @property visualScrollOffsetPixels precise visual pixel offset from the live
- * bottom. This can be non-zero even when [renderOffset] is zero, for example
- * when UI decorations create local visual overflow.
- * @property visualScrollRangePixels maximum visual pixel offset from the live
- * bottom.
+ * @property visualScrollOffsetPixels precise row-native pixel offset from the
+ * live bottom.
+ * @property visualScrollRangePixels maximum row-native pixel offset from the
+ * live bottom.
  * @property viewportHeightPixels visual viewport height in pixels.
  * @property contentHeightPixels visual content height for the current render
  * cache in pixels.

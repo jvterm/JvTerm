@@ -50,7 +50,7 @@ class TerminalScrollbarMappingTest {
     }
 
     @Test
-    fun `visual pixel viewport maps divider overflow without history rows`() {
+    fun `visual pixel viewport maps row native pixel offsets`() {
         assertEquals(8, TerminalScrollbarMapping.valueForVisualViewport(visualScrollRangePixels = 8, visualScrollOffsetPixels = 0.0))
         assertEquals(4, TerminalScrollbarMapping.valueForVisualViewport(visualScrollRangePixels = 8, visualScrollOffsetPixels = 4.2))
         assertEquals(8, TerminalScrollbarMapping.visualOffsetForValue(visualScrollRangePixels = 8, value = 0))
