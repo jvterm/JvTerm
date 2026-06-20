@@ -44,9 +44,8 @@ class TerminalShellIntegrationBootstrapIntegrationTest {
                     bash,
                     "--noprofile",
                     "--norc",
-                    "-c",
-                    "$bootstrap; __jvterm_preexec; false; __jvterm_prompt_command",
                 ),
+                standardInput = "$bootstrap; __jvterm_preexec; false; __jvterm_prompt_command\n",
             )
 
         assertEquals(1, result.exitCode)
@@ -73,10 +72,10 @@ class TerminalShellIntegrationBootstrapIntegrationTest {
                     bash,
                     "--noprofile",
                     "--norc",
-                    "-c",
-                    "$bootstrap; __jvterm_preexec; { clear >/dev/null 2>&1 || printf '\\033[H\\033[2J\\033[3J'; }; true; __jvterm_prompt_command; __jvterm_preexec; false; __jvterm_prompt_command",
                 ),
                 environment = integrated.environment,
+                standardInput =
+                    "$bootstrap; __jvterm_preexec; { clear >/dev/null 2>&1 || printf '\\033[H\\033[2J\\033[3J'; }; true; __jvterm_prompt_command; __jvterm_preexec; false; __jvterm_prompt_command\n",
             )
 
         assertEquals(1, result.exitCode)
@@ -159,12 +158,18 @@ class TerminalShellIntegrationBootstrapIntegrationTest {
     private fun runProcess(
         command: List<String>,
         environment: Map<String, String> = emptyMap(),
+        standardInput: String? = null,
     ): ProcessResult {
         val process =
             ProcessBuilder(command)
                 .redirectErrorStream(true)
                 .also { it.environment().putAll(environment) }
                 .start()
+        if (standardInput != null) {
+            process.outputStream.use { input ->
+                input.write(standardInput.toByteArray(StandardCharsets.UTF_8))
+            }
+        }
         val completed = process.waitFor(5, TimeUnit.SECONDS)
         if (!completed) {
             process.destroyForcibly()
