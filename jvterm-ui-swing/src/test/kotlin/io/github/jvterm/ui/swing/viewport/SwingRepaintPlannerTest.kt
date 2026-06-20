@@ -309,7 +309,7 @@ class SwingRepaintPlannerTest {
     }
 
     @Test
-    fun `cursor blink repaint remains fixed pitch with prompt dividers`() {
+    fun `cursor blink repaint remains fixed pitch with command gutter guides`() {
         val frame = MutableFrame(columns = 4, rows = 4, lineIds = longArrayOf(1, 2, 3, 4))
         frame.cursor = cursor(column = 2, row = 1, blinking = true, generation = 1)
         val cache = TerminalRenderCache(columns = 4, rows = 4)

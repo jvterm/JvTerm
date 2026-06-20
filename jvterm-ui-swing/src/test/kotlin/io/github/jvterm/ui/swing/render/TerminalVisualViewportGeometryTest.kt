@@ -31,12 +31,11 @@ import io.github.jvterm.session.TerminalShellIntegrationState
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TerminalVisualViewportGeometryTest {
     @Test
-    fun `prompt dividers do not change fixed row pitch or visible height`() {
+    fun `command gutter guides do not change fixed row pitch or visible height`() {
         val cache = TerminalRenderCache(columns = 3, rows = 3)
         cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(1, 2, 3)))
         val state = TerminalShellIntegrationState()
@@ -94,7 +93,7 @@ class TerminalVisualViewportGeometryTest {
     }
 
     @Test
-    fun `top retained row suppresses divider because there is no previous row to separate`() {
+    fun `top retained row keeps prompt dot because it represents the row itself`() {
         val cache = TerminalRenderCache(columns = 3, rows = 2)
         cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(10, 11), historySize = 0, scrollbackOffset = 0))
         val state = TerminalShellIntegrationState()
@@ -104,11 +103,11 @@ class TerminalVisualViewportGeometryTest {
 
         assertTrue(decorations.updateFrom(state, cache))
 
-        assertFalse(decorations.hasPromptDividerAt(0))
+        assertTrue(decorations.hasPromptStartAt(0))
     }
 
     @Test
-    fun `live viewport keeps row zero divider when retained history has a previous row`() {
+    fun `live viewport keeps row zero prompt dot when retained history has a previous row`() {
         val cache = TerminalRenderCache(columns = 3, rows = 2)
         cache.updateFrom(TextRowsFrame(lineIds = longArrayOf(10, 11), historySize = 5, scrollbackOffset = 0))
         val state = TerminalShellIntegrationState()
@@ -118,7 +117,7 @@ class TerminalVisualViewportGeometryTest {
 
         assertTrue(decorations.updateFrom(state, cache))
 
-        assertTrue(decorations.hasPromptDividerAt(0))
+        assertTrue(decorations.hasPromptStartAt(0))
     }
 
     private fun fixedPromptLayout(): TerminalVisualViewportGeometry {

@@ -23,27 +23,9 @@ import kotlin.test.assertTrue
 
 class TerminalShellIntegrationStateTest {
     @Test
-    fun `first prompt start line is stable until state is cleared`() {
-        val state = TerminalShellIntegrationState(capacity = 2)
-
-        assertEquals(0L, state.firstPromptStartLineId())
-        state.recordPromptStart(10)
-        state.recordPromptStart(20)
-        state.recordPromptStart(30)
-
-        assertEquals(10L, state.firstPromptStartLineId())
-        assertTrue(state.isFirstPromptStartLine(10))
-        assertFalse(state.isFirstPromptStartLine(20))
-
-        state.clear()
-
-        assertEquals(0L, state.firstPromptStartLineId())
-    }
-
-    @Test
-    fun `prompt command lifecycle projects prompt dividers and failed command rails into viewport`() {
+    fun `prompt command lifecycle projects prompt starts and failed output into viewport`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(5)
+        val promptStarts = BooleanArray(5)
         val failedCommandRails = BooleanArray(5)
         val commandStarts = BooleanArray(5)
         val commandEnds = BooleanArray(5)
@@ -57,15 +39,15 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(10, 11, 12, 13, 14),
             rowCount = 5,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
+            failedCommandRails = failedCommandRails,
         )
 
-        assertContentEquals(booleanArrayOf(false, true, false, false, false), promptDividers)
+        assertContentEquals(booleanArrayOf(false, true, false, false, false), promptStarts)
         assertContentEquals(booleanArrayOf(false, false, true, true, true), failedCommandRails)
         assertContentEquals(
             intArrayOf(
@@ -92,8 +74,7 @@ class TerminalShellIntegrationStateTest {
     @Test
     fun `viewport projection clips command ranges without allocating intermediate records`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(3)
-        val failedCommandRails = BooleanArray(3)
+        val promptStarts = BooleanArray(3)
         val commandStarts = BooleanArray(3)
         val commandEnds = BooleanArray(3)
         val commandRecordIds = IntArray(3)
@@ -104,16 +85,14 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(7, 8, 9),
             rowCount = 3,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(false, false, false), promptDividers)
-        assertContentEquals(booleanArrayOf(true, true, true), failedCommandRails)
+        assertContentEquals(booleanArrayOf(false, false, false), promptStarts)
     }
 
     @Test
@@ -126,16 +105,15 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandFinished(5, exitCode = null)
         state.recordCommandFinished(8, exitCode = 2)
 
-        assertFalse(state.hasFailedCommandRailAtLine(1))
-        assertFalse(state.hasFailedCommandRailAtLine(4))
-        assertFalse(state.hasFailedCommandRailAtLine(8))
+        assertFalse(state.hasFailedCommandOutputAtLine(1))
+        assertFalse(state.hasFailedCommandOutputAtLine(4))
+        assertFalse(state.hasFailedCommandOutputAtLine(8))
     }
 
     @Test
     fun `viewport projection exposes successful and unknown command lifecycle states`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(5)
-        val failedCommandRails = BooleanArray(5)
+        val promptStarts = BooleanArray(5)
         val commandStarts = BooleanArray(5)
         val commandEnds = BooleanArray(5)
         val commandRecordIds = IntArray(5)
@@ -148,15 +126,13 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(1, 2, 3, 4, 5),
             rowCount = 5,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(false, false, false, false, false), failedCommandRails)
         assertContentEquals(
             intArrayOf(commandRecordIds[0], commandRecordIds[0], 0, commandRecordIds[3], commandRecordIds[3]),
             commandRecordIds,
@@ -170,6 +146,24 @@ class TerminalShellIntegrationStateTest {
                 TerminalShellIntegrationCommandLifecycle.FINISHED_UNKNOWN,
             ),
             commandLifecycleStates,
+        )
+    }
+
+    @Test
+    fun `viewport projection owns only the observed start row for a running command`() {
+        val state = TerminalShellIntegrationState()
+        state.recordCommandStart(10, includeLine = false)
+
+        val projection = state.project(longArrayOf(10, 11, 12))
+
+        assertContentEquals(booleanArrayOf(true, false, false), projection.commandStarts)
+        assertContentEquals(
+            intArrayOf(
+                TerminalShellIntegrationCommandLifecycle.RUNNING,
+                TerminalShellIntegrationCommandLifecycle.NONE,
+                TerminalShellIntegrationCommandLifecycle.NONE,
+            ),
+            projection.commandLifecycleStates,
         )
     }
 
@@ -539,8 +533,7 @@ class TerminalShellIntegrationStateTest {
     @Test
     fun `new prompt marks unfinished command as abandoned`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(2)
-        val failedCommandRails = BooleanArray(2)
+        val promptStarts = BooleanArray(2)
         val commandStarts = BooleanArray(2)
         val commandEnds = BooleanArray(2)
         val commandRecordIds = IntArray(2)
@@ -551,16 +544,14 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(10, 20),
             rowCount = 2,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(false, true), promptDividers)
-        assertContentEquals(booleanArrayOf(false, false), failedCommandRails)
+        assertContentEquals(booleanArrayOf(false, true), promptStarts)
         assertTrue(commandRecordIds[0] != TerminalShellIntegrationCommandRecord.NONE)
         assertTrue(commandRecordIds[1] != TerminalShellIntegrationCommandRecord.NONE)
         assertTrue(commandRecordIds[0] != commandRecordIds[1])
@@ -581,9 +572,9 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandStart(3, includeLine = true)
         state.recordCommandFinished(4, exitCode = 2)
 
-        assertFalse(state.hasFailedCommandRailAtLine(1))
-        assertTrue(state.hasFailedCommandRailAtLine(3))
-        assertTrue(state.hasFailedCommandRailAtLine(4))
+        assertFalse(state.hasFailedCommandOutputAtLine(1))
+        assertTrue(state.hasFailedCommandOutputAtLine(3))
+        assertTrue(state.hasFailedCommandOutputAtLine(4))
     }
 
     @Test
@@ -610,14 +601,12 @@ class TerminalShellIntegrationStateTest {
             ),
             projection.commandLifecycleStates,
         )
-        assertContentEquals(booleanArrayOf(false, false, true, true), projection.failedCommandRails)
     }
 
     @Test
     fun `prompt end without prompt start is ignored`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(2)
-        val failedCommandRails = BooleanArray(2)
+        val promptStarts = BooleanArray(2)
         val commandStarts = BooleanArray(2)
         val commandEnds = BooleanArray(2)
         val commandRecordIds = IntArray(2)
@@ -627,16 +616,14 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(1, 2),
             rowCount = 2,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(false, false), promptDividers)
-        assertContentEquals(booleanArrayOf(false, false), failedCommandRails)
+        assertContentEquals(booleanArrayOf(false, false), promptStarts)
     }
 
     @Test
@@ -647,8 +634,8 @@ class TerminalShellIntegrationStateTest {
         state.recordPromptStart(20)
         state.recordCommandFinished(19, exitCode = 1)
 
-        assertFalse(state.hasFailedCommandRailAtLine(10))
-        assertTrue(state.hasPromptDividerAtLine(20))
+        assertFalse(state.hasFailedCommandOutputAtLine(10))
+        assertTrue(state.hasPromptStartAtLine(20))
     }
 
     @Test
@@ -659,9 +646,9 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandFinished(11, exitCode = 1)
         state.recordCommandFinished(20, exitCode = 1)
 
-        assertTrue(state.hasFailedCommandRailAtLine(10))
-        assertTrue(state.hasFailedCommandRailAtLine(11))
-        assertFalse(state.hasFailedCommandRailAtLine(20))
+        assertTrue(state.hasFailedCommandOutputAtLine(10))
+        assertTrue(state.hasFailedCommandOutputAtLine(11))
+        assertFalse(state.hasFailedCommandOutputAtLine(20))
     }
 
     @Test
@@ -674,11 +661,11 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandStart(4, includeLine = true)
         state.recordCommandFinished(5, exitCode = 1)
 
-        assertTrue(state.hasPromptDividerAtLine(1))
-        assertTrue(state.hasPromptDividerAtLine(2))
-        assertFalse(state.hasFailedCommandRailAtLine(3))
-        assertTrue(state.hasFailedCommandRailAtLine(4))
-        assertTrue(state.hasFailedCommandRailAtLine(5))
+        assertTrue(state.hasPromptStartAtLine(1))
+        assertTrue(state.hasPromptStartAtLine(2))
+        assertFalse(state.hasFailedCommandOutputAtLine(3))
+        assertTrue(state.hasFailedCommandOutputAtLine(4))
+        assertTrue(state.hasFailedCommandOutputAtLine(5))
     }
 
     @Test
@@ -691,8 +678,8 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandFinished(95, exitCode = 1)
         state.observeLiveBottomRow(10)
 
-        assertTrue(state.hasPromptDividerAtLine(90))
-        assertTrue(state.hasFailedCommandRailAtLine(91))
+        assertTrue(state.hasPromptStartAtLine(90))
+        assertTrue(state.hasFailedCommandOutputAtLine(91))
     }
 
     @Test
@@ -703,9 +690,9 @@ class TerminalShellIntegrationStateTest {
         state.recordPromptStart(2)
         state.recordPromptStart(3)
 
-        assertFalse(state.hasPromptDividerAtLine(1))
-        assertTrue(state.hasPromptDividerAtLine(2))
-        assertTrue(state.hasPromptDividerAtLine(3))
+        assertFalse(state.hasPromptStartAtLine(1))
+        assertTrue(state.hasPromptStartAtLine(2))
+        assertTrue(state.hasPromptStartAtLine(3))
     }
 
     @Test
@@ -751,17 +738,16 @@ class TerminalShellIntegrationStateTest {
         state.recordCommandStart(3, includeLine = true)
         state.recordCommandFinished(4, exitCode = 1)
 
-        assertFalse(state.hasFailedCommandRailAtLine(1))
-        assertTrue(state.hasPromptDividerAtLine(2))
-        assertTrue(state.hasFailedCommandRailAtLine(3))
-        assertTrue(state.hasFailedCommandRailAtLine(4))
+        assertFalse(state.hasFailedCommandOutputAtLine(1))
+        assertTrue(state.hasPromptStartAtLine(2))
+        assertTrue(state.hasFailedCommandOutputAtLine(3))
+        assertTrue(state.hasFailedCommandOutputAtLine(4))
     }
 
     @Test
     fun `viewport projection follows line ids when visible row positions change`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(4)
-        val failedCommandRails = BooleanArray(4)
+        val promptStarts = BooleanArray(4)
         val commandStarts = BooleanArray(4)
         val commandEnds = BooleanArray(4)
         val commandRecordIds = IntArray(4)
@@ -773,23 +759,20 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(70, 42, 40, 41),
             rowCount = 4,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(false, false, true, false), promptDividers)
-        assertContentEquals(booleanArrayOf(false, true, false, true), failedCommandRails)
+        assertContentEquals(booleanArrayOf(false, false, true, false), promptStarts)
     }
 
     @Test
     fun `exclusive command start excludes prompt input line from failed rail`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(4)
-        val failedCommandRails = BooleanArray(4)
+        val promptStarts = BooleanArray(4)
         val commandStarts = BooleanArray(4)
         val commandEnds = BooleanArray(4)
         val commandRecordIds = IntArray(4)
@@ -800,16 +783,14 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(10, 11, 12, 13),
             rowCount = 4,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(false, false, false, false), promptDividers)
-        assertContentEquals(booleanArrayOf(false, true, true, false), failedCommandRails)
+        assertContentEquals(booleanArrayOf(false, false, false, false), promptStarts)
         assertContentEquals(booleanArrayOf(true, false, false, false), commandStarts)
         assertContentEquals(booleanArrayOf(false, false, true, false), commandEnds)
         assertContentEquals(
@@ -826,8 +807,7 @@ class TerminalShellIntegrationStateTest {
     @Test
     fun `inclusive command start includes same line output in failed rail`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(3)
-        val failedCommandRails = BooleanArray(3)
+        val promptStarts = BooleanArray(3)
         val commandStarts = BooleanArray(3)
         val commandEnds = BooleanArray(3)
         val commandRecordIds = IntArray(3)
@@ -838,23 +818,20 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(10, 11, 12),
             rowCount = 3,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(false, false, false), promptDividers)
-        assertContentEquals(booleanArrayOf(true, true, false), failedCommandRails)
+        assertContentEquals(booleanArrayOf(false, false, false), promptStarts)
     }
 
     @Test
     fun `failed rail covers duplicate physical rows from command output reflow`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(5)
-        val failedCommandRails = BooleanArray(5)
+        val promptStarts = BooleanArray(5)
         val commandStarts = BooleanArray(5)
         val commandEnds = BooleanArray(5)
         val commandRecordIds = IntArray(5)
@@ -865,16 +842,14 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(10, 11, 11, 12, 12),
             rowCount = 5,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(false, false, false, false, false), promptDividers)
-        assertContentEquals(booleanArrayOf(false, true, true, true, true), failedCommandRails)
+        assertContentEquals(booleanArrayOf(false, false, false, false, false), promptStarts)
         assertContentEquals(booleanArrayOf(true, false, false, false, false), commandStarts)
         assertContentEquals(booleanArrayOf(false, false, false, true, false), commandEnds)
         assertContentEquals(
@@ -892,8 +867,7 @@ class TerminalShellIntegrationStateTest {
     @Test
     fun `exclusive command with no output does not draw a failed rail`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(2)
-        val failedCommandRails = BooleanArray(2)
+        val promptStarts = BooleanArray(2)
         val commandStarts = BooleanArray(2)
         val commandEnds = BooleanArray(2)
         val commandRecordIds = IntArray(2)
@@ -904,16 +878,14 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(10, 11),
             rowCount = 2,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(false, false), promptDividers)
-        assertContentEquals(booleanArrayOf(false, false), failedCommandRails)
+        assertContentEquals(booleanArrayOf(false, false), promptStarts)
     }
 
     @Test
@@ -925,7 +897,6 @@ class TerminalShellIntegrationStateTest {
 
         val projection = state.project(longArrayOf(10, 11))
 
-        assertContentEquals(booleanArrayOf(false, false), projection.failedCommandRails)
         assertContentEquals(booleanArrayOf(true, false), projection.commandStarts)
         assertContentEquals(booleanArrayOf(true, false), projection.commandEnds)
         assertTrue(projection.commandRecordIds[0] != TerminalShellIntegrationCommandRecord.NONE)
@@ -940,10 +911,9 @@ class TerminalShellIntegrationStateTest {
     }
 
     @Test
-    fun `prompt divider is projected once when resize reflow exposes duplicate physical rows`() {
+    fun `prompt-start marker is projected once when resize reflow exposes duplicate physical rows`() {
         val state = TerminalShellIntegrationState()
-        val promptDividers = BooleanArray(3)
-        val failedCommandRails = BooleanArray(3)
+        val promptStarts = BooleanArray(3)
         val commandStarts = BooleanArray(3)
         val commandEnds = BooleanArray(3)
         val commandRecordIds = IntArray(3)
@@ -953,16 +923,14 @@ class TerminalShellIntegrationStateTest {
         state.copyViewport(
             lineIds = longArrayOf(9, 9, 9),
             rowCount = 3,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
             commandLifecycleStates = commandLifecycleStates,
         )
 
-        assertContentEquals(booleanArrayOf(true, false, false), promptDividers)
-        assertContentEquals(booleanArrayOf(false, false, false), failedCommandRails)
+        assertContentEquals(booleanArrayOf(true, false, false), promptStarts)
     }
 
     @Test
@@ -974,7 +942,7 @@ class TerminalShellIntegrationStateTest {
 
         val projection = state.project(longArrayOf(10, 11, 12, 13))
 
-        assertContentEquals(booleanArrayOf(true, false, false, false), projection.promptDividers)
+        assertContentEquals(booleanArrayOf(true, false, false, false), projection.promptStarts)
         assertContentEquals(
             intArrayOf(
                 projection.commandRecordIds[0],
@@ -1006,8 +974,7 @@ class TerminalShellIntegrationStateTest {
 
         val projection = state.project(longArrayOf(1, 2, 3))
 
-        assertContentEquals(booleanArrayOf(false, false, false), projection.promptDividers)
-        assertContentEquals(booleanArrayOf(false, false, false), projection.failedCommandRails)
+        assertContentEquals(booleanArrayOf(false, false, false), projection.promptStarts)
         assertContentEquals(booleanArrayOf(false, false, false), projection.commandStarts)
         assertContentEquals(booleanArrayOf(false, false, false), projection.commandEnds)
         assertContentEquals(
@@ -1030,8 +997,7 @@ class TerminalShellIntegrationStateTest {
 
     private fun TerminalShellIntegrationState.project(lineIds: LongArray): Projection {
         val rowCount = lineIds.size
-        val promptDividers = BooleanArray(rowCount)
-        val failedCommandRails = BooleanArray(rowCount)
+        val promptStarts = BooleanArray(rowCount)
         val commandStarts = BooleanArray(rowCount)
         val commandEnds = BooleanArray(rowCount)
         val commandRecordIds = IntArray(rowCount)
@@ -1040,8 +1006,7 @@ class TerminalShellIntegrationStateTest {
         copyViewport(
             lineIds = lineIds,
             rowCount = rowCount,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
@@ -1049,8 +1014,7 @@ class TerminalShellIntegrationStateTest {
         )
 
         return Projection(
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
@@ -1059,8 +1023,7 @@ class TerminalShellIntegrationStateTest {
     }
 
     private class Projection(
-        val promptDividers: BooleanArray,
-        val failedCommandRails: BooleanArray,
+        val promptStarts: BooleanArray,
         val commandStarts: BooleanArray,
         val commandEnds: BooleanArray,
         val commandRecordIds: IntArray,

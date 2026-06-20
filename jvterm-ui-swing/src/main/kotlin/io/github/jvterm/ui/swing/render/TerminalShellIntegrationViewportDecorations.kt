@@ -15,7 +15,10 @@
  */
 package io.github.jvterm.ui.swing.render
 
+import io.github.jvterm.render.api.TerminalRenderBufferKind
 import io.github.jvterm.render.cache.TerminalRenderCache
+import io.github.jvterm.session.TerminalShellIntegrationCommandLifecycle
+import io.github.jvterm.session.TerminalShellIntegrationCommandRecord
 import io.github.jvterm.session.TerminalShellIntegrationState
 
 /**
@@ -26,13 +29,13 @@ import io.github.jvterm.session.TerminalShellIntegrationState
  * painting so the row paint loop performs only array lookups.
  */
 internal class TerminalShellIntegrationViewportDecorations {
-    private var promptDividers = BooleanArray(0)
+    private var promptStarts = BooleanArray(0)
     private var failedCommandRails = BooleanArray(0)
     private var commandStarts = BooleanArray(0)
     private var commandEnds = BooleanArray(0)
     private var commandRecordIds = IntArray(0)
     private var commandLifecycleStates = IntArray(0)
-    private var nextPromptDividers = BooleanArray(0)
+    private var nextPromptStarts = BooleanArray(0)
     private var nextFailedCommandRails = BooleanArray(0)
     private var nextCommandStarts = BooleanArray(0)
     private var nextCommandEnds = BooleanArray(0)
@@ -50,18 +53,20 @@ internal class TerminalShellIntegrationViewportDecorations {
         cache: TerminalRenderCache,
     ): Boolean {
         ensureCapacity(cache.rows)
-        state.copyViewport(
-            lineIds = cache.lineIds,
-            rowCount = cache.rows,
-            promptDividers = nextPromptDividers,
-            failedCommandRails = nextFailedCommandRails,
-            commandStarts = nextCommandStarts,
-            commandEnds = nextCommandEnds,
-            commandRecordIds = nextCommandRecordIds,
-            commandLifecycleStates = nextCommandLifecycleStates,
-        )
-        suppressFirstPromptDivider(state, cache)
-        suppressTopEdgeDivider(cache)
+        if (cache.activeBuffer == TerminalRenderBufferKind.ALTERNATE) {
+            clearNext(cache.rows)
+        } else {
+            state.copyViewport(
+                lineIds = cache.lineIds,
+                rowCount = cache.rows,
+                promptStarts = nextPromptStarts,
+                commandStarts = nextCommandStarts,
+                commandEnds = nextCommandEnds,
+                commandRecordIds = nextCommandRecordIds,
+                commandLifecycleStates = nextCommandLifecycleStates,
+                failedCommandRails = nextFailedCommandRails,
+            )
+        }
         val changed = decorationsChanged(cache.rows)
         swapBuffers()
         rowCount = cache.rows
@@ -76,12 +81,12 @@ internal class TerminalShellIntegrationViewportDecorations {
     }
 
     /**
-     * Returns whether visible [row] should draw a prompt divider.
+     * Returns whether visible [row] starts a shell prompt.
      */
-    fun hasPromptDividerAt(row: Int): Boolean = row in 0 until rowCount && promptDividers[row]
+    fun hasPromptStartAt(row: Int): Boolean = row in 0 until rowCount && promptStarts[row]
 
     /**
-     * Returns whether visible [row] should draw a failed-command rail.
+     * Returns whether visible [row] belongs to failed-command output.
      */
     fun hasFailedCommandRailAt(row: Int): Boolean = row in 0 until rowCount && failedCommandRails[row]
 
@@ -105,39 +110,15 @@ internal class TerminalShellIntegrationViewportDecorations {
      */
     fun commandLifecycleAt(row: Int): Int = if (row in 0 until rowCount) commandLifecycleStates[row] else 0
 
-    private fun suppressFirstPromptDivider(
-        state: TerminalShellIntegrationState,
-        cache: TerminalRenderCache,
-    ) {
-        val firstPromptLineId = state.firstPromptStartLineId()
-        if (firstPromptLineId == NO_LINE_ID) return
-
-        var row = 0
-        while (row < cache.rows) {
-            if (cache.lineIds[row] == firstPromptLineId) {
-                nextPromptDividers[row] = false
-                return
-            }
-            row++
-        }
-    }
-
-    private fun suppressTopEdgeDivider(cache: TerminalRenderCache) {
-        if (cache.rows == 0) return
-        if (cache.scrollbackOffset >= cache.historySize) {
-            nextPromptDividers[0] = false
-        }
-    }
-
     private fun ensureCapacity(rows: Int) {
-        if (promptDividers.size >= rows) return
-        promptDividers = BooleanArray(rows)
+        if (promptStarts.size >= rows) return
+        promptStarts = BooleanArray(rows)
         failedCommandRails = BooleanArray(rows)
         commandStarts = BooleanArray(rows)
         commandEnds = BooleanArray(rows)
         commandRecordIds = IntArray(rows)
         commandLifecycleStates = IntArray(rows)
-        nextPromptDividers = BooleanArray(rows)
+        nextPromptStarts = BooleanArray(rows)
         nextFailedCommandRails = BooleanArray(rows)
         nextCommandStarts = BooleanArray(rows)
         nextCommandEnds = BooleanArray(rows)
@@ -150,7 +131,7 @@ internal class TerminalShellIntegrationViewportDecorations {
 
         var row = 0
         while (row < nextRowCount) {
-            if (promptDividers[row] != nextPromptDividers[row]) return true
+            if (promptStarts[row] != nextPromptStarts[row]) return true
             if (failedCommandRails[row] != nextFailedCommandRails[row]) return true
             if (commandStarts[row] != nextCommandStarts[row]) return true
             if (commandEnds[row] != nextCommandEnds[row]) return true
@@ -162,21 +143,21 @@ internal class TerminalShellIntegrationViewportDecorations {
     }
 
     private fun swapBuffers() {
-        var prompt = promptDividers
-        promptDividers = nextPromptDividers
-        nextPromptDividers = prompt
+        var flags = promptStarts
+        promptStarts = nextPromptStarts
+        nextPromptStarts = flags
 
-        prompt = failedCommandRails
+        flags = failedCommandRails
         failedCommandRails = nextFailedCommandRails
-        nextFailedCommandRails = prompt
+        nextFailedCommandRails = flags
 
-        prompt = commandStarts
+        flags = commandStarts
         commandStarts = nextCommandStarts
-        nextCommandStarts = prompt
+        nextCommandStarts = flags
 
-        prompt = commandEnds
+        flags = commandEnds
         commandEnds = nextCommandEnds
-        nextCommandEnds = prompt
+        nextCommandEnds = flags
 
         var ids = commandRecordIds
         commandRecordIds = nextCommandRecordIds
@@ -187,7 +168,12 @@ internal class TerminalShellIntegrationViewportDecorations {
         nextCommandLifecycleStates = ids
     }
 
-    private companion object {
-        private const val NO_LINE_ID = 0L
+    private fun clearNext(rows: Int) {
+        nextPromptStarts.fill(false, 0, rows)
+        nextFailedCommandRails.fill(false, 0, rows)
+        nextCommandStarts.fill(false, 0, rows)
+        nextCommandEnds.fill(false, 0, rows)
+        nextCommandRecordIds.fill(TerminalShellIntegrationCommandRecord.NONE, 0, rows)
+        nextCommandLifecycleStates.fill(TerminalShellIntegrationCommandLifecycle.NONE, 0, rows)
     }
 }

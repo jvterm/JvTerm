@@ -245,9 +245,7 @@ class TerminalSessionTest {
 
         val decorations = session.shellDecorations()
         assertAll(
-            { assertTrue(decorations.promptDividers[0]) },
-            { assertFalse(decorations.failedCommandRails[0]) },
-            { assertTrue(decorations.failedCommandRails[1]) },
+            { assertTrue(decorations.promptStarts[0]) },
         )
         session.close()
     }
@@ -317,21 +315,6 @@ class TerminalSessionTest {
     }
 
     @Test
-    fun `OSC 133 command start on command line excludes that line from failed rail`() {
-        val connector = MockConnector()
-        val session = createStartedSession(connector, columns = 20, rows = 4)
-
-        connector.feedFromHost("PS> cmd\u001B]133;C\u0007\r\nfailed\u001B]133;D;2\u0007".ascii())
-
-        val decorations = session.shellDecorations()
-        assertAll(
-            { assertFalse(decorations.failedCommandRails[0]) },
-            { assertTrue(decorations.failedCommandRails[1]) },
-        )
-        session.close()
-    }
-
-    @Test
     fun `OSC 133 decorations re-anchor after clear screen and history`() {
         val connector = MockConnector()
         val session = createStartedSession(connector, columns = 30, rows = 4)
@@ -348,14 +331,13 @@ class TerminalSessionTest {
         val decorations = session.shellDecorations()
         assertAll(
             { assertTrue(decorations.lineIds.all { it > 0L }, "clear-history render frame exposed a zero line id") },
-            { assertTrue(decorations.promptDividers.any { it }, "new prompt marker did not re-anchor after clear") },
-            { assertFalse(decorations.failedCommandRails.any { it }, "stale failed-command rail survived clear-history") },
+            { assertTrue(decorations.promptStarts.any { it }, "new prompt marker did not re-anchor after clear") },
         )
         session.close()
     }
 
     @Test
-    fun `OSC 133 command finish at next prompt line excludes prompt row from failed range`() {
+    fun `OSC 133 command finish followed by prompt preserves next prompt marker`() {
         val connector = MockConnector()
         val session = createStartedSession(connector, columns = 20, rows = 4)
 
@@ -363,9 +345,7 @@ class TerminalSessionTest {
 
         val decorations = session.shellDecorations()
         assertAll(
-            { assertTrue(decorations.failedCommandRails[0]) },
-            { assertFalse(decorations.failedCommandRails[1]) },
-            { assertTrue(decorations.promptDividers[1]) },
+            { assertTrue(decorations.promptStarts[1]) },
         )
         session.close()
     }
@@ -379,15 +359,13 @@ class TerminalSessionTest {
 
         val decorations = session.shellDecorations()
         assertAll(
-            { assertFalse(decorations.failedCommandRails[0]) },
-            { assertFalse(decorations.failedCommandRails[1]) },
-            { assertTrue(decorations.promptDividers[1]) },
+            { assertTrue(decorations.promptStarts[1]) },
         )
         session.close()
     }
 
     @Test
-    fun `OSC 133 zero exit code records succeeded lifecycle without failed rail`() {
+    fun `OSC 133 zero exit code records succeeded lifecycle`() {
         val connector = MockConnector()
         val session = createStartedSession(connector, columns = 20, rows = 4)
 
@@ -395,7 +373,6 @@ class TerminalSessionTest {
 
         val decorations = session.shellDecorations()
         assertAll(
-            { assertFalse(decorations.failedCommandRails[0]) },
             { assertTrue(decorations.commandRecordIds[0] != TerminalShellIntegrationCommandRecord.NONE) },
             { assertEquals(TerminalShellIntegrationCommandLifecycle.SUCCEEDED, decorations.commandLifecycleStates[0]) },
         )
@@ -411,8 +388,6 @@ class TerminalSessionTest {
 
         val decorations = session.shellDecorations()
         assertAll(
-            { assertFalse(decorations.failedCommandRails[0]) },
-            { assertTrue(decorations.failedCommandRails[1]) },
             { assertTrue(decorations.commandRecordIds[0] != TerminalShellIntegrationCommandRecord.NONE) },
             { assertTrue(decorations.commandRecordIds[1] != TerminalShellIntegrationCommandRecord.NONE) },
             { assertNotEquals(decorations.commandRecordIds[0], decorations.commandRecordIds[1]) },
@@ -431,7 +406,6 @@ class TerminalSessionTest {
 
         val decorations = session.shellDecorations()
         assertAll(
-            { assertFalse(decorations.failedCommandRails[0]) },
             { assertEquals(TerminalShellIntegrationCommandRecord.NONE, decorations.commandRecordIds[0]) },
             { assertEquals(TerminalShellIntegrationCommandLifecycle.NONE, decorations.commandLifecycleStates[0]) },
         )
@@ -444,14 +418,14 @@ class TerminalSessionTest {
         val session = createStartedSession(connector, columns = 10, rows = 4)
 
         connector.feedFromHost("\u001B]133;A\u0007prompt> ".ascii())
-        assertTrue(session.shellDecorations().promptDividers[0])
+        assertTrue(session.shellDecorations().promptStarts[0])
 
         session.resize(columns = 4, rows = 4)
 
         val decorations = session.shellDecorations()
         assertAll(
-            { assertTrue(decorations.promptDividers[0]) },
-            { assertFalse(decorations.promptDividers[1]) },
+            { assertTrue(decorations.promptStarts[0]) },
+            { assertFalse(decorations.promptStarts[1]) },
         )
         session.close()
     }
@@ -1038,8 +1012,7 @@ class TerminalSessionTest {
 
     private fun TerminalSession.shellDecorations(): ShellDecorationSnapshot {
         var lineIds = LongArray(0)
-        var promptDividers = BooleanArray(0)
-        var failedCommandRails = BooleanArray(0)
+        var promptStarts = BooleanArray(0)
         var commandStarts = BooleanArray(0)
         var commandEnds = BooleanArray(0)
         var commandRecordIds = IntArray(0)
@@ -1051,8 +1024,7 @@ class TerminalSessionTest {
                 lineIds[row] = frame.lineId(row)
                 row++
             }
-            promptDividers = BooleanArray(frame.rows)
-            failedCommandRails = BooleanArray(frame.rows)
+            promptStarts = BooleanArray(frame.rows)
             commandStarts = BooleanArray(frame.rows)
             commandEnds = BooleanArray(frame.rows)
             commandRecordIds = IntArray(frame.rows)
@@ -1060,8 +1032,7 @@ class TerminalSessionTest {
             shellIntegrationState.copyViewport(
                 lineIds = lineIds,
                 rowCount = frame.rows,
-                promptDividers = promptDividers,
-                failedCommandRails = failedCommandRails,
+                promptStarts = promptStarts,
                 commandStarts = commandStarts,
                 commandEnds = commandEnds,
                 commandRecordIds = commandRecordIds,
@@ -1070,8 +1041,7 @@ class TerminalSessionTest {
         }
         return ShellDecorationSnapshot(
             lineIds = lineIds,
-            promptDividers = promptDividers,
-            failedCommandRails = failedCommandRails,
+            promptStarts = promptStarts,
             commandStarts = commandStarts,
             commandEnds = commandEnds,
             commandRecordIds = commandRecordIds,
@@ -1081,8 +1051,7 @@ class TerminalSessionTest {
 
     private data class ShellDecorationSnapshot(
         val lineIds: LongArray,
-        val promptDividers: BooleanArray,
-        val failedCommandRails: BooleanArray,
+        val promptStarts: BooleanArray,
         val commandStarts: BooleanArray,
         val commandEnds: BooleanArray,
         val commandRecordIds: IntArray,
@@ -1094,8 +1063,7 @@ class TerminalSessionTest {
 
             other as ShellDecorationSnapshot
 
-            if (!promptDividers.contentEquals(other.promptDividers)) return false
-            if (!failedCommandRails.contentEquals(other.failedCommandRails)) return false
+            if (!promptStarts.contentEquals(other.promptStarts)) return false
             if (!commandStarts.contentEquals(other.commandStarts)) return false
             if (!commandEnds.contentEquals(other.commandEnds)) return false
             if (!commandRecordIds.contentEquals(other.commandRecordIds)) return false
@@ -1105,8 +1073,7 @@ class TerminalSessionTest {
         }
 
         override fun hashCode(): Int {
-            var result = promptDividers.contentHashCode()
-            result = 31 * result + failedCommandRails.contentHashCode()
+            var result = promptStarts.contentHashCode()
             result = 31 * result + commandStarts.contentHashCode()
             result = 31 * result + commandEnds.contentHashCode()
             result = 31 * result + commandRecordIds.contentHashCode()

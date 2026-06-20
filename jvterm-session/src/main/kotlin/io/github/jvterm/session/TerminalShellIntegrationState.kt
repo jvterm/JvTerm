@@ -144,7 +144,6 @@ class TerminalShellIntegrationState(
     private var activeCommandIndex = NO_INDEX
     private var nextRecordId = 1
     private var lastObservedBottomRow = NO_OBSERVED_ROW
-    private var firstPromptStartLineId = NO_LINE_ID
 
     /**
      * Records the start of a shell prompt.
@@ -160,9 +159,6 @@ class TerminalShellIntegrationState(
             promptStartLineIds[index] = lineId
             lifecycles[index] = TerminalShellIntegrationCommandLifecycle.PROMPT_ONLY
             activePromptIndex = index
-            if (firstPromptStartLineId == NO_LINE_ID) {
-                firstPromptStartLineId = lineId
-            }
         }
     }
 
@@ -258,12 +254,12 @@ class TerminalShellIntegrationState(
     }
 
     /**
-     * Returns whether [lineId] has a prompt divider.
+     * Returns whether [lineId] has a prompt-start marker.
      *
      * @param lineId stable render line identity to query.
      * @return true when a prompt-start marker is anchored to the line.
      */
-    fun hasPromptDividerAtLine(lineId: Long): Boolean {
+    fun hasPromptStartAtLine(lineId: Long): Boolean {
         require(lineId > 0L) { "lineId must be positive, was $lineId" }
         synchronized(lock) {
             var index = 0
@@ -276,41 +272,12 @@ class TerminalShellIntegrationState(
     }
 
     /**
-     * Returns the first prompt-start line id observed since the timeline was
-     * created or last cleared.
-     *
-     * The value is not affected by bounded record eviction. UI layers use it to
-     * avoid drawing a visual divider above the original prompt because that
-     * divider would not separate two command blocks.
-     *
-     * @return first prompt-start line id, or `0` when no prompt was recorded.
-     */
-    fun firstPromptStartLineId(): Long =
-        synchronized(lock) {
-            firstPromptStartLineId
-        }
-
-    /**
-     * Returns whether [lineId] is the first prompt-start line observed since
-     * the timeline was created or last cleared.
-     *
-     * @param lineId stable render line identity to query.
-     * @return true when [lineId] is the original prompt-start line.
-     */
-    fun isFirstPromptStartLine(lineId: Long): Boolean {
-        require(lineId > 0L) { "lineId must be positive, was $lineId" }
-        synchronized(lock) {
-            return firstPromptStartLineId == lineId
-        }
-    }
-
-    /**
      * Returns whether [lineId] belongs to a failed command range.
      *
      * @param lineId stable render line identity to query.
      * @return true when the line is within a completed non-zero command range.
      */
-    fun hasFailedCommandRailAtLine(lineId: Long): Boolean {
+    fun hasFailedCommandOutputAtLine(lineId: Long): Boolean {
         require(lineId > 0L) { "lineId must be positive, was $lineId" }
         synchronized(lock) {
             return failedCommandIndexAtLocked(lineId) != NO_INDEX
@@ -618,32 +585,31 @@ class TerminalShellIntegrationState(
     /**
      * Copies projected shell decorations for a visible viewport.
      *
-     * Existing values in [promptDividers], [failedCommandRails],
-     * [commandStarts], [commandEnds], [commandRecordIds], and
-     * [commandLifecycleStates] are
+     * Existing values in [promptStarts], [commandStarts], [commandEnds],
+     * [commandRecordIds], and [commandLifecycleStates] are
      * overwritten for exactly [rowCount] rows starting at [destinationOffset].
      *
      * @param lineIds stable line identities for visible viewport rows.
      * @param rowCount number of viewport rows to copy.
-     * @param promptDividers destination flags for prompt-start dividers.
-     * @param failedCommandRails destination flags for failed-command rails.
+     * @param promptStarts destination flags for prompt-start rows.
      * @param commandStarts destination flags for command-output start rows.
      * @param commandEnds destination flags for command-output end rows.
      * @param commandRecordIds destination command-record ids for rows owned by
      *   a projected prompt or command range.
      * @param commandLifecycleStates destination lifecycle states for rows with
      *   a projected command record.
+     * @param failedCommandRails optional destination flags for failed-command output rows.
      * @param destinationOffset first destination index in all destination arrays.
      */
     fun copyViewport(
         lineIds: LongArray,
         rowCount: Int,
-        promptDividers: BooleanArray,
-        failedCommandRails: BooleanArray,
+        promptStarts: BooleanArray,
         commandStarts: BooleanArray,
         commandEnds: BooleanArray,
         commandRecordIds: IntArray,
         commandLifecycleStates: IntArray,
+        failedCommandRails: BooleanArray? = null,
         destinationOffset: Int = 0,
     ) {
         require(rowCount >= 0) { "rowCount must be >= 0, was $rowCount" }
@@ -651,11 +617,8 @@ class TerminalShellIntegrationState(
             "lineIds is too small for rowCount=$rowCount size=${lineIds.size}"
         }
         require(destinationOffset >= 0) { "destinationOffset must be >= 0, was $destinationOffset" }
-        require(destinationOffset + rowCount <= promptDividers.size) {
-            "promptDividers is too small for offset=$destinationOffset rowCount=$rowCount size=${promptDividers.size}"
-        }
-        require(destinationOffset + rowCount <= failedCommandRails.size) {
-            "failedCommandRails is too small for offset=$destinationOffset rowCount=$rowCount size=${failedCommandRails.size}"
+        require(destinationOffset + rowCount <= promptStarts.size) {
+            "promptStarts is too small for offset=$destinationOffset rowCount=$rowCount size=${promptStarts.size}"
         }
         require(destinationOffset + rowCount <= commandStarts.size) {
             "commandStarts is too small for offset=$destinationOffset rowCount=$rowCount size=${commandStarts.size}"
@@ -669,14 +632,17 @@ class TerminalShellIntegrationState(
         require(destinationOffset + rowCount <= commandLifecycleStates.size) {
             "commandLifecycleStates is too small for offset=$destinationOffset rowCount=$rowCount size=${commandLifecycleStates.size}"
         }
+        require(failedCommandRails == null || destinationOffset + rowCount <= failedCommandRails.size) {
+            "failedCommandRails is too small for offset=$destinationOffset rowCount=$rowCount size=${failedCommandRails?.size}"
+        }
 
         clearViewport(
-            promptDividers,
-            failedCommandRails,
+            promptStarts,
             commandStarts,
             commandEnds,
             commandRecordIds,
             commandLifecycleStates,
+            failedCommandRails,
             destinationOffset,
             rowCount,
         )
@@ -685,8 +651,10 @@ class TerminalShellIntegrationState(
         synchronized(lock) {
             var index = 0
             while (index < count) {
-                projectPromptDividerLocked(index, lineIds, rowCount, promptDividers, destinationOffset)
-                projectFailedCommandRailLocked(index, lineIds, rowCount, failedCommandRails, destinationOffset)
+                projectPromptStartLocked(index, lineIds, rowCount, promptStarts, destinationOffset)
+                if (failedCommandRails != null) {
+                    projectFailedCommandRailLocked(index, lineIds, rowCount, failedCommandRails, destinationOffset)
+                }
                 projectCommandBoundaryLocked(index, lineIds, rowCount, commandStarts, commandEnds, destinationOffset)
                 projectCommandRecordLocked(
                     index,
@@ -835,11 +803,11 @@ class TerminalShellIntegrationState(
         return isLineInCommandOutputRange(index, lineId, start, end)
     }
 
-    private fun projectPromptDividerLocked(
+    private fun projectPromptStartLocked(
         index: Int,
         lineIds: LongArray,
         rowCount: Int,
-        promptDividers: BooleanArray,
+        promptStarts: BooleanArray,
         destinationOffset: Int,
     ) {
         val promptStart = promptStartLineIds[index]
@@ -847,7 +815,7 @@ class TerminalShellIntegrationState(
         var row = 0
         while (row < rowCount) {
             if (lineIds[row] == promptStart) {
-                promptDividers[destinationOffset + row] = true
+                promptStarts[destinationOffset + row] = true
                 return
             }
             row++
@@ -940,9 +908,7 @@ class TerminalShellIntegrationState(
         if (start == NO_LINE_ID) return
         projectRecordLine(lineIds, rowCount, commandRecordIds, commandLifecycleStates, destinationOffset, start, id, lifecycle)
         val end = commandEndLineIds[index]
-        if (end == NO_LINE_ID) {
-            return
-        }
+        if (end == NO_LINE_ID) return
 
         var row = 0
         while (row < rowCount) {
@@ -996,7 +962,6 @@ class TerminalShellIntegrationState(
         count = 0
         activePromptIndex = NO_INDEX
         activeCommandIndex = NO_INDEX
-        firstPromptStartLineId = NO_LINE_ID
     }
 
     private companion object {
@@ -1008,24 +973,24 @@ class TerminalShellIntegrationState(
         private const val FLAG_COMMAND_START_INCLUSIVE = 1 shl 0
 
         private fun clearViewport(
-            promptDividers: BooleanArray,
-            failedCommandRails: BooleanArray,
+            promptStarts: BooleanArray,
             commandStarts: BooleanArray,
             commandEnds: BooleanArray,
             commandRecordIds: IntArray,
             commandLifecycleStates: IntArray,
+            failedCommandRails: BooleanArray?,
             destinationOffset: Int,
             rowCount: Int,
         ) {
             val end = destinationOffset + rowCount
             var index = destinationOffset
             while (index < end) {
-                promptDividers[index] = false
-                failedCommandRails[index] = false
+                promptStarts[index] = false
                 commandStarts[index] = false
                 commandEnds[index] = false
                 commandRecordIds[index] = TerminalShellIntegrationCommandRecord.NONE
                 commandLifecycleStates[index] = TerminalShellIntegrationCommandLifecycle.NONE
+                if (failedCommandRails != null) failedCommandRails[index] = false
                 index++
             }
         }

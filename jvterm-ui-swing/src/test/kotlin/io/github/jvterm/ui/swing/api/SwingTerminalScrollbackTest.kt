@@ -305,7 +305,7 @@ class SwingTerminalScrollbackTest {
     }
 
     @Test
-    fun `prompt dividers do not create scrollable overflow without core history`() {
+    fun `command gutter guides do not create scrollable overflow without core history`() {
         val reader = DividerOverflowFrameReader()
         val shellIntegrationState = TerminalShellIntegrationState()
         shellIntegrationState.recordPromptStart(1)
@@ -365,7 +365,7 @@ class SwingTerminalScrollbackTest {
     }
 
     @Test
-    fun `enabling prompt dividers does not resize terminal geometry`() {
+    fun `enabling command gutter guides does not resize terminal geometry`() {
         val connector = RecordingConnector()
         val shellIntegrationState = TerminalShellIntegrationState()
         shellIntegrationState.recordPromptStart(1)
@@ -386,7 +386,7 @@ class SwingTerminalScrollbackTest {
             MutableSettingsProvider(
                 SwingSettings(
                     padding = Insets(0, 0, 0, 0),
-                    shellIntegrationPromptDividersVisible = false,
+                    shellIntegrationPromptDotsVisible = false,
                 ),
             )
         val component = SwingTerminal(settingsProvider = settingsProvider)
@@ -401,7 +401,7 @@ class SwingTerminalScrollbackTest {
         assertEquals(3, connector.lastColumns.get())
         assertEquals(3, connector.lastRows.get())
 
-        settingsProvider.settings = settingsProvider.settings.copy(shellIntegrationPromptDividersVisible = true)
+        settingsProvider.settings = settingsProvider.settings.copy(shellIntegrationPromptDotsVisible = true)
         component.reloadSettings()
         drainEdt()
 

@@ -15,21 +15,20 @@
  */
 package io.github.jvterm.ui.swing.render.painter
 
+import io.github.jvterm.session.TerminalShellIntegrationCommandLifecycle
 import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
 import io.github.jvterm.ui.swing.render.cache.AwtColorCache
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import java.awt.Graphics2D
-import java.awt.geom.Rectangle2D
+import java.awt.RenderingHints
 
 /**
- * Paints shell-integration prompt dividers and failed-command side rails.
+ * Paints shell-integration prompt dots and failed-command rails in the left gutter.
  */
 internal class TerminalShellIntegrationDecorationPainter(
     private val colorCache: AwtColorCache,
 ) {
-    private val dividerScratch = Rectangle2D.Double()
-
     /**
      * Paints shell-integration decorations for one visible row.
      */
@@ -39,45 +38,64 @@ internal class TerminalShellIntegrationDecorationPainter(
         metrics: SwingMetrics,
         decorations: TerminalShellIntegrationViewportDecorations?,
         row: Int,
-        componentWidth: Int,
     ) {
         if (decorations == null) return
 
+        val gutterWidth = settings.shellIntegrationDecorationGutterWidth.coerceAtMost(settings.padding.left)
+        if (gutterWidth <= 0) return
+
         val y = row * metrics.cellHeight
         if (settings.shellIntegrationFailedCommandRailsVisible && decorations.hasFailedCommandRailAt(row)) {
-            val gutterWidth = settings.shellIntegrationDecorationGutterWidth.coerceAtMost(settings.padding.left)
-            if (gutterWidth > 0) {
-                val width = minOf(settings.shellIntegrationFailedCommandRailWidth, gutterWidth)
-                val x = -gutterWidth
-                g.color = colorCache.color(settings.shellIntegrationFailedCommandRailColor)
-                g.fillRect(x, y, width, metrics.cellHeight)
-            }
+            val width = minOf(settings.shellIntegrationFailedCommandRailWidth, gutterWidth, metrics.cellHeight)
+            val centerX = -(gutterWidth / 2).coerceAtLeast(1)
+            paintFailedCommandRail(g, settings, decorations, row, centerX - width / 2, y, width, metrics.cellHeight)
         }
 
-        if (settings.shellIntegrationPromptDividersVisible && decorations.hasPromptDividerAt(row)) {
-            val x = -settings.padding.left
-            val width = componentWidth
-            g.color = colorCache.color(settings.shellIntegrationPromptDividerColor)
-            dividerScratch.setRect(
-                x.toDouble(),
-                y.toDouble(),
-                width.toDouble(),
-                promptDividerUserHeight(g, settings),
+        if (!settings.shellIntegrationPromptDotsVisible || !decorations.hasPromptStartAt(row)) return
+
+        val centerX = -(gutterWidth / 2).coerceAtLeast(1)
+        val diameter = minOf(settings.shellIntegrationPromptDotDiameter, gutterWidth, metrics.cellHeight)
+        val dotX = centerX - diameter / 2
+        val dotY = y + (metrics.cellHeight - diameter) / 2
+        val failed = decorations.commandLifecycleAt(row) == TerminalShellIntegrationCommandLifecycle.FAILED
+        g.color =
+            colorCache.color(
+                if (failed) settings.shellIntegrationFailedPromptDotColor else settings.shellIntegrationPromptDotColor,
             )
-            g.fill(dividerScratch)
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        try {
+            g.fillOval(dotX, dotY, diameter, diameter)
+        } finally {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
         }
     }
 
-    private fun promptDividerUserHeight(
+    private fun paintFailedCommandRail(
         g: Graphics2D,
         settings: SwingSettings,
-    ): Double {
-        val scaleY = g.transform.scaleY
-        val physicalPixelHeight = if (scaleY > 0.0) 1.0 / scaleY else 1.0
-        return minOf(settings.shellIntegrationPromptDividerThickness.toDouble(), physicalPixelHeight).coerceAtLeast(MIN_USER_HEIGHT)
-    }
+        decorations: TerminalShellIntegrationViewportDecorations,
+        row: Int,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+    ) {
+        val continuesFromPreviousRow = decorations.hasFailedCommandRailAt(row - 1)
+        val continuesIntoNextRow = decorations.hasFailedCommandRailAt(row + 1)
+        val capInset = width / 2
+        val topInset = if (continuesFromPreviousRow) 0 else capInset
+        val bottomInset = if (continuesIntoNextRow) 0 else capInset
 
-    private companion object {
-        private const val MIN_USER_HEIGHT = 0.05
+        g.color = colorCache.color(settings.shellIntegrationFailedCommandRailColor)
+        g.fillRect(x, y + topInset, width, height - topInset - bottomInset)
+        if (!continuesFromPreviousRow || !continuesIntoNextRow) {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            try {
+                if (!continuesFromPreviousRow) g.fillOval(x, y, width, width)
+                if (!continuesIntoNextRow) g.fillOval(x, y + height - width, width, width)
+            } finally {
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
+            }
+        }
     }
 }

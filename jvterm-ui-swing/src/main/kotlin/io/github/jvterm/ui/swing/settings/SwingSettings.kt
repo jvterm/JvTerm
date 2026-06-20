@@ -54,20 +54,15 @@ import java.util.*
  * search result ranges.
  * @property searchActiveMatchBackground packed ARGB overlay used for the active
  * search result.
- * @property shellIntegrationPromptDividersVisible whether prompt-start rows
- * recorded through shell integration draw horizontal dividers.
- * @property shellIntegrationFailedCommandRailsVisible whether non-zero command
- * completions draw a vertical rail beside the command output.
- * @property shellIntegrationPromptDividerColor packed ARGB color for prompt
- * dividers.
- * @property shellIntegrationFailedCommandRailColor packed ARGB color for
- * failed-command rails.
- * @property shellIntegrationPromptDividerThickness prompt divider thickness in
- * pixels.
- * @property shellIntegrationFailedCommandRailWidth failed-command rail width in
- * pixels.
- * @property shellIntegrationDecorationGutterWidth maximum pixels used to paint
- * shell integration decorations in the left padding gutter.
+ * @property shellIntegrationPromptDotsVisible whether shell-integration prompt
+ * dots are painted in the left gutter.
+ * @property shellIntegrationPromptDotColor packed ARGB color for normal prompt dots.
+ * @property shellIntegrationFailedPromptDotColor packed ARGB color for failed-command prompt dots.
+ * @property shellIntegrationPromptDotDiameter prompt-dot diameter in pixels.
+ * @property shellIntegrationDecorationGutterWidth maximum pixels used for shell-integration decorations in the left padding gutter.
+ * @property shellIntegrationFailedCommandRailsVisible whether failed-command output draws a vertical gutter rail.
+ * @property shellIntegrationFailedCommandRailColor packed ARGB color for failed-command rails.
+ * @property shellIntegrationFailedCommandRailWidth failed-command rail width in pixels.
  * @property padding internal margins around the terminal grid in pixels.
  * @property pasteOnMiddleClick whether middle mouse button click triggers a clipboard paste.
  * @property cursorShape default cursor shape configured for the session.
@@ -94,13 +89,14 @@ data class SwingSettings
         val selectionBackground: Int = DEFAULT_SELECTION_BACKGROUND,
         val searchMatchBackground: Int = DEFAULT_SEARCH_MATCH_BACKGROUND,
         val searchActiveMatchBackground: Int = DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND,
-        val shellIntegrationPromptDividersVisible: Boolean = true,
-        val shellIntegrationFailedCommandRailsVisible: Boolean = true,
-        val shellIntegrationPromptDividerColor: Int = DEFAULT_SHELL_INTEGRATION_PROMPT_DIVIDER_COLOR,
-        val shellIntegrationFailedCommandRailColor: Int = DEFAULT_SHELL_INTEGRATION_FAILED_COMMAND_RAIL_COLOR,
-        val shellIntegrationPromptDividerThickness: Int = 1,
-        val shellIntegrationFailedCommandRailWidth: Int = 3,
+        val shellIntegrationPromptDotsVisible: Boolean = true,
+        val shellIntegrationPromptDotColor: Int = DEFAULT_SHELL_INTEGRATION_PROMPT_DOT_COLOR,
+        val shellIntegrationFailedPromptDotColor: Int = DEFAULT_SHELL_INTEGRATION_FAILED_PROMPT_DOT_COLOR,
+        val shellIntegrationPromptDotDiameter: Int = 6,
         val shellIntegrationDecorationGutterWidth: Int = 8,
+        val shellIntegrationFailedCommandRailsVisible: Boolean = true,
+        val shellIntegrationFailedCommandRailColor: Int = DEFAULT_SHELL_INTEGRATION_FAILED_COMMAND_RAIL_COLOR,
+        val shellIntegrationFailedCommandRailWidth: Int = 3,
         val padding: Insets = Insets(12, 12, 12, 12),
         val pasteOnMiddleClick: Boolean = true,
         val cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK,
@@ -121,14 +117,14 @@ data class SwingSettings
             require(lineHeight > 0f) {
                 "lineHeight must be > 0, was $lineHeight"
             }
-            require(shellIntegrationPromptDividerThickness > 0) {
-                "shellIntegrationPromptDividerThickness must be > 0, was $shellIntegrationPromptDividerThickness"
-            }
-            require(shellIntegrationFailedCommandRailWidth > 0) {
-                "shellIntegrationFailedCommandRailWidth must be > 0, was $shellIntegrationFailedCommandRailWidth"
+            require(shellIntegrationPromptDotDiameter > 0) {
+                "shellIntegrationPromptDotDiameter must be > 0, was $shellIntegrationPromptDotDiameter"
             }
             require(shellIntegrationDecorationGutterWidth >= 0) {
                 "shellIntegrationDecorationGutterWidth must be >= 0, was $shellIntegrationDecorationGutterWidth"
+            }
+            require(shellIntegrationFailedCommandRailWidth > 0) {
+                "shellIntegrationFailedCommandRailWidth must be > 0, was $shellIntegrationFailedCommandRailWidth"
             }
         }
 
@@ -138,7 +134,8 @@ data class SwingSettings
             private const val DEFAULT_SELECTION_BACKGROUND = 0x66FFFFFF
             private const val DEFAULT_SEARCH_MATCH_BACKGROUND = 0x55FFD54F
             private const val DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND = 0xAAFF8C00.toInt()
-            private const val DEFAULT_SHELL_INTEGRATION_PROMPT_DIVIDER_COLOR = 0x33FFFFFF
+            private const val DEFAULT_SHELL_INTEGRATION_PROMPT_DOT_COLOR = 0x8CFFFFFF.toInt()
+            private const val DEFAULT_SHELL_INTEGRATION_FAILED_PROMPT_DOT_COLOR = 0xFFE74856.toInt()
             private const val DEFAULT_SHELL_INTEGRATION_FAILED_COMMAND_RAIL_COLOR = 0xFFE74856.toInt()
             private val resolvedDefaultTerminalFont: Font by lazy(LazyThreadSafetyMode.PUBLICATION) {
                 Font(resolveDefaultFontFamily(), Font.PLAIN, DEFAULT_FONT_SIZE)

@@ -112,7 +112,6 @@ internal class GridPainter {
                     metrics = metrics,
                     decorations = shellIntegrationDecorations,
                     row = row,
-                    componentWidth = width,
                 )
                 searchPainter.paint(
                     g = g,
