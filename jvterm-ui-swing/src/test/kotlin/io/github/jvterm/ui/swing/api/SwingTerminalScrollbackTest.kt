@@ -25,12 +25,18 @@ import io.github.jvterm.parser.api.TerminalOutputParser
 import io.github.jvterm.render.api.*
 import io.github.jvterm.render.cache.TerminalRenderPublisher
 import io.github.jvterm.session.TerminalSession
+import io.github.jvterm.session.TerminalShellIntegrationState
 import io.github.jvterm.transport.TerminalConnector
 import io.github.jvterm.transport.TerminalConnectorListener
+import io.github.jvterm.ui.swing.settings.SwingSettings
+import io.github.jvterm.ui.swing.settings.SwingSettingsProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.awt.Insets
 import java.awt.event.MouseWheelEvent
+import java.awt.image.BufferedImage
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -111,10 +117,10 @@ class SwingTerminalScrollbackTest {
                 parser = NoOpParser,
                 inputEncoder = NoOpInputEncoder,
             )
-        val component = SwingTerminal()
+        val component = scrollTestTerminal()
 
         SwingUtilities.invokeAndWait {
-            component.setSize(30, 20)
+            component.setSize(30, 100)
             component.bind(session)
         }
         SwingUtilities.invokeAndWait {
@@ -155,10 +161,10 @@ class SwingTerminalScrollbackTest {
                 parser = NoOpParser,
                 inputEncoder = NoOpInputEncoder,
             )
-        val component = SwingTerminal()
+        val component = scrollTestTerminal()
 
         SwingUtilities.invokeAndWait {
-            component.setSize(30, 20)
+            component.setSize(30, 100)
             component.bind(session)
         }
         SwingUtilities.invokeAndWait {
@@ -203,17 +209,19 @@ class SwingTerminalScrollbackTest {
                 parser = NoOpParser,
                 inputEncoder = NoOpInputEncoder,
             )
-        val component = SwingTerminal()
+        val component = scrollTestTerminal()
 
         SwingUtilities.invokeAndWait {
-            component.setSize(30, 20)
+            component.setSize(30, 100)
             component.bind(session)
         }
-        component.scrollToScrollbackOffset(4)
+        SwingUtilities.invokeAndWait {
+            component.scrollToScrollbackOffset(4)
+        }
 
         drainEdt()
         val state = component.viewportState()
-        assertEquals(4, renderReader.lastRequestedOffset)
+        assertTrue(renderReader.requestedOffsets.contains(4), "reader never received absolute scrollback offset 4")
         assertEquals(5, state.historySize)
         assertEquals(4.0, state.scrollbackOffset)
         assertEquals(4, state.renderOffset)
@@ -235,7 +243,7 @@ class SwingTerminalScrollbackTest {
                 inputEncoder = NoOpInputEncoder,
             )
         val component =
-            SwingTerminal(
+            scrollTestTerminal(
                 hostServices =
                     SwingHostServices(
                         viewportListener = listener,
@@ -243,7 +251,7 @@ class SwingTerminalScrollbackTest {
             )
 
         SwingUtilities.invokeAndWait {
-            component.setSize(30, 20)
+            component.setSize(30, 100)
             component.bind(session)
         }
         component.scrollViewportBy(0.25)
@@ -271,12 +279,12 @@ class SwingTerminalScrollbackTest {
                 parser = NoOpParser,
                 inputEncoder = NoOpInputEncoder,
             )
-        val left = SwingTerminal()
-        val right = SwingTerminal()
+        val left = scrollTestTerminal()
+        val right = scrollTestTerminal()
 
         SwingUtilities.invokeAndWait {
-            left.setSize(30, 20)
-            right.setSize(30, 20)
+            left.setSize(30, 100)
+            right.setSize(30, 100)
             left.bind(session)
             right.bind(session)
         }
@@ -293,6 +301,114 @@ class SwingTerminalScrollbackTest {
 
         assertEquals(4.0, left.viewportState().scrollbackOffset)
         assertEquals(2.0, right.viewportState().scrollbackOffset)
+        session.close()
+    }
+
+    @Test
+    fun `command gutter guides do not create scrollable overflow without core history`() {
+        val reader = DividerOverflowFrameReader()
+        val shellIntegrationState = TerminalShellIntegrationState()
+        shellIntegrationState.recordPromptStart(1)
+        shellIntegrationState.recordPromptStart(2)
+        val terminal = TerminalBuffers.create(width = 3, height = 3, maxHistory = 0)
+        val session =
+            TerminalSession(
+                terminal = terminal,
+                publisher = TerminalRenderPublisher(3, 3),
+                renderReader = reader,
+                responseReader = terminal,
+                connector = NoOpConnector,
+                parser = NoOpParser,
+                inputEncoder = NoOpInputEncoder,
+                shellIntegrationState = shellIntegrationState,
+            )
+        val component =
+            scrollTestTerminal(
+                settings =
+                    SwingSettings(
+                        padding = Insets(0, 0, 0, 0),
+                    ),
+            )
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(component.preferredGridSize(3, 3))
+            component.bind(session)
+
+            val liveState = component.viewportState()
+            assertEquals(0, liveState.historySize)
+            assertEquals(0, liveState.renderOffset)
+            assertEquals(0, liveState.visualScrollRangePixels)
+            assertEquals(0.0, liveState.visualScrollOffsetPixels)
+
+            val image = BufferedImage(component.width, component.height, BufferedImage.TYPE_INT_ARGB)
+            val graphics = image.createGraphics()
+            try {
+                component.paint(graphics)
+            } finally {
+                graphics.dispose()
+            }
+            val cellHeight = component.height / 3
+            assertTrue(
+                image.containsNonBackgroundPixel(yStart = cellHeight * 2, yEnd = component.height),
+                "bottom prompt row was clipped out of the live visual viewport",
+            )
+        }
+
+        component.scrollToVisualOffsetPixels(8.0)
+        drainEdt()
+
+        val scrolledState = component.viewportState()
+        assertEquals(0.0, scrolledState.scrollbackOffset)
+        assertEquals(0, scrolledState.renderOffset)
+        assertEquals(0.0, scrolledState.visualScrollOffsetPixels)
+        session.close()
+    }
+
+    @Test
+    fun `enabling command gutter guides does not resize terminal geometry`() {
+        val connector = RecordingConnector()
+        val shellIntegrationState = TerminalShellIntegrationState()
+        shellIntegrationState.recordPromptStart(1)
+        shellIntegrationState.recordPromptStart(2)
+        val terminal = TerminalBuffers.create(width = 3, height = 3, maxHistory = 0)
+        val session =
+            TerminalSession(
+                terminal = terminal,
+                publisher = TerminalRenderPublisher(3, 3),
+                renderReader = DividerOverflowFrameReader(),
+                responseReader = terminal,
+                connector = connector,
+                parser = NoOpParser,
+                inputEncoder = NoOpInputEncoder,
+                shellIntegrationState = shellIntegrationState,
+            )
+        val settingsProvider =
+            MutableSettingsProvider(
+                SwingSettings(
+                    padding = Insets(0, 0, 0, 0),
+                    shellIntegrationPromptDotsVisible = false,
+                ),
+            )
+        val component = SwingTerminal(settingsProvider = settingsProvider)
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(component.preferredGridSize(3, 3))
+            component.bind(session)
+        }
+        drainEdt()
+
+        assertEquals(1, connector.resizeCount.get())
+        assertEquals(3, connector.lastColumns.get())
+        assertEquals(3, connector.lastRows.get())
+
+        settingsProvider.settings = settingsProvider.settings.copy(shellIntegrationPromptDotsVisible = true)
+        component.reloadSettings()
+        drainEdt()
+
+        assertEquals(1, connector.resizeCount.get())
+        assertEquals(3, connector.lastColumns.get())
+        assertEquals(3, connector.lastRows.get())
+        assertEquals(3, component.visibleGridSize().height)
         session.close()
     }
 
@@ -356,6 +472,33 @@ class SwingTerminalScrollbackTest {
         }
     }
 
+    private fun scrollTestTerminal(
+        hostServices: SwingHostServices = SwingHostServices(),
+        settings: SwingSettings = SwingSettings(padding = Insets(0, 0, 0, 0)),
+    ): SwingTerminal =
+        SwingTerminal(
+            settingsProvider = SwingSettingsProvider { settings },
+            hostServices = hostServices,
+        )
+
+    private fun BufferedImage.containsNonBackgroundPixel(
+        yStart: Int,
+        yEnd: Int,
+    ): Boolean {
+        val safeStart = yStart.coerceIn(0, height)
+        val safeEnd = yEnd.coerceIn(safeStart, height)
+        var y = safeStart
+        while (y < safeEnd) {
+            var x = 0
+            while (x < width) {
+                if (getRGB(x, y) != BLACK) return true
+                x++
+            }
+            y++
+        }
+        return false
+    }
+
     private class ScrollbackFrameReader : TerminalRenderFrameReader {
         @Volatile
         var lastRequestedOffset: Int = -1
@@ -364,6 +507,7 @@ class SwingTerminalScrollbackTest {
         @Volatile
         var lastRequestedRows: Int = -1
             private set
+        val requestedOffsets = CopyOnWriteArrayList<Int>()
 
         override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
             readRenderFrame(scrollbackOffset = 0, consumer = consumer)
@@ -374,6 +518,7 @@ class SwingTerminalScrollbackTest {
             consumer: TerminalRenderFrameConsumer,
         ) {
             lastRequestedOffset = scrollbackOffset
+            requestedOffsets += scrollbackOffset
             lastRequestedRows = 0
             consumer.accept(ScrollbackFrame(scrollbackOffset.coerceIn(0, 5), rows = 1))
         }
@@ -384,6 +529,7 @@ class SwingTerminalScrollbackTest {
             consumer: TerminalRenderFrameConsumer,
         ) {
             lastRequestedOffset = scrollbackOffset
+            requestedOffsets += scrollbackOffset
             lastRequestedRows = viewportRows
             consumer.accept(ScrollbackFrame(scrollbackOffset.coerceIn(0, 5), rows = viewportRows.coerceAtLeast(1)))
         }
@@ -439,6 +585,85 @@ class SwingTerminalScrollbackTest {
         }
     }
 
+    private class DividerOverflowFrameReader : TerminalRenderFrameReader {
+        override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
+            consumer.accept(DividerOverflowFrame)
+        }
+
+        override fun readRenderFrame(
+            scrollbackOffset: Int,
+            consumer: TerminalRenderFrameConsumer,
+        ) {
+            consumer.accept(DividerOverflowFrame)
+        }
+
+        override fun readRenderFrame(
+            scrollbackOffset: Int,
+            viewportRows: Int,
+            consumer: TerminalRenderFrameConsumer,
+        ) {
+            consumer.accept(DividerOverflowFrame)
+        }
+    }
+
+    private object DividerOverflowFrame : TerminalRenderFrame {
+        private val lines = arrayOf("one", "two", "end")
+        override val columns: Int = 3
+        override val rows: Int = 3
+        override val historySize: Int = 0
+        override val scrollbackOffset: Int = 0
+        override val frameGeneration: Long = 1
+        override val structureGeneration: Long = 1
+        override val activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY
+        override val palette: TerminalColorPalette =
+            TerminalColorPalette(
+                defaultForeground = WHITE,
+                defaultBackground = BLACK,
+            )
+        override val cursor: TerminalRenderCursor =
+            TerminalRenderCursor(
+                column = 0,
+                row = 0,
+                visible = false,
+                blinking = false,
+                shape = TerminalRenderCursorShape.BLOCK,
+                generation = 1,
+            )
+
+        override fun lineGeneration(row: Int): Long = 1
+
+        override fun lineId(row: Int): Long = (row + 1).toLong()
+
+        override fun lineWrapped(row: Int): Boolean = false
+
+        override fun copyLine(
+            row: Int,
+            codeWords: IntArray,
+            codeOffset: Int,
+            attrWords: LongArray,
+            attrOffset: Int,
+            flags: IntArray,
+            flagOffset: Int,
+            extraAttrWords: LongArray?,
+            extraAttrOffset: Int,
+            hyperlinkIds: IntArray?,
+            hyperlinkOffset: Int,
+            clusterSink: TerminalRenderClusterSink?,
+            clusterDataSink: TerminalRenderClusterDataSink?,
+        ) {
+            val line = lines[row]
+            var column = 0
+            while (column < columns) {
+                codeWords[codeOffset + column] = line[column].code
+                attrWords[attrOffset + column] = TerminalRenderAttrs.DEFAULT
+                flags[flagOffset + column] = TerminalRenderCellFlags.CODEPOINT
+                extraAttrWords?.set(extraAttrOffset + column, TerminalRenderExtraAttrs.DEFAULT)
+                hyperlinkIds?.set(hyperlinkOffset + column, 0)
+                column++
+            }
+        }
+    }
+
     private object NoOpConnector : TerminalConnector {
         override fun start(listener: TerminalConnectorListener) = Unit
 
@@ -454,6 +679,37 @@ class SwingTerminalScrollbackTest {
         ) = Unit
 
         override fun close() = Unit
+    }
+
+    private class RecordingConnector : TerminalConnector {
+        val resizeCount = AtomicInteger()
+        val lastColumns = AtomicInteger()
+        val lastRows = AtomicInteger()
+
+        override fun start(listener: TerminalConnectorListener) = Unit
+
+        override fun write(
+            bytes: ByteArray,
+            offset: Int,
+            length: Int,
+        ) = Unit
+
+        override fun resize(
+            columns: Int,
+            rows: Int,
+        ) {
+            resizeCount.incrementAndGet()
+            lastColumns.set(columns)
+            lastRows.set(rows)
+        }
+
+        override fun close() = Unit
+    }
+
+    private class MutableSettingsProvider(
+        var settings: SwingSettings,
+    ) : SwingSettingsProvider {
+        override fun currentSettings(): SwingSettings = settings
     }
 
     private object NoOpParser : TerminalOutputParser {
@@ -478,5 +734,10 @@ class SwingTerminalScrollbackTest {
         override fun encodeFocus(event: TerminalFocusEvent) = Unit
 
         override fun encodeMouse(event: TerminalMouseEvent) = Unit
+    }
+
+    private companion object {
+        private const val BLACK = 0xFF000000.toInt()
+        private const val WHITE = 0xFFFFFFFF.toInt()
     }
 }

@@ -237,6 +237,200 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `OSC 133 markers populate shared shell integration state`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 10, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007prompt> \u001B]133;B\u0007\u001B]133;C\u0007run\r\nfailed\u001B]133;D;2\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertTrue(decorations.promptStarts[0]) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start captures same line command text after prompt end`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007PS> \u001B]133;B\u0007git status\u001B]133;C\u0007\r\nok\u001B]133;D;0\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        val recordId = decorations.commandRecordIds[0]
+        assertAll(
+            { assertTrue(recordId != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertEquals("git status", session.shellIntegrationState.commandText(recordId)) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start captures previous line command text at column zero`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007PS> \u001B]133;B\u0007git status\r\n\u001B]133;C\u0007output\u001B]133;D;1\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        val recordId = decorations.commandRecordIds[1]
+        assertAll(
+            { assertTrue(recordId != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertEquals("git status", session.shellIntegrationState.commandText(recordId)) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start stores unknown command text without prompt end`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("PS> git status\u001B]133;C\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        val recordId = decorations.commandRecordIds[0]
+        assertAll(
+            { assertTrue(recordId != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertNull(session.shellIntegrationState.commandText(recordId)) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start stores unknown command text after orphan prompt end`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("PS> \u001B]133;B\u0007git status\u001B]133;C\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        val recordId = decorations.commandRecordIds[0]
+        assertAll(
+            { assertTrue(recordId != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertNull(session.shellIntegrationState.commandText(recordId)) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 decorations re-anchor after clear screen and history`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost(
+            (
+                "\u001B]133;A\u0007PS> \u001B]133;B\u0007bad\u001B]133;C\u0007\r\n" +
+                    "failed\u001B]133;D;1\u0007" +
+                    "\u001B[H\u001B[2J\u001B[3J" +
+                    "\u001B]133;A\u0007PS> \u001B]133;B\u0007"
+            ).ascii(),
+        )
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertTrue(decorations.lineIds.all { it > 0L }, "clear-history render frame exposed a zero line id") },
+            { assertTrue(decorations.promptStarts.any { it }, "new prompt marker did not re-anchor after clear") },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command finish followed by prompt preserves next prompt marker`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 20, rows = 4)
+
+        connector.feedFromHost("\u001B]133;C\u0007failed\r\n\u001B]133;D;2\u0007\u001B]133;A\u0007PS> ".ascii())
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertTrue(decorations.promptStarts[1]) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 prompt start abandons unfinished command before stale finish marker`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 20, rows = 4)
+
+        connector.feedFromHost("\u001B]133;C\u0007partial\r\n\u001B]133;A\u0007PS> \u001B]133;D;2\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertTrue(decorations.promptStarts[1]) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 zero exit code records succeeded lifecycle`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 20, rows = 4)
+
+        connector.feedFromHost("\u001B]133;C\u0007ok\u001B]133;D;0\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertTrue(decorations.commandRecordIds[0] != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertEquals(TerminalShellIntegrationCommandLifecycle.SUCCEEDED, decorations.commandLifecycleStates[0]) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 duplicate command start abandons first command and finishes newest command`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 20, rows = 4)
+
+        connector.feedFromHost("\u001B]133;C\u0007partial\r\n\u001B]133;C\u0007new\r\n\u001B]133;D;1\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertTrue(decorations.commandRecordIds[0] != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertTrue(decorations.commandRecordIds[1] != TerminalShellIntegrationCommandRecord.NONE) },
+            { assertNotEquals(decorations.commandRecordIds[0], decorations.commandRecordIds[1]) },
+            { assertEquals(TerminalShellIntegrationCommandLifecycle.ABANDONED, decorations.commandLifecycleStates[0]) },
+            { assertEquals(TerminalShellIntegrationCommandLifecycle.FAILED, decorations.commandLifecycleStates[1]) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 finish without command start is ignored by command timeline`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 20, rows = 4)
+
+        connector.feedFromHost("orphan\u001B]133;D;1\u0007".ascii())
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertEquals(TerminalShellIntegrationCommandRecord.NONE, decorations.commandRecordIds[0]) },
+            { assertEquals(TerminalShellIntegrationCommandLifecycle.NONE, decorations.commandLifecycleStates[0]) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `resize preserves shared shell integration timeline`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 10, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007prompt> ".ascii())
+        assertTrue(session.shellDecorations().promptStarts[0])
+
+        session.resize(columns = 4, rows = 4)
+
+        val decorations = session.shellDecorations()
+        assertAll(
+            { assertTrue(decorations.promptStarts[0]) },
+            { assertFalse(decorations.promptStarts[1]) },
+        )
+        session.close()
+    }
+
+    @Test
     fun `parser endOfInput is called once`() {
         val terminal = TerminalBuffers.create(width = 10, height = 3)
         val connector = MockConnector()
@@ -814,6 +1008,78 @@ class TerminalSessionTest {
         val session = TerminalSession.create(terminal, connector)
         session.start(columns, rows)
         return session
+    }
+
+    private fun TerminalSession.shellDecorations(): ShellDecorationSnapshot {
+        var lineIds = LongArray(0)
+        var promptStarts = BooleanArray(0)
+        var commandStarts = BooleanArray(0)
+        var commandEnds = BooleanArray(0)
+        var commandRecordIds = IntArray(0)
+        var commandLifecycleStates = IntArray(0)
+        readRenderFrame { frame ->
+            lineIds = LongArray(frame.rows)
+            var row = 0
+            while (row < frame.rows) {
+                lineIds[row] = frame.lineId(row)
+                row++
+            }
+            promptStarts = BooleanArray(frame.rows)
+            commandStarts = BooleanArray(frame.rows)
+            commandEnds = BooleanArray(frame.rows)
+            commandRecordIds = IntArray(frame.rows)
+            commandLifecycleStates = IntArray(frame.rows)
+            shellIntegrationState.copyViewport(
+                lineIds = lineIds,
+                rowCount = frame.rows,
+                promptStarts = promptStarts,
+                commandStarts = commandStarts,
+                commandEnds = commandEnds,
+                commandRecordIds = commandRecordIds,
+                commandLifecycleStates = commandLifecycleStates,
+            )
+        }
+        return ShellDecorationSnapshot(
+            lineIds = lineIds,
+            promptStarts = promptStarts,
+            commandStarts = commandStarts,
+            commandEnds = commandEnds,
+            commandRecordIds = commandRecordIds,
+            commandLifecycleStates = commandLifecycleStates,
+        )
+    }
+
+    private data class ShellDecorationSnapshot(
+        val lineIds: LongArray,
+        val promptStarts: BooleanArray,
+        val commandStarts: BooleanArray,
+        val commandEnds: BooleanArray,
+        val commandRecordIds: IntArray,
+        val commandLifecycleStates: IntArray,
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as ShellDecorationSnapshot
+
+            if (!promptStarts.contentEquals(other.promptStarts)) return false
+            if (!commandStarts.contentEquals(other.commandStarts)) return false
+            if (!commandEnds.contentEquals(other.commandEnds)) return false
+            if (!commandRecordIds.contentEquals(other.commandRecordIds)) return false
+            if (!commandLifecycleStates.contentEquals(other.commandLifecycleStates)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = promptStarts.contentHashCode()
+            result = 31 * result + commandStarts.contentHashCode()
+            result = 31 * result + commandEnds.contentHashCode()
+            result = 31 * result + commandRecordIds.contentHashCode()
+            result = 31 * result + commandLifecycleStates.contentHashCode()
+            return result
+        }
     }
 
     private fun String.ascii(): ByteArray = toByteArray(StandardCharsets.US_ASCII)

@@ -79,6 +79,25 @@ internal class TerminalSelectionController(
         selectionCaretAbsoluteRow = null
     }
 
+    fun selectAbsoluteRows(
+        startAbsoluteRow: Long,
+        endAbsoluteRow: Long,
+        columns: Int,
+    ) {
+        require(startAbsoluteRow >= 0L) { "startAbsoluteRow must be >= 0, was $startAbsoluteRow" }
+        require(endAbsoluteRow >= startAbsoluteRow) {
+            "endAbsoluteRow must be >= startAbsoluteRow, was start=$startAbsoluteRow end=$endAbsoluteRow"
+        }
+        require(columns > 0) { "columns must be > 0, was $columns" }
+
+        stopSelectionDrag()
+        selectionIsBlock = false
+        selectionAnchorAbsoluteRow = startAbsoluteRow
+        selectionAnchorColumn = 0
+        selectionCaretAbsoluteRow = endAbsoluteRow
+        selectionCaretColumn = columns
+    }
+
     fun stopSelectionDrag() {
         selectingWithMouse = false
         selectionAutoscrollTimer.stop()
@@ -140,7 +159,7 @@ internal class TerminalSelectionController(
         lastSelectionDragY = event.y
 
         updateSelectionCaret(event.x, event.y)
-        updateSelectionAutoscroll()
+        updateSelectionAutoscroll(scrollImmediately = true)
         host.repaint()
         event.consume()
     }
@@ -232,9 +251,12 @@ internal class TerminalSelectionController(
         selectionCaretColumn = caretColumn
     }
 
-    private fun updateSelectionAutoscroll() {
+    private fun updateSelectionAutoscroll(scrollImmediately: Boolean = false) {
         if (selectingWithMouse && selectionAutoscrollDelta(lastSelectionDragY) != 0.0) {
-            if (!selectionAutoscrollTimer.isRunning) selectionAutoscrollTimer.start()
+            if (!selectionAutoscrollTimer.isRunning) {
+                if (scrollImmediately) handleSelectionAutoscrollTick()
+                selectionAutoscrollTimer.start()
+            }
         } else {
             selectionAutoscrollTimer.stop()
         }

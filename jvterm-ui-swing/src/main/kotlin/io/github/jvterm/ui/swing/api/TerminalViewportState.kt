@@ -32,6 +32,13 @@ package io.github.jvterm.ui.swing.api
  * @property visibleRows number of terminal rows that fit in the component.
  * @property requestedRows number of rows requested from the render cache,
  * including overscan when needed.
+ * @property visualScrollOffsetPixels precise row-native pixel offset from the
+ * live bottom.
+ * @property visualScrollRangePixels maximum row-native pixel offset from the
+ * live bottom.
+ * @property viewportHeightPixels visual viewport height in pixels.
+ * @property contentHeightPixels visual content height for the current render
+ * cache in pixels.
  */
 data class TerminalViewportState(
     val historySize: Int,
@@ -39,6 +46,10 @@ data class TerminalViewportState(
     val renderOffset: Int,
     val visibleRows: Int,
     val requestedRows: Int,
+    val visualScrollOffsetPixels: Double = scrollbackOffset,
+    val visualScrollRangePixels: Int = historySize,
+    val viewportHeightPixels: Int = visibleRows,
+    val contentHeightPixels: Int = requestedRows,
 ) {
     init {
         require(historySize >= 0) { "historySize must be >= 0, was $historySize" }
@@ -46,13 +57,21 @@ data class TerminalViewportState(
         require(renderOffset >= 0) { "renderOffset must be >= 0, was $renderOffset" }
         require(visibleRows > 0) { "visibleRows must be > 0, was $visibleRows" }
         require(requestedRows > 0) { "requestedRows must be > 0, was $requestedRows" }
+        require(visualScrollOffsetPixels >= 0.0) {
+            "visualScrollOffsetPixels must be >= 0, was $visualScrollOffsetPixels"
+        }
+        require(visualScrollRangePixels >= 0) {
+            "visualScrollRangePixels must be >= 0, was $visualScrollRangePixels"
+        }
+        require(viewportHeightPixels >= 0) { "viewportHeightPixels must be >= 0, was $viewportHeightPixels" }
+        require(contentHeightPixels >= 0) { "contentHeightPixels must be >= 0, was $contentHeightPixels" }
     }
 
     /**
      * Whether the viewport is following live terminal output.
      */
     val isAtLiveViewport: Boolean
-        get() = scrollbackOffset == 0.0
+        get() = visualScrollOffsetPixels == 0.0
 }
 
 /**
@@ -79,6 +98,22 @@ fun interface TerminalViewportListener {
         visibleRows: Int,
         requestedRows: Int,
     )
+
+    /**
+     * Reports the full viewport snapshot, including pixel scroll range.
+     *
+     * Implementations that only need the historical row-based contract can keep
+     * overriding [viewportChanged].
+     */
+    fun viewportStateChanged(state: TerminalViewportState) {
+        viewportChanged(
+            historySize = state.historySize,
+            scrollbackOffset = state.scrollbackOffset,
+            renderOffset = state.renderOffset,
+            visibleRows = state.visibleRows,
+            requestedRows = state.requestedRows,
+        )
+    }
 
     companion object {
         /**

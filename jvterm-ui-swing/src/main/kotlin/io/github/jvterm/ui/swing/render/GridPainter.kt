@@ -43,6 +43,7 @@ internal class GridPainter {
     private val backgroundPainter = TerminalBackgroundPainter(colorCache)
     private val selectionPainter = TerminalSelectionPainter(colorCache)
     private val searchPainter = TerminalSearchPainter(colorCache)
+    private val shellIntegrationDecorationPainter = TerminalShellIntegrationDecorationPainter(colorCache)
     private val decorationPainter = TerminalDecorationPainter(colorCache)
     private val textPainter = TerminalTextPainter(colorCache, decorationPainter)
     private val cursorPainter = TerminalCursorPainter(colorCache, textPainter)
@@ -73,9 +74,10 @@ internal class GridPainter {
         cursorBlinkVisible: Boolean,
         textBlinkVisible: Boolean = true,
         cursorVisible: Boolean = true,
-        contentYOffset: Double = 0.0,
+        visualGeometry: TerminalVisualViewportGeometry? = null,
         selection: CellSelection? = null,
         searchHighlights: TerminalSearchViewportHighlights? = null,
+        shellIntegrationDecorations: TerminalShellIntegrationViewportDecorations? = null,
         hoveredHyperlinkId: Int = 0,
         hyperlinkActivationHover: Boolean = false,
     ) {
@@ -95,13 +97,22 @@ internal class GridPainter {
         backgroundPainter.clear(g, palette, width, height)
 
         val padding = settings.padding
-        val firstRow = firstPaintRow(clip, metrics, contentYOffset, padding.top)
-        val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentYOffset, padding.top, padding.bottom)
-        g.translate(padding.left.toDouble(), padding.top.toDouble() + contentYOffset)
+        val geometry = visualGeometry?.takeIf { it.rowCount == cache.rows }
+        val contentOriginY = geometry?.contentOriginY ?: 0.0
+        val firstRow = firstPaintRow(clip, metrics, contentOriginY, padding.top, geometry)
+        val rows = lastPaintRowExclusive(clip, cache, metrics, height, contentOriginY, padding.top, padding.bottom, geometry)
+        g.translate(padding.left.toDouble(), padding.top.toDouble() + contentOriginY)
         try {
             var row = firstRow
             while (row < rows) {
                 backgroundPainter.paintRow(g, cache, palette, metrics, row)
+                shellIntegrationDecorationPainter.paint(
+                    g = g,
+                    settings = settings,
+                    metrics = metrics,
+                    decorations = shellIntegrationDecorations,
+                    row = row,
+                )
                 searchPainter.paint(
                     g = g,
                     metrics = metrics,
@@ -137,18 +148,22 @@ internal class GridPainter {
                 cursorVisible = cursorVisible,
             )
         } finally {
-            g.translate(-padding.left.toDouble(), -(padding.top.toDouble() + contentYOffset))
+            g.translate(-padding.left.toDouble(), -(padding.top.toDouble() + contentOriginY))
         }
     }
 
     private fun firstPaintRow(
         clip: Rectangle?,
         metrics: SwingMetrics,
-        contentYOffset: Double,
+        contentOriginY: Double,
         paddingTop: Int,
+        geometry: TerminalVisualViewportGeometry?,
     ): Int {
         if (clip == null) return 0
-        return maxOf(0, floor((clip.y - paddingTop - contentYOffset) / metrics.cellHeight).toInt())
+        if (geometry != null) {
+            return geometry.firstPaintRow(clip, paddingTop)
+        }
+        return maxOf(0, floor((clip.y - paddingTop - contentOriginY) / metrics.cellHeight).toInt())
     }
 
     private fun lastPaintRowExclusive(
@@ -156,16 +171,28 @@ internal class GridPainter {
         cache: TerminalRenderCache,
         metrics: SwingMetrics,
         componentHeight: Int,
-        contentYOffset: Double,
+        contentOriginY: Double,
         paddingTop: Int,
         paddingBottom: Int,
+        geometry: TerminalVisualViewportGeometry?,
     ): Int {
-        val visibleRows = minOf(cache.rows, maxOf(1, (componentHeight - paddingTop - paddingBottom) / metrics.cellHeight) + 2)
+        val availableHeight = componentHeight - paddingTop - paddingBottom
+        val visibleRows =
+            if (geometry != null) {
+                geometry.visibleRowsExclusive(componentHeight, paddingTop, paddingBottom)
+            } else {
+                minOf(cache.rows, maxOf(1, availableHeight / metrics.cellHeight) + 2)
+            }
         if (clip == null || clip.height <= 0) return visibleRows
 
         val clipBottom = clip.y + clip.height
         if (clipBottom <= 0) return 0
-        val clippedRows = ceil((clipBottom - paddingTop - contentYOffset) / metrics.cellHeight).toInt()
+        val clippedRows =
+            if (geometry != null) {
+                geometry.lastPaintRowExclusive(clip, componentHeight, paddingTop, paddingBottom)
+            } else {
+                ceil((clipBottom - paddingTop - contentOriginY) / metrics.cellHeight).toInt()
+            }
         return clippedRows.coerceIn(0, visibleRows)
     }
 

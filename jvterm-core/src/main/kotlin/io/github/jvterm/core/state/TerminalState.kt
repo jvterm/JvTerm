@@ -33,6 +33,8 @@ internal class TerminalState(
     initialHeight: Int,
     maxHistory: Int,
 ) {
+    private var nextLineId: Long = 1L
+
     // Global hardware state.
 
     val modes = TerminalModes()
@@ -90,12 +92,12 @@ internal class TerminalState(
     // Physical screens.
 
     val primaryBuffer =
-        ScreenBuffer(initialWidth, initialHeight, maxHistory)
+        ScreenBuffer(initialWidth, initialHeight, maxHistory, ::allocateLineId)
             .apply { clearGrid(pen.currentAttr, pen.currentExtendedAttr, initialHeight) }
 
     /** Alternate buffer always has zero scrollback. */
     val altBuffer =
-        ScreenBuffer(initialWidth, initialHeight, maxHistory = 0)
+        ScreenBuffer(initialWidth, initialHeight, maxHistory = 0, ::allocateLineId)
             .apply { clearGrid(pen.currentAttr, pen.currentExtendedAttr, initialHeight) }
 
     // Hot-swap pointer.
@@ -205,6 +207,24 @@ internal class TerminalState(
     fun markCursorChanged() {
         markVisualChanged()
         cursorGeneration++
+    }
+
+    fun allocateLineId(): Long {
+        val id = nextLineId
+        nextLineId++
+        if (nextLineId <= 0L) {
+            nextLineId = 1L
+        }
+        return id
+    }
+
+    fun clearLineAsNew(
+        line: Line,
+        attr: Long,
+        extendedAttr: Long,
+    ) {
+        line.assignLineId(allocateLineId())
+        line.clear(attr, extendedAttr)
     }
 
     fun rememberPrintableCell(

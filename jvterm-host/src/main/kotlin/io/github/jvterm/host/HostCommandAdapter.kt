@@ -24,6 +24,7 @@ import io.github.jvterm.protocol.DecPrivateMode
 import io.github.jvterm.protocol.MouseEncodingMode
 import io.github.jvterm.protocol.MouseTrackingMode
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
 import io.github.jvterm.protocol.keyboard.*
 import io.github.jvterm.render.api.TerminalRenderCursorShape
 
@@ -766,6 +767,10 @@ class HostCommandAdapter(
 
     override fun queryTerminfo(rawPayload: String) {
         terminal.queryTerminfo(rawPayload)
+    }
+
+    override fun shellIntegrationMarker(event: ShellIntegrationEvent) {
+        hostEvents.shellIntegrationMarker(event)
     }
 
     override fun showNotification(

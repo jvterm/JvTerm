@@ -11,6 +11,8 @@ The target is a modern, secure, xterm-compatible terminal pipeline for contempor
 - `TODO(parser)`: byte/protocol recognition or semantic dispatch is missing.
 - `TODO(core)`: terminal state, grid physics, pen storage, or public API is missing.
 - `TODO(host)`: parser and core both have enough shape, but the integration bridge is incomplete.
+- `TODO(session)`: runtime synchronization, host-side state, or session-owned metadata is missing.
+- `TODO(ui)`: reusable UI presentation, interaction, or rendering behavior is missing.
 - `TODO(input)`: host-bound keyboard/mouse/paste encoding is missing.
 - `TODO(policy)`: feature needs an explicit security or compatibility policy before implementation.
 
@@ -72,7 +74,6 @@ These are not badges of compatibility for this project. They expand attack surfa
 ### OSC Protocols
 - `TODO(policy)`: OSC 52 clipboard support. This needs an explicit permission and security policy before implementation.
 - `TODO(parser)`: OSC 7 current directory.
-- `TODO(parser)`: OSC 133 shell host markers.
 - `TODO(parser)`: OSC 1337/iTerm2 extensions, if desired.
 - `TODO(parser)`: OSC query responses. Requires terminal-to-host output.
 - `TODO(parser)`: payload encoding policy for non-UTF-8 or invalid UTF-8 OSC data.
@@ -94,6 +95,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ### Reset and Mode Semantics
 - `TODO(core/host)`: richer event API for hyperlink metadata, palette changes, terminal notifications, and any future host-observable state that should not be read from render frames.
+- `TODO(session/host/ui)`: shell integration persistent command history, multiline command text extraction, prompt click actions, full command output copy/export, current-directory metadata, rich command metadata, and WSL-specific shell bootstrap handling, on top of the existing OSC 133 marker event backbone, PowerShell/Bash/Git Bash/zsh/fish bootstraps, bounded single-line command text metadata, command timeline, primitive command lookup/navigation, Swing previous/next command navigation, command hit-testing/output selection, zero-layout prompt dots, and failed-output rails.
 
 ### Grid Operations
 - `TODO(core)`: rectangular area operations if parser support is added (copy, erase, fill, selective erase).
@@ -141,7 +143,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 - `TODO(host)`: richer font fallback policy, bundled/host-provided font resolver host, script/run-level shaping, and fallback cache eviction.
 - `TODO(host)`: richer font measurement policy for script/run-level shaping, fallback run metrics, and backend painter integrations beyond the current Java2D/Swing path.
 - `TODO(host)`: custom line spacing/height metrics in the renderer.
-- `TODO(host)`: UI scrollback controls, scrollbar policy, selection behavior while scrolled, and auto-follow/offset-retention policy.
+- `TODO(host/ui)`: richer UI scrollback controls, selection behavior while scrolled, and auto-follow/offset-retention policy beyond the current fixed-grid Swing scrollbar and viewport mapping.
 - `TODO(host)`: accessibility/export APIs.
 - `TODO(host)`: performance benchmarks for large scrollback, resize, and dense SGR streams.
 

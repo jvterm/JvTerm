@@ -68,6 +68,39 @@ class TerminalRenderCacheTest {
     }
 
     @Test
+    fun `line ids are copied even when visual rows are not recopied`() {
+        val frame = MutableFrame(columns = 3, rows = 2)
+        frame.setRow(0, "abc")
+        frame.setRow(1, "def")
+        val cache = TerminalRenderCache(columns = 3, rows = 2)
+
+        cache.updateFrom(frame.reader)
+        frame.setLineId(row = 1, lineId = 99)
+        cache.updateFrom(frame.reader)
+
+        assertAll(
+            { assertEquals(1L, cache.lineIds[0]) },
+            { assertEquals(99L, cache.lineIds[1]) },
+            { assertEquals(1, frame.copyCounts[0]) },
+            { assertEquals(1, frame.copyCounts[1]) },
+        )
+    }
+
+    @Test
+    fun `line id storage resizes with the frame`() {
+        val frame = MutableFrame(columns = 3, rows = 2)
+        val cache = TerminalRenderCache(columns = 1, rows = 1)
+
+        cache.updateFrom(frame.reader)
+
+        assertAll(
+            { assertEquals(2, cache.lineIds.size) },
+            { assertEquals(1L, cache.lineIds[0]) },
+            { assertEquals(2L, cache.lineIds[1]) },
+        )
+    }
+
+    @Test
     fun `line generation change recopies only that row`() {
         val frame = MutableFrame(columns = 3, rows = 2)
         frame.setRow(0, "abc")
@@ -435,6 +468,7 @@ class TerminalRenderCacheTest {
             )
 
         private val lineGenerations = LongArray(rows)
+        private val lineIds = LongArray(rows) { row -> row + 1L }
         private val wrapped = BooleanArray(rows)
 
         val reader =
@@ -485,7 +519,17 @@ class TerminalRenderCacheTest {
             frameGeneration++
         }
 
+        fun setLineId(
+            row: Int,
+            lineId: Long,
+        ) {
+            lineIds[row] = lineId
+            frameGeneration++
+        }
+
         override fun lineGeneration(row: Int): Long = lineGenerations[row]
+
+        override fun lineId(row: Int): Long = lineIds[row]
 
         override fun lineWrapped(row: Int): Boolean = wrapped[row]
 

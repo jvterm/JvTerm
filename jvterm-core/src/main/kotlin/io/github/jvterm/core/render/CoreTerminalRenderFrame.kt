@@ -151,6 +151,12 @@ internal class CoreTerminalRenderFrame(
         return visibleLineAt(row).renderGeneration
     }
 
+    override fun lineId(row: Int): Long {
+        checkValid()
+        checkRow(row)
+        return visibleLineAt(row).lineId
+    }
+
     override fun lineWrapped(row: Int): Boolean {
         checkValid()
         checkRow(row)

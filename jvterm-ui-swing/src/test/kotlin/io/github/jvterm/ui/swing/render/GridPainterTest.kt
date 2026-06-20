@@ -17,10 +17,14 @@ package io.github.jvterm.ui.swing.render
 
 import io.github.jvterm.render.api.*
 import io.github.jvterm.render.cache.TerminalRenderCache
+import io.github.jvterm.session.TerminalShellIntegrationCommandLifecycle
+import io.github.jvterm.session.TerminalShellIntegrationCommandRecord
+import io.github.jvterm.session.TerminalShellIntegrationState
 import io.github.jvterm.ui.swing.api.CellSelection
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.awt.Font
@@ -384,6 +388,401 @@ class GridPainterTest {
         assertEquals(BLACK, image.getRGB(metrics.cellWidth + 1, 1))
     }
 
+    @Test
+    fun `shell integration prompt marker paints compact gutter node on prompt row`() {
+        val image = BufferedImage(120, 80, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                palette =
+                    TerminalColorPalette(
+                        defaultForeground = WHITE,
+                        defaultBackground = BLACK,
+                    ),
+                shellIntegrationPromptDotColor = GREEN,
+                shellIntegrationDecorationGutterWidth = 8,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 8, 0, 0),
+            )
+        val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+        val geometry =
+            visualGeometry(
+                metrics = metrics,
+                rows = cache.rows,
+                viewportPixelHeight = image.height,
+            )
+
+        GridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+            shellIntegrationDecorations = decorations,
+            visualGeometry = geometry,
+        )
+        g.dispose()
+
+        val nodeCenterY = metrics.cellHeight + metrics.cellHeight / 2
+        assertEquals(GREEN, image.getRGB(4, metrics.cellHeight / 2))
+        assertEquals(GREEN, image.getRGB(4, nodeCenterY))
+        assertEquals(BLACK, image.getRGB(0, nodeCenterY))
+        assertEquals(BLACK, image.getRGB(image.width - 1, nodeCenterY))
+    }
+
+    @Test
+    fun `shell integration prompt dot does not offset row painting`() {
+        val image = BufferedImage(120, 100, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                palette =
+                    TerminalColorPalette(
+                        defaultForeground = WHITE,
+                        defaultBackground = BLACK,
+                    ),
+                selectionBackground = BLUE,
+                shellIntegrationPromptDotColor = GREEN,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 0, 0, 0),
+            )
+        val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+        val geometry =
+            visualGeometry(
+                metrics = metrics,
+                rows = cache.rows,
+                viewportPixelHeight = image.height,
+            )
+
+        GridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+            selection = CellSelection(0, 2, 3, 2),
+            shellIntegrationDecorations = decorations,
+            visualGeometry = geometry,
+        )
+        g.dispose()
+
+        val normalRowTwoTop = metrics.cellHeight * 2
+        assertEquals(BLUE, image.getRGB(1, normalRowTwoTop))
+    }
+
+    @Test
+    fun `fractional scroll keeps prompt dot attached to its prompt row`() {
+        val image = BufferedImage(120, 80, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                palette =
+                    TerminalColorPalette(
+                        defaultForeground = WHITE,
+                        defaultBackground = BLACK,
+                    ),
+                shellIntegrationPromptDotColor = GREEN,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 8, 0, 0),
+            )
+        val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("old", "cmd", "out"), palette = settings.palette))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+        val geometry =
+            visualGeometry(
+                metrics = metrics,
+                rows = cache.rows,
+                viewportPixelHeight = image.height,
+                contentOriginY = -metrics.cellHeight.toDouble(),
+            )
+
+        GridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+            shellIntegrationDecorations = decorations,
+            visualGeometry = geometry,
+        )
+        g.dispose()
+
+        val nodeCenterY = metrics.cellHeight / 2
+        assertEquals(GREEN, image.getRGB(4, nodeCenterY))
+        assertEquals(BLACK, image.getRGB(image.width - 1, nodeCenterY))
+    }
+
+    @Test
+    fun `shell integration failed command paints red prompt dot and original output rail`() {
+        val image = BufferedImage(120, 80, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                palette =
+                    TerminalColorPalette(
+                        defaultForeground = WHITE,
+                        defaultBackground = BLACK,
+                    ),
+                shellIntegrationFailedPromptDotColor = RED,
+                shellIntegrationFailedCommandRailColor = RED,
+                shellIntegrationDecorationGutterWidth = 8,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 8, 0, 0),
+            )
+        val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordCommandStart(2, includeLine = true)
+        state.recordCommandFinished(3, exitCode = 2)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+
+        GridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+            shellIntegrationDecorations = decorations,
+        )
+        g.dispose()
+
+        assertEquals(RED, image.getRGB(4, metrics.cellHeight / 2))
+        assertTrue(image.getRGB(4, metrics.cellHeight) != RED)
+        assertEquals(RED, image.getRGB(4, metrics.cellHeight + 1))
+        assertEquals(RED, image.getRGB(4, metrics.cellHeight * 2))
+        assertEquals(RED, image.getRGB(4, metrics.cellHeight * 3 - 2))
+        assertTrue(image.getRGB(4, metrics.cellHeight * 3 - 1) != RED)
+        assertEquals(BLACK, image.getRGB(2, metrics.cellHeight + 1))
+        assertEquals(BLACK, image.getRGB(6, metrics.cellHeight + 1))
+    }
+
+    @Test
+    fun `shell integration successful command paints neutral prompt dot without output decoration`() {
+        val image = BufferedImage(120, 80, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                palette = TerminalColorPalette(defaultForeground = WHITE, defaultBackground = BLACK),
+                shellIntegrationPromptDotColor = GREEN,
+                shellIntegrationDecorationGutterWidth = 8,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 8, 0, 0),
+            )
+        val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("cmd", "out", "done"), palette = settings.palette))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordCommandStart(2, includeLine = true)
+        state.recordCommandFinished(3, exitCode = 0)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+
+        GridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+            shellIntegrationDecorations = decorations,
+        )
+        g.dispose()
+
+        assertEquals(GREEN, image.getRGB(4, metrics.cellHeight / 2))
+        assertEquals(BLACK, image.getRGB(4, metrics.cellHeight + 1))
+    }
+
+    @Test
+    fun `shell integration prompt dots honor visibility setting`() {
+        val image = BufferedImage(120, 80, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                palette =
+                    TerminalColorPalette(
+                        defaultForeground = WHITE,
+                        defaultBackground = BLACK,
+                    ),
+                shellIntegrationPromptDotsVisible = false,
+                shellIntegrationFailedCommandRailsVisible = false,
+                shellIntegrationPromptDotColor = GREEN,
+                shellIntegrationFailedPromptDotColor = RED,
+                shellIntegrationDecorationGutterWidth = 8,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 8, 0, 0),
+            )
+        val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = settings.palette))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(2)
+        state.recordCommandStart(1, includeLine = true)
+        state.recordCommandFinished(3, exitCode = 1)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+
+        GridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+            shellIntegrationDecorations = decorations,
+        )
+        g.dispose()
+
+        assertEquals(BLACK, image.getRGB(4, metrics.cellHeight))
+        assertEquals(BLACK, image.getRGB(4, metrics.cellHeight + 1))
+    }
+
+    @Test
+    fun `shell integration viewport snapshot does not clear session state while scrolled back`() {
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                padding = Insets(0, 8, 0, 0),
+            )
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(
+            TextRowsFrame(
+                lines = arrayOf("abc", "def", "ghi"),
+                palette = settings.palette,
+                historySize = 100,
+                scrollbackOffset = 20,
+                lineIds = longArrayOf(80, 81, 82),
+            ),
+        )
+        val state = TerminalShellIntegrationState()
+        state.observeLiveBottomRow(102)
+        state.recordPromptStart(80)
+        state.recordPromptStart(81)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+
+        decorations.updateFrom(state, cache)
+
+        assertTrue(state.hasPromptStartAtLine(80))
+        assertTrue(state.hasPromptStartAtLine(81))
+        assertTrue(decorations.hasPromptStartAt(1))
+        assertTrue(decorations.hasPromptStartAt(0))
+    }
+
+    @Test
+    fun `shell integration viewport snapshot reports visible marker changes without render cache mutation`() {
+        val cache = TerminalRenderCache(columns = 3, rows = 3)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("abc", "def", "ghi"), palette = TerminalColorPalette()))
+        val state = TerminalShellIntegrationState()
+        val decorations = TerminalShellIntegrationViewportDecorations()
+
+        assertTrue(decorations.updateFrom(state, cache))
+        assertFalse(decorations.updateFrom(state, cache))
+
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+
+        assertTrue(decorations.updateFrom(state, cache))
+        assertTrue(decorations.hasPromptStartAt(1))
+        assertFalse(decorations.updateFrom(state, cache))
+    }
+
+    @Test
+    fun `shell integration viewport snapshot suppresses guides in alternate screen`() {
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordCommandStart(2, includeLine = true)
+        state.recordCommandFinished(3, exitCode = 1)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        val primaryCache = TerminalRenderCache(columns = 3, rows = 3)
+        primaryCache.updateFrom(
+            TextRowsFrame(lines = arrayOf("prompt", "out", "more"), palette = TerminalColorPalette()),
+        )
+        val alternateCache = TerminalRenderCache(columns = 3, rows = 3)
+        alternateCache.updateFrom(
+            TextRowsFrame(
+                lines = arrayOf("app", "app", "app"),
+                palette = TerminalColorPalette(),
+                activeBuffer = TerminalRenderBufferKind.ALTERNATE,
+            ),
+        )
+
+        decorations.updateFrom(state, primaryCache)
+        assertTrue(decorations.hasPromptStartAt(0))
+        assertTrue(decorations.hasFailedCommandRailAt(1))
+
+        assertTrue(decorations.updateFrom(state, alternateCache))
+        assertFalse(decorations.hasPromptStartAt(0))
+        assertFalse(decorations.hasFailedCommandRailAt(1))
+    }
+
+    @Test
+    fun `shell integration viewport snapshot exposes command boundaries and lifecycle`() {
+        val cache = TerminalRenderCache(columns = 3, rows = 4)
+        cache.updateFrom(
+            TextRowsFrame(
+                lines = arrayOf("cmd", "aaa", "bbb", "ccc"),
+                palette = TerminalColorPalette(),
+                lineIds = longArrayOf(10, 11, 11, 12),
+            ),
+        )
+        val state = TerminalShellIntegrationState()
+        state.recordCommandStart(10, includeLine = false)
+        state.recordCommandFinished(12, exitCode = 1)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+
+        decorations.updateFrom(state, cache)
+
+        val commandRecordId = decorations.commandRecordIdAt(0)
+        assertTrue(decorations.hasCommandStartAt(0))
+        assertFalse(decorations.hasFailedCommandRailAt(0))
+        assertTrue(decorations.hasFailedCommandRailAt(1))
+        assertTrue(decorations.hasFailedCommandRailAt(2))
+        assertTrue(decorations.hasFailedCommandRailAt(3))
+        assertTrue(decorations.hasCommandEndAt(3))
+        assertTrue(commandRecordId != TerminalShellIntegrationCommandRecord.NONE)
+        assertEquals(commandRecordId, decorations.commandRecordIdAt(1))
+        assertEquals(commandRecordId, decorations.commandRecordIdAt(3))
+        assertEquals(TerminalShellIntegrationCommandLifecycle.FAILED, decorations.commandLifecycleAt(3))
+    }
+
     private fun BufferedImage.containsColorInRange(
         argb: Int,
         xStart: Int,
@@ -417,6 +816,21 @@ class GridPainterTest {
         }
         return false
     }
+
+    private fun visualGeometry(
+        metrics: SwingMetrics,
+        rows: Int,
+        viewportPixelHeight: Int,
+        contentOriginY: Double = 0.0,
+    ): TerminalVisualViewportGeometry =
+        TerminalVisualViewportGeometry().also {
+            it.updateLayout(
+                metrics = metrics,
+                rows = rows,
+                viewportPixelHeight = viewportPixelHeight,
+            )
+            it.updateContentOrigin(contentOriginY)
+        }
 
     private class TextFrame(
         private val text: String,
@@ -470,6 +884,74 @@ class GridPainterTest {
                 attrWords[attrOffset + column] = attrs[column]
                 flags[flagOffset + column] = TerminalRenderCellFlags.CODEPOINT
                 extraAttrWords?.set(extraAttrOffset + column, extraAttrs[column])
+                hyperlinkIds?.set(hyperlinkOffset + column, 0)
+                column++
+            }
+        }
+    }
+
+    private class TextRowsFrame(
+        private val lines: Array<String>,
+        override val palette: TerminalColorPalette,
+        override val historySize: Int = 0,
+        override val scrollbackOffset: Int = 0,
+        override val discardedCount: Long = 0L,
+        private val lineIds: LongArray = LongArray(lines.size) { row -> row + 1L },
+        override val activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY,
+    ) : TerminalRenderFrameReader,
+        TerminalRenderFrame {
+        override val columns: Int = lines.maxOf { it.length }
+        override val rows: Int = lines.size
+        override val frameGeneration: Long = 1
+        override val structureGeneration: Long = 1
+        override val cursor: TerminalRenderCursor =
+            TerminalRenderCursor(
+                column = 0,
+                row = 0,
+                visible = false,
+                blinking = false,
+                shape = TerminalRenderCursorShape.BLOCK,
+                generation = 1,
+            )
+
+        override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
+            consumer.accept(this)
+        }
+
+        override fun lineGeneration(row: Int): Long = 1
+
+        override fun lineId(row: Int): Long = lineIds[row]
+
+        override fun lineWrapped(row: Int): Boolean = false
+
+        override fun copyLine(
+            row: Int,
+            codeWords: IntArray,
+            codeOffset: Int,
+            attrWords: LongArray,
+            attrOffset: Int,
+            flags: IntArray,
+            flagOffset: Int,
+            extraAttrWords: LongArray?,
+            extraAttrOffset: Int,
+            hyperlinkIds: IntArray?,
+            hyperlinkOffset: Int,
+            clusterSink: TerminalRenderClusterSink?,
+            clusterDataSink: TerminalRenderClusterDataSink?,
+        ) {
+            val line = lines[row]
+            var column = 0
+            while (column < columns) {
+                val offset = codeOffset + column
+                if (column < line.length) {
+                    codeWords[offset] = line[column].code
+                    flags[flagOffset + column] = TerminalRenderCellFlags.CODEPOINT
+                } else {
+                    codeWords[offset] = 0
+                    flags[flagOffset + column] = TerminalRenderCellFlags.EMPTY
+                }
+                attrWords[attrOffset + column] = TerminalRenderAttrs.DEFAULT
+                extraAttrWords?.set(extraAttrOffset + column, TerminalRenderExtraAttrs.DEFAULT)
                 hyperlinkIds?.set(hyperlinkOffset + column, 0)
                 column++
             }

@@ -45,6 +45,7 @@ internal object TerminalResizer {
         newWidth: Int,
         newHeight: Int,
         oldScrollbackOffset: Int = 0,
+        lineIdProvider: () -> Long = ResizeFallbackLineIdProvider(),
     ): Int {
         val newStore = ClusterStore()
         val newRing = HistoryRing(buffer.maxHistory + newHeight) { Line(newWidth, newStore) }
@@ -69,8 +70,15 @@ internal object TerminalResizer {
         var viewportTopPlaced = false
 
         fun flushBuilder() {
+            val outputLineId =
+                if (builder.lineId > 0L) {
+                    builder.lineId
+                } else {
+                    lineIdProvider()
+                }
             if (builder.size == 0) {
                 val newLine = newRing.push()
+                newLine.assignLineId(outputLineId)
                 newLine.clear(0, 0)
                 if (builder.cursorAbsoluteIndex != -1) {
                     newAbsoluteCursorRow = newRing.size - 1
@@ -87,6 +95,7 @@ internal object TerminalResizer {
             var offset = 0
             while (offset < builder.size) {
                 val newLine = newRing.push()
+                newLine.assignLineId(outputLineId)
                 newLine.clear(0, 0)
 
                 var chunkLength = minOf(newWidth, builder.size - offset)
@@ -147,6 +156,7 @@ internal object TerminalResizer {
             }
 
             val oldLine = buffer.ring[i]
+            builder.startLogicalLine(oldLine.lineId)
             val logicalLen = getLogicalLength(oldLine)
             val dataLength = if (oldLine.wrapped && logicalLen > 0) oldWidth else logicalLen
             val hasCursor = i == absoluteOldCursorRow
@@ -196,7 +206,9 @@ internal object TerminalResizer {
                 newHeight
             }
         while (newRing.size < minimumRingSize) {
-            newRing.push().clear(0, 0)
+            val line = newRing.push()
+            line.assignLineId(lineIdProvider())
+            line.clear(0, 0)
         }
 
         val liveScreenTop = (newRing.size - newHeight).coerceAtLeast(0)
@@ -252,6 +264,16 @@ internal object TerminalResizer {
     }
 }
 
+private class ResizeFallbackLineIdProvider : () -> Long {
+    private var nextLineId = 1L
+
+    override fun invoke(): Long {
+        val id = nextLineId
+        nextLineId++
+        return id
+    }
+}
+
 /**
  * Accumulates cells from one or more soft-wrapped physical lines into a single
  * flat logical line for re-wrapping at the new width.
@@ -270,6 +292,18 @@ private class LogicalLineBuilder(
     var size = 0
     var cursorAbsoluteIndex = -1
     var viewportTopAbsoluteIndex = -1
+    var lineId = 0L
+
+    /**
+     * Captures the source line identity for the logical line currently being
+     * reconstructed. Continuation rows keep the identity chosen by the first
+     * physical row in the logical line.
+     */
+    fun startLogicalLine(sourceLineId: Long) {
+        if (lineId == 0L && sourceLineId > 0L) {
+            lineId = sourceLineId
+        }
+    }
 
     /**
      * Appends one cell (raw codepoint value plus packed attr) to the builder.
@@ -299,6 +333,7 @@ private class LogicalLineBuilder(
         size = 0
         cursorAbsoluteIndex = -1
         viewportTopAbsoluteIndex = -1
+        lineId = 0L
     }
 
     private fun grow() {

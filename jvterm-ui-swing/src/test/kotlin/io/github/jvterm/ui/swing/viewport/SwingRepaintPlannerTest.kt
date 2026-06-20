@@ -17,6 +17,9 @@ package io.github.jvterm.ui.swing.viewport
 
 import io.github.jvterm.render.api.*
 import io.github.jvterm.render.cache.TerminalRenderCache
+import io.github.jvterm.session.TerminalShellIntegrationState
+import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
+import io.github.jvterm.ui.swing.render.TerminalVisualViewportGeometry
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,7 +32,7 @@ class SwingRepaintPlannerTest {
         val planner = SwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, PADDING, NoOpRepaintSink)
 
         frame.setRow(2, "WXYZ")
         cache.updateFrom(frame.reader)
@@ -40,7 +43,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -55,7 +57,7 @@ class SwingRepaintPlannerTest {
         val planner = SwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, PADDING, NoOpRepaintSink)
 
         frame.setRow(1, "BBBB")
         frame.setRow(2, "CCCC")
@@ -67,7 +69,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -83,7 +84,7 @@ class SwingRepaintPlannerTest {
         val planner = SwingRepaintPlanner()
 
         paintedCache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(paintedCache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
+        planner.requestFrameRepaint(paintedCache, METRICS, WIDTH, HEIGHT, PADDING, NoOpRepaintSink)
 
         frame.setRow(1, "BBBB")
         skippedCache.updateFrom(frame.reader)
@@ -96,7 +97,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -112,7 +112,7 @@ class SwingRepaintPlannerTest {
 
         frame.cursor = cursor(column = 1, row = 0, generation = 1)
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, PADDING, NoOpRepaintSink)
 
         frame.cursor = cursor(column = 3, row = 2, generation = 2)
         frame.frameGeneration++
@@ -124,7 +124,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -147,7 +146,7 @@ class SwingRepaintPlannerTest {
 
         frame.cursor = cursor(column = 0, row = 0, generation = 1)
         paintedCache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(paintedCache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
+        planner.requestFrameRepaint(paintedCache, METRICS, WIDTH, HEIGHT, PADDING, NoOpRepaintSink)
 
         frame.cursor = cursor(column = 3, row = 2, generation = 2)
         frame.frameGeneration++
@@ -161,7 +160,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -188,7 +186,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -210,7 +207,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -232,7 +228,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -247,7 +242,7 @@ class SwingRepaintPlannerTest {
         val planner = SwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, PADDING, NoOpRepaintSink)
 
         frame.setRow(1, "BBBB")
         cache.updateFrom(frame.reader)
@@ -258,9 +253,9 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = -12.0,
             padding = PADDING,
             repaintSink = repaintSink,
+            visualGeometry = visualGeometry(cache.rows, contentOriginY = -12.0),
         )
 
         assertEquals(listOf(Region(0, 4, WIDTH, CELL_HEIGHT)), repaintSink.regions)
@@ -273,7 +268,7 @@ class SwingRepaintPlannerTest {
         val planner = SwingRepaintPlanner()
 
         cache.updateFrom(frame.reader)
-        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, 0.0, PADDING, NoOpRepaintSink)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, PADDING, NoOpRepaintSink)
 
         frame.setRow(0, "BBBB")
         cache.updateFrom(frame.reader)
@@ -284,9 +279,9 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = -12.0,
             padding = PADDING,
             repaintSink = repaintSink,
+            visualGeometry = visualGeometry(cache.rows, contentOriginY = -12.0),
         )
 
         assertEquals(listOf(Region(0, 0, WIDTH, 4)), repaintSink.regions)
@@ -305,12 +300,42 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = -12.0,
             padding = PADDING,
             repaintSink = repaintSink,
+            visualGeometry = visualGeometry(cache.rows, contentOriginY = -12.0),
         )
 
         assertEquals(listOf(Region(2 * CELL_WIDTH, 4, CELL_WIDTH, CELL_HEIGHT)), repaintSink.regions)
+    }
+
+    @Test
+    fun `cursor blink repaint remains fixed pitch with command gutter guides`() {
+        val frame = MutableFrame(columns = 4, rows = 4, lineIds = longArrayOf(1, 2, 3, 4))
+        frame.cursor = cursor(column = 2, row = 1, blinking = true, generation = 1)
+        val cache = TerminalRenderCache(columns = 4, rows = 4)
+        cache.updateFrom(frame.reader)
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        state.recordPromptStart(2)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+        val geometry = visualGeometry(cache.rows)
+
+        val repaintSink = RecordingRepaintSink()
+        SwingRepaintPlanner().requestCursorBlinkRepaint(
+            cache = cache,
+            metrics = METRICS,
+            componentWidth = WIDTH,
+            componentHeight = HEIGHT,
+            padding = PADDING,
+            repaintSink = repaintSink,
+            visualGeometry = geometry,
+        )
+
+        assertEquals(
+            listOf(Region(2 * CELL_WIDTH, CELL_HEIGHT, CELL_WIDTH, CELL_HEIGHT)),
+            repaintSink.regions,
+        )
     }
 
     @Test
@@ -327,7 +352,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -347,7 +371,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink = repaintSink,
         )
@@ -368,12 +391,60 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = -12.0,
+            padding = PADDING,
+            repaintSink = repaintSink,
+            visualGeometry = visualGeometry(cache.rows, contentOriginY = -12.0),
+        )
+
+        assertEquals(listOf(Region(0, 4, WIDTH, CELL_HEIGHT)), repaintSink.regions)
+    }
+
+    @Test
+    fun `forced frame repaint snapshots unchanged cache for metadata only decorations`() {
+        val frame = MutableFrame(columns = 4, rows = 4)
+        val cache = TerminalRenderCache(columns = 4, rows = 4)
+        val planner = SwingRepaintPlanner()
+        var fullRepaints = 0
+
+        cache.updateFrom(frame.reader)
+        planner.requestFrameRepaint(cache, METRICS, WIDTH, HEIGHT, PADDING, NoOpRepaintSink)
+
+        planner.requestFrameRepaint(
+            cache = cache,
+            metrics = METRICS,
+            componentWidth = WIDTH,
+            componentHeight = HEIGHT,
+            padding = PADDING,
+            repaintSink =
+                object : TerminalRepaintSink {
+                    override fun requestFullRepaint() {
+                        fullRepaints++
+                    }
+
+                    override fun requestRegionRepaint(
+                        x: Int,
+                        y: Int,
+                        width: Int,
+                        height: Int,
+                    ) {
+                        error("metadata-only decoration repaint must not request a partial row repaint")
+                    }
+                },
+            forceFullRepaint = true,
+        )
+
+        val repaintSink = RecordingRepaintSink(failOnFullRepaint = true)
+        planner.requestFrameRepaint(
+            cache = cache,
+            metrics = METRICS,
+            componentWidth = WIDTH,
+            componentHeight = HEIGHT,
             padding = PADDING,
             repaintSink = repaintSink,
         )
 
-        assertEquals(listOf(Region(0, 4, WIDTH, CELL_HEIGHT)), repaintSink.regions)
+        assertEquals(1, fullRepaints)
+        assertEquals(emptyList(), repaintSink.regions)
     }
 
     @Test
@@ -390,7 +461,6 @@ class SwingRepaintPlannerTest {
             metrics = METRICS,
             componentWidth = WIDTH,
             componentHeight = HEIGHT,
-            contentYOffset = 0.0,
             padding = PADDING,
             repaintSink =
                 object : TerminalRepaintSink {
@@ -411,6 +481,19 @@ class SwingRepaintPlannerTest {
 
         assertEquals(1, fullRepaints)
     }
+
+    private fun visualGeometry(
+        rows: Int,
+        contentOriginY: Double = 0.0,
+    ): TerminalVisualViewportGeometry =
+        TerminalVisualViewportGeometry().also {
+            it.updateLayout(
+                metrics = METRICS,
+                rows = rows,
+                viewportPixelHeight = HEIGHT,
+            )
+            it.updateContentOrigin(contentOriginY)
+        }
 
     private data class Region(
         val x: Int,
@@ -454,6 +537,7 @@ class SwingRepaintPlannerTest {
     private class MutableFrame(
         override val columns: Int,
         override val rows: Int,
+        private val lineIds: LongArray = LongArray(rows) { row -> row + 1L },
     ) : TerminalRenderFrame {
         private val textRows =
             Array(rows) { row ->
@@ -512,6 +596,8 @@ class SwingRepaintPlannerTest {
         }
 
         override fun lineGeneration(row: Int): Long = lineGenerations[row]
+
+        override fun lineId(row: Int): Long = lineIds[row]
 
         override fun lineWrapped(row: Int): Boolean = false
 

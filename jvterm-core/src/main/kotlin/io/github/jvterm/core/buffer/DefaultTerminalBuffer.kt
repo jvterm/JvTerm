@@ -110,7 +110,15 @@ internal class DefaultTerminalBuffer private constructor(
         }
 
         val newScrollbackOffset =
-            TerminalResizer.resizeBuffer(state.primaryBuffer, oldWidth, oldHeight, newWidth, newHeight, oldScrollbackOffset)
+            TerminalResizer.resizeBuffer(
+                buffer = state.primaryBuffer,
+                oldWidth = oldWidth,
+                oldHeight = oldHeight,
+                newWidth = newWidth,
+                newHeight = newHeight,
+                lineIdProvider = state::allocateLineId,
+                oldScrollbackOffset = oldScrollbackOffset,
+            )
         state.altBuffer.replaceStorage(newWidth, newHeight, state.pen.blankAttr, state.pen.blankExtendedAttr)
 
         state.dimensions.width = newWidth

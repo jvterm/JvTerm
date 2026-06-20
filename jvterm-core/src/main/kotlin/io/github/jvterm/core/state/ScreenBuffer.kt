@@ -42,6 +42,7 @@ internal class ScreenBuffer(
     initialWidth: Int,
     initialHeight: Int,
     val maxHistory: Int,
+    private val lineIdProvider: () -> Long = LocalLineIdProvider(),
 ) {
     var store = ClusterStore()
         internal set
@@ -165,7 +166,7 @@ internal class ScreenBuffer(
             ring[i].clear(penAttr, penExtendedAttr)
         }
         ring.clear()
-        repeat(viewportHeight) { ring.push().clear(penAttr, penExtendedAttr) }
+        repeat(viewportHeight) { clearLineAsNew(ring.push(), penAttr, penExtendedAttr) }
     }
 
     /**
@@ -184,7 +185,7 @@ internal class ScreenBuffer(
     ) {
         store = ClusterStore()
         ring = HistoryRing(maxHistory + newHeight) { Line(newWidth, store) }
-        repeat(newHeight) { ring.push().clear(penAttr, penExtendedAttr) }
+        repeat(newHeight) { clearLineAsNew(ring.push(), penAttr, penExtendedAttr) }
         scrollTop = 0
         scrollBottom = newHeight - 1
         leftMargin = 0
@@ -246,5 +247,24 @@ internal class ScreenBuffer(
         kittyKeyboardInitialFlags = 0
         hasSavedInitialFlags = false
         kittyKeyboardFlags = 0
+    }
+
+    private fun clearLineAsNew(
+        line: Line,
+        attr: Long,
+        extendedAttr: Long,
+    ) {
+        line.assignLineId(lineIdProvider())
+        line.clear(attr, extendedAttr)
+    }
+}
+
+private class LocalLineIdProvider : () -> Long {
+    private var nextLineId = 1L
+
+    override fun invoke(): Long {
+        val id = nextLineId
+        nextLineId++
+        return id
     }
 }

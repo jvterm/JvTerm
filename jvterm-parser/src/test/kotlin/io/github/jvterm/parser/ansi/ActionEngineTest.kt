@@ -18,6 +18,7 @@ package io.github.jvterm.parser.ansi
 import io.github.jvterm.parser.runtime.ParserState
 import io.github.jvterm.parser.spi.TerminalCommandSink
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -591,6 +592,10 @@ class ActionEngineTest {
 
         override fun queryTerminfo(rawPayload: String) {
             sinkCalls += "queryTerminfo:$rawPayload"
+        }
+
+        override fun shellIntegrationMarker(event: ShellIntegrationEvent) {
+            sinkCalls += "shellIntegrationMarker:${event.marker.name}:${event.exitCode ?: "null"}"
         }
 
         override fun showNotification(

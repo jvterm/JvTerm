@@ -17,8 +17,10 @@ package io.github.jvterm.app.ui
 
 import io.github.jvterm.ui.swing.api.SwingTerminal
 import io.github.jvterm.ui.swing.api.TerminalViewportListener
+import io.github.jvterm.ui.swing.api.TerminalViewportState
 import java.awt.event.AdjustmentEvent
 import javax.swing.JScrollBar
+import kotlin.math.roundToInt
 
 /**
  * Bridges terminal-native scrollback coordinates to a top-origin Swing
@@ -30,6 +32,8 @@ internal class TerminalScrollbarAdapter(
     private var terminal: SwingTerminal? = null
     private var updatingFromTerminal: Boolean = false
     private var historySize: Int = 0
+    private var visualScrollRangePixels: Int = 0
+    private var usingVisualPixels: Boolean = false
     private var publishedScrollbarValue: Int = 0
 
     init {
@@ -49,7 +53,9 @@ internal class TerminalScrollbarAdapter(
         visibleRows: Int,
         requestedRows: Int,
     ) {
+        usingVisualPixels = false
         this.historySize = historySize
+        visualScrollRangePixels = 0
         val safeVisibleRows = maxOf(1, visibleRows)
         val value =
             TerminalScrollbarMapping.valueForViewport(
@@ -75,12 +81,53 @@ internal class TerminalScrollbarAdapter(
         }
     }
 
+    override fun viewportStateChanged(state: TerminalViewportState) {
+        usingVisualPixels = true
+        historySize = state.historySize
+        visualScrollRangePixels = state.visualScrollRangePixels
+
+        val safeExtent = maxOf(1, state.viewportHeightPixels)
+        val value =
+            TerminalScrollbarMapping.valueForVisualViewport(
+                visualScrollRangePixels = state.visualScrollRangePixels,
+                visualScrollOffsetPixels = state.visualScrollOffsetPixels,
+            )
+        val maximum = TerminalScrollbarMapping.visualMaximum(state.visualScrollRangePixels, safeExtent)
+        publishedScrollbarValue = value
+
+        updatingFromTerminal = true
+        try {
+            scrollbar.isVisible = state.visualScrollRangePixels > 0
+            scrollbar.model.setRangeProperties(
+                value,
+                safeExtent,
+                0,
+                maximum,
+                false,
+            )
+            scrollbar.blockIncrement = safeExtent
+            scrollbar.unitIncrement = maxOf(1, safeExtent / maxOf(1, state.visibleRows))
+        } finally {
+            updatingFromTerminal = false
+        }
+    }
+
     private fun handleAdjustment(event: AdjustmentEvent) {
         if (updatingFromTerminal) return
         if (event.value == publishedScrollbarValue) return
-        val targetOffset = TerminalScrollbarMapping.offsetForValue(historySize, event.value)
-        publishedScrollbarValue = event.value.coerceIn(0, historySize)
-        terminal?.scrollToScrollbackOffset(targetOffset)
+        if (usingVisualPixels) {
+            val targetOffsetPixels =
+                TerminalScrollbarMapping.visualOffsetForValue(
+                    visualScrollRangePixels = visualScrollRangePixels,
+                    value = event.value,
+                )
+            publishedScrollbarValue = event.value.coerceIn(0, visualScrollRangePixels)
+            terminal?.scrollToVisualOffsetPixels(targetOffsetPixels.toDouble())
+        } else {
+            val targetOffset = TerminalScrollbarMapping.offsetForValue(historySize, event.value)
+            publishedScrollbarValue = event.value.coerceIn(0, historySize)
+            terminal?.scrollToScrollbackOffset(targetOffset)
+        }
     }
 }
 
@@ -103,4 +150,21 @@ internal object TerminalScrollbarMapping {
         historySize: Int,
         visibleRows: Int,
     ): Int = historySize + maxOf(1, visibleRows)
+
+    fun valueForVisualViewport(
+        visualScrollRangePixels: Int,
+        visualScrollOffsetPixels: Double,
+    ): Int =
+        (visualScrollRangePixels - visualScrollOffsetPixels.roundToInt())
+            .coerceIn(0, visualScrollRangePixels)
+
+    fun visualOffsetForValue(
+        visualScrollRangePixels: Int,
+        value: Int,
+    ): Int = (visualScrollRangePixels - value).coerceIn(0, visualScrollRangePixels)
+
+    fun visualMaximum(
+        visualScrollRangePixels: Int,
+        viewportHeightPixels: Int,
+    ): Int = visualScrollRangePixels + maxOf(1, viewportHeightPixels)
 }

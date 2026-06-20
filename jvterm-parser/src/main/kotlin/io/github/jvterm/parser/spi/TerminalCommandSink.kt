@@ -18,6 +18,7 @@ package io.github.jvterm.parser.spi
 import io.github.jvterm.protocol.AnsiMode
 import io.github.jvterm.protocol.DecPrivateMode
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
 
 /**
  * Parser-facing terminal command sink.
@@ -820,6 +821,16 @@ interface TerminalCommandSink {
      * @param rawPayload Semicolon-separated capability names payload.
      */
     fun queryTerminfo(rawPayload: String)
+
+    /**
+     * Emits a FinalTerm-style OSC 133 shell integration marker.
+     *
+     * The parser recognizes the marker syntax only. Host/workspace layers own
+     * any command metadata storage, navigation, decorations, or UI policy.
+     *
+     * @param event typed shell integration marker event.
+     */
+    fun shellIntegrationMarker(event: ShellIntegrationEvent)
 
     /**
      * Requests a desktop notification.
