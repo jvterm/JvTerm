@@ -209,7 +209,7 @@ internal class TabManager(
         tabContainers[tabId] = container
 
         tabContentPanel.add(container, tabId)
-        tabBar.addTab(TabEntry(id = tabId, title = profile.displayName, profileKind = profile.kind))
+        tabBar.addTab(TabEntry(id = tabId, title = workspaceTab.title, profileKind = profile.kind))
         showPane(tabId)
         updateFrameTitle()
         pane.requestFocus()
@@ -438,6 +438,19 @@ internal class TabManager(
 
         menu.add(copyItem)
         menu.add(pasteItem)
+        menu.addSeparator()
+
+        val workingDirectory = LocalWorkingDirectoryResolver.resolve(pane.tab.currentWorkingDirectoryUri)
+        val openHereItem =
+            JMenuItem("Open Terminal Here").apply {
+                isEnabled = workingDirectory != null
+                toolTipText = if (workingDirectory == null) "No local shell working directory is available" else null
+                addActionListener {
+                    val directory = workingDirectory ?: return@addActionListener
+                    openTab(pane.tab.profile.copy(workingDirectory = directory))
+                }
+            }
+        menu.add(openHereItem)
         menu.addSeparator()
 
         val splitVert =

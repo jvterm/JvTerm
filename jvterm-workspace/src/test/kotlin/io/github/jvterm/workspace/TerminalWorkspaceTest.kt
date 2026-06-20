@@ -33,6 +33,7 @@ import io.github.jvterm.transport.TerminalConnectorListener
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class TerminalWorkspaceTest {
     @Test
@@ -53,6 +54,7 @@ class TerminalWorkspaceTest {
                     titleChangedCount++
                     lastTitle = t
                 },
+                onCurrentWorkingDirectoryChanged = { _, _ -> },
             )
 
         // 1. Initial state
@@ -82,6 +84,79 @@ class TerminalWorkspaceTest {
         assertEquals("PTY Title 2", tab.title)
         assertEquals("PTY Title 2", lastTitle)
         assertEquals(3, titleChangedCount)
+    }
+
+    @Test
+    fun `current working directory is stored forwarded coalesced and used as title fallback`() {
+        var capturedEventListener: PtyEventListener? = null
+        val session = testSession()
+        val directoryEvents = mutableListOf<Pair<String, String>>()
+        val titleEvents = mutableListOf<String>()
+        val workspace =
+            TerminalWorkspace(
+                listener =
+                    object : TerminalWorkspaceListener {
+                        override fun currentWorkingDirectoryChanged(
+                            tab: TerminalWorkspaceTab,
+                            uri: String,
+                        ) {
+                            assertEquals(uri, tab.currentWorkingDirectoryUri)
+                            directoryEvents += tab.id to uri
+                        }
+
+                        override fun titleChanged(
+                            tab: TerminalWorkspaceTab,
+                            title: String,
+                        ) {
+                            titleEvents += title
+                        }
+                    },
+                sessionFactory =
+                    TerminalWorkspaceSessionFactory { _, _, eventListener ->
+                        capturedEventListener = eventListener
+                        session
+                    },
+            )
+        val tab =
+            workspace.openTab(
+                profile = TerminalProfile("p1", "Profile 1", listOf("mock-shell")),
+                options = TerminalWorkspaceOpenOptions(80, 24, false, 100),
+            )
+        val eventListener = requireNotNull(capturedEventListener)
+
+        eventListener.currentWorkingDirectoryChanged(session, "file:///home/user/My%20Project")
+        eventListener.currentWorkingDirectoryChanged(session, "file:///home/user/My%20Project")
+
+        assertEquals("file:///home/user/My%20Project", tab.currentWorkingDirectoryUri)
+        assertEquals("My Project", tab.title)
+        assertEquals(listOf(tab.id to "file:///home/user/My%20Project"), directoryEvents)
+        assertEquals(listOf("My Project"), titleEvents)
+
+        eventListener.windowTitleChanged(session, "Build")
+        eventListener.currentWorkingDirectoryChanged(session, "file:///home/user/Other")
+        assertEquals("Build", tab.title)
+
+        eventListener.windowTitleChanged(session, "")
+        assertEquals("Other", tab.title)
+    }
+
+    @Test
+    fun `directory title fallback strips encoded control and format characters`() {
+        val tab =
+            TerminalWorkspaceTab(
+                id = "t1",
+                profile = TerminalProfile("p1", "Profile 1", listOf("mock-shell")),
+                title = "Profile 1",
+                session = testSession(),
+                onColorChanged = { _, _ -> },
+                onTitleChanged = { _, _ -> },
+                onCurrentWorkingDirectoryChanged = { _, _ -> },
+            )
+
+        tab.updateCurrentWorkingDirectoryUri("file:///tmp/safe%1B%0A%E2%80%AEname")
+
+        assertEquals("safename", tab.title)
+        assertTrue(tab.title.none(Char::isISOControl))
     }
 
     @Test

@@ -22,6 +22,8 @@ import io.github.jvterm.pty.PtyOptions
 import io.github.jvterm.pty.TerminalSessions
 import io.github.jvterm.render.api.TerminalColorPalette
 import io.github.jvterm.session.TerminalSession
+import java.net.URI
+import java.net.URISyntaxException
 import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -76,7 +78,7 @@ class TerminalWorkspace internal constructor(
         options: TerminalWorkspaceOpenOptions,
     ): TerminalWorkspaceTab {
         val id = "terminal-${nextTabNumber.getAndIncrement()}"
-        val tabEventListener = tabEventListener(id, profile)
+        val tabEventListener = tabEventListener(id)
         val session = sessionFactory.open(profile, options, tabEventListener)
         val tab =
             TerminalWorkspaceTab(
@@ -86,8 +88,10 @@ class TerminalWorkspace internal constructor(
                 session = session,
                 onColorChanged = { t, color -> listener.colorChanged(t, color) },
                 onTitleChanged = { t, titleText -> listener.titleChanged(t, titleText) },
+                onCurrentWorkingDirectoryChanged = { t, uri -> listener.currentWorkingDirectoryChanged(t, uri) },
             )
         tabs += tab
+        session.currentWorkingDirectoryUri()?.let(tab::updateCurrentWorkingDirectoryUri)
         selectTab(id)
         listener.tabOpened(tab)
         return tab
@@ -144,10 +148,7 @@ class TerminalWorkspace internal constructor(
         }
     }
 
-    private fun tabEventListener(
-        tabId: String,
-        profile: TerminalProfile,
-    ): PtyEventListener =
+    private fun tabEventListener(tabId: String): PtyEventListener =
         object : PtyEventListener {
             override fun bell(session: TerminalSession) {
                 tabBySession(session)?.let { listener.bell(it) }
@@ -162,9 +163,16 @@ class TerminalWorkspace internal constructor(
                 session: TerminalSession,
                 title: String,
             ) {
-                val nextTitle = title.ifBlank { profile.displayName }
                 val tab = tabById(tabId) ?: return
-                tab.updateDynamicTitle(nextTitle)
+                tab.updateDynamicTitle(title.takeIf { it.isNotBlank() })
+            }
+
+            override fun currentWorkingDirectoryChanged(
+                session: TerminalSession,
+                uri: String,
+            ) {
+                val tab = tabById(tabId) ?: return
+                tab.updateCurrentWorkingDirectoryUri(uri)
             }
 
             override fun resizeWindow(
@@ -283,7 +291,7 @@ private object LocalPtyWorkspaceSessionFactory : TerminalWorkspaceSessionFactory
  * @property treatAmbiguousAsWide width policy for future writes.
  * @property maxHistory max scrollback lines retained by the core buffer.
  * @property shellIntegrationEnabled whether supported launch profiles should
- * install shell hooks that emit OSC 133 markers.
+ * install shell hooks that emit OSC 7 and OSC 133 metadata.
  */
 data class TerminalWorkspaceOpenOptions(
     val columns: Int,
@@ -305,6 +313,8 @@ data class TerminalWorkspaceOpenOptions(
  * @property id stable tab id.
  * @property profile launch profile used to create this tab.
  * @property title current host-visible tab title.
+ * @property currentWorkingDirectoryUri latest valid OSC 7 directory URI, or
+ *   `null` before one is reported.
  * @property session running terminal session.
  */
 class TerminalWorkspaceTab internal constructor(
@@ -314,14 +324,29 @@ class TerminalWorkspaceTab internal constructor(
     val session: TerminalSession,
     private val onColorChanged: (TerminalWorkspaceTab, String?) -> Unit,
     private val onTitleChanged: (TerminalWorkspaceTab, String) -> Unit,
+    private val onCurrentWorkingDirectoryChanged: (TerminalWorkspaceTab, String) -> Unit,
 ) {
     private var dynamicTitle: String = title
+    private var applicationTitleActive: Boolean = title != profile.displayName
+    private var directoryTitle: String? = null
+
+    @Volatile
+    private var currentWorkingDirectory: String? = null
 
     /**
      * Current host-visible title for this tab.
      */
     val title: String
-        get() = customTitle ?: dynamicTitle
+        get() = customTitle ?: if (applicationTitleActive) dynamicTitle else directoryTitle ?: dynamicTitle
+
+    /**
+     * Latest host-validated OSC 7 current-working-directory URI.
+     *
+     * The value is safe to read from host UI threads and remains `null` until
+     * the shell reports a directory.
+     */
+    val currentWorkingDirectoryUri: String?
+        get() = currentWorkingDirectory
 
     /**
      * Optional custom title set by the user. If null, falls back to the dynamic PTY title.
@@ -334,12 +359,26 @@ class TerminalWorkspaceTab internal constructor(
             }
         }
 
-    internal fun updateDynamicTitle(nextTitle: String) {
-        if (dynamicTitle != nextTitle) {
-            dynamicTitle = nextTitle
-            if (customTitle == null) {
-                onTitleChanged(this, nextTitle)
-            }
+    internal fun updateDynamicTitle(nextTitle: String?) {
+        val previousTitle = title
+        applicationTitleActive = nextTitle != null
+        dynamicTitle = nextTitle ?: profile.displayName
+        notifyTitleChanged(previousTitle)
+    }
+
+    internal fun updateCurrentWorkingDirectoryUri(uri: String) {
+        if (currentWorkingDirectory == uri) return
+        val previousTitle = title
+        currentWorkingDirectory = uri
+        directoryTitle = workingDirectoryTitle(uri)
+        onCurrentWorkingDirectoryChanged(this, uri)
+        notifyTitleChanged(previousTitle)
+    }
+
+    private fun notifyTitleChanged(previousTitle: String) {
+        val nextTitle = title
+        if (previousTitle != nextTitle) {
+            onTitleChanged(this, nextTitle)
         }
     }
 
@@ -353,6 +392,34 @@ class TerminalWorkspaceTab internal constructor(
                 onColorChanged(this, value)
             }
         }
+
+    private fun workingDirectoryTitle(uriValue: String): String? {
+        val path =
+            try {
+                URI(uriValue).path
+            } catch (_: URISyntaxException) {
+                return null
+            }
+        if (path.isNullOrEmpty()) return null
+        val withoutTrailingSeparators = path.trimEnd('/', '\\')
+        val candidate =
+            if (withoutTrailingSeparators.isEmpty()) {
+                "/"
+            } else {
+                withoutTrailingSeparators.substringAfterLast('/').substringAfterLast('\\')
+            }
+        val sanitized =
+            candidate
+                .filter { character ->
+                    !character.isISOControl() && Character.getType(character) != Character.FORMAT.toInt()
+                }.take(MAX_DIRECTORY_TITLE_LENGTH)
+                .trim()
+        return sanitized.ifEmpty { null }
+    }
+
+    private companion object {
+        private const val MAX_DIRECTORY_TITLE_LENGTH = 256
+    }
 }
 
 /**
@@ -483,6 +550,20 @@ interface TerminalWorkspaceListener {
     fun titleChanged(
         tab: TerminalWorkspaceTab,
         title: String,
+    ) = Unit
+
+    /**
+     * Called after a tab accepts a new OSC 7 current-working-directory URI.
+     *
+     * Repeated reports of the same URI are coalesced. The tab property is
+     * updated before this callback runs.
+     *
+     * @param tab tab whose working directory changed.
+     * @param uri absolute `file://` URI reported by the shell.
+     */
+    fun currentWorkingDirectoryChanged(
+        tab: TerminalWorkspaceTab,
+        uri: String,
     ) = Unit
 
     /**
