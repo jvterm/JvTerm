@@ -308,6 +308,78 @@ class TerminalSessionTest {
     }
 
     @Test
+    fun `OSC 133 command start preserves hard line breaks in multiline command text`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost(
+            "\u001B]133;A\u0007PS> \u001B]133;B\u0007echo first\r\nsecond\u001B]133;C\u0007".ascii(),
+        )
+
+        val recordId = session.shellDecorations().commandRecordIds[1]
+        assertEquals("echo first\nsecond", session.shellIntegrationState.commandText(recordId))
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start joins soft wrapped command rows without a newline`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 10, rows = 4)
+
+        connector.feedFromHost(
+            "\u001B]133;A\u0007P> \u001B]133;B\u0007abcdefghijk\u001B]133;C\u0007".ascii(),
+        )
+
+        val recordId = session.shellDecorations().commandRecordIds[0]
+        assertEquals("abcdefghijk", session.shellIntegrationState.commandText(recordId))
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start extracts multiline command whose prompt moved into scrollback`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 10, rows = 2)
+
+        connector.feedFromHost(
+            "\u001B]133;A\u0007P> \u001B]133;B\u0007one\r\ntwo\r\nthree\u001B]133;C\u0007".ascii(),
+        )
+
+        val recordId = session.shellDecorations().commandRecordIds[1]
+        assertEquals("one\ntwo\nthree", session.shellIntegrationState.commandText(recordId))
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start preserves grapheme cluster command text`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost(
+            "\u001B]133;A\u0007P> \u001B]133;B\u0007e\u0301\u001B]133;C\u0007"
+                .toByteArray(StandardCharsets.UTF_8),
+        )
+
+        val recordId = session.shellDecorations().commandRecordIds[0]
+        assertEquals("e\u0301", session.shellIntegrationState.commandText(recordId))
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 command start rejects command text above the retention bound`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 5000, rows = 2)
+        val oversizedCommand = "a".repeat(DEFAULT_SHELL_INTEGRATION_COMMAND_TEXT_LENGTH + 1)
+
+        connector.feedFromHost(
+            ("\u001B]133;A\u0007P> \u001B]133;B\u0007" + oversizedCommand + "\u001B]133;C\u0007").ascii(),
+        )
+
+        val recordId = session.shellDecorations().commandRecordIds[0]
+        assertNull(session.shellIntegrationState.commandText(recordId))
+        session.close()
+    }
+
+    @Test
     fun `OSC 133 command start stores unknown command text without prompt end`() {
         val connector = MockConnector()
         val session = createStartedSession(connector, columns = 30, rows = 4)

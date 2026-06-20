@@ -121,7 +121,7 @@ object TerminalShellIntegrationCommandLifecycle {
  */
 class TerminalShellIntegrationState(
     private val capacity: Int = DEFAULT_CAPACITY,
-    private val maxCommandTextLength: Int = DEFAULT_COMMAND_TEXT_LENGTH,
+    private val maxCommandTextLength: Int = DEFAULT_SHELL_INTEGRATION_COMMAND_TEXT_LENGTH,
 ) {
     init {
         require(capacity > 0) { "capacity must be > 0, was $capacity" }
@@ -1023,7 +1023,6 @@ class TerminalShellIntegrationState(
 
     private companion object {
         private const val DEFAULT_CAPACITY = 4096
-        private const val DEFAULT_COMMAND_TEXT_LENGTH = 4096
         private const val NO_INDEX = -1
         private const val NO_LINE_ID = 0L
         private const val NO_OBSERVED_ROW = Long.MIN_VALUE

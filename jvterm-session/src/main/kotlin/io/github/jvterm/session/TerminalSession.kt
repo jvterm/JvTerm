@@ -33,9 +33,7 @@ import io.github.jvterm.protocol.NotificationLevel
 import io.github.jvterm.protocol.ShellIntegrationEvent
 import io.github.jvterm.protocol.ShellIntegrationMarker
 import io.github.jvterm.render.api.TerminalColorPalette
-import io.github.jvterm.render.api.TerminalRenderCellFlags
 import io.github.jvterm.render.api.TerminalRenderCursorShape
-import io.github.jvterm.render.api.TerminalRenderFrame
 import io.github.jvterm.render.api.TerminalRenderFrameConsumer
 import io.github.jvterm.render.api.TerminalRenderFrameReader
 import io.github.jvterm.render.cache.TerminalRenderCache
@@ -704,7 +702,11 @@ private class ShellIntegrationRecordingHostEventSink(
         var cursorColumn = 0
         var bottomAbsoluteRow = 0L
         var commandText: String? = null
+        var historySize = 0
+        var liveRows = 0
         renderReader.readRenderFrame(scrollbackOffset = 0) { frame ->
+            historySize = frame.historySize
+            liveRows = frame.rows
             val firstVisibleRow = frame.discardedCount + frame.historySize
             val cursor = frame.cursor
             cursorColumn = cursor.column
@@ -716,6 +718,24 @@ private class ShellIntegrationRecordingHostEventSink(
             }
             bottomAbsoluteRow = firstVisibleRow + frame.rows - 1
             if (event.marker == ShellIntegrationMarker.COMMAND_START) {
+                commandText =
+                    commandTextExtractor.extract(
+                        frame = frame,
+                        promptEndLineId = promptEndLineId,
+                        promptEndColumn = promptEndColumn,
+                        cursorRow = cursor.row,
+                        cursorColumn = cursor.column,
+                    )
+            }
+        }
+
+        if (event.marker == ShellIntegrationMarker.COMMAND_START && commandText == null && historySize > 0) {
+            val historyRows = minOf(historySize, MAX_SHELL_INTEGRATION_COMMAND_ROWS)
+            renderReader.readRenderFrame(
+                scrollbackOffset = historyRows,
+                viewportRows = liveRows + historyRows,
+            ) { frame ->
+                val cursor = frame.cursor
                 commandText =
                     commandTextExtractor.extract(
                         frame = frame,
@@ -788,100 +808,5 @@ private class ShellIntegrationRecordingHostEventSink(
         level: NotificationLevel,
     ) {
         delegate.showNotification(title, body, level)
-    }
-}
-
-private class ShellIntegrationCommandTextExtractor {
-    private var codeWords = IntArray(0)
-    private var attrWords = LongArray(0)
-    private var flags = IntArray(0)
-    private val builder = StringBuilder()
-
-    fun extract(
-        frame: TerminalRenderFrame,
-        promptEndLineId: Long,
-        promptEndColumn: Int,
-        cursorRow: Int,
-        cursorColumn: Int,
-    ): String? {
-        if (promptEndLineId == NO_LINE_ID || cursorRow !in 0 until frame.rows) return null
-
-        val startColumn = promptEndColumn.coerceIn(0, frame.columns)
-        if (frame.lineId(cursorRow) == promptEndLineId) {
-            val endColumn = cursorColumn.coerceIn(0, frame.columns)
-            if (endColumn < startColumn) return null
-            return extractRowRange(frame, cursorRow, startColumn, endColumn)
-        }
-
-        if (cursorColumn == 0 && cursorRow > 0 && frame.lineId(cursorRow - 1) == promptEndLineId) {
-            val row = cursorRow - 1
-            copyLine(frame, row)
-            val endColumn = lastTextColumnExclusive(frame.columns)
-            if (endColumn < startColumn) return null
-            return extractCopiedRange(startColumn, endColumn)
-        }
-
-        return null
-    }
-
-    private fun extractRowRange(
-        frame: TerminalRenderFrame,
-        row: Int,
-        startColumn: Int,
-        endColumn: Int,
-    ): String? {
-        copyLine(frame, row)
-        return extractCopiedRange(startColumn, endColumn)
-    }
-
-    private fun copyLine(
-        frame: TerminalRenderFrame,
-        row: Int,
-    ) {
-        ensureCapacity(frame.columns)
-        frame.copyLine(
-            row = row,
-            codeWords = codeWords,
-            attrWords = attrWords,
-            flags = flags,
-        )
-    }
-
-    private fun ensureCapacity(columns: Int) {
-        if (codeWords.size >= columns) return
-        codeWords = IntArray(columns)
-        attrWords = LongArray(columns)
-        flags = IntArray(columns)
-    }
-
-    private fun lastTextColumnExclusive(columns: Int): Int {
-        var column = columns - 1
-        while (column >= 0) {
-            if (flags[column] != TerminalRenderCellFlags.EMPTY) return column + 1
-            column--
-        }
-        return 0
-    }
-
-    private fun extractCopiedRange(
-        startColumn: Int,
-        endColumn: Int,
-    ): String? {
-        builder.setLength(0)
-        var column = startColumn
-        while (column < endColumn) {
-            val cellFlags = flags[column]
-            when {
-                cellFlags and TerminalRenderCellFlags.WIDE_TRAILING != 0 -> Unit
-                cellFlags and TerminalRenderCellFlags.CODEPOINT != 0 -> builder.appendCodePoint(codeWords[column])
-                else -> return null
-            }
-            column++
-        }
-        return builder.toString()
-    }
-
-    private companion object {
-        private const val NO_LINE_ID = 0L
     }
 }
