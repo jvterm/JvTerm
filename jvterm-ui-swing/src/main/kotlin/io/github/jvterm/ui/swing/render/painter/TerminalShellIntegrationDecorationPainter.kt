@@ -38,6 +38,7 @@ internal class TerminalShellIntegrationDecorationPainter(
         metrics: SwingMetrics,
         decorations: TerminalShellIntegrationViewportDecorations?,
         row: Int,
+        hovered: Boolean,
     ) {
         if (decorations == null) return
 
@@ -58,10 +59,18 @@ internal class TerminalShellIntegrationDecorationPainter(
         val dotX = centerX - diameter / 2
         val dotY = y + (metrics.cellHeight - diameter) / 2
         val failed = decorations.commandLifecycleAt(row) == TerminalShellIntegrationCommandLifecycle.FAILED
+        val markerColor =
+            if (failed) settings.shellIntegrationFailedPromptDotColor else settings.shellIntegrationPromptDotColor
+        if (hovered) {
+            val haloDiameter = minOf(gutterWidth, metrics.cellHeight)
+            val haloX = centerX - haloDiameter / 2
+            val haloY = y + (metrics.cellHeight - haloDiameter) / 2
+            g.color = colorCache.color(withAlpha(markerColor, HOVER_HALO_ALPHA))
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            g.fillOval(haloX, haloY, haloDiameter, haloDiameter)
+        }
         g.color =
-            colorCache.color(
-                if (failed) settings.shellIntegrationFailedPromptDotColor else settings.shellIntegrationPromptDotColor,
-            )
+            colorCache.color(markerColor)
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         try {
             g.fillOval(dotX, dotY, diameter, diameter)
@@ -97,5 +106,14 @@ internal class TerminalShellIntegrationDecorationPainter(
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
             }
         }
+    }
+
+    private companion object {
+        private const val HOVER_HALO_ALPHA = 0x52
+
+        private fun withAlpha(
+            argb: Int,
+            alpha: Int,
+        ): Int = (argb and 0x00FFFFFF) or (alpha shl 24)
     }
 }

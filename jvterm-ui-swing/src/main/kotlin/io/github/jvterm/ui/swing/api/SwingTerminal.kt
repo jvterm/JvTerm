@@ -75,6 +75,7 @@ class SwingTerminal
         private val searchCache = TerminalRenderCache(settings.columns, settings.rows)
         private val shellIntegrationDecorations = TerminalShellIntegrationViewportDecorations()
         private val visualGeometry = TerminalVisualViewportGeometry()
+        private var hoveredPromptMarkerRow: Int = NO_PROMPT_MARKER_ROW
 
         private val selectionController =
             TerminalSelectionController(
@@ -245,6 +246,13 @@ class SwingTerminal
                     override fun handlePromptMarkerMousePressed(event: MouseEvent): Boolean =
                         this@SwingTerminal.handlePromptMarkerMousePressed(event)
 
+                    override fun handlePromptMarkerMouseMoved(event: MouseEvent): Boolean =
+                        this@SwingTerminal.handlePromptMarkerMouseMoved(event)
+
+                    override fun handlePromptMarkerMouseExited() {
+                        this@SwingTerminal.updateHoveredPromptMarker(NO_PROMPT_MARKER_ROW)
+                    }
+
                     override fun handleHyperlinkMousePressed(event: MouseEvent): Boolean = hyperlinkController.handleMousePressed(event)
 
                     override fun handleHyperlinkMouseMoved(event: MouseEvent) {
@@ -359,15 +367,40 @@ class SwingTerminal
 
         private fun handlePromptMarkerMousePressed(event: MouseEvent): Boolean {
             if (!SwingUtilities.isLeftMouseButton(event)) return false
-            val gutterWidth = settings.shellIntegrationDecorationGutterWidth.coerceAtMost(settings.padding.left)
-            if (gutterWidth <= 0 || event.x !in (settings.padding.left - gutterWidth) until settings.padding.left) return false
-            val row = cellAt(event.x, event.y, renderCache).toInt()
-            if (!shellIntegrationDecorations.hasPromptStartAt(row)) return false
+            val row = promptMarkerRowAt(event)
+            if (row == NO_PROMPT_MARKER_ROW) return false
             val recordId = shellIntegrationDecorations.commandRecordIdAt(row)
             if (recordId == TerminalShellIntegrationCommandRecord.NONE) return false
             if (!commandInteractionController.selectCommandOutput(recordId)) return false
             event.consume()
             return true
+        }
+
+        private fun handlePromptMarkerMouseMoved(event: MouseEvent): Boolean {
+            val row = promptMarkerRowAt(event)
+            if (row != NO_PROMPT_MARKER_ROW) hyperlinkController.clearHyperlinkHover()
+            updateHoveredPromptMarker(row)
+            return row != NO_PROMPT_MARKER_ROW
+        }
+
+        private fun promptMarkerRowAt(event: MouseEvent): Int {
+            val gutterWidth = settings.shellIntegrationDecorationGutterWidth.coerceAtMost(settings.padding.left)
+            if (gutterWidth <= 0 || event.x !in (settings.padding.left - gutterWidth) until settings.padding.left) {
+                return NO_PROMPT_MARKER_ROW
+            }
+            val row = cellAt(event.x, event.y, renderCache).toInt()
+            return if (shellIntegrationDecorations.hasPromptStartAt(row)) row else NO_PROMPT_MARKER_ROW
+        }
+
+        private fun updateHoveredPromptMarker(row: Int) {
+            val nextCursor = if (row == NO_PROMPT_MARKER_ROW) DEFAULT_CURSOR else HAND_CURSOR
+            if (hoveredPromptMarkerRow == row) {
+                if (cursor !== nextCursor) cursor = nextCursor
+                return
+            }
+            hoveredPromptMarkerRow = row
+            cursor = nextCursor
+            repaint()
         }
 
         init {
@@ -707,6 +740,7 @@ class SwingTerminal
                     selection = selectionController.getViewportSelection(renderCache),
                     searchHighlights = searchController.viewportHighlights,
                     shellIntegrationDecorations = shellIntegrationDecorations,
+                    hoveredPromptMarkerRow = hoveredPromptMarkerRow,
                     hoveredHyperlinkId = hyperlinkController.hoveredHyperlinkId,
                     hyperlinkActivationHover = hyperlinkController.hyperlinkActivationHover,
                 )
@@ -1070,8 +1104,11 @@ class SwingTerminal
         }
 
         private companion object {
+            private const val NO_PROMPT_MARKER_ROW = -1
             private const val NO_RESIZE_DIMENSION = -1
             private const val MIN_TIMER_DELAY_MILLIS = 1
+            private val HAND_CURSOR: Cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+            private val DEFAULT_CURSOR: Cursor = Cursor.getDefaultCursor()
 
             private fun cursorTimerDelay(settings: SwingSettings): Int = maxOf(MIN_TIMER_DELAY_MILLIS, settings.cursorBlinkMillis)
 

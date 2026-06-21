@@ -31,6 +31,7 @@ import io.github.jvterm.transport.TerminalConnectorListener
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import java.awt.Cursor
 import java.awt.Insets
 import java.awt.event.MouseEvent
 import javax.swing.SwingUtilities
@@ -278,7 +279,7 @@ class SwingTerminalCommandNavigationTest {
                     MouseEvent.MOUSE_PRESSED,
                     1L,
                     0,
-                    padding.left - 2,
+                    0,
                     padding.top + 2,
                     1,
                     false,
@@ -288,6 +289,64 @@ class SwingTerminalCommandNavigationTest {
 
             assertEquals(true, click.isConsumed)
             assertEquals(CellSelection(0, 0, 12, 1), component.currentSelection())
+        }
+
+        session.close()
+    }
+
+    @Test
+    fun `hovering prompt marker exposes hand cursor across full gutter hit target`() {
+        val reader = CommandFrameReader()
+        val session = commandSession(reader)
+        val padding = Insets(8, 12, 8, 8)
+        val component = SwingTerminal(settingsProvider = { SwingSettings(padding = padding) })
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(component.preferredGridSize(12, 2))
+            component.bind(session)
+            component.scrollToScrollbackOffset(1)
+
+            component.dispatchEvent(
+                MouseEvent(
+                    component,
+                    MouseEvent.MOUSE_MOVED,
+                    1L,
+                    0,
+                    0,
+                    padding.top + 2,
+                    0,
+                    false,
+                ),
+            )
+            assertEquals(Cursor.HAND_CURSOR, component.cursor.type)
+
+            component.dispatchEvent(
+                MouseEvent(
+                    component,
+                    MouseEvent.MOUSE_MOVED,
+                    2L,
+                    0,
+                    0,
+                    padding.top + 2,
+                    0,
+                    false,
+                ),
+            )
+            assertEquals(Cursor.HAND_CURSOR, component.cursor.type)
+
+            component.dispatchEvent(
+                MouseEvent(
+                    component,
+                    MouseEvent.MOUSE_MOVED,
+                    3L,
+                    0,
+                    padding.left,
+                    padding.top + 2,
+                    0,
+                    false,
+                ),
+            )
+            assertEquals(Cursor.DEFAULT_CURSOR, component.cursor.type)
         }
 
         session.close()

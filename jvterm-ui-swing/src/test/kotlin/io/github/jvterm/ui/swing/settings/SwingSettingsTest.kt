@@ -131,12 +131,13 @@ class SwingSettingsTest {
         assertEquals(true, settings.shellIntegrationPromptDotsVisible)
         assertEquals(0x8CFFFFFF.toInt(), settings.shellIntegrationPromptDotColor)
         assertEquals(0xFFE74856.toInt(), settings.shellIntegrationFailedPromptDotColor)
-        assertEquals(6, settings.shellIntegrationPromptDotDiameter)
-        assertEquals(8, settings.shellIntegrationDecorationGutterWidth)
+        assertEquals(8, settings.shellIntegrationPromptDotDiameter)
+        assertEquals(16, settings.shellIntegrationDecorationGutterWidth)
         assertEquals(true, settings.shellIntegrationFailedCommandRailsVisible)
         assertEquals(0xFFE74856.toInt(), settings.shellIntegrationFailedCommandRailColor)
         assertEquals(3, settings.shellIntegrationFailedCommandRailWidth)
-        assertEquals(Insets(12, 12, 12, 12), settings.padding)
+        assertEquals(Insets(12, 20, 12, 12), settings.padding)
+        assertEquals(4, settings.padding.left - settings.shellIntegrationDecorationGutterWidth)
     }
 
     @Test

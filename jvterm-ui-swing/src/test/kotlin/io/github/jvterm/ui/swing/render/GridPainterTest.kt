@@ -401,6 +401,7 @@ class GridPainterTest {
                         defaultBackground = BLACK,
                     ),
                 shellIntegrationPromptDotColor = GREEN,
+                shellIntegrationPromptDotDiameter = 6,
                 shellIntegrationDecorationGutterWidth = 8,
                 textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
                 padding = Insets(0, 8, 0, 0),
@@ -488,6 +489,47 @@ class GridPainterTest {
 
         val normalRowTwoTop = metrics.cellHeight * 2
         assertEquals(BLUE, image.getRGB(1, normalRowTwoTop))
+    }
+
+    @Test
+    fun `hovered shell integration prompt marker paints a larger button halo`() {
+        val image = BufferedImage(120, 80, BufferedImage.TYPE_INT_ARGB)
+        val g = image.createGraphics()
+        val settings =
+            SwingSettings(
+                font = Font(Font.MONOSPACED, Font.PLAIN, 14),
+                palette = TerminalColorPalette(defaultForeground = WHITE, defaultBackground = BLACK),
+                shellIntegrationPromptDotColor = GREEN,
+                shellIntegrationPromptDotDiameter = 6,
+                shellIntegrationDecorationGutterWidth = 12,
+                textAntialiasing = RenderingHints.VALUE_TEXT_ANTIALIAS_OFF,
+                padding = Insets(0, 12, 0, 0),
+            )
+        val metrics = SwingMetrics.from(g.getFontMetrics(settings.font))
+        val cache = TerminalRenderCache(columns = 3, rows = 1)
+        cache.updateFrom(TextRowsFrame(lines = arrayOf("abc"), palette = settings.palette))
+        val state = TerminalShellIntegrationState()
+        state.recordPromptStart(1)
+        val decorations = TerminalShellIntegrationViewportDecorations()
+        decorations.updateFrom(state, cache)
+
+        GridPainter().paint(
+            g = g,
+            cache = cache,
+            settings = settings,
+            metrics = metrics,
+            width = image.width,
+            height = image.height,
+            cursorBlinkVisible = true,
+            shellIntegrationDecorations = decorations,
+            hoveredPromptMarkerRow = 0,
+        )
+        g.dispose()
+
+        val centerY = metrics.cellHeight / 2
+        assertEquals(GREEN, image.getRGB(6, centerY))
+        assertTrue(image.getRGB(1, centerY) != BLACK)
+        assertEquals(BLACK, image.getRGB(13, centerY))
     }
 
     @Test

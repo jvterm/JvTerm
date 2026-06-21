@@ -52,6 +52,10 @@ internal interface SwingTerminalMouseHost {
 
     fun handlePromptMarkerMousePressed(event: MouseEvent): Boolean = false
 
+    fun handlePromptMarkerMouseMoved(event: MouseEvent): Boolean = false
+
+    fun handlePromptMarkerMouseExited() = Unit
+
     fun handleHyperlinkMousePressed(event: MouseEvent): Boolean
 
     fun handleHyperlinkMouseMoved(event: MouseEvent)
