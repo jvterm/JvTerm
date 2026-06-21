@@ -48,6 +48,9 @@ internal class SwingViewportController(
     val requestedOffset: Int
         get() = scrollModel.requestedOffset
 
+    val preciseOffset: Double
+        get() = scrollModel.preciseScrollbackOffset
+
     fun reset() {
         scrollModel.reset()
     }
@@ -120,11 +123,6 @@ internal class SwingViewportController(
         historySize: Int,
     ): Boolean = scrollModel.scrollTo(offsetLines, historySize)
 
-    fun scrollByRows(
-        deltaLines: Int,
-        historySize: Int,
-    ): Boolean = scrollModel.scrollByRows(deltaLines, historySize)
-
     fun clamp(historySize: Int): Boolean = scrollModel.clamp(historySize)
 
     fun updateVisualMetrics(
@@ -184,31 +182,33 @@ internal class SwingViewportController(
         val requestedRows = scrollModel.requestedRows(renderRows)
         val scrollbackOffset = scrollModel.preciseScrollbackOffset
         val renderOffset = scrollModel.requestedOffset
-        val state =
-            TerminalViewportState(
-                historySize = historySize,
-                scrollbackOffset = scrollbackOffset,
-                renderOffset = renderOffset,
-                visibleRows = visibleRows,
-                requestedRows = requestedRows,
-                visualScrollOffsetPixels = scrollModel.visualScrollOffsetPixels,
-                visualScrollRangePixels = scrollModel.visualScrollRangePixels,
-                viewportHeightPixels = viewportHeightPixels,
-                contentHeightPixels = contentHeightPixels,
-            )
+        val visualScrollOffsetPixels = scrollModel.visualScrollOffsetPixels
+        val visualScrollRangePixels = scrollModel.visualScrollRangePixels
 
         viewportHistorySizeSnapshot.set(historySize)
         viewportScrollbackOffsetSnapshot.set(doubleToRawLongBits(scrollbackOffset))
         viewportRenderOffsetSnapshot.set(renderOffset)
         viewportVisibleRowsSnapshot.set(visibleRows)
         viewportRequestedRowsSnapshot.set(requestedRows)
-        viewportVisualOffsetPixelsSnapshot.set(doubleToRawLongBits(state.visualScrollOffsetPixels))
-        viewportVisualRangePixelsSnapshot.set(state.visualScrollRangePixels)
-        viewportHeightPixelsSnapshot.set(state.viewportHeightPixels)
-        viewportContentHeightPixelsSnapshot.set(state.contentHeightPixels)
+        viewportVisualOffsetPixelsSnapshot.set(doubleToRawLongBits(visualScrollOffsetPixels))
+        viewportVisualRangePixelsSnapshot.set(visualScrollRangePixels)
+        viewportHeightPixelsSnapshot.set(viewportHeightPixels)
+        viewportContentHeightPixelsSnapshot.set(contentHeightPixels)
         if (!notifyListener) return
 
-        listener.viewportStateChanged(state)
+        listener.viewportStateChanged(
+            TerminalViewportState(
+                historySize = historySize,
+                scrollbackOffset = scrollbackOffset,
+                renderOffset = renderOffset,
+                visibleRows = visibleRows,
+                requestedRows = requestedRows,
+                visualScrollOffsetPixels = visualScrollOffsetPixels,
+                visualScrollRangePixels = visualScrollRangePixels,
+                viewportHeightPixels = viewportHeightPixels,
+                contentHeightPixels = contentHeightPixels,
+            ),
+        )
     }
 
     private companion object {

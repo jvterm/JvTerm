@@ -112,7 +112,6 @@ class SwingTerminalMouseControllerTest {
             controller.wheelListener.mouseWheelMoved(event)
 
             assertEquals(1, host.scrollCount)
-            assertEquals(0, host.lastScrollHistorySize)
             assertTrue(event.isConsumed)
         }
 
@@ -139,7 +138,6 @@ class SwingTerminalMouseControllerTest {
 
             assertEquals(1, host.scrollCount)
             assertEquals(-3, host.lastScrollDelta)
-            assertEquals(7, host.lastScrollHistorySize)
             assertTrue(event.isConsumed)
         }
 
@@ -165,6 +163,7 @@ class SwingTerminalMouseControllerTest {
 
             assertEquals(0, host.mouseReports.size)
             assertEquals(0, host.scrollCount)
+            assertEquals(1, host.finishWheelAnimationCount)
             assertTrue(event.isConsumed)
         }
 
@@ -321,7 +320,7 @@ class SwingTerminalMouseControllerTest {
         var selectionReleaseCount = 0
         var selectionDragCount = 0
         var lastScrollDelta = 0
-        var lastScrollHistorySize = 0
+        var finishWheelAnimationCount = 0
         val mouseReports = ArrayList<TerminalMouseEvent>()
 
         override fun mouseTrackingMode(): MouseTrackingMode = mouseTrackingMode
@@ -343,14 +342,14 @@ class SwingTerminalMouseControllerTest {
 
         override fun visibleGridRows(): Int = 24
 
-        override fun scrollViewportByRows(
-            delta: Int,
-            historySize: Int,
-        ): Boolean {
+        override fun scrollViewportByRows(delta: Int): Boolean {
             scrollCount++
             lastScrollDelta = delta
-            lastScrollHistorySize = historySize
             return scrollResult
+        }
+
+        override fun finishWheelScrollAnimation() {
+            finishWheelAnimationCount++
         }
 
         override fun pasteClipboardText(): Boolean {

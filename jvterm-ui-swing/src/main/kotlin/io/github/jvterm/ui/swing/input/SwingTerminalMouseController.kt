@@ -87,11 +87,10 @@ internal class SwingTerminalMouseController(
 
     private fun handleMouseWheel(event: MouseWheelEvent) {
         if (isMouseTrackingIntercepted(event)) {
+            host.finishWheelScrollAnimation()
             handleMouseTracking(event, TerminalMouseEventType.WHEEL)
             return
         }
-        val historySize = host.renderCache.historySize
-
         val delta = wheelScrollLines(event)
         if (delta == 0) {
             // Java accumulates high-resolution wheel movement until
@@ -101,7 +100,7 @@ internal class SwingTerminalMouseController(
             return
         }
 
-        if (host.scrollViewportByRows(delta, historySize)) {
+        if (host.scrollViewportByRows(delta)) {
             event.consume()
         }
     }

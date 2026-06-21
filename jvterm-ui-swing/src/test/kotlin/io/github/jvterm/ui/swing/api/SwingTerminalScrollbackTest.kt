@@ -141,6 +141,7 @@ class SwingTerminalScrollbackTest {
             )
         }
 
+        awaitViewportOffset(component, expectedOffset = 3.0)
         val state = component.viewportState()
         assertEquals(3.0, state.scrollbackOffset)
         assertEquals(3, state.renderOffset)
@@ -471,6 +472,19 @@ class SwingTerminalScrollbackTest {
         if (SwingUtilities.isEventDispatchThread()) return
         SwingUtilities.invokeAndWait {
         }
+    }
+
+    private fun awaitViewportOffset(
+        component: SwingTerminal,
+        expectedOffset: Double,
+    ) {
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2)
+        while (System.nanoTime() < deadline) {
+            drainEdt()
+            if (component.viewportState().scrollbackOffset == expectedOffset) return
+            Thread.sleep(5)
+        }
+        assertEquals(expectedOffset, component.viewportState().scrollbackOffset)
     }
 
     private fun scrollTestTerminal(
