@@ -41,6 +41,7 @@ internal class SwingTerminalMouseController(
     val mouseListener =
         object : MouseAdapter() {
             override fun mousePressed(event: MouseEvent) {
+                if (host.handlePromptMarkerMousePressed(event)) return
                 if (handleMouseTracking(event, TerminalMouseEventType.PRESS)) return
                 if (host.handleHyperlinkMousePressed(event)) return
                 if (SwingUtilities.isMiddleMouseButton(event)) {
@@ -59,6 +60,7 @@ internal class SwingTerminalMouseController(
             }
 
             override fun mouseExited(event: MouseEvent) {
+                host.handlePromptMarkerMouseExited()
                 host.handleHyperlinkMouseExited()
             }
         }
@@ -71,6 +73,9 @@ internal class SwingTerminalMouseController(
             }
 
             override fun mouseMoved(event: MouseEvent) {
+                if (host.handlePromptMarkerMouseMoved(event)) {
+                    return
+                }
                 if (handleMouseTracking(event, TerminalMouseEventType.MOTION)) {
                     host.clearHyperlinkHover()
                     return

@@ -16,11 +16,16 @@
 package io.github.jvterm.app.ui
 
 import io.github.jvterm.app.config.JvTermSettings
+import io.github.jvterm.app.history.CommandHistoryStore
 import io.github.jvterm.protocol.NotificationLevel
+import io.github.jvterm.protocol.ShellIntegrationEvent
+import io.github.jvterm.protocol.ShellIntegrationMarker
 import io.github.jvterm.workspace.*
 import java.awt.*
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
 import javax.swing.*
 
 /**
@@ -46,6 +51,7 @@ internal class TabManager(
     private val workspace = TerminalWorkspace(StandaloneWorkspaceListener())
     private val tabRoots = HashMap<String, SplitNode>()
     private val tabContainers = HashMap<String, JPanel>()
+    private var commandHistoryStore: CommandHistoryStore? = createCommandHistoryStoreIfEnabled()
 
     val selectedPane: TerminalPane?
         get() = tabBar.selectedId()?.let { getActivePane(it) }
@@ -209,7 +215,7 @@ internal class TabManager(
         tabContainers[tabId] = container
 
         tabContentPanel.add(container, tabId)
-        tabBar.addTab(TabEntry(id = tabId, title = profile.displayName, profileKind = profile.kind))
+        tabBar.addTab(TabEntry(id = tabId, title = workspaceTab.title, profileKind = profile.kind))
         showPane(tabId)
         updateFrameTitle()
         pane.requestFocus()
@@ -243,6 +249,8 @@ internal class TabManager(
             closeTab(tabId)
         }
         workspace.close()
+        commandHistoryStore?.close()
+        commandHistoryStore = null
     }
 
     /** Propagates a settings reload to all live panes and the workspace. */
@@ -258,6 +266,7 @@ internal class TabManager(
             palette = snapshot.palette,
             treatAmbiguousAsWide = snapshot.treatAmbiguousAsWide,
         )
+        reconcileCommandHistoryStore()
         tabBar.repaint()
     }
 
@@ -438,6 +447,41 @@ internal class TabManager(
 
         menu.add(copyItem)
         menu.add(pasteItem)
+
+        val commandRecordId = pane.terminal.commandRecordAt(x, y)
+        if (commandRecordId != 0) {
+            menu.addSeparator()
+            menu.add(
+                JMenuItem("Copy Command").apply {
+                    isEnabled = pane.tab.session.shellIntegrationState
+                        .commandText(commandRecordId) != null
+                    addActionListener { pane.terminal.copyCommandTextToClipboard(commandRecordId) }
+                },
+            )
+            menu.add(
+                JMenuItem("Copy Command Output").apply {
+                    addActionListener { pane.terminal.copyCommandOutputToClipboard(commandRecordId) }
+                },
+            )
+            menu.add(
+                JMenuItem("Export Command Output…").apply {
+                    addActionListener { exportCommandOutput(pane, commandRecordId) }
+                },
+            )
+        }
+        menu.addSeparator()
+
+        val workingDirectory = LocalWorkingDirectoryResolver.resolve(pane.tab.currentWorkingDirectoryUri)
+        val openHereItem =
+            JMenuItem("Open Terminal Here").apply {
+                isEnabled = workingDirectory != null
+                toolTipText = if (workingDirectory == null) "No local shell working directory is available" else null
+                addActionListener {
+                    val directory = workingDirectory ?: return@addActionListener
+                    openTab(pane.tab.profile.copy(workingDirectory = directory))
+                }
+            }
+        menu.add(openHereItem)
         menu.addSeparator()
 
         val splitVert =
@@ -466,6 +510,25 @@ internal class TabManager(
         menu.add(closeItem)
 
         menu.show(component, x, y)
+    }
+
+    private fun exportCommandOutput(
+        pane: TerminalPane,
+        commandRecordId: Int,
+    ) {
+        val output = pane.terminal.commandOutputText(commandRecordId) ?: return
+        val chooser = JFileChooser().apply { selectedFile = java.io.File("command-output.txt") }
+        if (chooser.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) return
+        runCatching {
+            Files.writeString(chooser.selectedFile.toPath(), output, StandardCharsets.UTF_8)
+        }.onFailure { exception ->
+            JOptionPane.showMessageDialog(
+                frame,
+                exception.message ?: exception.javaClass.name,
+                "Unable to export command output",
+                JOptionPane.ERROR_MESSAGE,
+            )
+        }
     }
 
     private fun createStyledSplitPane(
@@ -545,6 +608,16 @@ internal class TabManager(
     }
 
     private inner class StandaloneWorkspaceListener : TerminalWorkspaceListener {
+        override fun shellIntegrationMarker(
+            tab: TerminalWorkspaceTab,
+            event: ShellIntegrationEvent,
+        ) {
+            if (event.marker != ShellIntegrationMarker.COMMAND_FINISHED) return
+            val state = tab.session.shellIntegrationState
+            val metadata = state.commandMetadata(state.latestCommandRecordId()) ?: return
+            commandHistoryStore?.record(tab.profile.id, metadata)
+        }
+
         override fun bell(tab: TerminalWorkspaceTab) {
             if (settings.audibleBell) {
                 SwingUtilities.invokeLater {
@@ -689,6 +762,18 @@ internal class TabManager(
             }
         }
     }
+
+    private fun reconcileCommandHistoryStore() {
+        if (settings.persistentCommandHistoryEnabled) {
+            if (commandHistoryStore == null) commandHistoryStore = CommandHistoryStore(settings.commandHistoryPath)
+        } else {
+            commandHistoryStore?.close()
+            commandHistoryStore = null
+        }
+    }
+
+    private fun createCommandHistoryStoreIfEnabled(): CommandHistoryStore? =
+        if (settings.persistentCommandHistoryEnabled) CommandHistoryStore(settings.commandHistoryPath) else null
 
     private companion object {
         private const val INITIAL_TAB_CAPACITY = 4

@@ -47,6 +47,9 @@ class TerminalShellIntegrationBootstrapTest {
         assertTrue(script.contains("function global:prompt"))
         assertTrue(script.contains("function global:PSConsoleHostReadLine"))
         assertTrue(script.contains("]133;"))
+        assertTrue(script.contains("]7;"))
+        assertTrue(script.contains("[System.UriBuilder]::new('file', [Environment]::MachineName)"))
+        assertTrue(script.contains("Provider.Name -ne 'FileSystem'"))
         assertTrue(script.contains("'D;' + ${'$'}exitCode"))
         assertFalse(script.contains('"'))
     }
@@ -145,6 +148,8 @@ class TerminalShellIntegrationBootstrapTest {
         val promptCommand = integrated.environment.getValue("PROMPT_COMMAND")
         assertTrue(promptCommand.contains("__jvterm_prompt_command"))
         assertTrue(promptCommand.contains("]133;"))
+        assertTrue(promptCommand.contains("__jvterm_osc7"))
+        assertTrue(promptCommand.contains("'%%%02X'"))
         assertTrue(promptCommand.endsWith("history -a"))
     }
 
@@ -200,6 +205,8 @@ class TerminalShellIntegrationBootstrapTest {
         assertTrue(zshDirectory.resolve(".zprofile").exists())
         assertTrue(zshDirectory.resolve(".zshrc").readText().contains("__jvterm_zsh_preexec"))
         assertTrue(zshDirectory.resolve(".zshrc").readText().contains("]133;"))
+        assertTrue(zshDirectory.resolve(".zshrc").readText().contains("__jvterm_zsh_osc7"))
+        assertTrue(zshDirectory.resolve(".zshrc").readText().contains("'%%%02X'"))
         assertTrue(zshDirectory.resolve(".zlogin").exists())
         assertTrue(zshDirectory.resolve(".zlogout").exists())
     }
@@ -235,6 +242,8 @@ class TerminalShellIntegrationBootstrapTest {
         assertEquals(listOf("/usr/bin/fish", "-l", "--init-command"), integrated.command.dropLast(1))
         assertTrue(integrated.command.last().contains("__jvterm_fish_preexec"))
         assertTrue(integrated.command.last().contains("]133;"))
+        assertTrue(integrated.command.last().contains("__jvterm_osc7"))
+        assertTrue(integrated.command.last().contains("string escape --style=url"))
     }
 
     @Test
@@ -264,6 +273,68 @@ class TerminalShellIntegrationBootstrapTest {
         val integrated = TerminalShellIntegrationBootstrap.apply(profile, enabled = true)
 
         assertSame(profile, integrated)
+    }
+
+    @Test
+    fun `explicit WSL bash receives integration through WSLENV`() {
+        val profile =
+            TerminalProfile(
+                id = "wsl",
+                displayName = "WSL Bash",
+                command = listOf("wsl.exe", "--distribution", "Ubuntu", "--exec", "/bin/bash", "-l"),
+                environment = mapOf("WSLENV" to "EXISTING/u"),
+                kind = TerminalProfileKind.WSL,
+            )
+
+        val integrated = TerminalShellIntegrationBootstrap.apply(profile, enabled = true)
+
+        assertEquals(profile.command, integrated.command)
+        assertTrue(integrated.environment.getValue("PROMPT_COMMAND").contains("]133;"))
+        assertEquals("EXISTING/u:PROMPT_COMMAND/u", integrated.environment["WSLENV"])
+    }
+
+    @Test
+    fun `explicit WSL zsh translates generated startup directory into WSL`(
+        @TempDir tempDir: Path,
+    ) {
+        val profile =
+            TerminalProfile(
+                id = "wsl",
+                displayName = "WSL Zsh",
+                command = listOf("wsl.exe", "--", "zsh", "-l"),
+                kind = TerminalProfileKind.WSL,
+            )
+
+        val integrated = TerminalShellIntegrationBootstrap.apply(profile, enabled = true, scriptDirectory = tempDir)
+
+        assertEquals(profile.command, integrated.command)
+        assertEquals(tempDir.resolve("zsh").toString(), integrated.environment["ZDOTDIR"])
+        assertEquals("JVTERM_ORIGINAL_ZDOTDIR/up:ZDOTDIR/up", integrated.environment["WSLENV"])
+        assertTrue(tempDir.resolve("zsh/.zshrc").toFile().isFile)
+    }
+
+    @Test
+    fun `explicit WSL fish receives init command while unknown default shell remains untouched`() {
+        val fish =
+            TerminalProfile(
+                id = "wsl-fish",
+                displayName = "WSL Fish",
+                command = listOf("wsl.exe", "-e", "fish", "-l"),
+                kind = TerminalProfileKind.WSL,
+            )
+        val defaultShell =
+            TerminalProfile(
+                id = "wsl",
+                displayName = "WSL",
+                command = listOf("wsl.exe", "--distribution", "Ubuntu"),
+                kind = TerminalProfileKind.WSL,
+            )
+
+        val integrated = TerminalShellIntegrationBootstrap.apply(fish, enabled = true)
+
+        assertEquals(listOf("wsl.exe", "-e", "fish", "-l", "--init-command"), integrated.command.dropLast(1))
+        assertTrue(integrated.command.last().contains("]133;"))
+        assertSame(defaultShell, TerminalShellIntegrationBootstrap.apply(defaultShell, enabled = true))
     }
 
     private fun decodePowerShellScript(encoded: String): String = String(Base64.getDecoder().decode(encoded), Charsets.UTF_16LE)

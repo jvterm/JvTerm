@@ -45,7 +45,7 @@ class SwingTerminalSearchTest {
         val component = SwingTerminal(settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) })
 
         SwingUtilities.invokeAndWait {
-            component.setSize(120, 40)
+            component.size = component.preferredGridSize(12, 1)
             component.bind(session)
             component.keyListeners.forEach { listener ->
                 listener.keyPressed(searchShortcut(component))
@@ -64,15 +64,16 @@ class SwingTerminalSearchTest {
         val component = SwingTerminal(settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) })
 
         SwingUtilities.invokeAndWait {
-            component.setSize(120, 24)
+            component.setSize(component.preferredGridSize(12, 1))
             component.bind(session)
             component.search("needle")
+
+            val state = component.currentSearchState()
+            assertEquals(1, state.resultCount)
+            assertEquals(0, state.activeResultIndex)
+            assertEquals(5, component.viewportState().renderOffset)
         }
 
-        val state = component.currentSearchState()
-        assertEquals(1, state.resultCount)
-        assertEquals(0, state.activeResultIndex)
-        assertTrue(reader.lastRequestedOffset > 0, "search did not request a scrollback viewport")
         session.close()
     }
 
@@ -103,10 +104,6 @@ class SwingTerminalSearchTest {
         )
 
     private class SearchFrameReader : TerminalRenderFrameReader {
-        @Volatile
-        var lastRequestedOffset: Int = 0
-            private set
-
         override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
             readRenderFrame(scrollbackOffset = 0, viewportRows = 1, consumer = consumer)
         }
@@ -123,7 +120,6 @@ class SwingTerminalSearchTest {
             viewportRows: Int,
             consumer: TerminalRenderFrameConsumer,
         ) {
-            lastRequestedOffset = scrollbackOffset
             consumer.accept(SearchFrame(scrollbackOffset = scrollbackOffset.coerceIn(0, 5), rows = viewportRows.coerceAtLeast(1)))
         }
     }

@@ -78,6 +78,7 @@ internal class GridPainter {
         selection: CellSelection? = null,
         searchHighlights: TerminalSearchViewportHighlights? = null,
         shellIntegrationDecorations: TerminalShellIntegrationViewportDecorations? = null,
+        hoveredPromptMarkerRow: Int = -1,
         hoveredHyperlinkId: Int = 0,
         hyperlinkActivationHover: Boolean = false,
     ) {
@@ -112,6 +113,7 @@ internal class GridPainter {
                     metrics = metrics,
                     decorations = shellIntegrationDecorations,
                     row = row,
+                    hovered = row == hoveredPromptMarkerRow,
                 )
                 searchPainter.paint(
                     g = g,

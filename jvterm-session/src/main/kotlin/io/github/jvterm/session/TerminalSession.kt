@@ -157,6 +157,14 @@ class TerminalSession(
     fun hyperlinkUri(hyperlinkId: Int): String? = hyperlinkResolver.uriForHyperlinkId(hyperlinkId)
 
     /**
+     * Returns the latest valid OSC 7 current-working-directory URI.
+     *
+     * @return absolute `file://` URI reported by the shell, or `null` before
+     *   the shell reports one.
+     */
+    fun currentWorkingDirectoryUri(): String? = shellIntegrationState.currentWorkingDirectoryUri()
+
+    /**
      * Starts the connector after resizing core and transport to [columns] x
      * [rows].
      *
@@ -638,6 +646,11 @@ private class ShellIntegrationRecordingHostEventSink(
     private var promptEndLineId = NO_LINE_ID
     private var promptEndColumn = 0
     private var promptStartedForCommandText = false
+    private var promptStartLineId = NO_LINE_ID
+    private var promptStartColumn = 0
+    private var promptScanCodeWords = IntArray(0)
+    private var promptScanAttrWords = LongArray(0)
+    private var promptScanFlags = IntArray(0)
 
     override fun bell() {
         delegate.bell()
@@ -649,6 +662,11 @@ private class ShellIntegrationRecordingHostEventSink(
 
     override fun windowTitleChanged(title: String) {
         delegate.windowTitleChanged(title)
+    }
+
+    override fun currentWorkingDirectoryChanged(uri: String) {
+        state.recordCurrentWorkingDirectory(uri)
+        delegate.currentWorkingDirectoryChanged(uri)
     }
 
     override fun resizeWindow(
@@ -691,7 +709,12 @@ private class ShellIntegrationRecordingHostEventSink(
         var cursorColumn = 0
         var bottomAbsoluteRow = 0L
         var commandText: String? = null
+        var visiblePromptStartLineId = NO_LINE_ID
+        var historySize = 0
+        var liveRows = 0
         renderReader.readRenderFrame(scrollbackOffset = 0) { frame ->
+            historySize = frame.historySize
+            liveRows = frame.rows
             val firstVisibleRow = frame.discardedCount + frame.historySize
             val cursor = frame.cursor
             cursorColumn = cursor.column
@@ -712,6 +735,34 @@ private class ShellIntegrationRecordingHostEventSink(
                         cursorColumn = cursor.column,
                     )
             }
+            if (event.marker == ShellIntegrationMarker.PROMPT_END && promptStartedForCommandText) {
+                visiblePromptStartLineId =
+                    firstRenderedPromptLineId(
+                        frame = frame,
+                        startLineId = promptStartLineId,
+                        startColumn = promptStartColumn,
+                        endRow = cursor.row,
+                        endColumn = cursor.column,
+                    )
+            }
+        }
+
+        if (event.marker == ShellIntegrationMarker.COMMAND_START && commandText == null && historySize > 0) {
+            val historyRows = minOf(historySize, MAX_SHELL_INTEGRATION_COMMAND_ROWS)
+            renderReader.readRenderFrame(
+                scrollbackOffset = historyRows,
+                viewportRows = liveRows + historyRows,
+            ) { frame ->
+                val cursor = frame.cursor
+                commandText =
+                    commandTextExtractor.extract(
+                        frame = frame,
+                        promptEndLineId = promptEndLineId,
+                        promptEndColumn = promptEndColumn,
+                        cursorRow = cursor.row,
+                        cursorColumn = cursor.column,
+                    )
+            }
         }
 
         state.observeLiveBottomRow(bottomAbsoluteRow)
@@ -720,10 +771,15 @@ private class ShellIntegrationRecordingHostEventSink(
                 promptEndLineId = NO_LINE_ID
                 promptEndColumn = 0
                 promptStartedForCommandText = true
+                promptStartLineId = cursorLineId
+                promptStartColumn = cursorColumn
                 recordIfAssigned(cursorLineId, state::recordPromptStart)
             }
             ShellIntegrationMarker.PROMPT_END -> {
                 if (cursorLineId != NO_LINE_ID && promptStartedForCommandText) {
+                    if (visiblePromptStartLineId != NO_LINE_ID && visiblePromptStartLineId != promptStartLineId) {
+                        state.reanchorActivePromptStart(visiblePromptStartLineId)
+                    }
                     promptEndLineId = cursorLineId
                     promptEndColumn = cursorColumn
                     state.recordPromptEnd(cursorLineId)
@@ -731,7 +787,12 @@ private class ShellIntegrationRecordingHostEventSink(
             }
             ShellIntegrationMarker.COMMAND_START -> {
                 if (cursorLineId != NO_LINE_ID) {
-                    state.recordCommandStart(cursorLineId, includeLine = cursorColumn == 0, commandText = commandText)
+                    state.recordCommandStart(
+                        lineId = cursorLineId,
+                        includeLine = cursorColumn == 0,
+                        commandText = commandText,
+                        workingDirectoryUri = state.currentWorkingDirectoryUri(),
+                    )
                 }
                 promptStartedForCommandText = false
             }
@@ -751,6 +812,56 @@ private class ShellIntegrationRecordingHostEventSink(
         delegate.shellIntegrationMarker(event)
     }
 
+    /**
+     * Returns the first line containing a rendered prompt cell between OSC 133
+     * A and B. Leading structurally blank rows are layout, not useful gutter
+     * anchors; when the bounded live frame cannot prove a better anchor, the
+     * caller preserves the original marker line.
+     */
+    private fun firstRenderedPromptLineId(
+        frame: TerminalRenderFrame,
+        startLineId: Long,
+        startColumn: Int,
+        endRow: Int,
+        endColumn: Int,
+    ): Long {
+        if (startLineId == NO_LINE_ID || endRow !in 0 until frame.rows || frame.columns <= 0) return NO_LINE_ID
+
+        var startRow = 0
+        while (startRow < frame.rows && frame.lineId(startRow) != startLineId) {
+            startRow++
+        }
+        if (startRow >= frame.rows || startRow > endRow) return NO_LINE_ID
+
+        ensurePromptScanCapacity(frame.columns)
+        var row = startRow
+        while (row <= endRow) {
+            frame.copyLine(
+                row = row,
+                codeWords = promptScanCodeWords,
+                attrWords = promptScanAttrWords,
+                flags = promptScanFlags,
+            )
+            val firstColumn = if (row == startRow) startColumn.coerceIn(0, frame.columns) else 0
+            val lastColumn = if (row == endRow) endColumn.coerceIn(0, frame.columns) else frame.columns
+            var column = firstColumn
+            while (column < lastColumn) {
+                val flags = promptScanFlags[column]
+                if (flags and PROMPT_CONTENT_FLAGS != 0) return frame.lineId(row)
+                column++
+            }
+            row++
+        }
+        return NO_LINE_ID
+    }
+
+    private fun ensurePromptScanCapacity(columns: Int) {
+        if (promptScanCodeWords.size >= columns) return
+        promptScanCodeWords = IntArray(columns)
+        promptScanAttrWords = LongArray(columns)
+        promptScanFlags = IntArray(columns)
+    }
+
     private inline fun recordIfAssigned(
         lineId: Long,
         record: (Long) -> Unit,
@@ -762,6 +873,7 @@ private class ShellIntegrationRecordingHostEventSink(
 
     private companion object {
         private const val NO_LINE_ID = 0L
+        private const val PROMPT_CONTENT_FLAGS = TerminalRenderCellFlags.CODEPOINT + TerminalRenderCellFlags.CLUSTER
     }
 
     override fun showNotification(
@@ -770,100 +882,5 @@ private class ShellIntegrationRecordingHostEventSink(
         level: NotificationLevel,
     ) {
         delegate.showNotification(title, body, level)
-    }
-}
-
-private class ShellIntegrationCommandTextExtractor {
-    private var codeWords = IntArray(0)
-    private var attrWords = LongArray(0)
-    private var flags = IntArray(0)
-    private val builder = StringBuilder()
-
-    fun extract(
-        frame: TerminalRenderFrame,
-        promptEndLineId: Long,
-        promptEndColumn: Int,
-        cursorRow: Int,
-        cursorColumn: Int,
-    ): String? {
-        if (promptEndLineId == NO_LINE_ID || cursorRow !in 0 until frame.rows) return null
-
-        val startColumn = promptEndColumn.coerceIn(0, frame.columns)
-        if (frame.lineId(cursorRow) == promptEndLineId) {
-            val endColumn = cursorColumn.coerceIn(0, frame.columns)
-            if (endColumn < startColumn) return null
-            return extractRowRange(frame, cursorRow, startColumn, endColumn)
-        }
-
-        if (cursorColumn == 0 && cursorRow > 0 && frame.lineId(cursorRow - 1) == promptEndLineId) {
-            val row = cursorRow - 1
-            copyLine(frame, row)
-            val endColumn = lastTextColumnExclusive(frame.columns)
-            if (endColumn < startColumn) return null
-            return extractCopiedRange(startColumn, endColumn)
-        }
-
-        return null
-    }
-
-    private fun extractRowRange(
-        frame: TerminalRenderFrame,
-        row: Int,
-        startColumn: Int,
-        endColumn: Int,
-    ): String? {
-        copyLine(frame, row)
-        return extractCopiedRange(startColumn, endColumn)
-    }
-
-    private fun copyLine(
-        frame: TerminalRenderFrame,
-        row: Int,
-    ) {
-        ensureCapacity(frame.columns)
-        frame.copyLine(
-            row = row,
-            codeWords = codeWords,
-            attrWords = attrWords,
-            flags = flags,
-        )
-    }
-
-    private fun ensureCapacity(columns: Int) {
-        if (codeWords.size >= columns) return
-        codeWords = IntArray(columns)
-        attrWords = LongArray(columns)
-        flags = IntArray(columns)
-    }
-
-    private fun lastTextColumnExclusive(columns: Int): Int {
-        var column = columns - 1
-        while (column >= 0) {
-            if (flags[column] != TerminalRenderCellFlags.EMPTY) return column + 1
-            column--
-        }
-        return 0
-    }
-
-    private fun extractCopiedRange(
-        startColumn: Int,
-        endColumn: Int,
-    ): String? {
-        builder.setLength(0)
-        var column = startColumn
-        while (column < endColumn) {
-            val cellFlags = flags[column]
-            when {
-                cellFlags and TerminalRenderCellFlags.WIDE_TRAILING != 0 -> Unit
-                cellFlags and TerminalRenderCellFlags.CODEPOINT != 0 -> builder.appendCodePoint(codeWords[column])
-                else -> return null
-            }
-            column++
-        }
-        return builder.toString()
-    }
-
-    private companion object {
-        private const val NO_LINE_ID = 0L
     }
 }
