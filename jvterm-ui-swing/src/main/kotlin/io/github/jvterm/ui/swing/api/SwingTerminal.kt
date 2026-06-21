@@ -15,7 +15,9 @@
  */
 package io.github.jvterm.ui.swing.api
 
+import io.github.jvterm.input.event.TerminalMouseEvent
 import io.github.jvterm.input.event.TerminalPasteEvent
+import io.github.jvterm.protocol.MouseTrackingMode
 import io.github.jvterm.render.cache.TerminalRenderCache
 import io.github.jvterm.session.TerminalSession
 import io.github.jvterm.session.TerminalShellIntegrationCommandRecord
@@ -218,10 +220,20 @@ class SwingTerminal
         private val mouseController =
             SwingTerminalMouseController(
                 object : SwingTerminalMouseHost {
-                    override val session: TerminalSession? get() = this@SwingTerminal.session
                     override val settings: SwingSettings get() = this@SwingTerminal.settings
                     override val metrics: SwingMetrics get() = this@SwingTerminal.metrics
                     override val renderCache: TerminalRenderCache get() = this@SwingTerminal.renderCache
+
+                    override fun mouseTrackingMode(): MouseTrackingMode =
+                        this@SwingTerminal
+                            .session
+                            ?.terminal
+                            ?.getModeSnapshot()
+                            ?.mouseTrackingMode ?: MouseTrackingMode.OFF
+
+                    override fun encodeMouse(event: TerminalMouseEvent) {
+                        this@SwingTerminal.session?.encodeMouse(event)
+                    }
 
                     override fun cellAt(
                         x: Int,
@@ -236,10 +248,10 @@ class SwingTerminal
 
                     override fun visibleGridRows(): Int = this@SwingTerminal.visibleGridRows()
 
-                    override fun scrollViewportBy(
-                        delta: Double,
+                    override fun scrollViewportByRows(
+                        delta: Int,
                         historySize: Int,
-                    ): Boolean = this@SwingTerminal.scrollViewportByOnEdt(delta, historySize)
+                    ): Boolean = this@SwingTerminal.scrollViewportByRowsOnEdt(delta, historySize)
 
                     override fun pasteClipboardText(): Boolean = this@SwingTerminal.pasteClipboardText()
 
@@ -918,6 +930,22 @@ class SwingTerminal
             boundSession: TerminalSession? = session,
         ): Boolean {
             if (!viewportController.scrollBy(delta, historySize)) return false
+            if (boundSession != null) {
+                refreshRenderCacheFromSession(boundSession)
+                refreshShellIntegrationDecorations(boundSession)
+            }
+            searchController.updateViewportHighlights()
+            publishViewportState(renderCache.historySize)
+            repaint()
+            return true
+        }
+
+        private fun scrollViewportByRowsOnEdt(
+            delta: Int,
+            historySize: Int = renderCache.historySize,
+            boundSession: TerminalSession? = session,
+        ): Boolean {
+            if (!viewportController.scrollByRows(delta, historySize)) return false
             if (boundSession != null) {
                 refreshRenderCacheFromSession(boundSession)
                 refreshShellIntegrationDecorations(boundSession)

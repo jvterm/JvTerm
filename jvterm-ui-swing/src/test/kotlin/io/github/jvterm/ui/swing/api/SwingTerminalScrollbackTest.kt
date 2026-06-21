@@ -149,7 +149,7 @@ class SwingTerminalScrollbackTest {
     }
 
     @Test
-    fun `precise mouse wheel fractions update scrollback viewport`() {
+    fun `precise trackpad fractions wait for an accumulated whole wheel click`() {
         val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
         val session =
             TerminalSession(
@@ -167,31 +167,32 @@ class SwingTerminalScrollbackTest {
             component.setSize(30, 100)
             component.bind(session)
         }
-        SwingUtilities.invokeAndWait {
-            component.dispatchEvent(
-                MouseWheelEvent(
-                    component,
-                    MouseWheelEvent.MOUSE_WHEEL,
-                    System.currentTimeMillis(),
-                    0,
-                    5,
-                    5,
-                    0,
-                    0,
-                    0,
-                    false,
-                    MouseWheelEvent.WHEEL_UNIT_SCROLL,
-                    3,
-                    0,
-                    -0.25,
-                ),
+        val event =
+            MouseWheelEvent(
+                component,
+                MouseWheelEvent.MOUSE_WHEEL,
+                System.currentTimeMillis(),
+                0,
+                5,
+                5,
+                0,
+                0,
+                0,
+                false,
+                MouseWheelEvent.WHEEL_UNIT_SCROLL,
+                3,
+                0,
+                -0.25,
             )
+        SwingUtilities.invokeAndWait {
+            component.dispatchEvent(event)
         }
 
         val state = component.viewportState()
-        assertEquals(0.75, state.scrollbackOffset)
-        assertEquals(1, state.renderOffset)
-        assertTrue(state.requestedRows > state.visibleRows, "fractional scroll did not request overscan rows")
+        assertEquals(0.0, state.scrollbackOffset)
+        assertEquals(0, state.renderOffset)
+        assertEquals(0.0, state.visualScrollOffsetPixels)
+        assertTrue(event.isConsumed)
         session.close()
     }
 

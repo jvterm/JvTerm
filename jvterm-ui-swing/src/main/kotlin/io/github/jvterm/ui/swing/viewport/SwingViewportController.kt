@@ -120,6 +120,11 @@ internal class SwingViewportController(
         historySize: Int,
     ): Boolean = scrollModel.scrollTo(offsetLines, historySize)
 
+    fun scrollByRows(
+        deltaLines: Int,
+        historySize: Int,
+    ): Boolean = scrollModel.scrollByRows(deltaLines, historySize)
+
     fun clamp(historySize: Int): Boolean = scrollModel.clamp(historySize)
 
     fun updateVisualMetrics(

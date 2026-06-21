@@ -87,4 +87,15 @@ class SwingScrollModelTest {
         assertEquals(4, model.requestedRows(renderRows = 3))
         assertEquals(-12.0, model.contentYOffset(cellHeight = 16))
     }
+
+    @Test
+    fun `whole-row wheel input starts from nearest grid position`() {
+        val model = SwingScrollModel()
+
+        model.scrollTo(2.6, historySize = 10)
+        assertTrue(model.scrollByRows(deltaLines = 1, historySize = 10))
+        assertEquals(4.0, model.preciseScrollbackOffset)
+        assertEquals(4, model.requestedOffset)
+        assertFalse(model.needsOverscan)
+    }
 }

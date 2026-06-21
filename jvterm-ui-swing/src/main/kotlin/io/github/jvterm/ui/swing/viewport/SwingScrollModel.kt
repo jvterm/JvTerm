@@ -16,6 +16,7 @@
 package io.github.jvterm.ui.swing.viewport
 
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
 /**
  * EDT-confined scrollback viewport model for Swing wheel input.
@@ -152,6 +153,24 @@ internal class SwingScrollModel {
 
         this.historySize = historySize
         return scrollToPreciseOffset(preciseOffset + deltaLines)
+    }
+
+    /**
+     * Applies a whole-row wheel delta from the nearest fixed-grid position.
+     *
+     * This keeps mouse and trackpad wheel input on terminal row boundaries,
+     * even if a host control previously placed the viewport at a fractional
+     * visual offset.
+     *
+     * @return true when the precise viewport offset changed.
+     */
+    fun scrollByRows(
+        deltaLines: Int,
+        historySize: Int,
+    ): Boolean {
+        if (deltaLines == 0) return false
+        this.historySize = historySize
+        return scrollToPreciseOffset(preciseOffset.roundToInt().toDouble() + deltaLines)
     }
 
     /**
