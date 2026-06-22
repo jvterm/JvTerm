@@ -205,6 +205,12 @@ class SwingTerminal
                     override val session: TerminalSession? get() = this@SwingTerminal.session
                     override val settings: SwingSettings get() = this@SwingTerminal.settings
 
+                    override fun visibleGridRows(): Int = this@SwingTerminal.visibleGridRows()
+
+                    override fun scrollViewportByRows(deltaRows: Int) {
+                        rowScroller.scrollByRows(deltaRows)
+                    }
+
                     override fun updateHyperlinkActivationHover(active: Boolean) {
                         hyperlinkController.updateHyperlinkActivationHover(active)
                     }
