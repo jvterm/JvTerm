@@ -166,25 +166,45 @@ class SwingViewportControllerTest {
             )
             assertEquals(0, listener.callCount)
         }
+
+        @Test
+        fun `publishViewportState can notify primitive listener without full snapshot`() {
+            val listener = RecordingViewportListener()
+            val controller = SwingViewportController(listener)
+            controller.updateVisualMetrics(historySize = 10, cellHeight = 20, visualOverflowPixels = 0)
+            controller.scrollTo(offsetLines = 2.5, historySize = 10)
+
+            controller.publishViewportState(
+                historySize = 10,
+                visibleRows = 5,
+                renderRows = 5,
+                viewportHeightPixels = 100,
+                contentHeightPixels = 120,
+                notifyListener = false,
+                notifyPrimitiveListener = true,
+            )
+
+            assertEquals(1, listener.callCount)
+            assertEquals(2.5, listener.lastState?.scrollbackOffset)
+            assertEquals(3, listener.lastState?.renderOffset)
+        }
     }
 
     @Nested
     inner class ScrollState {
         @Test
-        fun `resize anchoring preserves fractional scroll offset`() {
+        fun `resize anchoring preserves whole-row scroll offset`() {
             val controller = SwingViewportController { _, _, _, _, _ -> }
 
-            controller.scrollTo(offsetLines = 7.75, historySize = 100)
+            controller.scrollTo(offsetLines = 8.0, historySize = 100)
             val requestedOffset = controller.resizeRequestedOffset()
-            val fraction = controller.resizeFraction()
             controller.anchorAfterResize(
                 newOffset = requestedOffset + 10,
                 newHistorySize = 100,
-                oldFraction = fraction,
             )
 
-            assertEquals(19, controller.requestedOffset)
-            assertEquals(18.75, controller.viewportOffsetForAssertion())
+            assertEquals(18, controller.requestedOffset)
+            assertEquals(18.0, controller.viewportOffsetForAssertion())
         }
 
         @Test

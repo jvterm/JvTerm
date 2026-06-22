@@ -20,26 +20,25 @@ import javax.swing.JScrollBar
 import kotlin.math.roundToInt
 
 /**
- * Bridges a top-origin Swing scrollbar to a row-aligned terminal viewport.
+ * Bridges a top-origin Swing scrollbar to the shared terminal viewport.
  *
  * The scrollbar retains pixel-scale coordinates, allowing its thumb to move
- * continuously during a drag. Every input value is converted to a whole
- * top-row target before the shared animator moves the terminal viewport. Terminal publications do
- * not overwrite the raw thumb coordinate while Swing reports an active drag.
- * Standalone and IDE hosts can therefore share one scrolling policy while
- * retaining full control over scrollbar appearance.
+ * continuously during direct manipulation. Each thumb position maps to an
+ * integer top row, which is applied immediately with no easing lag. Terminal
+ * publications do not overwrite the host-owned thumb coordinate during a
+ * drag, and release is already row-aligned.
  *
  * @param scrollbar host-owned vertical scrollbar.
  */
 class SwingScrollbarAdapter(
     private val scrollbar: JScrollBar,
 ) : TerminalViewportListener {
-    private var viewportScroller: SwingSmoothScroller? = null
+    private var viewportScroller: SwingScrollbarScroller? = null
     private var updatingFromTerminal = false
     private var historySize = 0
     private var visualRangePixels = 0
     private var cellHeightPixels = 1
-    private var alignedValue = 0
+    private var viewportHeightPixels = 1
 
     init {
         scrollbar.addAdjustmentListener(::handleAdjustment)
@@ -48,9 +47,9 @@ class SwingScrollbarAdapter(
     /**
      * Attaches the terminal controlled by this adapter.
      *
-     * @param viewportScroller row-aligned viewport destination.
+     * @param viewportScroller shared row-scrolling destination.
      */
-    fun attach(viewportScroller: SwingSmoothScroller) {
+    fun attach(viewportScroller: SwingScrollbarScroller) {
         this.viewportScroller = viewportScroller
     }
 
@@ -63,9 +62,9 @@ class SwingScrollbarAdapter(
     ) {
         publish(
             historySize = historySize,
-            visualScrollOffsetPixels = scrollbackOffset,
-            viewportHeightPixels = maxOf(1, visibleRows),
-            cellHeightPixels = 1,
+            visualScrollOffsetPixels = scrollbackOffset * cellHeightPixels,
+            viewportHeightPixels = maxOf(viewportHeightPixels, saturatedMultiply(visibleRows, cellHeightPixels)),
+            cellHeightPixels = cellHeightPixels,
         )
     }
 
@@ -86,12 +85,13 @@ class SwingScrollbarAdapter(
     ) {
         this.historySize = historySize
         this.cellHeightPixels = cellHeightPixels
+        this.viewportHeightPixels = viewportHeightPixels
         visualRangePixels = saturatedMultiply(historySize, cellHeightPixels)
-        alignedValue =
+        val publishedValue =
             (visualRangePixels - visualScrollOffsetPixels.roundToInt())
                 .coerceIn(0, visualRangePixels)
         val maximum = saturatedAdd(visualRangePixels, viewportHeightPixels)
-        val displayedValue = if (scrollbar.valueIsAdjusting) scrollbar.value.coerceIn(0, visualRangePixels) else alignedValue
+        val displayedValue = if (scrollbar.valueIsAdjusting) scrollbar.value.coerceIn(0, visualRangePixels) else publishedValue
 
         updatingFromTerminal = true
         try {
@@ -113,19 +113,10 @@ class SwingScrollbarAdapter(
     private fun handleAdjustment(event: AdjustmentEvent) {
         if (updatingFromTerminal || historySize == 0) return
 
-        val topRow = (event.value.coerceIn(0, visualRangePixels) / cellHeightPixels).coerceIn(0, historySize)
+        val value = event.value.coerceIn(0, visualRangePixels)
+        val topRow = (value / cellHeightPixels).coerceIn(0, historySize)
         val targetOffset = historySize - topRow
-        alignedValue = saturatedMultiply(topRow, cellHeightPixels)
-        viewportScroller?.smoothScrollToScrollbackOffset(targetOffset)
-
-        if (!event.valueIsAdjusting && scrollbar.value != alignedValue) {
-            updatingFromTerminal = true
-            try {
-                scrollbar.value = alignedValue
-            } finally {
-                updatingFromTerminal = false
-            }
-        }
+        viewportScroller?.scrollFromScrollbar(targetOffset, event.valueIsAdjusting)
     }
 
     private companion object {
@@ -141,12 +132,20 @@ class SwingScrollbarAdapter(
     }
 }
 
-/** Destination for whole-row scrollbar viewport requests. */
-fun interface SwingSmoothScroller {
+/** Destination for scrollbar positions mapped to terminal rows. */
+fun interface SwingScrollbarScroller {
     /**
-     * Smoothly moves the viewport to [scrollbackOffset] terminal rows above live output.
+     * Moves the viewport to [scrollbackOffset] terminal rows above live output.
      *
-     * @param scrollbackOffset non-negative whole-row scrollback offset.
+     * While [valueIsAdjusting] is true, implementations must apply the row
+     * immediately so content never lags behind the thumb. A release publishes
+     * the same already-aligned row as a completed scroll.
+     *
+     * @param scrollbackOffset non-negative integer scrollback offset.
+     * @param valueIsAdjusting whether the scrollbar thumb is actively held.
      */
-    fun smoothScrollToScrollbackOffset(scrollbackOffset: Int)
+    fun scrollFromScrollbar(
+        scrollbackOffset: Int,
+        valueIsAdjusting: Boolean,
+    )
 }

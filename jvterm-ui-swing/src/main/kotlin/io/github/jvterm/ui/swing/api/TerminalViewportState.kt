@@ -24,8 +24,9 @@ package io.github.jvterm.ui.swing.api
  * value in their adapter without changing terminal rendering policy.
  *
  * @property historySize number of rows available above the live viewport.
- * @property scrollbackOffset precise logical offset from the live viewport.
- * Fractional values represent smooth visual motion between terminal rows.
+ * @property scrollbackOffset precise visual offset from the live viewport.
+ * Fractional values exist only during smooth animation between integer row
+ * destinations; completed viewports are row-aligned.
  * @property renderOffset whole-row offset requested from the render cache.
  * This is the integer overscan anchor for [scrollbackOffset].
  * @property visibleRows number of terminal rows that fit in the component.
@@ -87,7 +88,8 @@ fun interface TerminalViewportListener {
      * Reports the latest terminal-native viewport coordinates.
      *
      * @param historySize rows available above the live viewport.
-     * @param scrollbackOffset precise logical offset from live output.
+     * @param scrollbackOffset precise visual offset from live output;
+     * fractional only while an integer-destination animation is in flight.
      * @param renderOffset whole-row render-cache offset.
      * @param visibleRows rows visible in the Swing component.
      * @param requestedRows render-cache rows requested, including overscan.

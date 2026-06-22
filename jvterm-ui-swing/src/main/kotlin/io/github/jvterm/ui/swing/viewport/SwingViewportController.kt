@@ -114,11 +114,6 @@ internal class SwingViewportController(
 
     fun requestedRows(renderRows: Int): Int = scrollModel.requestedRows(renderRows)
 
-    fun scrollBy(
-        delta: Double,
-        historySize: Int,
-    ): Boolean = scrollModel.scrollBy(delta, historySize)
-
     fun scrollTo(
         offsetLines: Double,
         historySize: Int,
@@ -134,14 +129,11 @@ internal class SwingViewportController(
 
     fun resizeRequestedOffset(): Int = scrollModel.requestedOffset
 
-    fun resizeFraction(): Double = scrollModel.preciseScrollbackOffset - scrollModel.offset
-
     fun anchorAfterResize(
         newOffset: Int,
         newHistorySize: Int,
-        oldFraction: Double,
     ) {
-        scrollModel.scrollTo((newOffset + oldFraction).coerceIn(0.0, newHistorySize.toDouble()), newHistorySize)
+        scrollModel.scrollTo(newOffset.toDouble(), newHistorySize)
     }
 
     fun contentOriginY(
@@ -177,6 +169,7 @@ internal class SwingViewportController(
         viewportHeightPixels: Int,
         contentHeightPixels: Int,
         notifyListener: Boolean = true,
+        notifyPrimitiveListener: Boolean = false,
     ) {
         val requestedRows = scrollModel.requestedRows(renderRows)
         val scrollbackOffset = scrollModel.preciseScrollbackOffset
@@ -194,7 +187,18 @@ internal class SwingViewportController(
         viewportHeightPixelsSnapshot.set(viewportHeightPixels)
         viewportContentHeightPixelsSnapshot.set(contentHeightPixels)
         viewportCellHeightPixelsSnapshot.set(scrollModel.cellHeightPixels)
-        if (!notifyListener) return
+        if (!notifyListener) {
+            if (notifyPrimitiveListener) {
+                listener.viewportChanged(
+                    historySize = historySize,
+                    scrollbackOffset = scrollbackOffset,
+                    renderOffset = renderOffset,
+                    visibleRows = visibleRows,
+                    requestedRows = requestedRows,
+                )
+            }
+            return
+        }
 
         listener.viewportStateChanged(
             TerminalViewportState(

@@ -87,7 +87,7 @@ internal class SwingTerminalMouseController(
 
     private fun handleMouseWheel(event: MouseWheelEvent) {
         if (isMouseTrackingIntercepted(event)) {
-            host.finishSmoothScrollAnimation()
+            host.finishViewportScroll()
             handleMouseTracking(event, TerminalMouseEventType.WHEEL)
             return
         }
@@ -97,7 +97,7 @@ internal class SwingTerminalMouseController(
             return
         }
 
-        if (host.scrollViewportByRows(delta)) {
+        if (host.scrollViewportByPreciseRows(delta)) {
             event.consume()
         }
     }

@@ -150,7 +150,7 @@ class SwingTerminalScrollbackTest {
     }
 
     @Test
-    fun `precise trackpad fractions use shared smooth scroll animation`() {
+    fun `precise trackpad fractions accumulate into an integer row destination`() {
         val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
         val session =
             TerminalSession(
@@ -168,32 +168,24 @@ class SwingTerminalScrollbackTest {
             component.setSize(30, 100)
             component.bind(session)
         }
-        val event =
-            MouseWheelEvent(
-                component,
-                MouseWheelEvent.MOUSE_WHEEL,
-                System.currentTimeMillis(),
-                0,
-                5,
-                5,
-                0,
-                0,
-                0,
-                false,
-                MouseWheelEvent.WHEEL_UNIT_SCROLL,
-                3,
-                0,
-                -0.25,
-            )
+        lateinit var event: MouseWheelEvent
         SwingUtilities.invokeAndWait {
+            repeat(3) {
+                event = preciseWheelEvent(component, preciseRotation = -0.1)
+                component.dispatchEvent(event)
+            }
+            assertEquals(0.0, component.viewportState().scrollbackOffset)
+        }
+
+        SwingUtilities.invokeAndWait {
+            event = preciseWheelEvent(component, preciseRotation = -0.1)
             component.dispatchEvent(event)
         }
 
-        awaitViewportOffset(component, expectedOffset = 0.75)
+        awaitViewportOffset(component, expectedOffset = 1.0)
         val state = component.viewportState()
-        assertEquals(0.75, state.scrollbackOffset)
+        assertEquals(1.0, state.scrollbackOffset)
         assertEquals(1, state.renderOffset)
-        assertTrue(state.visualScrollOffsetPixels > 0.0)
         assertTrue(event.isConsumed)
         session.close()
     }
@@ -232,14 +224,15 @@ class SwingTerminalScrollbackTest {
     }
 
     @Test
-    fun `host fractional scroll command uses smooth viewport overscan`() {
+    fun `host fractional scroll commands accumulate and finish on a row`() {
         val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
         val listener = RecordingViewportListener()
+        val renderReader = ScrollbackFrameReader()
         val session =
             TerminalSession(
                 terminal = terminal,
                 publisher = TerminalRenderPublisher(3, 1),
-                renderReader = ScrollbackFrameReader(),
+                renderReader = renderReader,
                 responseReader = terminal,
                 connector = NoOpConnector,
                 parser = NoOpParser,
@@ -257,15 +250,48 @@ class SwingTerminalScrollbackTest {
             component.setSize(30, 100)
             component.bind(session)
         }
+        repeat(3) {
+            component.scrollViewportBy(0.25)
+        }
+        drainEdt()
+        assertEquals(0.0, component.viewportState().scrollbackOffset)
+
         component.scrollViewportBy(0.25)
 
-        awaitViewportOffset(component, 0.25)
+        awaitViewportOffset(component, 1.0)
         val state = component.viewportState()
-        assertEquals(0.25, state.scrollbackOffset)
+        assertEquals(1.0, state.scrollbackOffset)
         assertEquals(1, state.renderOffset)
-        assertTrue(state.requestedRows > state.visibleRows)
-        assertEquals(0.25, listener.lastScrollbackOffset.get())
+        assertEquals(1.0, listener.lastScrollbackOffset.get())
         assertEquals(1, listener.lastRenderOffset.get())
+        assertTrue(renderReader.requestedOffsets.contains(1))
+        session.close()
+    }
+
+    @Test
+    fun `scrollbar drag applies exact rows immediately and release is aligned`() {
+        val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
+        val session =
+            TerminalSession(
+                terminal = terminal,
+                publisher = TerminalRenderPublisher(3, 1),
+                renderReader = ScrollbackFrameReader(),
+                responseReader = terminal,
+                connector = NoOpConnector,
+                parser = NoOpParser,
+                inputEncoder = NoOpInputEncoder,
+            )
+        val component = scrollTestTerminal()
+
+        SwingUtilities.invokeAndWait {
+            component.setSize(30, 100)
+            component.bind(session)
+            component.scrollFromScrollbar(scrollbackOffset = 3, valueIsAdjusting = true)
+            assertEquals(3.0, component.viewportState().scrollbackOffset)
+        }
+
+        component.scrollFromScrollbar(scrollbackOffset = 3, valueIsAdjusting = false)
+        awaitViewportOffset(component, expectedOffset = 3.0)
         session.close()
     }
 
@@ -487,6 +513,27 @@ class SwingTerminalScrollbackTest {
         }
         assertEquals(expectedOffset, component.viewportState().scrollbackOffset)
     }
+
+    private fun preciseWheelEvent(
+        component: SwingTerminal,
+        preciseRotation: Double,
+    ): MouseWheelEvent =
+        MouseWheelEvent(
+            component,
+            MouseWheelEvent.MOUSE_WHEEL,
+            System.currentTimeMillis(),
+            0,
+            5,
+            5,
+            0,
+            0,
+            0,
+            false,
+            MouseWheelEvent.WHEEL_UNIT_SCROLL,
+            3,
+            0,
+            preciseRotation,
+        )
 
     private fun scrollTestTerminal(
         hostServices: SwingHostServices = SwingHostServices(),

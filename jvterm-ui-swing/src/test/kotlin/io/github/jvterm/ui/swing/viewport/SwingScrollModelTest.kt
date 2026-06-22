@@ -22,16 +22,16 @@ import kotlin.test.assertTrue
 
 class SwingScrollModelTest {
     @Test
-    fun `fractional input uses overscan and visual translation`() {
+    fun `fractional animation position uses overscan and visual translation`() {
         val model = SwingScrollModel()
 
-        assertTrue(model.scrollBy(0.4, historySize = 10))
+        assertTrue(model.scrollTo(0.4, historySize = 10))
         assertEquals(0, model.offset)
         assertEquals(1, model.requestedOffset)
         assertTrue(model.needsOverscan)
         assertEquals(-9.6, model.contentYOffset(cellHeight = 16), 1.0e-12)
 
-        assertTrue(model.scrollBy(0.7, historySize = 10))
+        assertTrue(model.scrollTo(1.1, historySize = 10))
         assertEquals(1, model.offset)
         assertEquals(2, model.requestedOffset)
     }
@@ -40,7 +40,7 @@ class SwingScrollModelTest {
     fun `scroll offset clamps to available history`() {
         val model = SwingScrollModel()
 
-        assertTrue(model.scrollBy(12.0, historySize = 5))
+        assertTrue(model.scrollTo(12.0, historySize = 5))
 
         assertEquals(5, model.offset)
         assertEquals(5, model.requestedOffset)
@@ -58,11 +58,11 @@ class SwingScrollModelTest {
     }
 
     @Test
-    fun `zero or clamped deltas report no movement`() {
+    fun `unchanged or clamped positions report no movement`() {
         val model = SwingScrollModel()
 
-        assertFalse(model.scrollBy(0.0, historySize = 5))
-        assertFalse(model.scrollBy(-1.0, historySize = 5))
+        assertFalse(model.scrollTo(0.0, historySize = 5))
+        assertFalse(model.scrollTo(-1.0, historySize = 5))
         assertEquals(0, model.offset)
     }
 
@@ -70,7 +70,7 @@ class SwingScrollModelTest {
     fun `reset returns to live viewport`() {
         val model = SwingScrollModel()
 
-        model.scrollBy(3.0, historySize = 5)
+        model.scrollTo(3.0, historySize = 5)
         model.reset()
 
         assertEquals(0, model.offset)
@@ -81,7 +81,7 @@ class SwingScrollModelTest {
     fun `fractional scroll requests overscan row and translated content`() {
         val model = SwingScrollModel()
 
-        model.scrollBy(0.25, historySize = 10)
+        model.scrollTo(0.25, historySize = 10)
 
         assertEquals(4, model.requestedRows(renderRows = 3))
         assertEquals(-12.0, model.contentYOffset(cellHeight = 16))

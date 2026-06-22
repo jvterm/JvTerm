@@ -20,11 +20,11 @@ import kotlin.math.floor
 /**
  * EDT-confined smooth scrollback viewport model.
  *
- * The model owns the precise visual position shared by wheel, trackpad,
- * selection autoscroll, and scrollbar input. The line-addressed render reader
- * receives a whole-row anchor plus one overscan row; fractional motion is a
- * renderer translation only. Renderer decorations do not contribute
- * scrollable height.
+ * The model owns the precise in-flight animation position. Input accumulation
+ * and integer destination policy belong to [SmoothRowScroller]. The
+ * line-addressed render reader receives a whole-row anchor plus one overscan
+ * row; fractional motion is a renderer translation only. Renderer decorations
+ * do not contribute scrollable height.
  */
 internal class SwingScrollModel {
     private var cellHeight: Int = 1
@@ -41,10 +41,10 @@ internal class SwingScrollModel {
         get() = committedOffset
 
     /**
-     * Precise logical scrollback offset in terminal rows.
+     * Precise visual scrollback offset in terminal rows.
      *
      * `0.0` is the live viewport. Larger values move farther back into
-     * scrollback history.
+     * scrollback history. Fractional values exist only during animation.
      */
     val preciseScrollbackOffset: Double
         get() = preciseOffset
@@ -125,27 +125,11 @@ internal class SwingScrollModel {
         offsetLines: Double,
         historySize: Int,
     ): Boolean {
-        require(!offsetLines.isNaN()) { "offsetLines must not be NaN" }
+        require(offsetLines.isFinite()) { "offsetLines must be finite, was $offsetLines" }
         require(historySize >= 0) { "historySize must be >= 0, was $historySize" }
 
         this.historySize = historySize
         return scrollToPreciseOffset(offsetLines.coerceIn(0.0, historySize.toDouble()))
-    }
-
-    /**
-     * Applies a fractional line delta.
-     *
-     * @return true when the precise offset changed.
-     */
-    fun scrollBy(
-        deltaLines: Double,
-        historySize: Int,
-    ): Boolean {
-        require(!deltaLines.isNaN()) { "deltaLines must not be NaN" }
-        if (deltaLines == 0.0) return false
-
-        this.historySize = historySize
-        return scrollToPreciseOffset(preciseOffset + deltaLines)
     }
 
     /** Returns the fractional vertical content translation for rendering. */

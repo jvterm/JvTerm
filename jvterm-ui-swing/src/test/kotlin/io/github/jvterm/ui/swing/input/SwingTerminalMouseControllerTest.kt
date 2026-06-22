@@ -343,13 +343,13 @@ class SwingTerminalMouseControllerTest {
 
         override fun visibleGridRows(): Int = 24
 
-        override fun scrollViewportByRows(delta: Double): Boolean {
+        override fun scrollViewportByPreciseRows(deltaRows: Double): Boolean {
             scrollCount++
-            lastScrollDelta = delta
+            lastScrollDelta = deltaRows
             return scrollResult
         }
 
-        override fun finishSmoothScrollAnimation() {
+        override fun finishViewportScroll() {
             finishWheelAnimationCount++
         }
 

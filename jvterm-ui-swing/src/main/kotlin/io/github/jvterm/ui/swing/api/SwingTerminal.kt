@@ -34,8 +34,8 @@ import io.github.jvterm.ui.swing.search.*
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.SwingSettingsProvider
-import io.github.jvterm.ui.swing.viewport.SmoothScrollAnimationHost
-import io.github.jvterm.ui.swing.viewport.SmoothScrollAnimator
+import io.github.jvterm.ui.swing.viewport.SmoothRowScrollHost
+import io.github.jvterm.ui.swing.viewport.SmoothRowScroller
 import io.github.jvterm.ui.swing.viewport.SwingViewportController
 import java.awt.*
 import java.awt.event.*
@@ -61,7 +61,7 @@ class SwingTerminal
             SwingSettingsProvider { SwingSettings() },
         private val hostServices: SwingHostServices = SwingHostServices(),
     ) : JComponent(),
-        SwingSmoothScroller {
+        SwingScrollbarScroller {
         private var session: TerminalSession? = null
         private var settings: SwingSettings = settingsProvider.currentSettings()
         private var metrics: SwingMetrics = buildMetrics(settings)
@@ -80,17 +80,17 @@ class SwingTerminal
         private val searchCache = TerminalRenderCache(settings.columns, settings.rows)
         private val shellIntegrationDecorations = TerminalShellIntegrationViewportDecorations()
         private val visualGeometry = TerminalVisualViewportGeometry()
-        private val smoothScrollAnimator =
-            SmoothScrollAnimator(
-                object : SmoothScrollAnimationHost {
-                    override fun smoothScrollOffset(): Double = viewportController.preciseOffset
+        private val rowScroller =
+            SmoothRowScroller(
+                object : SmoothRowScrollHost {
+                    override fun rowScrollOffset(): Double = viewportController.preciseOffset
 
-                    override fun smoothScrollHistorySize(): Int = renderCache.historySize
+                    override fun rowScrollHistorySize(): Int = renderCache.historySize
 
-                    override fun applySmoothScrollOffset(
+                    override fun applyRowScrollOffset(
                         offsetRows: Double,
-                        animationComplete: Boolean,
-                    ): Boolean = this@SwingTerminal.applyAnimatedScrollOffsetOnEdt(offsetRows, animationComplete)
+                        scrollComplete: Boolean,
+                    ): Boolean = this@SwingTerminal.applyRowScrollOffsetOnEdt(offsetRows, scrollComplete)
                 },
             )
         private var hoveredPromptMarkerRow: Int = NO_PROMPT_MARKER_ROW
@@ -110,7 +110,7 @@ class SwingTerminal
                         y: Int,
                     ): Long = this@SwingTerminal.cellAt(x, y, this@SwingTerminal.renderCache)
 
-                    override fun scrollViewportBy(delta: Double): Boolean = smoothScrollAnimator.scrollBy(delta)
+                    override fun scrollViewportByRows(deltaRows: Int): Boolean = rowScroller.scrollByRows(deltaRows)
 
                     override fun repaint() = this@SwingTerminal.repaint()
 
@@ -148,10 +148,10 @@ class SwingTerminal
                     ) = this@SwingTerminal.selectionController.selectAbsoluteRows(startAbsoluteRow, endAbsoluteRow, columns)
 
                     override fun scrollViewportTo(
-                        offsetLines: Double,
+                        offsetRows: Int,
                         historySize: Int,
                         boundSession: TerminalSession,
-                    ): Boolean = this@SwingTerminal.scrollViewportToOnEdt(offsetLines, historySize, boundSession)
+                    ): Boolean = this@SwingTerminal.scrollViewportToOnEdt(offsetRows, historySize, boundSession)
 
                     override fun repaint() = this@SwingTerminal.repaint()
                 },
@@ -187,10 +187,10 @@ class SwingTerminal
                     override fun visibleGridRows(): Int = this@SwingTerminal.visibleGridRows()
 
                     override fun scrollViewportTo(
-                        offsetLines: Double,
+                        offsetRows: Int,
                         historySize: Int,
                         boundSession: TerminalSession,
-                    ): Boolean = this@SwingTerminal.scrollViewportToOnEdt(offsetLines, historySize, boundSession)
+                    ): Boolean = this@SwingTerminal.scrollViewportToOnEdt(offsetRows, historySize, boundSession)
 
                     override fun revalidate() = this@SwingTerminal.revalidate()
 
@@ -261,10 +261,10 @@ class SwingTerminal
 
                     override fun visibleGridRows(): Int = this@SwingTerminal.visibleGridRows()
 
-                    override fun scrollViewportByRows(delta: Double): Boolean = smoothScrollAnimator.scrollBy(delta)
+                    override fun scrollViewportByPreciseRows(deltaRows: Double): Boolean = rowScroller.scrollByPreciseRows(deltaRows)
 
-                    override fun finishSmoothScrollAnimation() {
-                        smoothScrollAnimator.finish()
+                    override fun finishViewportScroll() {
+                        rowScroller.finish()
                     }
 
                     override fun pasteClipboardText(): Boolean = this@SwingTerminal.pasteClipboardText()
@@ -538,7 +538,7 @@ class SwingTerminal
         fun scrollToScrollbackOffset(scrollbackOffset: Int) {
             runOnEdt(
                 Runnable {
-                    scrollViewportToOnEdt(scrollbackOffset.toDouble())
+                    scrollViewportToOnEdt(scrollbackOffset)
                 },
             )
         }
@@ -547,28 +547,46 @@ class SwingTerminal
          * Applies a signed scrollback delta in terminal rows.
          *
          * Positive values move farther back into scrollback; negative values move
-         * toward the live viewport. Fractional values use the shared smooth-scroll
-         * animation and renderer overscan path; render-cache addressing remains
-         * anchored to whole terminal rows.
+         * toward the live viewport. Fractional values accumulate until they
+         * produce a whole-row destination. Animation may render between rows,
+         * but always completes on the destination row.
          *
          * @param deltaLines signed row delta.
          */
         fun scrollViewportBy(deltaLines: Double) {
-            require(!deltaLines.isNaN()) { "deltaLines must not be NaN" }
+            require(deltaLines.isFinite()) { "deltaLines must be finite, was $deltaLines" }
             runOnEdt(
                 Runnable {
-                    smoothScrollAnimator.scrollBy(deltaLines)
+                    rowScroller.scrollByPreciseRows(deltaLines)
                 },
             )
         }
 
-        override fun smoothScrollToScrollbackOffset(scrollbackOffset: Int) {
+        override fun scrollFromScrollbar(
+            scrollbackOffset: Int,
+            valueIsAdjusting: Boolean,
+        ) {
             require(scrollbackOffset >= 0) { "scrollbackOffset must be >= 0, was $scrollbackOffset" }
+            if (SwingUtilities.isEventDispatchThread()) {
+                scrollFromScrollbarOnEdt(scrollbackOffset, valueIsAdjusting)
+                return
+            }
             runOnEdt(
                 Runnable {
-                    smoothScrollAnimator.scrollTo(scrollbackOffset.toDouble())
+                    scrollFromScrollbarOnEdt(scrollbackOffset, valueIsAdjusting)
                 },
             )
+        }
+
+        private fun scrollFromScrollbarOnEdt(
+            scrollbackOffset: Int,
+            valueIsAdjusting: Boolean,
+        ) {
+            if (valueIsAdjusting) {
+                rowScroller.jumpToRow(scrollbackOffset)
+            } else {
+                rowScroller.scrollToRow(scrollbackOffset)
+            }
         }
 
         /**
@@ -713,7 +731,7 @@ class SwingTerminal
         override fun removeNotify() {
             terminalFocused = false
             cursorTimer.stop()
-            smoothScrollAnimator.finish()
+            rowScroller.finish()
             selectionController.stopSelectionDrag()
 
             ancestorWindow?.removeWindowStateListener(windowStateListener)
@@ -933,40 +951,53 @@ class SwingTerminal
         }
 
         private fun scrollViewportToOnEdt(
-            offsetLines: Double,
+            offsetRows: Int,
             historySize: Int = renderCache.historySize,
             boundSession: TerminalSession? = session,
         ): Boolean {
-            smoothScrollAnimator.cancel()
-            if (!viewportController.scrollTo(offsetLines, historySize)) return false
-            if (boundSession != null) {
-                refreshRenderCacheFromSession(boundSession)
-                refreshShellIntegrationDecorations(boundSession)
-            }
-            searchController.updateViewportHighlights()
+            rowScroller.cancel()
+            val targetRow = offsetRows.coerceIn(0, historySize)
+            if (!moveViewportToOnEdt(targetRow.toDouble(), historySize, boundSession)) return false
             publishViewportState(renderCache.historySize)
-            repaint()
             return true
         }
 
-        private fun applyAnimatedScrollOffsetOnEdt(
+        private fun applyRowScrollOffsetOnEdt(
             offsetRows: Double,
-            animationComplete: Boolean,
+            scrollComplete: Boolean,
         ): Boolean {
-            val changed = viewportController.scrollTo(offsetRows, renderCache.historySize)
-            if (changed) {
-                val boundSession = session
-                if (boundSession != null) {
-                    refreshRenderCacheFromSession(boundSession)
-                    refreshShellIntegrationDecorations(boundSession)
-                }
-                searchController.updateViewportHighlights()
-                repaint()
-            }
-            if (changed || animationComplete) {
-                publishViewportState(renderCache.historySize, notifyListener = animationComplete)
+            val changed = moveViewportToOnEdt(offsetRows, renderCache.historySize, session)
+            if (changed || scrollComplete) {
+                publishViewportState(
+                    renderCache.historySize,
+                    notifyListener = scrollComplete,
+                    notifyPrimitiveListener = !scrollComplete,
+                )
             }
             return changed
+        }
+
+        private fun moveViewportToOnEdt(
+            offsetRows: Double,
+            historySize: Int,
+            boundSession: TerminalSession?,
+        ): Boolean {
+            val oldRenderOffset = viewportController.requestedOffset
+            val oldRequestedRows = requestedRenderRows()
+            if (!viewportController.scrollTo(offsetRows, historySize)) return false
+
+            val renderMappingChanged =
+                oldRenderOffset != viewportController.requestedOffset ||
+                    oldRequestedRows != requestedRenderRows()
+            if (boundSession != null && renderMappingChanged) {
+                refreshRenderCacheFromSession(boundSession)
+                refreshShellIntegrationDecorations(boundSession)
+                searchController.updateViewportHighlights()
+            } else {
+                updateVisualViewportGeometry()
+            }
+            repaint()
+            return true
         }
 
         private fun resetCursorBlinkOnEdt(forceRepaint: Boolean) {
@@ -992,13 +1023,14 @@ class SwingTerminal
         }
 
         private fun resetScrollbackState() {
-            smoothScrollAnimator.cancel()
+            rowScroller.cancel()
             viewportController.reset()
         }
 
         private fun publishViewportState(
             historySize: Int,
             notifyListener: Boolean = true,
+            notifyPrimitiveListener: Boolean = false,
         ) {
             viewportController.publishViewportState(
                 historySize = historySize,
@@ -1007,6 +1039,7 @@ class SwingTerminal
                 viewportHeightPixels = viewportController.viewportPixelHeight(settings, height),
                 contentHeightPixels = visualContentHeightPixels(),
                 notifyListener = notifyListener,
+                notifyPrimitiveListener = notifyPrimitiveListener,
             )
         }
 
@@ -1022,7 +1055,7 @@ class SwingTerminal
         }
 
         private fun resizeSessionToVisibleGridOnEdt() {
-            smoothScrollAnimator.finish()
+            rowScroller.finish()
             val visibleGridSize = viewportController.visibleGridSizeOnEdt(settings, metrics, width, height)
             publishViewportState(renderCache.historySize)
             val boundSession = session ?: return
@@ -1035,13 +1068,12 @@ class SwingTerminal
             lastResizedColumns = columns
             lastResizedRows = rows
 
-            // Preserve both the render anchor and fractional visual position across reflow.
+            // Animation is finished above, so resize anchoring is always row-exact.
             val oldOffset = viewportController.resizeRequestedOffset()
-            val oldFraction = viewportController.resizeFraction()
 
             val (newOffset, newHistorySize) = boundSession.resize(columns, rows, oldOffset)
 
-            viewportController.anchorAfterResize(newOffset, newHistorySize, oldFraction)
+            viewportController.anchorAfterResize(newOffset, newHistorySize)
         }
 
         private fun visibleGridRows(): Int = viewportController.visibleGridRows(settings, metrics, height)
@@ -1074,6 +1106,10 @@ class SwingTerminal
 
         private fun refreshShellIntegrationDecorations(session: TerminalSession): Boolean {
             val decorationsChanged = shellIntegrationDecorations.updateFrom(session.shellIntegrationState, renderCache)
+            return decorationsChanged or updateVisualViewportGeometry()
+        }
+
+        private fun updateVisualViewportGeometry(): Boolean {
             val viewportPixelHeight = viewportController.viewportPixelHeight(settings, height)
             val layoutChanged =
                 visualGeometry.updateLayout(
@@ -1094,7 +1130,7 @@ class SwingTerminal
                         cellHeight = metrics.cellHeight,
                     ),
                 )
-            return decorationsChanged or layoutChanged or visualMetricsChanged or originChanged
+            return layoutChanged or visualMetricsChanged or originChanged
         }
 
         private fun buildMetrics(settings: SwingSettings): SwingMetrics {

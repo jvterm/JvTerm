@@ -23,11 +23,17 @@ import kotlin.test.assertTrue
 
 class SwingScrollbarAdapterTest {
     @Test
-    fun `drag keeps continuous thumb value while viewport uses whole top row`() {
+    fun `continuous thumb drag applies integer top row without lag`() {
         val scrollbar = JScrollBar(Adjustable.VERTICAL)
         var requestedOffset = -1
+        var requestedAdjusting = false
         val adapter = SwingScrollbarAdapter(scrollbar)
-        adapter.attach(SwingSmoothScroller { offset -> requestedOffset = offset })
+        adapter.attach(
+            SwingScrollbarScroller { offset, valueIsAdjusting ->
+                requestedOffset = offset
+                requestedAdjusting = valueIsAdjusting
+            },
+        )
         val state = viewportState(renderOffset = 0)
         adapter.viewportStateChanged(state)
 
@@ -35,14 +41,19 @@ class SwingScrollbarAdapterTest {
         scrollbar.value = 47
 
         assertEquals(6, requestedOffset)
-        adapter.viewportStateChanged(viewportState(renderOffset = requestedOffset))
+        assertTrue(requestedAdjusting)
+        adapter.viewportChanged(10, requestedOffset.toDouble(), 6, 3, 4)
         assertEquals(47, scrollbar.value)
         assertTrue(scrollbar.valueIsAdjusting)
 
         scrollbar.model.valueIsAdjusting = false
 
-        assertEquals(40, scrollbar.value)
         assertEquals(6, requestedOffset)
+        assertEquals(false, requestedAdjusting)
+        assertEquals(47, scrollbar.value)
+
+        adapter.viewportChanged(10, 6.0, 6, 3, 3)
+        assertEquals(40, scrollbar.value)
     }
 
     @Test
@@ -60,13 +71,17 @@ class SwingScrollbarAdapterTest {
     }
 
     @Test
-    fun `fractional smooth viewport publishes precise thumb position`() {
+    fun `primitive animation update preserves pixel metrics and moves thumb`() {
         val scrollbar = JScrollBar(Adjustable.VERTICAL)
         val adapter = SwingScrollbarAdapter(scrollbar)
 
-        adapter.viewportStateChanged(viewportState(renderOffset = 3, scrollbackOffset = 2.5))
+        adapter.viewportStateChanged(viewportState(renderOffset = 3))
+        adapter.viewportChanged(10, 2.5, 3, 3, 4)
 
         assertEquals(75, scrollbar.value)
+        assertEquals(10, scrollbar.unitIncrement)
+        assertEquals(30, scrollbar.blockIncrement)
+        assertEquals(130, scrollbar.maximum)
     }
 
     private fun viewportState(
