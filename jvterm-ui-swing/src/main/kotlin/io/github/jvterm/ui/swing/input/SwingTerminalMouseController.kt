@@ -20,6 +20,7 @@ import io.github.jvterm.input.event.TerminalMouseButton
 import io.github.jvterm.input.event.TerminalMouseEvent
 import io.github.jvterm.input.event.TerminalMouseEventType
 import io.github.jvterm.protocol.MouseTrackingMode
+import io.github.jvterm.ui.swing.settings.SwingTerminalChrome
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseMotionAdapter
@@ -144,10 +145,10 @@ internal class SwingTerminalMouseController(
         if (event.isControlDown) mods = mods or TerminalModifiers.CTRL
         if (event.isMetaDown) mods = mods or TerminalModifiers.META
 
-        val padding = host.settings.padding
+        val paddingLeft = SwingTerminalChrome.left(host.settings, host.renderCache.activeBuffer)
         val gridWidth = host.renderCache.columns * host.metrics.cellWidth
         val gridHeight = host.renderCache.rows * host.metrics.cellHeight
-        val pixelX = (event.x - padding.left).coerceIn(0, gridWidth - 1)
+        val pixelX = (event.x - paddingLeft).coerceIn(0, gridWidth - 1)
         val pixelY = host.terminalPixelYAt(event.y, host.renderCache).coerceIn(0, gridHeight - 1)
 
         val mouseEvent =

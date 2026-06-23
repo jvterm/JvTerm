@@ -39,6 +39,8 @@ internal interface SwingRenderFrameHost {
 
     fun refreshRenderCacheFromSession(session: TerminalSession)
 
+    fun resizeSessionToVisibleGridForFrame(): Boolean
+
     fun clampViewport(historySize: Int): Boolean
 
     fun requestedViewportOffset(): Int

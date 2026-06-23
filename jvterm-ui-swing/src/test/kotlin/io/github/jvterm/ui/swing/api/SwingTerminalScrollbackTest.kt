@@ -269,6 +269,45 @@ class SwingTerminalScrollbackTest {
     }
 
     @Test
+    fun `fractional-height viewport requests both partial-row and animation overscan`() {
+        val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
+        val renderReader = ScrollbackFrameReader()
+        val session =
+            TerminalSession(
+                terminal = terminal,
+                publisher = TerminalRenderPublisher(3, 1),
+                renderReader = renderReader,
+                responseReader = terminal,
+                connector = NoOpConnector,
+                parser = NoOpParser,
+                inputEncoder = NoOpInputEncoder,
+            )
+        val component = scrollTestTerminal()
+
+        SwingUtilities.invokeAndWait {
+            val tenRows = component.preferredGridSize(columns = 3, rows = 10)
+            val elevenRows = component.preferredGridSize(columns = 3, rows = 11)
+            val cellHeight = elevenRows.height - tenRows.height
+            component.setSize(tenRows.width, tenRows.height + cellHeight - 1)
+            component.bind(session)
+
+            assertEquals(10, component.visibleGridSize().height)
+            assertEquals(10, terminal.height)
+            assertEquals(11, component.viewportState().requestedRows)
+        }
+
+        component.scrollViewportBy(1.0)
+        awaitViewportOffset(component, expectedOffset = 1.0)
+
+        assertTrue(
+            renderReader.requestedRows.contains(12),
+            "reader never received 11 visible render rows plus one animation overscan row",
+        )
+        assertEquals(11, component.viewportState().requestedRows)
+        session.close()
+    }
+
+    @Test
     fun `scrollbar drag applies exact rows immediately and release is aligned`() {
         val terminal = TerminalBuffers.create(width = 3, height = 1, maxHistory = 5)
         val session =
@@ -571,6 +610,7 @@ class SwingTerminalScrollbackTest {
         var lastRequestedRows: Int = -1
             private set
         val requestedOffsets = CopyOnWriteArrayList<Int>()
+        val requestedRows = CopyOnWriteArrayList<Int>()
 
         override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
             readRenderFrame(scrollbackOffset = 0, consumer = consumer)
@@ -583,6 +623,7 @@ class SwingTerminalScrollbackTest {
             lastRequestedOffset = scrollbackOffset
             requestedOffsets += scrollbackOffset
             lastRequestedRows = 0
+            requestedRows += 0
             consumer.accept(ScrollbackFrame(scrollbackOffset.coerceIn(0, 5), rows = 1))
         }
 
@@ -594,6 +635,7 @@ class SwingTerminalScrollbackTest {
             lastRequestedOffset = scrollbackOffset
             requestedOffsets += scrollbackOffset
             lastRequestedRows = viewportRows
+            requestedRows += viewportRows
             consumer.accept(ScrollbackFrame(scrollbackOffset.coerceIn(0, 5), rows = viewportRows.coerceAtLeast(1)))
         }
     }

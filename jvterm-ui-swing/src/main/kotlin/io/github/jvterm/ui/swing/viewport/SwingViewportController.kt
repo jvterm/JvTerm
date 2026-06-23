@@ -15,10 +15,12 @@
  */
 package io.github.jvterm.ui.swing.viewport
 
+import io.github.jvterm.render.api.TerminalRenderBufferKind
 import io.github.jvterm.ui.swing.api.TerminalViewportListener
 import io.github.jvterm.ui.swing.api.TerminalViewportState
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
+import io.github.jvterm.ui.swing.settings.SwingTerminalChrome
 import java.awt.Dimension
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -66,8 +68,9 @@ internal class SwingViewportController(
         metrics: SwingMetrics,
         componentWidth: Int,
         componentHeight: Int,
+        activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY,
     ): Dimension {
-        val packed = updateVisibleGridSize(settings, metrics, componentWidth, componentHeight)
+        val packed = updateVisibleGridSize(settings, metrics, componentWidth, componentHeight, activeBuffer)
         return Dimension(unpackVisibleColumns(packed), unpackVisibleRows(packed))
     }
 
@@ -76,9 +79,10 @@ internal class SwingViewportController(
         metrics: SwingMetrics,
         componentWidth: Int,
         componentHeight: Int,
+        activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY,
     ): Long {
-        val columns = visibleGridColumns(settings, metrics, componentWidth)
-        val rows = visibleGridRows(settings, metrics, componentHeight)
+        val columns = visibleGridColumns(settings, metrics, componentWidth, activeBuffer)
+        val rows = visibleGridRows(settings, metrics, componentHeight, activeBuffer)
         val packed = packVisibleGridSize(columns, rows)
         visibleGridSizeSnapshot.set(packed)
         return packed
@@ -88,18 +92,20 @@ internal class SwingViewportController(
         settings: SwingSettings,
         metrics: SwingMetrics,
         componentHeight: Int,
-    ): Int {
-        val padding = settings.padding
-        return maxOf(1, (componentHeight - padding.top - padding.bottom) / metrics.cellHeight)
-    }
+        activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY,
+    ): Int =
+        maxOf(
+            1,
+            (componentHeight - SwingTerminalChrome.top(settings) - SwingTerminalChrome.bottom(settings)) / metrics.cellHeight,
+        )
 
     fun visibleRenderRows(
         settings: SwingSettings,
         metrics: SwingMetrics,
         componentHeight: Int,
+        activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY,
     ): Int {
-        val padding = settings.padding
-        val availableHeight = componentHeight - padding.top - padding.bottom
+        val availableHeight = componentHeight - SwingTerminalChrome.top(settings) - SwingTerminalChrome.bottom(settings)
         if (availableHeight <= 0) return 1
         return ceilDiv(availableHeight, metrics.cellHeight)
     }
@@ -107,10 +113,8 @@ internal class SwingViewportController(
     fun viewportPixelHeight(
         settings: SwingSettings,
         componentHeight: Int,
-    ): Int {
-        val padding = settings.padding
-        return maxOf(0, componentHeight - padding.top - padding.bottom)
-    }
+        activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY,
+    ): Int = maxOf(0, componentHeight - SwingTerminalChrome.top(settings) - SwingTerminalChrome.bottom(settings))
 
     fun requestedRows(renderRows: Int): Int = scrollModel.requestedRows(renderRows)
 
@@ -221,10 +225,16 @@ internal class SwingViewportController(
             settings: SwingSettings,
             metrics: SwingMetrics,
             componentWidth: Int,
-        ): Int {
-            val padding = settings.padding
-            return maxOf(1, (componentWidth - padding.left) / metrics.cellWidth)
-        }
+            activeBuffer: TerminalRenderBufferKind,
+        ): Int =
+            maxOf(
+                1,
+                (
+                    componentWidth -
+                        SwingTerminalChrome.left(settings, activeBuffer) -
+                        SwingTerminalChrome.right(settings, activeBuffer)
+                ) / metrics.cellWidth,
+            )
 
         private fun packVisibleGridSize(
             columns: Int,

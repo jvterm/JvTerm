@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.ui.swing.viewport
 
+import io.github.jvterm.render.api.TerminalRenderBufferKind
 import io.github.jvterm.ui.swing.api.TerminalViewportState
 import io.github.jvterm.ui.swing.settings.SwingMetrics
 import io.github.jvterm.ui.swing.settings.SwingSettings
@@ -42,7 +43,7 @@ class SwingViewportControllerTest {
     @Nested
     inner class GridSizing {
         @Test
-        fun `visible grid size uses left horizontal padding and vertical padding`() {
+        fun `visible grid size uses full horizontal and vertical padding`() {
             val controller = SwingViewportController { _, _, _, _, _ -> }
 
             val size =
@@ -53,9 +54,36 @@ class SwingViewportControllerTest {
                     componentHeight = 130,
                 )
 
-            assertEquals(21, size.width)
+            assertEquals(20, size.width)
             assertEquals(6, size.height)
             assertEquals(size, controller.visibleGridSizeSnapshot())
+        }
+
+        @Test
+        fun `alternate screen visible grid uses symmetric chrome instead of primary prompt gutter`() {
+            val controller = SwingViewportController { _, _, _, _, _ -> }
+            val settings = SwingSettings(padding = Insets(0, 20, 8, 12))
+
+            val primary =
+                controller.visibleGridSizeOnEdt(
+                    settings = settings,
+                    metrics = metrics,
+                    componentWidth = 212,
+                    componentHeight = 128,
+                    activeBuffer = TerminalRenderBufferKind.PRIMARY,
+                )
+            val alternate =
+                controller.visibleGridSizeOnEdt(
+                    settings = settings,
+                    metrics = metrics,
+                    componentWidth = 212,
+                    componentHeight = 128,
+                    activeBuffer = TerminalRenderBufferKind.ALTERNATE,
+                )
+
+            assertEquals(18, primary.width)
+            assertEquals(19, alternate.width)
+            assertEquals(primary.height, alternate.height)
         }
 
         @Test
@@ -78,6 +106,20 @@ class SwingViewportControllerTest {
                     componentHeight = 131,
                 ),
             )
+        }
+
+        @Test
+        fun `partial viewport plus fractional animation requests two rows beyond the grid`() {
+            val controller = SwingViewportController { _, _, _, _, _ -> }
+            val componentHeight = settings.padding.top + settings.padding.bottom + metrics.cellHeight * 11 - 1
+
+            assertEquals(10, controller.visibleGridRows(settings, metrics, componentHeight))
+            val renderRows = controller.visibleRenderRows(settings, metrics, componentHeight)
+            assertEquals(11, renderRows)
+
+            controller.scrollTo(offsetLines = 4.25, historySize = 10)
+
+            assertEquals(12, controller.requestedRows(renderRows))
         }
 
         @Test
