@@ -57,6 +57,21 @@ class JvTermIntellijSettingsTest {
     }
 
     @Test
+    fun `visual bell defaults on and maps to swing settings`() {
+        val enabled =
+            JvTermIntellijSettingsMapper.toSwingSettings(
+                JvTermIntellijSettings.State(themeId = "nord"),
+            )
+        val disabled =
+            JvTermIntellijSettingsMapper.toSwingSettings(
+                JvTermIntellijSettings.State(themeId = "nord", visualBell = false),
+            )
+
+        assertEquals(true, enabled.visualBellEnabled)
+        assertFalse(disabled.visualBellEnabled)
+    }
+
+    @Test
     fun `normalizes unknown theme ids to IntelliJ native theme`() {
         assertEquals(
             JvTermIntellijSettings.DEFAULT_THEME_ID,

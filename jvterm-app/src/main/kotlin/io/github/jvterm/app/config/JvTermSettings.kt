@@ -110,6 +110,12 @@ internal class JvTermSettings(
             updateConfig(config.copy(audibleBell = value))
         }
 
+    var visualBell: Boolean
+        get() = config.visualBell
+        set(value) {
+            updateConfig(config.copy(visualBell = value))
+        }
+
     var pasteOnMiddleClick: Boolean
         get() = config.pasteOnMiddleClick
         set(value) {
@@ -165,6 +171,7 @@ internal class JvTermSettings(
             treatAmbiguousAsWide = config.treatAmbiguousAsWide,
             cursorBlinkMillis = config.cursorBlinkMillis,
             useSystemFallbackFonts = config.useSystemFallbackFonts,
+            visualBellEnabled = config.visualBell,
             pasteOnMiddleClick = config.pasteOnMiddleClick,
             cursorShape = parseCursorShape(config.cursorShape),
             scrollbackLines = config.scrollbackLines,

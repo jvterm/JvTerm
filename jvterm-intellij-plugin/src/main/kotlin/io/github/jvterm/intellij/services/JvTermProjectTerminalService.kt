@@ -301,6 +301,12 @@ class JvTermProjectTerminalService(
     }
 
     private inner class IntellijWorkspaceListener : TerminalWorkspaceListener {
+        override fun bell(tab: TerminalWorkspaceTab) {
+            invokeLaterIfAlive {
+                panesByTabId[tab.id]?.terminal?.showVisualBell()
+            }
+        }
+
         override fun titleChanged(
             tab: TerminalWorkspaceTab,
             title: String,

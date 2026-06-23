@@ -144,6 +144,7 @@ internal class SettingsDialog(
     private val customShellField = createTextField(if (isCustomShell) settings.shellPath else "", 140) // Will be wrapped with button
     private val startDirectoryField = createTextField(settings.startDirectory, 140) // Will be wrapped with button
     private val audibleBellCheckbox = JCheckBox("Audible bell", settings.audibleBell)
+    private val visualBellCheckbox = JCheckBox("Visual bell", settings.visualBell)
 
     // Form Controls - Appearance
     private val fontFamilyCombo =
@@ -230,6 +231,7 @@ internal class SettingsDialog(
         registerChangeListener(customShellField, updateApplyState)
         registerChangeListener(startDirectoryField, updateApplyState)
         registerChangeListener(audibleBellCheckbox, updateApplyState)
+        registerChangeListener(visualBellCheckbox, updateApplyState)
         registerChangeListener(fontFamilyCombo, updateApplyState)
         registerChangeListener(fontSizeSpinner, updateApplyState)
         registerChangeListener(lineHeightSpinner, updateApplyState)
@@ -356,6 +358,7 @@ internal class SettingsDialog(
         panel.add(SectionHeader("Application Settings"))
         val appSection = createSectionPanel()
         addCheckboxRow(appSection, 0, audibleBellCheckbox)
+        addCheckboxRow(appSection, 1, visualBellCheckbox)
         panel.add(appSection)
 
         return panel
@@ -601,6 +604,7 @@ internal class SettingsDialog(
         customShellField.text = if (defaultProfile == null) TerminalConfig.DEFAULT_SHELL_PATH else ""
         startDirectoryField.text = TerminalConfig.DEFAULT_START_DIRECTORY
         audibleBellCheckbox.isSelected = TerminalConfig.DEFAULT_AUDIBLE_BELL
+        visualBellCheckbox.isSelected = TerminalConfig.DEFAULT_VISUAL_BELL
 
         fontFamilyCombo.selectedItem = TerminalConfig.DEFAULT_FONT_FAMILY
         fontSizeSpinner.value = TerminalConfig.DEFAULT_FONT_SIZE
@@ -670,6 +674,7 @@ internal class SettingsDialog(
             shellPath = finalShellPath,
             startDirectory = startDirectoryField.text,
             audibleBell = audibleBellCheckbox.isSelected,
+            visualBell = visualBellCheckbox.isSelected,
             pasteOnMiddleClick = pasteOnMiddleClickCheckbox.isSelected,
             scrollbackLines = scrollbackSpinner.value as? Int ?: TerminalConfig.DEFAULT_SCROLLBACK_LINES,
             lineHeight = lineHeightSpinner.value as? Double ?: TerminalConfig.DEFAULT_LINE_HEIGHT.toDouble(),

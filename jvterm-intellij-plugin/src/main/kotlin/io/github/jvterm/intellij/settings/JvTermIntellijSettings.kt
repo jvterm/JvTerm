@@ -105,6 +105,7 @@ class JvTermIntellijSettings :
      * @property cursorBlinkMillis cursor blink period; zero disables blinking.
      * @property useSystemFallbackFonts whether renderer may scan installed fonts.
      * @property cursorShape default cursor shape id.
+     * @property visualBell whether BEL events show a visual terminal indicator.
      * @property pasteOnMiddleClick whether the middle click pastes clipboard text.
      * @property scrollbackLines maximum retained scrollback rows.
      * @property lineHeight font metric line-height multiplier.
@@ -124,6 +125,7 @@ class JvTermIntellijSettings :
         @JvmField val cursorBlinkMillis: Int = TerminalConfig.DEFAULT_CURSOR_BLINK_MILLIS,
         @JvmField val useSystemFallbackFonts: Boolean = TerminalConfig.DEFAULT_USE_SYSTEM_FALLBACK_FONTS,
         @JvmField val cursorShape: String = TerminalConfig.DEFAULT_CURSOR_SHAPE,
+        @JvmField val visualBell: Boolean = TerminalConfig.DEFAULT_VISUAL_BELL,
         @JvmField val pasteOnMiddleClick: Boolean = TerminalConfig.DEFAULT_PASTE_ON_MIDDLE_CLICK,
         @JvmField val scrollbackLines: Int = TerminalConfig.DEFAULT_SCROLLBACK_LINES,
         @JvmField val lineHeight: Float = TerminalConfig.DEFAULT_LINE_HEIGHT,
@@ -277,6 +279,7 @@ internal object JvTermIntellijSettingsMapper {
             treatAmbiguousAsWide = normalized.treatAmbiguousAsWide,
             cursorBlinkMillis = normalized.cursorBlinkMillis,
             useSystemFallbackFonts = normalized.useSystemFallbackFonts,
+            visualBellEnabled = normalized.visualBell,
             pasteOnMiddleClick = normalized.pasteOnMiddleClick,
             cursorShape = parseCursorShape(normalized.cursorShape),
             scrollbackLines = normalized.scrollbackLines,

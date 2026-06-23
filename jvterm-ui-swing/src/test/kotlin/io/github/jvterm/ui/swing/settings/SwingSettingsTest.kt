@@ -129,6 +129,10 @@ class SwingSettingsTest {
         assertEquals(false, settings.useSystemFallbackFonts)
         assertEquals(false, settings.treatAmbiguousAsWide)
         assertEquals(0xFF4DA3FF.toInt(), settings.hyperlinkActivationForeground)
+        assertEquals(true, settings.visualBellEnabled)
+        assertEquals(0x664DA3FF, settings.visualBellColor)
+        assertEquals(240, settings.visualBellDurationMillis)
+        assertEquals(18, settings.visualBellEdgeThicknessPixels)
         assertEquals(true, settings.shellIntegrationPromptDotsVisible)
         assertEquals(0x8CFFFFFF.toInt(), settings.shellIntegrationPromptDotColor)
         assertEquals(0xFFE74856.toInt(), settings.shellIntegrationFailedPromptDotColor)
@@ -145,6 +149,12 @@ class SwingSettingsTest {
 
     @Test
     fun settingsRejectInvalidShellIntegrationDecorationDimensions() {
+        assertFailsWith<IllegalArgumentException> {
+            SwingSettings(visualBellDurationMillis = -1)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            SwingSettings(visualBellEdgeThicknessPixels = -1)
+        }
         assertFailsWith<IllegalArgumentException> {
             SwingSettings(shellIntegrationPromptDotDiameter = 0)
         }

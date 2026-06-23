@@ -79,6 +79,7 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
     private val cursorShapeCombo = ComboBox(cursorShapeOptions())
     private val ambiguousWidthCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.ambiguousWidth"))
     private val systemFallbackFontsCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.systemFallbackFonts"))
+    private val visualBellCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.visualBell"))
     private val pasteOnMiddleClickCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.pasteOnMiddleClick"))
 
     private var panel: JComponent? = null
@@ -174,6 +175,9 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
                         cell(systemFallbackFontsCheckBox)
                     }
                     row {
+                        cell(visualBellCheckBox)
+                    }
+                    row {
                         cell(pasteOnMiddleClickCheckBox)
                     }
                 }
@@ -217,6 +221,7 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
         cursorShapeCombo.selectedItem = cursorShapeOptions().first { it.id == normalized.cursorShape }
         ambiguousWidthCheckBox.isSelected = normalized.treatAmbiguousAsWide
         systemFallbackFontsCheckBox.isSelected = normalized.useSystemFallbackFonts
+        visualBellCheckBox.isSelected = normalized.visualBell
         pasteOnMiddleClickCheckBox.isSelected = normalized.pasteOnMiddleClick
     }
 
@@ -232,6 +237,7 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
             cursorBlinkMillis = spinnerValue(cursorBlinkSpinner),
             useSystemFallbackFonts = systemFallbackFontsCheckBox.isSelected,
             cursorShape = selectedCursorShapeId(),
+            visualBell = visualBellCheckBox.isSelected,
             pasteOnMiddleClick = pasteOnMiddleClickCheckBox.isSelected,
             scrollbackLines = spinnerValue(scrollbackSpinner),
             lineHeight = spinnerDoubleValue(lineHeightSpinner).toFloat(),
