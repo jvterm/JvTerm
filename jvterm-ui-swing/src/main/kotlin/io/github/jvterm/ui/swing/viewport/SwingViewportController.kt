@@ -96,7 +96,7 @@ internal class SwingViewportController(
     ): Int =
         maxOf(
             1,
-            (componentHeight - SwingTerminalChrome.top(settings) - SwingTerminalChrome.bottom(settings)) / metrics.cellHeight,
+            (componentHeight - SwingTerminalChrome.verticalInset(settings, activeBuffer)) / metrics.cellHeight,
         )
 
     fun visibleRenderRows(
@@ -105,7 +105,7 @@ internal class SwingViewportController(
         componentHeight: Int,
         activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY,
     ): Int {
-        val availableHeight = componentHeight - SwingTerminalChrome.top(settings) - SwingTerminalChrome.bottom(settings)
+        val availableHeight = componentHeight - SwingTerminalChrome.verticalInset(settings, activeBuffer)
         if (availableHeight <= 0) return 1
         return ceilDiv(availableHeight, metrics.cellHeight)
     }
@@ -114,7 +114,7 @@ internal class SwingViewportController(
         settings: SwingSettings,
         componentHeight: Int,
         activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY,
-    ): Int = maxOf(0, componentHeight - SwingTerminalChrome.top(settings) - SwingTerminalChrome.bottom(settings))
+    ): Int = maxOf(0, componentHeight - SwingTerminalChrome.verticalInset(settings, activeBuffer))
 
     fun requestedRows(renderRows: Int): Int = scrollModel.requestedRows(renderRows)
 
@@ -229,11 +229,7 @@ internal class SwingViewportController(
         ): Int =
             maxOf(
                 1,
-                (
-                    componentWidth -
-                        SwingTerminalChrome.left(settings, activeBuffer) -
-                        SwingTerminalChrome.right(settings, activeBuffer)
-                ) / metrics.cellWidth,
+                (componentWidth - SwingTerminalChrome.horizontalInset(settings, activeBuffer)) / metrics.cellWidth,
             )
 
         private fun packVisibleGridSize(

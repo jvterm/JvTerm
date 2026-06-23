@@ -68,7 +68,7 @@ internal class SwingRenderFrameController(
         val boundSession = host.session ?: return
         host.resetCursorBlinkForFrame()
         host.refreshRenderCacheFromSession(boundSession)
-        if (host.resizeSessionToVisibleGridForFrame()) {
+        if (host.syncTerminalGridToActiveChrome()) {
             host.refreshRenderCacheFromSession(boundSession)
         }
         if (host.clampViewport(host.renderCache.historySize) || host.renderCache.scrollbackOffset != host.requestedViewportOffset()) {

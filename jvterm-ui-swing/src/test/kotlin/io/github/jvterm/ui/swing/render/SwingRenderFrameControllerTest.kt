@@ -97,7 +97,7 @@ class SwingRenderFrameControllerTest {
                     listOf(
                         "resetCursorBlinkForFrame",
                         "refreshRenderCacheFromSession",
-                        "resizeSessionToVisibleGridForFrame",
+                        "syncTerminalGridToActiveChrome",
                         "refreshShellIntegrationDecorations",
                         "refreshSearchForFrame",
                         "publishViewportState",
@@ -129,7 +129,7 @@ class SwingRenderFrameControllerTest {
         @Test
         fun `published frame refreshes render cache again when active chrome resizes grid`() {
             val session = createSession()
-            val host = RecordingRenderFrameHost(session = session, resizeForFrameResult = true)
+            val host = RecordingRenderFrameHost(session = session, syncGridToChromeResult = true)
             val controller = SwingRenderFrameController(host)
 
             try {
@@ -145,7 +145,7 @@ class SwingRenderFrameControllerTest {
     private class RecordingRenderFrameHost(
         override val session: TerminalSession?,
         private val clampViewportResult: Boolean = false,
-        private val resizeForFrameResult: Boolean = false,
+        private val syncGridToChromeResult: Boolean = false,
     ) : SwingRenderFrameHost {
         override val renderCache = TerminalRenderCache(80, 24)
         override val settings = SwingSettings(padding = Insets(0, 0, 0, 0))
@@ -191,9 +191,9 @@ class SwingRenderFrameControllerTest {
             renderCache.updateFrom(session)
         }
 
-        override fun resizeSessionToVisibleGridForFrame(): Boolean {
-            semanticCalls += "resizeSessionToVisibleGridForFrame"
-            return resizeForFrameResult
+        override fun syncTerminalGridToActiveChrome(): Boolean {
+            semanticCalls += "syncTerminalGridToActiveChrome"
+            return syncGridToChromeResult
         }
 
         override fun clampViewport(historySize: Int): Boolean = clampViewportResult

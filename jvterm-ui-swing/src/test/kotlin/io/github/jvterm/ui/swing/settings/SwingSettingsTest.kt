@@ -170,6 +170,11 @@ class SwingSettingsTest {
         assertEquals(12, SwingTerminalChrome.right(settings, TerminalRenderBufferKind.PRIMARY))
         assertEquals(8, SwingTerminalChrome.left(settings, TerminalRenderBufferKind.ALTERNATE))
         assertEquals(8, SwingTerminalChrome.right(settings, TerminalRenderBufferKind.ALTERNATE))
+        assertEquals(32, SwingTerminalChrome.horizontalInset(settings, TerminalRenderBufferKind.PRIMARY))
+        assertEquals(16, SwingTerminalChrome.horizontalInset(settings, TerminalRenderBufferKind.ALTERNATE))
+        assertEquals(8, SwingTerminalChrome.verticalInset(settings, TerminalRenderBufferKind.ALTERNATE))
+        assertEquals(16, SwingTerminalChrome.promptDecorationGutterWidth(settings, TerminalRenderBufferKind.PRIMARY))
+        assertEquals(0, SwingTerminalChrome.promptDecorationGutterWidth(settings, TerminalRenderBufferKind.ALTERNATE))
     }
 
     @Test

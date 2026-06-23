@@ -102,9 +102,10 @@ internal class GridPainter {
         val paddingLeft = SwingTerminalChrome.left(settings, cache.activeBuffer)
         val paddingTop = SwingTerminalChrome.top(settings)
         val paddingBottom = SwingTerminalChrome.bottom(settings)
+        val promptGutterWidth = SwingTerminalChrome.promptDecorationGutterWidth(settings, cache.activeBuffer)
         val geometry = visualGeometry?.takeIf { it.rowCount == cache.rows }
         val shellDecorations =
-            if (cache.activeBuffer == TerminalRenderBufferKind.ALTERNATE) {
+            if (cache.activeBuffer == TerminalRenderBufferKind.ALTERNATE || promptGutterWidth <= 0) {
                 null
             } else {
                 shellIntegrationDecorations
@@ -122,6 +123,7 @@ internal class GridPainter {
                     settings = settings,
                     metrics = metrics,
                     decorations = shellDecorations,
+                    gutterWidth = promptGutterWidth,
                     row = row,
                     hovered = row == hoveredPromptMarkerRow,
                 )

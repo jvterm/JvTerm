@@ -344,7 +344,7 @@ class SwingTerminal
                         this@SwingTerminal.refreshRenderCacheFromSession(session)
                     }
 
-                    override fun resizeSessionToVisibleGridForFrame(): Boolean =
+                    override fun syncTerminalGridToActiveChrome(): Boolean =
                         this@SwingTerminal.resizeSessionToVisibleGridOnEdt(publishWhenUnchanged = false)
 
                     override fun clampViewport(historySize: Int): Boolean = viewportController.clamp(historySize)
@@ -432,7 +432,7 @@ class SwingTerminal
 
         private fun promptMarkerRowAt(event: MouseEvent): Int {
             val paddingLeft = SwingTerminalChrome.left(settings, renderCache.activeBuffer)
-            val gutterWidth = settings.shellIntegrationDecorationGutterWidth.coerceAtMost(paddingLeft)
+            val gutterWidth = SwingTerminalChrome.promptDecorationGutterWidth(settings, renderCache.activeBuffer)
             if (gutterWidth <= 0 || event.x !in (paddingLeft - gutterWidth) until paddingLeft) {
                 return NO_PROMPT_MARKER_ROW
             }

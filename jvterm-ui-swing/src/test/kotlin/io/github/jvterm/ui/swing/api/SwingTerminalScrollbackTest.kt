@@ -480,6 +480,56 @@ class SwingTerminalScrollbackTest {
         session.close()
     }
 
+    @Test
+    fun `alternate screen chrome resizes terminal grid to symmetric side padding`() {
+        val connector = RecordingConnector()
+        val reader = ActiveBufferFrameReader()
+        val terminal = TerminalBuffers.create(width = 3, height = 3, maxHistory = 0)
+        val session =
+            TerminalSession(
+                terminal = terminal,
+                publisher = TerminalRenderPublisher(3, 3),
+                renderReader = reader,
+                responseReader = terminal,
+                connector = connector,
+                parser = NoOpParser,
+                inputEncoder = NoOpInputEncoder,
+            )
+        val settings =
+            SwingSettings(
+                padding = Insets(0, 40, 8, 8),
+                shellIntegrationDecorationGutterWidth = 32,
+            )
+        val component = SwingTerminal(settingsProvider = SwingSettingsProvider { settings })
+
+        try {
+            SwingUtilities.invokeAndWait {
+                component.setSize(component.preferredGridSize(10, 3))
+                component.bind(session)
+            }
+            drainEdt()
+
+            val primaryColumns = terminal.width
+            assertEquals(10, primaryColumns)
+
+            reader.activeBuffer = TerminalRenderBufferKind.ALTERNATE
+            session.onDirty?.invoke()
+            drainEdt()
+
+            lateinit var alternateVisibleSize: java.awt.Dimension
+            SwingUtilities.invokeAndWait {
+                alternateVisibleSize = component.visibleGridSize()
+            }
+
+            assertTrue(alternateVisibleSize.width > primaryColumns)
+            assertEquals(alternateVisibleSize.width, terminal.width)
+            assertEquals(alternateVisibleSize.width, connector.lastColumns.get())
+            assertEquals(8, settings.padding.bottom)
+        } finally {
+            session.close()
+        }
+    }
+
     private class CountingRepaintManager(
         private val target: JComponent,
     ) : RepaintManager() {
@@ -762,6 +812,80 @@ class SwingTerminalScrollbackTest {
                 codeWords[codeOffset + column] = line[column].code
                 attrWords[attrOffset + column] = TerminalRenderAttrs.DEFAULT
                 flags[flagOffset + column] = TerminalRenderCellFlags.CODEPOINT
+                extraAttrWords?.set(extraAttrOffset + column, TerminalRenderExtraAttrs.DEFAULT)
+                hyperlinkIds?.set(hyperlinkOffset + column, 0)
+                column++
+            }
+        }
+    }
+
+    private class ActiveBufferFrameReader : TerminalRenderFrameReader {
+        @Volatile
+        var activeBuffer: TerminalRenderBufferKind = TerminalRenderBufferKind.PRIMARY
+
+        override fun readRenderFrame(consumer: TerminalRenderFrameConsumer) {
+            consumer.accept(ActiveBufferFrame(activeBuffer))
+        }
+
+        override fun readRenderFrame(
+            scrollbackOffset: Int,
+            consumer: TerminalRenderFrameConsumer,
+        ) {
+            consumer.accept(ActiveBufferFrame(activeBuffer))
+        }
+
+        override fun readRenderFrame(
+            scrollbackOffset: Int,
+            viewportRows: Int,
+            consumer: TerminalRenderFrameConsumer,
+        ) {
+            consumer.accept(ActiveBufferFrame(activeBuffer))
+        }
+    }
+
+    private class ActiveBufferFrame(
+        override val activeBuffer: TerminalRenderBufferKind,
+    ) : TerminalRenderFrame {
+        override val columns: Int = 3
+        override val rows: Int = 3
+        override val historySize: Int = 0
+        override val scrollbackOffset: Int = 0
+        override val frameGeneration: Long = 1
+        override val structureGeneration: Long = 1
+        override val cursor: TerminalRenderCursor =
+            TerminalRenderCursor(
+                column = 0,
+                row = 0,
+                visible = false,
+                blinking = false,
+                shape = TerminalRenderCursorShape.BLOCK,
+                generation = 1,
+            )
+
+        override fun lineGeneration(row: Int): Long = 1
+
+        override fun lineWrapped(row: Int): Boolean = false
+
+        override fun copyLine(
+            row: Int,
+            codeWords: IntArray,
+            codeOffset: Int,
+            attrWords: LongArray,
+            attrOffset: Int,
+            flags: IntArray,
+            flagOffset: Int,
+            extraAttrWords: LongArray?,
+            extraAttrOffset: Int,
+            hyperlinkIds: IntArray?,
+            hyperlinkOffset: Int,
+            clusterSink: TerminalRenderClusterSink?,
+            clusterDataSink: TerminalRenderClusterDataSink?,
+        ) {
+            var column = 0
+            while (column < columns) {
+                codeWords[codeOffset + column] = 0
+                attrWords[attrOffset + column] = TerminalRenderAttrs.DEFAULT
+                flags[flagOffset + column] = TerminalRenderCellFlags.EMPTY
                 extraAttrWords?.set(extraAttrOffset + column, TerminalRenderExtraAttrs.DEFAULT)
                 hyperlinkIds?.set(hyperlinkOffset + column, 0)
                 column++

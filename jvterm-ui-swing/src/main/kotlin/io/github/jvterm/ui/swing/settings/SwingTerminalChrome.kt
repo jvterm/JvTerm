@@ -27,6 +27,16 @@ import io.github.jvterm.render.api.TerminalRenderBufferKind
  * primary prompt gutter.
  */
 internal object SwingTerminalChrome {
+    fun horizontalInset(
+        settings: SwingSettings,
+        activeBuffer: TerminalRenderBufferKind,
+    ): Int = left(settings, activeBuffer) + right(settings, activeBuffer)
+
+    fun verticalInset(
+        settings: SwingSettings,
+        activeBuffer: TerminalRenderBufferKind,
+    ): Int = top(settings) + bottom(settings)
+
     fun left(
         settings: SwingSettings,
         activeBuffer: TerminalRenderBufferKind,
@@ -50,6 +60,16 @@ internal object SwingTerminalChrome {
     fun top(settings: SwingSettings): Int = settings.padding.top
 
     fun bottom(settings: SwingSettings): Int = settings.padding.bottom
+
+    fun promptDecorationGutterWidth(
+        settings: SwingSettings,
+        activeBuffer: TerminalRenderBufferKind,
+    ): Int =
+        if (activeBuffer == TerminalRenderBufferKind.ALTERNATE) {
+            0
+        } else {
+            settings.shellIntegrationDecorationGutterWidth.coerceAtMost(settings.padding.left)
+        }
 
     private fun alternateScreenSideInset(settings: SwingSettings): Int = settings.padding.bottom
 }
