@@ -33,7 +33,12 @@ class HostPolicyTest {
         assertEquals(HostControlPolicy.ALLOW, policy.windowManipulationPolicy)
         assertEquals(HostControlPolicy.ALLOW, policy.palettePolicy)
         assertEquals(HostControlPolicy.ALLOW, policy.terminalResponsePolicy)
-        assertEquals(HostControlPolicy.DENY, policy.clipboardPolicy)
+        assertEquals(TerminalClipboardOrigin.REMOTE, policy.clipboardPolicy.origin)
+        assertEquals(TerminalClipboardPermission.DENY, policy.clipboardPolicy.localWritePermission)
+        assertEquals(TerminalClipboardPermission.DENY, policy.clipboardPolicy.remoteWritePermission)
+        assertEquals(TerminalClipboardPermission.DENY, policy.clipboardPolicy.readPermission)
+        assertEquals(false, policy.clipboardPolicy.allowlisted)
+        assertEquals(TerminalClipboardPolicy.DEFAULT_MAX_DECODED_BYTES, policy.clipboardPolicy.maxDecodedBytes)
     }
 
     @Test
@@ -46,6 +51,9 @@ class HostPolicyTest {
         assertThrows(IllegalArgumentException::class.java) { HostPolicy(maxNotificationBodyLength = -1) }
         assertThrows(IllegalArgumentException::class.java) {
             HostPolicy(maxCurrentWorkingDirectoryUriLength = -1)
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            HostPolicy(clipboardPolicy = TerminalClipboardPolicy(maxDecodedBytes = -1))
         }
     }
 }

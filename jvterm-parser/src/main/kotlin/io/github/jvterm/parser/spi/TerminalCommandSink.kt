@@ -783,6 +783,23 @@ interface TerminalCommandSink {
     fun endHyperlink()
 
     /**
+     * Reports an OSC 52 terminal clipboard request.
+     *
+     * The parser only recognizes the sequence shape and passes bounded payload
+     * fields through. Hosts own permission prompts, local-vs-remote policy,
+     * payload decoding, clipboard writes, query responses, and audit behavior.
+     *
+     * @param selection clipboard selection designator such as `c`, `p`, or
+     * multiple xterm selection letters.
+     * @param encodedData base64 clipboard payload, `?` for read/query requests,
+     * or an empty payload for clear/write-style requests.
+     */
+    fun requestClipboard(
+        selection: String,
+        encodedData: String,
+    ) = Unit
+
+    /**
      * Sets a specific ANSI indexed color.
      *
      * @param index Color index (0..255).

@@ -442,6 +442,13 @@ internal class RecordingTerminalCommandSink : TerminalCommandSink {
         events += "endHyperlink"
     }
 
+    override fun requestClipboard(
+        selection: String,
+        encodedData: String,
+    ) {
+        events += "requestClipboard:$selection:$encodedData"
+    }
+
     override fun setPaletteColor(
         index: Int,
         color: Int,

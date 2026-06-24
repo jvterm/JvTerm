@@ -469,7 +469,7 @@ class TerminalParserTest {
         }
 
         @Test
-        fun `OSC malformed unsupported overflowed and clipboard payloads are ignored`() {
+        fun `OSC malformed unsupported and overflowed payloads are ignored while clipboard requests are surfaced`() {
             val malformed = TerminalParserFixture()
             val unsupported = TerminalParserFixture()
             val overflowed = TerminalParserFixture(state = ParserState(maxPayload = 4))
@@ -484,7 +484,7 @@ class TerminalParserTest {
                 { assertTrue(malformed.sink.events.isEmpty()) },
                 { assertTrue(unsupported.sink.events.isEmpty()) },
                 { assertTrue(overflowed.sink.events.isEmpty()) },
-                { assertTrue(clipboard.sink.events.isEmpty()) },
+                { assertEquals(listOf("requestClipboard:c:SGVsbG8="), clipboard.sink.events) },
             )
         }
 

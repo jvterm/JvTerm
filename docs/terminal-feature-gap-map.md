@@ -40,7 +40,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 - Tektronix 4014 emulation.
 - Media Copy / printer passthrough (`CSI i`).
 - X11-specific font loading protocols.
-- Blind OSC 52 clipboard writes.
+- Blind OSC 52 clipboard writes; only bounded request parsing plus policy/audit reporting is in scope.
 - Unbounded or unaudited DCS/OSC responses.
 - Literal "everything xterm ever accepted" parity.
 - Tertiary Device Attributes (`DA3` / `CSI = c`) query response (excluded to prevent unique hardware serial number leak/user fingerprinting).
@@ -72,7 +72,8 @@ These are not badges of compatibility for this project. They expand attack surfa
 - `TODO(parser)`: save/restore state parity between DEC and SCO cursor save forms, if compatibility requires it.
 
 ### OSC Protocols
-- `TODO(policy)`: OSC 52 clipboard support. This needs an explicit permission and security policy before implementation.
+- `DONE(parser/host/policy)`: OSC 52 clipboard requests are bounded, parsed, denied by default, size-checked, origin-aware, and surfaced as content-free host audit events.
+- `TODO(host/ui/policy)`: OSC 52 clipboard write execution, user prompting, allowlists, and any read/query response path remain unimplemented until product hosts explicitly opt in.
 - `TODO(parser)`: OSC 1337/iTerm2 extensions, if desired.
 - `TODO(parser)`: OSC query responses. Requires terminal-to-host output.
 - `TODO(parser)`: payload encoding policy for non-UTF-8 or invalid UTF-8 OSC data.
@@ -113,7 +114,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ## Integration Gaps
 
-- `DONE(host/policy)`: host-adapter allow/deny policy surface for title updates, OSC 8 hyperlinks, OSC 7 current-working-directory reports, desktop notifications, window manipulation requests, palette controls, terminal response channels, and future clipboard protocols.
+- `DONE(host/policy)`: host-adapter allow/deny policy surface for title updates, OSC 8 hyperlinks, OSC 7 current-working-directory reports, desktop notifications, window manipulation requests, palette controls, terminal response channels, and OSC 52 clipboard request auditing.
 - `TODO(host)`: richer host callbacks for palette updates, terminal notifications, mouse-report policy, and future clipboard decisions when those product surfaces need UI or embedding feedback.
 
 ---
@@ -151,7 +152,8 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ## Security and Policy Gaps
 
-- `TODO(policy)`: OSC 52 clipboard permission model.
+- `DONE(policy)`: OSC 52 clipboard permission model covers local vs remote origin, deny/prompt/allowlist/allow write decisions, disabled read/query behavior, decoded payload limits, malformed payload rejection, and content-free audit events.
+- `TODO(host/ui/policy)`: actual OSC 52 clipboard writes, prompts, allowlists, and read/query responses remain intentionally absent.
 - `TODO(policy)`: richer hyperlink validation and display policy beyond host resource limits, host allow/deny gating, and Swing's explicit-activation handler.
 - `DONE(host/policy)`: host-owned metadata and response controls have explicit allow/deny policy gates and per-feature host caps for titles, hyperlinks, OSC 7 current-working-directory reports, notifications, palette controls, window manipulation, and terminal response channels.
 - `TODO(parser/policy)`: protocol-family-specific raw OSC/DCS parser payload ceilings beyond the parser's generic bound, especially before large graphics or clipboard protocols are enabled.

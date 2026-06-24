@@ -1457,6 +1457,240 @@ class HostCommandAdapterTest {
     }
 
     @Nested
+    @DisplayName("clipboard policy")
+    inner class ClipboardPolicy {
+        @Test
+        fun `OSC 52 clipboard writes are denied by default and audited without payload content`() {
+            val f = Fixture()
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                listOf(
+                    TerminalClipboardAuditEvent(
+                        operation = TerminalClipboardOperation.WRITE,
+                        selection = "c",
+                        origin = TerminalClipboardOrigin.REMOTE,
+                        encodedLength = 8,
+                        decodedBytes = 5,
+                        maxDecodedBytes = TerminalClipboardPolicy.DEFAULT_MAX_DECODED_BYTES,
+                        decision = TerminalClipboardDecision.DENIED_BY_POLICY,
+                    ),
+                ),
+                f.events.clipboardAudits,
+            )
+        }
+
+        @Test
+        fun `OSC 52 clipboard read queries are denied by default`() {
+            val f = Fixture()
+
+            f.acceptAscii("\u001B]52;c;?\u001B\\")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_READ_DISABLED,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+            assertEquals(
+                TerminalClipboardOperation.READ_QUERY,
+                f.events.clipboardAudits
+                    .single()
+                    .operation,
+            )
+        }
+
+        @Test
+        fun `OSC 52 local prompt policy requests host prompt without writing clipboard`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.PROMPT,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.PROMPT_REQUIRED,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 remote writes remain denied when only local writes are promptable`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.REMOTE,
+                                    localWritePermission = TerminalClipboardPermission.PROMPT,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_BY_POLICY,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 allowed policy audits allowance but adapter performs no clipboard IO`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOW,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.ALLOWED_BY_POLICY,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 allowlist policy denies requests when session is not allowlisted`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOWLIST,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_NOT_ALLOWLISTED,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 allowlist policy allows requests when session is allowlisted`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOWLIST,
+                                    allowlisted = true,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.ALLOWED_BY_POLICY,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 malformed base64 is denied before permission evaluation`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOW,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;not base64\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_MALFORMED_PAYLOAD,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+            assertEquals(
+                0,
+                f.events.clipboardAudits
+                    .single()
+                    .decodedBytes,
+            )
+        }
+
+        @Test
+        fun `OSC 52 payload exceeding decoded size limit is denied`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOW,
+                                    maxDecodedBytes = 4,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_PAYLOAD_TOO_LARGE,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+            assertEquals(
+                5,
+                f.events.clipboardAudits
+                    .single()
+                    .decodedBytes,
+            )
+            assertEquals(
+                4,
+                f.events.clipboardAudits
+                    .single()
+                    .maxDecodedBytes,
+            )
+        }
+    }
+
+    @Nested
     @DisplayName("window manipulation")
     inner class WindowManipulation {
         @Test
@@ -1572,6 +1806,7 @@ class HostCommandAdapterTest {
         }
 
         val notifications = mutableListOf<Triple<String, String, NotificationLevel>>()
+        val clipboardAudits = mutableListOf<TerminalClipboardAuditEvent>()
 
         override fun showNotification(
             title: String,
@@ -1579,6 +1814,10 @@ class HostCommandAdapterTest {
             level: NotificationLevel,
         ) {
             notifications += Triple(title, body, level)
+        }
+
+        override fun terminalClipboardRequest(event: TerminalClipboardAuditEvent) {
+            clipboardAudits += event
         }
     }
 }

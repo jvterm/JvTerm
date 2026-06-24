@@ -38,9 +38,8 @@ package io.github.jvterm.host
  * responses may affect core palette state or enqueue terminal-to-host bytes.
  * @property terminalResponsePolicy whether DA, DSR/CPR, window reports, DECRQSS,
  * and XTGETTCAP requests may enqueue terminal-to-host response bytes.
- * @property clipboardPolicy policy for terminal-triggered clipboard protocols
- * such as OSC 52. JVTerm does not implement OSC 52 yet; this defaults to deny
- * so future implementation must opt in explicitly.
+ * @property clipboardPolicy deny-by-default permission and audit policy for
+ * terminal-triggered clipboard protocols such as OSC 52.
  * @property maxTitleLength maximum accepted OSC title length in UTF-16 code
  * units. Longer titles are ignored.
  * @property maxHyperlinkEntries maximum distinct OSC 8 hyperlink keys retained
@@ -65,7 +64,7 @@ data class HostPolicy(
     val windowManipulationPolicy: HostControlPolicy = HostControlPolicy.ALLOW,
     val palettePolicy: HostControlPolicy = HostControlPolicy.ALLOW,
     val terminalResponsePolicy: HostControlPolicy = HostControlPolicy.ALLOW,
-    val clipboardPolicy: HostControlPolicy = HostControlPolicy.DENY,
+    val clipboardPolicy: TerminalClipboardPolicy = TerminalClipboardPolicy(),
     val maxTitleLength: Int = 4096,
     val maxHyperlinkEntries: Int = 4096,
     val maxHyperlinkUriLength: Int = 4096,

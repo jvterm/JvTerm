@@ -62,6 +62,7 @@ internal object OscDispatcher {
                     i += 2
                 }
             }
+            52 -> dispatchClipboard(sink, payload, length, commandEnd + 1)
             7 -> sink.setCurrentWorkingDirectoryUri(decodePayload(payload, commandEnd + 1, length))
             8 -> dispatchHyperlink(sink, payload, length, commandEnd + 1)
             9 -> {
@@ -115,6 +116,23 @@ internal object OscDispatcher {
                 }
             }
         }
+    }
+
+    private fun dispatchClipboard(
+        sink: TerminalCommandSink,
+        payload: ByteArray,
+        length: Int,
+        selectionStart: Int,
+    ) {
+        val dataStart = findByte(payload, length, startIndex = selectionStart, byteValue = ';'.code)
+        if (dataStart < 0) {
+            return
+        }
+
+        sink.requestClipboard(
+            selection = decodePayload(payload, selectionStart, dataStart),
+            encodedData = decodePayload(payload, dataStart + 1, length),
+        )
     }
 
     private fun dispatchShellIntegrationMarker(

@@ -120,6 +120,18 @@ interface HostEventSink {
         level: NotificationLevel,
     ) = Unit
 
+    /**
+     * Called after an OSC 52 terminal clipboard request is evaluated by host
+     * policy.
+     *
+     * The audit event never contains clipboard payload contents. Hosts that
+     * choose to prompt or allow future clipboard writes must keep the actual
+     * clipboard I/O outside the parser, core, and reusable rendering layers.
+     *
+     * @param event clipboard request audit record.
+     */
+    fun terminalClipboardRequest(event: TerminalClipboardAuditEvent) = Unit
+
     companion object {
         /**
          * Event sink used when the host does not need metadata callbacks.

@@ -764,6 +764,13 @@ class HostCommandAdapter(
         clearActiveHyperlink()
     }
 
+    override fun requestClipboard(
+        selection: String,
+        encodedData: String,
+    ) {
+        hostEvents.terminalClipboardRequest(evaluateClipboardRequest(selection, encodedData))
+    }
+
     override fun setPaletteColor(
         index: Int,
         color: Int,
@@ -873,6 +880,89 @@ class HostCommandAdapter(
         terminal.setHyperlinkId(NO_HYPERLINK_ID)
     }
 
+    private fun evaluateClipboardRequest(
+        selection: String,
+        encodedData: String,
+    ): TerminalClipboardAuditEvent {
+        val policy = hostPolicy.clipboardPolicy
+        val operation =
+            if (encodedData == CLIPBOARD_QUERY_MARKER) {
+                TerminalClipboardOperation.READ_QUERY
+            } else {
+                TerminalClipboardOperation.WRITE
+            }
+
+        if (operation == TerminalClipboardOperation.READ_QUERY) {
+            return clipboardAudit(
+                selection = selection,
+                operation = operation,
+                encodedData = encodedData,
+                decodedBytes = 0,
+                decision = clipboardDecisionForRead(policy),
+            )
+        }
+
+        val decodedBytes = decodedBase64ByteCount(encodedData)
+        val decision =
+            when {
+                decodedBytes < 0 -> TerminalClipboardDecision.DENIED_MALFORMED_PAYLOAD
+                decodedBytes > policy.maxDecodedBytes -> TerminalClipboardDecision.DENIED_PAYLOAD_TOO_LARGE
+                else -> clipboardDecisionForWrite(policy)
+            }
+        return clipboardAudit(
+            selection = selection,
+            operation = operation,
+            encodedData = encodedData,
+            decodedBytes = decodedBytes.coerceAtLeast(0),
+            decision = decision,
+        )
+    }
+
+    private fun clipboardAudit(
+        selection: String,
+        operation: TerminalClipboardOperation,
+        encodedData: String,
+        decodedBytes: Int,
+        decision: TerminalClipboardDecision,
+    ): TerminalClipboardAuditEvent {
+        val policy = hostPolicy.clipboardPolicy
+        return TerminalClipboardAuditEvent(
+            operation = operation,
+            selection = selection,
+            origin = policy.origin,
+            encodedLength = encodedData.length,
+            decodedBytes = decodedBytes,
+            maxDecodedBytes = policy.maxDecodedBytes,
+            decision = decision,
+        )
+    }
+
+    private fun clipboardDecisionForWrite(policy: TerminalClipboardPolicy): TerminalClipboardDecision =
+        when (policy.writePermission) {
+            TerminalClipboardPermission.DENY -> TerminalClipboardDecision.DENIED_BY_POLICY
+            TerminalClipboardPermission.PROMPT -> TerminalClipboardDecision.PROMPT_REQUIRED
+            TerminalClipboardPermission.ALLOWLIST ->
+                if (policy.allowlisted) {
+                    TerminalClipboardDecision.ALLOWED_BY_POLICY
+                } else {
+                    TerminalClipboardDecision.DENIED_NOT_ALLOWLISTED
+                }
+            TerminalClipboardPermission.ALLOW -> TerminalClipboardDecision.ALLOWED_BY_POLICY
+        }
+
+    private fun clipboardDecisionForRead(policy: TerminalClipboardPolicy): TerminalClipboardDecision =
+        when (policy.readPermission) {
+            TerminalClipboardPermission.DENY -> TerminalClipboardDecision.DENIED_READ_DISABLED
+            TerminalClipboardPermission.PROMPT -> TerminalClipboardDecision.PROMPT_REQUIRED
+            TerminalClipboardPermission.ALLOWLIST ->
+                if (policy.allowlisted) {
+                    TerminalClipboardDecision.ALLOWED_BY_POLICY
+                } else {
+                    TerminalClipboardDecision.DENIED_NOT_ALLOWLISTED
+                }
+            TerminalClipboardPermission.ALLOW -> TerminalClipboardDecision.ALLOWED_BY_POLICY
+        }
+
     private fun hyperlinkIdFor(
         uri: String,
         id: String?,
@@ -930,6 +1020,7 @@ class HostCommandAdapter(
     private companion object {
         const val NO_HYPERLINK_ID: Int = 0
         const val MAX_TITLE_STACK_DEPTH: Int = 16
+        const val CLIPBOARD_QUERY_MARKER: String = "?"
     }
 
     private data class HyperlinkKey(
@@ -951,6 +1042,50 @@ class HostCommandAdapter(
             uri.rawUserInfo == null &&
             uri.rawQuery == null &&
             uri.rawFragment == null
+    }
+
+    private fun decodedBase64ByteCount(value: String): Int {
+        if (value.isEmpty()) return 0
+
+        var nonPaddingChars = 0
+        var paddingChars = 0
+        var sawPadding = false
+        var i = 0
+        while (i < value.length) {
+            when (value[i]) {
+                in 'A'..'Z',
+                in 'a'..'z',
+                in '0'..'9',
+                '+',
+                '/',
+                -> {
+                    if (sawPadding) return -1
+                    nonPaddingChars++
+                }
+                '=' -> {
+                    sawPadding = true
+                    paddingChars++
+                    if (paddingChars > 2) return -1
+                }
+                else -> return -1
+            }
+            i++
+        }
+
+        if (paddingChars > 0) {
+            val encodedChars = nonPaddingChars + paddingChars
+            if (encodedChars % 4 != 0) return -1
+            return (encodedChars / 4) * 3 - paddingChars
+        }
+
+        val remainder = nonPaddingChars % 4
+        if (remainder == 1) return -1
+        return (nonPaddingChars / 4) * 3 +
+            when (remainder) {
+                2 -> 1
+                3 -> 2
+                else -> 0
+            }
     }
 }
 
