@@ -68,8 +68,6 @@ internal class WindowFactory(
         lateinit var tabBar: TabBar
 
         val availableProfiles = profileRegistry.availableProfiles()
-        val availableSshProfiles = settings.sshProfiles
-
         // Builds a fresh configured profile from the current settings each time
         // a new default tab or split is opened. This means shell changes in the
         // Settings dialog take effect on the very next new tab without a restart.
@@ -95,7 +93,7 @@ internal class WindowFactory(
                         x = x,
                         y = y,
                         profiles = availableProfiles,
-                        sshProfiles = availableSshProfiles,
+                        sshProfiles = settings.sshProfiles,
                         tabManager = tabManager,
                         defaultProfileProvider = defaultProfileProvider,
                     )

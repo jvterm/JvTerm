@@ -116,4 +116,21 @@ class SettingsModelTest {
 
         assertEquals(listOf(profile), loadedSettings.sshProfiles)
     }
+
+    @Test
+    fun testApplyChangesSavesSshProfiles() {
+        val profile =
+            TerminalSshProfile(
+                id = "staging",
+                displayName = "Staging",
+                host = "staging.example.com",
+                username = "deploy",
+            )
+        val modifiedState = model.getSettingsState().copy(sshProfiles = listOf(profile))
+
+        model.applyChanges(modifiedState) {}
+
+        assertEquals(listOf(profile), settings.sshProfiles)
+        assertEquals(listOf(profile), TerminalWorkspaceConfigManager(tempFile).load().sshProfiles)
+    }
 }

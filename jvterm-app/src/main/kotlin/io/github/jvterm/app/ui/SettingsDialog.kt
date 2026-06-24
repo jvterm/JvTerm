@@ -21,6 +21,7 @@ import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfile
 import io.github.jvterm.workspace.TerminalProfileKind
 import io.github.jvterm.workspace.TerminalProfileRegistry
+import io.github.jvterm.workspace.TerminalSshProfile
 import io.github.jvterm.workspace.config.TerminalConfig
 import java.awt.*
 import java.awt.event.MouseAdapter
@@ -34,11 +35,11 @@ import javax.swing.border.EmptyBorder
  * A highly polished, IDE-style settings dialog featuring a clean sidebar and flat form layouts.
  */
 internal class SettingsDialog(
-    parent: JFrame,
+    private val parentFrame: JFrame,
     private val settings: JvTermSettings,
     private val profileRegistry: TerminalProfileRegistry,
     private val onApply: () -> Unit,
-) : JDialog(parent, "Terminal Settings", true) {
+) : JDialog(parentFrame, "Terminal Settings", true) {
     private val cardLayout = CardLayout()
 
     // Opaque panel is critical for CardLayout to clear previous artifacts correctly
@@ -59,6 +60,7 @@ internal class SettingsDialog(
     private val categories = mutableListOf<CategoryLabel>()
     private val applyButton = JButton("Apply")
     private val model = SettingsModel(settings, profileRegistry)
+    private val sshProfiles = settings.sshProfiles.toMutableList()
 
     // Factory Helpers
     private fun createTextField(
@@ -186,10 +188,32 @@ internal class SettingsDialog(
     private val cursorBlinkSpinner =
         createSpinner(settings.cursorBlinkMillis, TerminalConfig.CURSOR_BLINK_MIN, TerminalConfig.CURSOR_BLINK_MAX, 50, 70)
     private val cursorShapeCombo = createComboBox(arrayOf("block", "underline", "beam"), settings.cursorShape.lowercase(Locale.ROOT), 150)
+    private val sshProfileListModel = DefaultListModel<TerminalSshProfile>()
+    private val sshProfileList =
+        JList(sshProfileListModel).apply {
+            visibleRowCount = 8
+            cellRenderer =
+                object : DefaultListCellRenderer() {
+                    override fun getListCellRendererComponent(
+                        list: JList<*>?,
+                        value: Any?,
+                        index: Int,
+                        isSelected: Boolean,
+                        cellHasFocus: Boolean,
+                    ): Component {
+                        val label =
+                            super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus) as JLabel
+                        if (value is TerminalSshProfile) {
+                            label.text = "${value.displayName}  ${value.username}@${value.host}:${value.port}"
+                        }
+                        return label
+                    }
+                }
+        }
 
     init {
         size = Dimension(750, 550)
-        setLocationRelativeTo(parent)
+        setLocationRelativeTo(parentFrame)
         layout = BorderLayout()
         isUndecorated = false
 
@@ -217,6 +241,7 @@ internal class SettingsDialog(
         // Add Pages
         addPage("Application", buildApplicationPanel())
         addPage("Appearance", buildAppearancePanel())
+        addPage("SSH", buildSshPanel())
         addPage("Behavior", buildBehaviorPanel())
 
         selectCategory(categories.first().categoryName)
@@ -247,6 +272,7 @@ internal class SettingsDialog(
         registerChangeListener(persistentCommandHistoryCheckbox, updateApplyState)
         registerChangeListener(cursorBlinkSpinner, updateApplyState)
         registerChangeListener(cursorShapeCombo, updateApplyState)
+        refreshSshProfileList()
     }
 
     private fun applySizing(
@@ -442,6 +468,97 @@ internal class SettingsDialog(
         return panel
     }
 
+    private fun buildSshPanel(): JPanel {
+        val panel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                isOpaque = false
+            }
+
+        panel.add(SectionHeader("SSH Profiles"))
+        val listPanel =
+            JPanel(BorderLayout(10, 0)).apply {
+                isOpaque = false
+                border = EmptyBorder(0, 16, 0, 0)
+                add(
+                    JScrollPane(sshProfileList).apply {
+                        preferredSize = Dimension(460, 180)
+                    },
+                    BorderLayout.CENTER,
+                )
+                add(buildSshProfileActions(), BorderLayout.EAST)
+            }
+        panel.add(listPanel)
+        return panel
+    }
+
+    private fun buildSshProfileActions(): JPanel =
+        JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.Y_AXIS)
+            isOpaque = false
+            add(
+                JButton("Add").apply {
+                    maximumSize = Dimension(88, 28)
+                    addActionListener { addSshProfile() }
+                },
+            )
+            add(Box.createVerticalStrut(8))
+            add(
+                JButton("Edit").apply {
+                    maximumSize = Dimension(88, 28)
+                    addActionListener { editSelectedSshProfile() }
+                },
+            )
+            add(Box.createVerticalStrut(8))
+            add(
+                JButton("Remove").apply {
+                    maximumSize = Dimension(88, 28)
+                    addActionListener { removeSelectedSshProfile() }
+                },
+            )
+        }
+
+    private fun addSshProfile() {
+        val profile =
+            SshProfileEditorDialog(
+                parent = parentFrame,
+                existingIds = sshProfiles.mapTo(HashSet()) { it.id },
+                profile = null,
+            ).showDialog() ?: return
+        sshProfiles += profile
+        refreshSshProfileList()
+        updateApplyButtonState()
+    }
+
+    private fun editSelectedSshProfile() {
+        val index = sshProfileList.selectedIndex
+        if (index < 0) return
+        val updated =
+            SshProfileEditorDialog(
+                parent = parentFrame,
+                existingIds = sshProfiles.mapTo(HashSet()) { it.id },
+                profile = sshProfiles[index],
+            ).showDialog() ?: return
+        sshProfiles[index] = updated
+        refreshSshProfileList()
+        sshProfileList.selectedIndex = index
+        updateApplyButtonState()
+    }
+
+    private fun removeSelectedSshProfile() {
+        val index = sshProfileList.selectedIndex
+        if (index < 0) return
+        sshProfiles.removeAt(index)
+        refreshSshProfileList()
+        sshProfileList.selectedIndex = index.coerceAtMost(sshProfiles.lastIndex)
+        updateApplyButtonState()
+    }
+
+    private fun refreshSshProfileList() {
+        sshProfileListModel.clear()
+        sshProfiles.forEach(sshProfileListModel::addElement)
+    }
+
     private fun createSectionPanel(): JPanel =
         JPanel(GridBagLayout()).apply {
             isOpaque = false
@@ -622,6 +739,8 @@ internal class SettingsDialog(
         persistentCommandHistoryCheckbox.isSelected = TerminalConfig.DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED
         cursorBlinkSpinner.value = TerminalConfig.DEFAULT_CURSOR_BLINK_MILLIS
         cursorShapeCombo.selectedItem = TerminalConfig.DEFAULT_CURSOR_SHAPE
+        sshProfiles.clear()
+        refreshSshProfileList()
     }
 
     private fun applyChanges() {
@@ -681,6 +800,7 @@ internal class SettingsDialog(
             shellRequestResizeWindow = shellRequestResizeWindowCheckbox.isSelected,
             shellRequestWindowManipulation = shellRequestWindowManipulationCheckbox.isSelected,
             persistentCommandHistoryEnabled = persistentCommandHistoryCheckbox.isSelected,
+            sshProfiles = sshProfiles.toList(),
         )
     }
 

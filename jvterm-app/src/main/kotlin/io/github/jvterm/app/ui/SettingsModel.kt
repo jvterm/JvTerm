@@ -18,6 +18,7 @@ package io.github.jvterm.app.ui
 import io.github.jvterm.app.config.JvTermSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfileRegistry
+import io.github.jvterm.workspace.TerminalSshProfile
 import io.github.jvterm.workspace.config.TerminalConfig
 
 internal class SettingsModel(
@@ -48,6 +49,7 @@ internal class SettingsModel(
             shellRequestResizeWindow = settings.shellRequestResizeWindow,
             shellRequestWindowManipulation = settings.shellRequestWindowManipulation,
             persistentCommandHistoryEnabled = settings.persistentCommandHistoryEnabled,
+            sshProfiles = settings.sshProfiles,
         )
 
     fun hasChanges(uiState: SettingsState): Boolean = uiState != initialUiState
@@ -75,6 +77,7 @@ internal class SettingsModel(
         settings.shellRequestResizeWindow = uiState.shellRequestResizeWindow
         settings.shellRequestWindowManipulation = uiState.shellRequestWindowManipulation
         settings.persistentCommandHistoryEnabled = uiState.persistentCommandHistoryEnabled
+        settings.sshProfiles = uiState.sshProfiles
 
         settings.fontFamily = uiState.fontFamily
         settings.fontSize = uiState.fontSize
@@ -112,4 +115,5 @@ internal data class SettingsState(
     val shellRequestResizeWindow: Boolean,
     val shellRequestWindowManipulation: Boolean,
     val persistentCommandHistoryEnabled: Boolean,
+    val sshProfiles: List<TerminalSshProfile>,
 )

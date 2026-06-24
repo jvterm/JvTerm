@@ -162,8 +162,11 @@ internal class JvTermSettings(
     val commandHistoryPath: Path
         get() = configManager.configPath.resolveSibling("command-history-v1.tsv")
 
-    val sshProfiles: List<TerminalSshProfile>
+    var sshProfiles: List<TerminalSshProfile>
         get() = config.sshProfiles
+        set(value) {
+            updateConfig(config.copy(sshProfiles = value))
+        }
 
     fun current(): SwingSettings {
         val resolvedFamily = SwingSettings.resolveFontFamily(config.fontFamily)
