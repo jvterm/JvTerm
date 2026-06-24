@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.workspace.config
 
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -108,6 +109,11 @@ class TerminalWorkspaceConfigManager(
             val audibleBell = behavior["audible_bell"]?.toBooleanStrictOrNull() ?: default.audibleBell
             val visualBell = behavior["visual_bell"]?.toBooleanStrictOrNull() ?: default.visualBell
             val pasteOnMiddleClick = behavior["paste_on_middle_click"]?.toBooleanStrictOrNull() ?: default.pasteOnMiddleClick
+            val pasteSanitizationPolicy =
+                parsePasteSanitizationPolicy(
+                    behavior["paste_sanitization"],
+                    default.pasteSanitizationPolicy,
+                )
             val shellRequestResizeWindow =
                 behavior["shell_request_resize_window"]?.toBooleanStrictOrNull() ?: default.shellRequestResizeWindow
             val shellRequestWindowManipulation =
@@ -144,6 +150,7 @@ class TerminalWorkspaceConfigManager(
                 audibleBell = audibleBell,
                 visualBell = visualBell,
                 pasteOnMiddleClick = pasteOnMiddleClick,
+                pasteSanitizationPolicy = pasteSanitizationPolicy,
                 scrollbackLines = scrollbackLines,
                 lineHeight = lineHeight,
                 shellRequestResizeWindow = shellRequestResizeWindow,
@@ -233,6 +240,8 @@ class TerminalWorkspaceConfigManager(
         visual_bell = ${config.visualBell}
         # Automatically paste clipboard contents when the middle mouse button is clicked
         paste_on_middle_click = ${config.pasteOnMiddleClick}
+        # Paste payload handling before host-bound emission: raw, strip-c0, normalize-line-endings
+        paste_sanitization = "${pasteSanitizationId(config.pasteSanitizationPolicy)}"
         # Whether terminal window should resize when the shell requests a grid resize
         shell_request_resize_window = ${config.shellRequestResizeWindow}
         # Whether terminal window manipulation (move, minimize, maximize, raise, lower) is allowed from the shell
@@ -280,6 +289,24 @@ class TerminalWorkspaceConfigManager(
         if (parsed.isNaN()) return defaultValue
         return parsed.coerceIn(min, max)
     }
+
+    private fun parsePasteSanitizationPolicy(
+        raw: String?,
+        defaultValue: PasteSanitizationPolicy,
+    ): PasteSanitizationPolicy =
+        when (raw?.trim()?.lowercase(Locale.ROOT)) {
+            "raw" -> PasteSanitizationPolicy.RAW
+            "strip-c0" -> PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF
+            "normalize-line-endings" -> PasteSanitizationPolicy.NORMALIZE_LINE_ENDINGS
+            else -> defaultValue
+        }
+
+    private fun pasteSanitizationId(policy: PasteSanitizationPolicy): String =
+        when (policy) {
+            PasteSanitizationPolicy.RAW -> "raw"
+            PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF -> "strip-c0"
+            PasteSanitizationPolicy.NORMALIZE_LINE_ENDINGS -> "normalize-line-endings"
+        }
 
     companion object {
         /**

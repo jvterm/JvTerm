@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.workspace.config
 
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.*
@@ -121,6 +122,7 @@ class TerminalConfigTest {
         assertFalse(config.useSystemFallbackFonts)
         assertEquals("block", config.cursorShape)
         assertTrue(config.visualBell)
+        assertEquals(PasteSanitizationPolicy.RAW, config.pasteSanitizationPolicy)
         assertFalse(config.shellRequestResizeWindow)
         assertFalse(config.shellRequestWindowManipulation)
 
@@ -148,6 +150,7 @@ class TerminalConfigTest {
                 cursorShape = "beam",
                 audibleBell = false,
                 visualBell = false,
+                pasteSanitizationPolicy = PasteSanitizationPolicy.NORMALIZE_LINE_ENDINGS,
                 shellRequestResizeWindow = true,
                 shellRequestWindowManipulation = true,
                 desktopNotificationsEnabled = false,
@@ -155,6 +158,7 @@ class TerminalConfigTest {
 
         manager.save(customConfig)
         assertTrue(Files.exists(configFile))
+        assertTrue(Files.readString(configFile).contains("""paste_sanitization = "normalize-line-endings""""))
 
         val loaded = manager.load()
         assertEquals(customConfig, loaded)
@@ -189,6 +193,7 @@ class TerminalConfigTest {
             [behavior]
             cursor_blink_millis = 999999999999999999999999
             cursor_shape = "beam"
+            paste_sanitization = "strip-c0"
             """.trimIndent(),
         )
 
@@ -200,6 +205,7 @@ class TerminalConfigTest {
         assertEquals(TerminalConfig.FONT_SIZE_MIN, loaded.fontSize)
         assertEquals(TerminalConfig.LINE_HEIGHT_MIN, loaded.lineHeight)
         assertEquals(TerminalConfig.CURSOR_BLINK_MAX, loaded.cursorBlinkMillis)
+        assertEquals(PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF, loaded.pasteSanitizationPolicy)
 
         Files.deleteIfExists(configFile)
         Files.deleteIfExists(tempDir)

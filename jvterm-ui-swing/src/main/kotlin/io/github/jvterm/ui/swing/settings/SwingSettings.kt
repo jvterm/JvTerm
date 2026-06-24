@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.ui.swing.settings
 
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.render.api.TerminalColorPalette
 import io.github.jvterm.render.api.TerminalRenderCursorShape
 import java.awt.Font
@@ -77,6 +78,8 @@ import java.util.*
  * Alternate-screen rendering replaces the inactive prompt gutter with symmetric
  * side insets and resizes the terminal grid to the newly available columns.
  * @property pasteOnMiddleClick whether middle mouse button click triggers a clipboard paste.
+ * @property pasteSanitizationPolicy paste payload transformation applied before
+ * host-bound input emission.
  * @property cursorShape default cursor shape configured for the session.
  * @property scrollbackLines maximum scrollback lines retained by the terminal.
  * @property lineHeight vertical line height scaling factor.
@@ -115,6 +118,7 @@ data class SwingSettings
         val shellIntegrationFailedCommandRailWidth: Int = 3,
         val padding: Insets = Insets(0, 20, 8, 8),
         val pasteOnMiddleClick: Boolean = true,
+        val pasteSanitizationPolicy: PasteSanitizationPolicy = PasteSanitizationPolicy.RAW,
         val cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK,
         val scrollbackLines: Int = 1000,
         val lineHeight: Float = 1.0f,

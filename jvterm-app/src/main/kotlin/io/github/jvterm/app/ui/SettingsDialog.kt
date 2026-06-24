@@ -16,6 +16,7 @@
 package io.github.jvterm.app.ui
 
 import io.github.jvterm.app.config.JvTermSettings
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfile
@@ -178,6 +179,12 @@ internal class SettingsDialog(
     private val treatAmbiguousCheckbox = JCheckBox("Treat East Asian ambiguous characters as wide", settings.treatAmbiguousAsWide)
     private val useSystemFallbackCheckbox = JCheckBox("Use system font fallback for missing glyphs", settings.useSystemFallbackFonts)
     private val pasteOnMiddleClickCheckbox = JCheckBox("Paste on middle mouse button click", settings.pasteOnMiddleClick)
+    private val pasteSanitizationCombo =
+        createComboBox(
+            PASTE_SANITIZATION_OPTIONS.toTypedArray(),
+            PASTE_SANITIZATION_OPTIONS.first { it.policy == settings.pasteSanitizationPolicy },
+            220,
+        )
     private val shellRequestResizeWindowCheckbox = JCheckBox("Allow window resize from shell", settings.shellRequestResizeWindow)
     private val shellRequestWindowManipulationCheckbox =
         JCheckBox("Allow window manipulation from shell", settings.shellRequestWindowManipulation)
@@ -242,6 +249,7 @@ internal class SettingsDialog(
         registerChangeListener(treatAmbiguousCheckbox, updateApplyState)
         registerChangeListener(useSystemFallbackCheckbox, updateApplyState)
         registerChangeListener(pasteOnMiddleClickCheckbox, updateApplyState)
+        registerChangeListener(pasteSanitizationCombo, updateApplyState)
         registerChangeListener(shellRequestResizeWindowCheckbox, updateApplyState)
         registerChangeListener(shellRequestWindowManipulationCheckbox, updateApplyState)
         registerChangeListener(persistentCommandHistoryCheckbox, updateApplyState)
@@ -413,21 +421,22 @@ internal class SettingsDialog(
             4,
             pasteOnMiddleClickCheckbox,
         )
+        addFormRow(behaviorSection, 5, "Paste handling:", pasteSanitizationCombo)
         addCheckboxRow(
             behaviorSection,
-            5,
+            6,
             shellRequestResizeWindowCheckbox,
             "Allow the terminal window to resize itself when the shell requests a grid resize.",
         )
         addCheckboxRow(
             behaviorSection,
-            7,
+            8,
             shellRequestWindowManipulationCheckbox,
             "Allow the shell to move, minimize, maximize, raise, or lower the terminal window.",
         )
         addCheckboxRow(
             behaviorSection,
-            9,
+            10,
             persistentCommandHistoryCheckbox,
             "Persist bounded command text, working directory, exit status, and timestamps. Terminal output is never stored.",
         )
@@ -617,6 +626,10 @@ internal class SettingsDialog(
         treatAmbiguousCheckbox.isSelected = TerminalConfig.DEFAULT_TREAT_AMBIGUOUS_AS_WIDE
         useSystemFallbackCheckbox.isSelected = TerminalConfig.DEFAULT_USE_SYSTEM_FALLBACK_FONTS
         pasteOnMiddleClickCheckbox.isSelected = TerminalConfig.DEFAULT_PASTE_ON_MIDDLE_CLICK
+        pasteSanitizationCombo.selectedItem =
+            PASTE_SANITIZATION_OPTIONS.first {
+                it.policy == TerminalConfig.DEFAULT_PASTE_SANITIZATION_POLICY
+            }
         shellRequestResizeWindowCheckbox.isSelected = TerminalConfig.DEFAULT_SHELL_REQUEST_RESIZE_WINDOW
         shellRequestWindowManipulationCheckbox.isSelected = TerminalConfig.DEFAULT_SHELL_REQUEST_WINDOW_MANIPULATION
         persistentCommandHistoryCheckbox.isSelected = TerminalConfig.DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED
@@ -676,6 +689,9 @@ internal class SettingsDialog(
             audibleBell = audibleBellCheckbox.isSelected,
             visualBell = visualBellCheckbox.isSelected,
             pasteOnMiddleClick = pasteOnMiddleClickCheckbox.isSelected,
+            pasteSanitizationPolicy =
+                (pasteSanitizationCombo.selectedItem as? PasteSanitizationOption)?.policy
+                    ?: TerminalConfig.DEFAULT_PASTE_SANITIZATION_POLICY,
             scrollbackLines = scrollbackSpinner.value as? Int ?: TerminalConfig.DEFAULT_SCROLLBACK_LINES,
             lineHeight = lineHeightSpinner.value as? Double ?: TerminalConfig.DEFAULT_LINE_HEIGHT.toDouble(),
             shellRequestResizeWindow = shellRequestResizeWindowCheckbox.isSelected,
@@ -759,3 +775,17 @@ internal class SettingsDialog(
         }
     }
 }
+
+private data class PasteSanitizationOption(
+    val label: String,
+    val policy: PasteSanitizationPolicy,
+) {
+    override fun toString(): String = label
+}
+
+private val PASTE_SANITIZATION_OPTIONS =
+    listOf(
+        PasteSanitizationOption("Raw paste", PasteSanitizationPolicy.RAW),
+        PasteSanitizationOption("Strip control characters", PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF),
+        PasteSanitizationOption("Normalize line endings", PasteSanitizationPolicy.NORMALIZE_LINE_ENDINGS),
+    )

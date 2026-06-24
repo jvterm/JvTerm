@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.app.config
 
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.config.TerminalConfig
@@ -122,6 +123,12 @@ internal class JvTermSettings(
             updateConfig(config.copy(pasteOnMiddleClick = value))
         }
 
+    var pasteSanitizationPolicy: PasteSanitizationPolicy
+        get() = config.pasteSanitizationPolicy
+        set(value) {
+            updateConfig(config.copy(pasteSanitizationPolicy = value))
+        }
+
     var scrollbackLines: Int
         get() = config.scrollbackLines
         set(value) {
@@ -173,6 +180,7 @@ internal class JvTermSettings(
             useSystemFallbackFonts = config.useSystemFallbackFonts,
             visualBellEnabled = config.visualBell,
             pasteOnMiddleClick = config.pasteOnMiddleClick,
+            pasteSanitizationPolicy = config.pasteSanitizationPolicy,
             cursorShape = parseCursorShape(config.cursorShape),
             scrollbackLines = config.scrollbackLines,
             lineHeight = config.lineHeight,

@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.workspace.config
 
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import java.util.*
 
 private fun defaultShellPath(): String {
@@ -61,6 +62,8 @@ private fun defaultFontFamily(): String {
  * @property audibleBell whether host UI should play a system bell for BEL events.
  * @property visualBell whether host UI should show a visual indicator for BEL events.
  * @property pasteOnMiddleClick whether middle mouse click should paste clipboard text.
+ * @property pasteSanitizationPolicy transformation applied to pasted text before
+ * terminal-host emission.
  * @property scrollbackLines maximum retained scrollback lines.
  * @property lineHeight font metric line-height multiplier.
  * @property shellRequestResizeWindow whether shell application window/grid resize requests are honored.
@@ -83,6 +86,7 @@ data class TerminalConfig(
     val audibleBell: Boolean = DEFAULT_AUDIBLE_BELL,
     val visualBell: Boolean = DEFAULT_VISUAL_BELL,
     val pasteOnMiddleClick: Boolean = DEFAULT_PASTE_ON_MIDDLE_CLICK,
+    val pasteSanitizationPolicy: PasteSanitizationPolicy = DEFAULT_PASTE_SANITIZATION_POLICY,
     val scrollbackLines: Int = DEFAULT_SCROLLBACK_LINES,
     val lineHeight: Float = DEFAULT_LINE_HEIGHT,
     val shellRequestResizeWindow: Boolean = DEFAULT_SHELL_REQUEST_RESIZE_WINDOW,
@@ -139,6 +143,7 @@ data class TerminalConfig(
         const val DEFAULT_AUDIBLE_BELL: Boolean = true
         const val DEFAULT_VISUAL_BELL: Boolean = true
         const val DEFAULT_PASTE_ON_MIDDLE_CLICK: Boolean = true
+        val DEFAULT_PASTE_SANITIZATION_POLICY: PasteSanitizationPolicy = PasteSanitizationPolicy.RAW
         const val DEFAULT_SCROLLBACK_LINES: Int = 1000
         const val DEFAULT_LINE_HEIGHT: Float = 1.0f
         const val DEFAULT_SHELL_REQUEST_RESIZE_WINDOW: Boolean = false

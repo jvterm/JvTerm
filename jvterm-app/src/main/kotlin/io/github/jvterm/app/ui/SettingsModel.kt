@@ -16,6 +16,7 @@
 package io.github.jvterm.app.ui
 
 import io.github.jvterm.app.config.JvTermSettings
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfileRegistry
 import io.github.jvterm.workspace.config.TerminalConfig
@@ -43,6 +44,7 @@ internal class SettingsModel(
             audibleBell = settings.audibleBell,
             visualBell = settings.visualBell,
             pasteOnMiddleClick = settings.pasteOnMiddleClick,
+            pasteSanitizationPolicy = settings.pasteSanitizationPolicy,
             scrollbackLines = settings.scrollbackLines,
             lineHeight = settings.lineHeight.toDouble(),
             shellRequestResizeWindow = settings.shellRequestResizeWindow,
@@ -70,6 +72,7 @@ internal class SettingsModel(
         settings.audibleBell = uiState.audibleBell
         settings.visualBell = uiState.visualBell
         settings.pasteOnMiddleClick = uiState.pasteOnMiddleClick
+        settings.pasteSanitizationPolicy = uiState.pasteSanitizationPolicy
         settings.scrollbackLines = uiState.scrollbackLines
         settings.lineHeight = uiState.lineHeight.toFloat()
         settings.shellRequestResizeWindow = uiState.shellRequestResizeWindow
@@ -107,6 +110,7 @@ internal data class SettingsState(
     val audibleBell: Boolean,
     val visualBell: Boolean,
     val pasteOnMiddleClick: Boolean,
+    val pasteSanitizationPolicy: PasteSanitizationPolicy,
     val scrollbackLines: Int,
     val lineHeight: Double,
     val shellRequestResizeWindow: Boolean,

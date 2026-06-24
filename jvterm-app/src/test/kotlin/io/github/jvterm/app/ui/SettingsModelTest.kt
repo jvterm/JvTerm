@@ -16,6 +16,7 @@
 package io.github.jvterm.app.ui
 
 import io.github.jvterm.app.config.JvTermSettings
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.workspace.TerminalProfileRegistry
 import io.github.jvterm.workspace.config.TerminalWorkspaceConfigManager
 import java.nio.file.Files
@@ -49,6 +50,7 @@ class SettingsModelTest {
         assertEquals(settings.columns, state.columns)
         assertEquals(settings.shellPath, state.shellPath)
         assertEquals(settings.visualBell, state.visualBell)
+        assertEquals(settings.pasteSanitizationPolicy, state.pasteSanitizationPolicy)
         assertEquals(settings.shellRequestResizeWindow, state.shellRequestResizeWindow)
         assertEquals(settings.shellRequestWindowManipulation, state.shellRequestWindowManipulation)
         assertFalse(model.hasChanges(state))
@@ -76,6 +78,7 @@ class SettingsModelTest {
                 fontSize = 22,
                 columns = 120,
                 visualBell = false,
+                pasteSanitizationPolicy = PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF,
                 shellRequestResizeWindow = true,
                 shellRequestWindowManipulation = true,
             )
@@ -91,6 +94,7 @@ class SettingsModelTest {
         assertEquals(22, settings.fontSize)
         assertEquals(120, settings.columns)
         assertFalse(settings.visualBell)
+        assertEquals(PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF, settings.pasteSanitizationPolicy)
         assertTrue(settings.shellRequestResizeWindow)
         assertTrue(settings.shellRequestWindowManipulation)
 
