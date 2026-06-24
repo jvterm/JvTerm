@@ -20,6 +20,10 @@
                                  key="settings.jvterm.displayName"
                                  bundle="messages.MyMessageBundle"/>
 
+        <notificationGroup id="JvTerm Terminal"
+                           displayType="BALLOON"
+                           key="notification.group.jvterm.terminal"/>
+
         <toolWindow id="JvTerm"
                     anchor="bottom"
                     canCloseContents="true"

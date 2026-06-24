@@ -25,6 +25,7 @@ import com.intellij.ui.content.Content
 import io.github.jvterm.intellij.settings.JvTermIntellijSettings
 import io.github.jvterm.intellij.ui.JvTermTerminalPane
 import io.github.jvterm.intellij.ui.JvTermTerminalStartupView
+import io.github.jvterm.protocol.NotificationLevel
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.workspace.TerminalProfile
 import io.github.jvterm.workspace.TerminalWorkspace
@@ -313,6 +314,17 @@ class JvTermProjectTerminalService(
         ) {
             invokeLaterIfAlive {
                 contentsByTabId[tab.id]?.displayName = title
+            }
+        }
+
+        override fun showNotification(
+            tab: TerminalWorkspaceTab,
+            title: String,
+            body: String,
+            level: NotificationLevel,
+        ) {
+            invokeLaterIfAlive {
+                JvTermIntellijNotifier.showNotification(project, title, body, level)
             }
         }
 
