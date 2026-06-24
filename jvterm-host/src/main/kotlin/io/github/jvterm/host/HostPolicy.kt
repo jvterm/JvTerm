@@ -24,8 +24,9 @@ package io.github.jvterm.host
  * adapter before commands touch core state, host callbacks, metadata registries,
  * or terminal-to-host response queues.
  *
- * @property titlePolicy whether OSC title updates and title-stack restore
- * operations may update adapter/core title metadata and notify the host.
+ * @property titlePolicy origin-aware policy for OSC title updates and
+ * title-stack restore operations before adapter/core title metadata changes or
+ * host callbacks are emitted.
  * @property hyperlinkPolicy whether OSC 8 hyperlinks may be retained and
  * attached to written cells.
  * @property currentWorkingDirectoryPolicy whether OSC 7 current-working-directory
@@ -40,8 +41,6 @@ package io.github.jvterm.host
  * and XTGETTCAP requests may enqueue terminal-to-host response bytes.
  * @property clipboardPolicy deny-by-default permission and audit policy for
  * terminal-triggered clipboard protocols such as OSC 52.
- * @property maxTitleLength maximum accepted OSC title length in UTF-16 code
- * units. Longer titles are ignored.
  * @property maxHyperlinkEntries maximum distinct OSC 8 hyperlink keys retained
  * by the adapter before least-recently-used entries are evicted.
  * @property maxHyperlinkUriLength maximum accepted OSC 8 URI length in UTF-16
@@ -57,7 +56,7 @@ package io.github.jvterm.host
  * length in UTF-16 code units. Longer or malformed URIs are ignored.
  */
 data class HostPolicy(
-    val titlePolicy: HostControlPolicy = HostControlPolicy.ALLOW,
+    val titlePolicy: TerminalTitlePolicy = TerminalTitlePolicy(),
     val hyperlinkPolicy: HostControlPolicy = HostControlPolicy.ALLOW,
     val currentWorkingDirectoryPolicy: HostControlPolicy = HostControlPolicy.ALLOW,
     val notificationPolicy: HostControlPolicy = HostControlPolicy.ALLOW,
@@ -65,7 +64,6 @@ data class HostPolicy(
     val palettePolicy: HostControlPolicy = HostControlPolicy.ALLOW,
     val terminalResponsePolicy: HostControlPolicy = HostControlPolicy.ALLOW,
     val clipboardPolicy: TerminalClipboardPolicy = TerminalClipboardPolicy(),
-    val maxTitleLength: Int = 4096,
     val maxHyperlinkEntries: Int = 4096,
     val maxHyperlinkUriLength: Int = 4096,
     val maxHyperlinkIdLength: Int = 256,
@@ -74,9 +72,6 @@ data class HostPolicy(
     val maxCurrentWorkingDirectoryUriLength: Int = 4096,
 ) {
     init {
-        require(maxTitleLength >= 0) {
-            "maxTitleLength must be non-negative, got $maxTitleLength"
-        }
         require(maxHyperlinkEntries > 0) {
             "maxHyperlinkEntries must be positive, got $maxHyperlinkEntries"
         }

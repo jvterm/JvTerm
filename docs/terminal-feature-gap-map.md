@@ -155,8 +155,8 @@ These are not badges of compatibility for this project. They expand attack surfa
 - `DONE(policy)`: OSC 52 clipboard permission model covers local vs remote origin, deny/prompt/allowlist/allow write decisions, disabled read/query behavior, decoded payload limits, malformed payload rejection, and content-free audit events.
 - `TODO(host/ui/policy)`: actual OSC 52 clipboard writes, prompts, allowlists, and read/query responses remain intentionally absent.
 - `TODO(policy)`: richer hyperlink validation and display policy beyond host resource limits, host allow/deny gating, and Swing's explicit-activation handler.
-- `DONE(host/policy)`: host-owned metadata and response controls have explicit allow/deny policy gates and per-feature host caps for titles, hyperlinks, OSC 7 current-working-directory reports, notifications, palette controls, window manipulation, and terminal response channels.
+- `DONE(host/policy)`: host-owned metadata and response controls have explicit policy gates and per-feature host caps for titles, hyperlinks, OSC 7 current-working-directory reports, notifications, palette controls, window manipulation, and terminal response channels.
 - `TODO(parser/policy)`: protocol-family-specific raw OSC/DCS parser payload ceilings beyond the parser's generic bound, especially before large graphics or clipboard protocols are enabled.
-- `DONE(host/policy)`: title/icon updates are host-gated through `HostPolicy.titlePolicy` and bounded by `maxTitleLength`.
+- `DONE(host/policy)`: title/icon updates are host-gated through `HostPolicy.titlePolicy`, which models local vs remote session origin, local/remote allow decisions, and configurable oversized-title handling (`clamp` by default for standalone compatibility, or `reject` for stricter profiles).
 - `DONE(input/policy)`: paste sanitization and bracketed paste behavior are explicit in `TerminalInputPolicy`; remaining product work is host/profile default selection.
 - `DONE(policy)`: terminal capability identity policy is explicit in `TerminalCapabilityIdentity` and consumed by PTY launch defaults plus core terminal-to-host query responses.

@@ -946,7 +946,13 @@ class HostCommandAdapterTest {
 
         @Test
         fun `title policy can deny OSC title updates and title stack changes`() {
-            val f = Fixture(hostPolicy = HostPolicy(titlePolicy = HostControlPolicy.DENY))
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy = TerminalTitlePolicy(localPermission = TerminalTitlePermission.DENY),
+                        ),
+                )
 
             f.acceptAscii("\u001B]0;denied\u0007")
             f.acceptAscii("\u001B[22t")
@@ -962,8 +968,37 @@ class HostCommandAdapterTest {
         }
 
         @Test
-        fun `overlong OSC titles are ignored by host policy`() {
-            val f = Fixture(hostPolicy = HostPolicy(maxTitleLength = 5))
+        fun `overlong OSC titles are clamped by default host policy`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy = TerminalTitlePolicy(maxLength = 5),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]2;short\u0007")
+            f.acceptAscii("\u001B]2;too-long\u0007")
+
+            assertAll(
+                { assertEquals("too-l", f.sink.windowTitle) },
+                { assertEquals(listOf("short", "too-l"), f.events.windowTitles) },
+            )
+        }
+
+        @Test
+        fun `overlong OSC titles can be rejected by profile policy`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy =
+                                TerminalTitlePolicy(
+                                    maxLength = 5,
+                                    overflowPolicy = TerminalTitleOverflowPolicy.REJECT,
+                                ),
+                        ),
+                )
 
             f.acceptAscii("\u001B]2;short\u0007")
             f.acceptAscii("\u001B]2;too-long\u0007")
@@ -971,6 +1006,48 @@ class HostCommandAdapterTest {
             assertAll(
                 { assertEquals("short", f.sink.windowTitle) },
                 { assertEquals(listOf("short"), f.events.windowTitles) },
+            )
+        }
+
+        @Test
+        fun `remote OSC titles can be denied while local titles remain allowed by profile policy`() {
+            val remote =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy =
+                                TerminalTitlePolicy(
+                                    origin = TerminalTitleOrigin.REMOTE,
+                                    localPermission = TerminalTitlePermission.ALLOW,
+                                    remotePermission = TerminalTitlePermission.DENY,
+                                ),
+                        ),
+                )
+            val local =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy =
+                                TerminalTitlePolicy(
+                                    origin = TerminalTitleOrigin.LOCAL,
+                                    localPermission = TerminalTitlePermission.ALLOW,
+                                    remotePermission = TerminalTitlePermission.DENY,
+                                ),
+                        ),
+                )
+
+            remote.acceptAscii("\u001B]0;ssh-title\u0007")
+            local.acceptAscii("\u001B]0;local-title\u0007")
+
+            assertAll(
+                { assertEquals("", remote.sink.windowTitle) },
+                { assertEquals("", remote.sink.iconTitle) },
+                { assertTrue(remote.events.windowTitles.isEmpty()) },
+                { assertTrue(remote.events.iconTitles.isEmpty()) },
+                { assertEquals("local-title", local.sink.windowTitle) },
+                { assertEquals("local-title", local.sink.iconTitle) },
+                { assertEquals(listOf("local-title"), local.events.windowTitles) },
+                { assertEquals(listOf("local-title"), local.events.iconTitles) },
             )
         }
 

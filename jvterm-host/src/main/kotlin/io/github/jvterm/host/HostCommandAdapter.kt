@@ -719,19 +719,17 @@ class HostCommandAdapter(
     }
 
     override fun setWindowTitle(title: String) {
-        if (!isTitleAllowed(title)) return
-        updateWindowTitle(title)
+        acceptedTitle(title)?.let { updateWindowTitle(it) }
     }
 
     override fun setIconTitle(title: String) {
-        if (!isTitleAllowed(title)) return
-        updateIconTitle(title)
+        acceptedTitle(title)?.let { updateIconTitle(it) }
     }
 
     override fun setIconAndWindowTitle(title: String) {
-        if (!isTitleAllowed(title)) return
-        updateIconTitle(title)
-        updateWindowTitle(title)
+        val accepted = acceptedTitle(title) ?: return
+        updateIconTitle(accepted)
+        updateWindowTitle(accepted)
     }
 
     override fun setCurrentWorkingDirectoryUri(uri: String) {
@@ -996,7 +994,15 @@ class HostCommandAdapter(
         uri.length <= hostPolicy.maxHyperlinkUriLength &&
             (id?.length ?: 0) <= hostPolicy.maxHyperlinkIdLength
 
-    private fun isTitleAllowed(title: String): Boolean = hostPolicy.titlePolicy.isAllowed && title.length <= hostPolicy.maxTitleLength
+    private fun acceptedTitle(title: String): String? {
+        val policy = hostPolicy.titlePolicy
+        if (!policy.isAllowed) return null
+        if (title.length <= policy.maxLength) return title
+        return when (policy.overflowPolicy) {
+            TerminalTitleOverflowPolicy.REJECT -> null
+            TerminalTitleOverflowPolicy.CLAMP -> title.take(policy.maxLength)
+        }
+    }
 
     private fun nextHyperlinkIdAfter(current: Int): Int = if (current == Int.MAX_VALUE) 1 else current + 1
 
@@ -1091,3 +1097,6 @@ class HostCommandAdapter(
 
 private val HostControlPolicy.isAllowed: Boolean
     get() = this == HostControlPolicy.ALLOW
+
+private val TerminalTitlePolicy.isAllowed: Boolean
+    get() = permission == TerminalTitlePermission.ALLOW

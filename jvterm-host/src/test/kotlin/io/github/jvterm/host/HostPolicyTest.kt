@@ -26,7 +26,11 @@ class HostPolicyTest {
     fun `defaults allow implemented host controls and deny future clipboard controls`() {
         val policy = HostPolicy()
 
-        assertEquals(HostControlPolicy.ALLOW, policy.titlePolicy)
+        assertEquals(TerminalTitleOrigin.LOCAL, policy.titlePolicy.origin)
+        assertEquals(TerminalTitlePermission.ALLOW, policy.titlePolicy.localPermission)
+        assertEquals(TerminalTitlePermission.ALLOW, policy.titlePolicy.remotePermission)
+        assertEquals(TerminalTitleOverflowPolicy.CLAMP, policy.titlePolicy.overflowPolicy)
+        assertEquals(TerminalTitlePolicy.DEFAULT_MAX_LENGTH, policy.titlePolicy.maxLength)
         assertEquals(HostControlPolicy.ALLOW, policy.hyperlinkPolicy)
         assertEquals(HostControlPolicy.ALLOW, policy.currentWorkingDirectoryPolicy)
         assertEquals(HostControlPolicy.ALLOW, policy.notificationPolicy)
@@ -43,7 +47,9 @@ class HostPolicyTest {
 
     @Test
     fun `bounds reject invalid values at construction`() {
-        assertThrows(IllegalArgumentException::class.java) { HostPolicy(maxTitleLength = -1) }
+        assertThrows(IllegalArgumentException::class.java) {
+            HostPolicy(titlePolicy = TerminalTitlePolicy(maxLength = -1))
+        }
         assertThrows(IllegalArgumentException::class.java) { HostPolicy(maxHyperlinkEntries = 0) }
         assertThrows(IllegalArgumentException::class.java) { HostPolicy(maxHyperlinkUriLength = -1) }
         assertThrows(IllegalArgumentException::class.java) { HostPolicy(maxHyperlinkIdLength = -1) }
