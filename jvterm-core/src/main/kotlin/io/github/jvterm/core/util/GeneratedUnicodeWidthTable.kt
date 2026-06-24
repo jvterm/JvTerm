@@ -1048,7 +1048,7 @@ internal object GeneratedUnicodeWidthTable {
             0xA8,
             0xAA,
             0xAA,
-            0xAD,
+            0xAE,
             0xAE,
             0xB0,
             0xB4,
@@ -1146,8 +1146,6 @@ internal object GeneratedUnicodeWidthTable {
             0x2DD,
             0x2DF,
             0x2DF,
-            0x300,
-            0x36F,
             0x391,
             0x3A1,
             0x3A3,
@@ -1289,13 +1287,7 @@ internal object GeneratedUnicodeWidthTable {
             0x2460,
             0x24E9,
             0x24EB,
-            0x254B,
-            0x2550,
-            0x2573,
-            0x2580,
-            0x258F,
-            0x2592,
-            0x2595,
+            0x24FF,
             0x25A0,
             0x25A1,
             0x25A3,
@@ -1376,8 +1368,6 @@ internal object GeneratedUnicodeWidthTable {
             0x324F,
             0xE000,
             0xF8FF,
-            0xFE00,
-            0xFE0F,
             0xFFFD,
             0xFFFD,
             0x1F100,
@@ -1396,8 +1386,6 @@ internal object GeneratedUnicodeWidthTable {
 
     internal val AMBIGUOUS_ASTRAL_RANGES: IntArray =
         intArrayOf(
-            0xE0100,
-            0xE01EF,
             0xF0000,
             0xFFFFD,
             0x100000,
@@ -1416,6 +1404,7 @@ internal object GeneratedUnicodeWidthTable {
 
     internal val TERMINAL_CELL_GRAPHIC_ASTRAL_RANGES: IntArray =
         intArrayOf()
+
     internal val EMOJI_VARIATION_BASE_RANGES: IntArray =
         intArrayOf(
             0x23,
