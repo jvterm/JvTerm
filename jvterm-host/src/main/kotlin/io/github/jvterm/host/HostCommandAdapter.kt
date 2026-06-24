@@ -507,6 +507,7 @@ class HostCommandAdapter(
         mode: Int,
         decPrivate: Boolean,
     ) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.requestDeviceStatusReport(mode, decPrivate)
     }
 
@@ -514,10 +515,12 @@ class HostCommandAdapter(
         kind: Int,
         parameter: Int,
     ) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.requestDeviceAttributes(kind, parameter)
     }
 
     override fun requestWindowReport(mode: Int) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.requestWindowReport(mode)
     }
 
@@ -525,6 +528,7 @@ class HostCommandAdapter(
         rows: Int,
         columns: Int,
     ) {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.resizeWindow(rows, columns)
     }
 
@@ -532,30 +536,37 @@ class HostCommandAdapter(
         x: Int,
         y: Int,
     ) {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.moveWindow(x, y)
     }
 
     override fun minimizeWindow() {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.minimizeWindow()
     }
 
     override fun deminimizeWindow() {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.deminimizeWindow()
     }
 
     override fun raiseWindow() {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.raiseWindow()
     }
 
     override fun lowerWindow() {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.lowerWindow()
     }
 
     override fun setMaximized(maximize: Boolean) {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.setMaximized(maximize)
     }
 
     override fun pushTitleStack(scope: Int) {
+        if (!hostPolicy.titlePolicy.isAllowed) return
         when (scope) {
             0 -> {
                 pushTitle(windowTitleStack, windowTitle)
@@ -567,6 +578,7 @@ class HostCommandAdapter(
     }
 
     override fun popTitleStack(scope: Int) {
+        if (!hostPolicy.titlePolicy.isAllowed) return
         when (scope) {
             0 -> {
                 popTitle(windowTitleStack)?.let { updateWindowTitle(it) }
@@ -707,19 +719,23 @@ class HostCommandAdapter(
     }
 
     override fun setWindowTitle(title: String) {
+        if (!isTitleAllowed(title)) return
         updateWindowTitle(title)
     }
 
     override fun setIconTitle(title: String) {
+        if (!isTitleAllowed(title)) return
         updateIconTitle(title)
     }
 
     override fun setIconAndWindowTitle(title: String) {
+        if (!isTitleAllowed(title)) return
         updateIconTitle(title)
         updateWindowTitle(title)
     }
 
     override fun setCurrentWorkingDirectoryUri(uri: String) {
+        if (!hostPolicy.currentWorkingDirectoryPolicy.isAllowed) return
         if (!isCurrentWorkingDirectoryUriAllowed(uri)) return
         currentWorkingDirectory = uri
         hostEvents.currentWorkingDirectoryChanged(uri)
@@ -729,11 +745,12 @@ class HostCommandAdapter(
         uri: String,
         id: String?,
     ) {
+        if (!hostPolicy.hyperlinkPolicy.isAllowed) {
+            clearActiveHyperlink()
+            return
+        }
         if (!isHyperlinkAllowed(uri, id)) {
-            activeHyperlinkUri = null
-            activeHyperlinkId = null
-            activeHyperlinkNumericId = NO_HYPERLINK_ID
-            terminal.setHyperlinkId(NO_HYPERLINK_ID)
+            clearActiveHyperlink()
             return
         }
 
@@ -744,20 +761,19 @@ class HostCommandAdapter(
     }
 
     override fun endHyperlink() {
-        activeHyperlinkUri = null
-        activeHyperlinkId = null
-        activeHyperlinkNumericId = 0
-        terminal.setHyperlinkId(0)
+        clearActiveHyperlink()
     }
 
     override fun setPaletteColor(
         index: Int,
         color: Int,
     ) {
+        if (!hostPolicy.palettePolicy.isAllowed) return
         terminal.setPaletteColor(index, color)
     }
 
     override fun queryPaletteColor(index: Int) {
+        if (!hostPolicy.palettePolicy.isAllowed) return
         terminal.queryPaletteColor(index)
     }
 
@@ -765,18 +781,22 @@ class HostCommandAdapter(
         target: Int,
         color: Int,
     ) {
+        if (!hostPolicy.palettePolicy.isAllowed) return
         terminal.setDynamicColor(target, color)
     }
 
     override fun queryDynamicColor(target: Int) {
+        if (!hostPolicy.palettePolicy.isAllowed) return
         terminal.queryDynamicColor(target)
     }
 
     override fun queryStatusString(query: String) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.queryStatusString(query)
     }
 
     override fun queryTerminfo(rawPayload: String) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.queryTerminfo(rawPayload)
     }
 
@@ -789,6 +809,7 @@ class HostCommandAdapter(
         body: String,
         level: NotificationLevel,
     ) {
+        if (!hostPolicy.notificationPolicy.isAllowed) return
         val clampedTitle = title.take(hostPolicy.maxNotificationTitleLength)
         val clampedBody = body.take(hostPolicy.maxNotificationBodyLength)
         hostEvents.showNotification(clampedTitle, clampedBody, level)
@@ -845,6 +866,13 @@ class HostCommandAdapter(
         hostEvents.windowTitleChanged(title)
     }
 
+    private fun clearActiveHyperlink() {
+        activeHyperlinkUri = null
+        activeHyperlinkId = null
+        activeHyperlinkNumericId = NO_HYPERLINK_ID
+        terminal.setHyperlinkId(NO_HYPERLINK_ID)
+    }
+
     private fun hyperlinkIdFor(
         uri: String,
         id: String?,
@@ -877,6 +905,8 @@ class HostCommandAdapter(
     ): Boolean =
         uri.length <= hostPolicy.maxHyperlinkUriLength &&
             (id?.length ?: 0) <= hostPolicy.maxHyperlinkIdLength
+
+    private fun isTitleAllowed(title: String): Boolean = hostPolicy.titlePolicy.isAllowed && title.length <= hostPolicy.maxTitleLength
 
     private fun nextHyperlinkIdAfter(current: Int): Int = if (current == Int.MAX_VALUE) 1 else current + 1
 
@@ -923,3 +953,6 @@ class HostCommandAdapter(
             uri.rawFragment == null
     }
 }
+
+private val HostControlPolicy.isAllowed: Boolean
+    get() = this == HostControlPolicy.ALLOW

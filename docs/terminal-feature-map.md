@@ -67,6 +67,7 @@ For a detailed backlog of gaps and intentional non-goals, see the [Terminal Feat
 
 ## 4. Query-Response Channels
 
+- **Host Security Policy**: Host-affecting terminal controls are gated at the `jvterm-host` adapter boundary before they mutate host metadata, call host event sinks, alter palette state, or enqueue terminal-to-host response bytes. `HostPolicy` provides explicit allow/deny controls for title updates, OSC 8 hyperlinks, OSC 7 current-working-directory reports, desktop notifications, window manipulation requests, OSC palette controls, terminal response channels, and future clipboard protocols. Implemented controls default to allowed for compatibility, while future clipboard/OSC 52 behavior is deny-by-default until a permission model exists. Host-owned payloads are bounded per feature, including titles, hyperlink URIs/IDs and registry size, notification title/body text, and OSC 7 directory URI length.
 - **Operating Status**: Responds operating status `CSI 0 n` on `DSR 5`.
 - **Cursor Position Reports**: Responds active coordinate position on `CPR` / `DSR 6`.
 - **Device Attributes**: VT100-compatible primary attribute response (`DA`) and generic secondary attribute response (`DA2`).

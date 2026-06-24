@@ -24,7 +24,7 @@ The target is a modern, secure, xterm-compatible terminal pipeline for contempor
 - *No outstanding CSI cursor, SGR color, alternate screen, or basic input gaps.*
 
 ### Tier 2: Useful (Under consideration / partial gaps)
-- *No outstanding SAFE query-response, DECRQSS/XTGETTCAP, or push/pop title stack gaps (all implemented and verified).*
+- *No outstanding SAFE query-response, DECRQSS/XTGETTCAP, push/pop title stack, or host-adapter allow/deny policy-surface gaps (all implemented and verified).*
 
 ### Tier 3: Optional (Graphics & advanced features)
 - Sixel or modern graphics protocols (e.g. Kitty graphics protocol).
@@ -113,7 +113,8 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ## Integration Gaps
 
-- `TODO(host/host/policy)`: host callbacks or policy surfaces for palette updates, terminal notifications, mouse-report policy, and clipboard policy.
+- `DONE(host/policy)`: host-adapter allow/deny policy surface for title updates, OSC 8 hyperlinks, OSC 7 current-working-directory reports, desktop notifications, window manipulation requests, palette controls, terminal response channels, and future clipboard protocols.
+- `TODO(host)`: richer host callbacks for palette updates, terminal notifications, mouse-report policy, and future clipboard decisions when those product surfaces need UI or embedding feedback.
 
 ---
 
@@ -150,8 +151,9 @@ These are not badges of compatibility for this project. They expand attack surfa
 ## Security and Policy Gaps
 
 - `TODO(policy)`: OSC 52 clipboard permission model.
-- `TODO(policy)`: richer hyperlink validation and display policy beyond host resource limits and Swing's explicit-activation handler.
-- `TODO(policy)`: protocol-family-specific payload limits and host-configurable caps beyond the parser's generic bound.
-- `TODO(policy)`: whether title/icon updates are always accepted or host-gated.
-- `TODO(policy)`: paste sanitization and bracketed paste defaults.
+- `TODO(policy)`: richer hyperlink validation and display policy beyond host resource limits, host allow/deny gating, and Swing's explicit-activation handler.
+- `DONE(host/policy)`: host-owned metadata and response controls have explicit allow/deny policy gates and per-feature host caps for titles, hyperlinks, OSC 7 current-working-directory reports, notifications, palette controls, window manipulation, and terminal response channels.
+- `TODO(parser/policy)`: protocol-family-specific raw OSC/DCS parser payload ceilings beyond the parser's generic bound, especially before large graphics or clipboard protocols are enabled.
+- `DONE(host/policy)`: title/icon updates are host-gated through `HostPolicy.titlePolicy` and bounded by `maxTitleLength`.
+- `DONE(input/policy)`: paste sanitization and bracketed paste behavior are explicit in `TerminalInputPolicy`; remaining product work is host/profile default selection.
 - `TODO(policy)`: terminal capability identity policies.
