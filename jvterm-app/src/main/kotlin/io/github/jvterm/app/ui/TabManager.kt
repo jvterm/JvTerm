@@ -619,6 +619,11 @@ internal class TabManager(
         }
 
         override fun bell(tab: TerminalWorkspaceTab) {
+            if (settings.visualBell) {
+                SwingUtilities.invokeLater {
+                    panes.firstOrNull { it.tab == tab }?.terminal?.showVisualBell()
+                }
+            }
             if (settings.audibleBell) {
                 SwingUtilities.invokeLater {
                     frame.toolkit.beep()

@@ -120,6 +120,7 @@ class TerminalConfigTest {
         assertEquals(600, config.cursorBlinkMillis)
         assertFalse(config.useSystemFallbackFonts)
         assertEquals("block", config.cursorShape)
+        assertTrue(config.visualBell)
         assertFalse(config.shellRequestResizeWindow)
         assertFalse(config.shellRequestWindowManipulation)
 
@@ -145,6 +146,8 @@ class TerminalConfigTest {
                 cursorBlinkMillis = 500,
                 useSystemFallbackFonts = true,
                 cursorShape = "beam",
+                audibleBell = false,
+                visualBell = false,
                 shellRequestResizeWindow = true,
                 shellRequestWindowManipulation = true,
                 desktopNotificationsEnabled = false,

@@ -135,6 +135,43 @@ function Split-Ranges {
     }
 }
 
+function Subtract-Ranges {
+    param(
+        [System.Collections.Generic.List[object]] $Ranges,
+        [System.Collections.Generic.List[object]] $Excluded
+    )
+
+    $result = [System.Collections.Generic.List[object]]::new()
+    $sortedExcluded = $Excluded | Sort-Object Start, End
+
+    foreach ($range in ($Ranges | Sort-Object Start, End)) {
+        $cursor = $range.Start
+        foreach ($excludedRange in $sortedExcluded) {
+            if ($excludedRange.End -lt $cursor) {
+                continue
+            }
+            if ($excludedRange.Start -gt $range.End) {
+                break
+            }
+
+            if ($excludedRange.Start -gt $cursor) {
+                Add-Range $result $cursor ([Math]::Min($range.End, $excludedRange.Start - 1))
+            }
+
+            $cursor = [Math]::Max($cursor, $excludedRange.End + 1)
+            if ($cursor -gt $range.End) {
+                break
+            }
+        }
+
+        if ($cursor -le $range.End) {
+            Add-Range $result $cursor $range.End
+        }
+    }
+
+    return Merge-Ranges $result
+}
+
 function Format-IntArray {
     param(
         [string] $Name,
@@ -145,6 +182,11 @@ function Format-IntArray {
 
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add("${Indent}${Visibility} val ${Name}: IntArray =") | Out-Null
+    if ($Ranges.Count -eq 0) {
+        $lines.Add("${Indent}    intArrayOf()") | Out-Null
+        return [string]::Join([Environment]::NewLine, $lines)
+    }
+
     $lines.Add("${Indent}    intArrayOf(") | Out-Null
     foreach ($range in $Ranges) {
         $startHex = "0x{0:X}" -f $range.Start
@@ -285,7 +327,7 @@ $parserParts.Add(@"
 }
 "@.TrimEnd()) | Out-Null
 
-$parserTarget = Join-Path $Root "terminal-parser/src/main/kotlin/parser/unicode/GeneratedGraphemeBreakTable.kt"
+$parserTarget = Join-Path $Root "jvterm-parser/src/main/kotlin/io/github/jvterm/parser/unicode/GeneratedGraphemeBreakTable.kt"
 Write-Utf8NoBom $parserTarget ([string]::Join([Environment]::NewLine, $parserParts) + [Environment]::NewLine)
 
 $wideRanges = [System.Collections.Generic.List[object]]::new()
@@ -313,6 +355,9 @@ Add-Range $terminalCellGraphicRanges 0x2580 0x259F
 Add-Range $terminalCellGraphicRanges 0x2800 0x28FF
 Add-Range $terminalCellGraphicRanges 0x1FB00 0x1FBFF
 $terminalCellGraphicRanges = Merge-Ranges $terminalCellGraphicRanges
+$ambiguousRanges = Subtract-Ranges $ambiguousRanges $zeroRanges
+$ambiguousRanges = Subtract-Ranges $ambiguousRanges $wideRanges
+$ambiguousRanges = Subtract-Ranges $ambiguousRanges $terminalCellGraphicRanges
 
 $bitsetLimit = 0x20000
 $wideSplit = Split-Ranges $wideRanges $bitsetLimit
@@ -353,5 +398,5 @@ $coreParts.Add("") | Out-Null
 $coreParts.Add((Format-IntArray "EMOJI_VARIATION_BASE_ASTRAL_RANGES" $emojiVariationBaseSplit.High "    " "internal")) | Out-Null
 $coreParts.Add("}") | Out-Null
 
-$coreTarget = Join-Path $Root "terminal-core/src/main/kotlin/core/util/GeneratedUnicodeWidthTable.kt"
+$coreTarget = Join-Path $Root "jvterm-core/src/main/kotlin/io/github/jvterm/core/util/GeneratedUnicodeWidthTable.kt"
 Write-Utf8NoBom $coreTarget ([string]::Join([Environment]::NewLine, $coreParts) + [Environment]::NewLine)

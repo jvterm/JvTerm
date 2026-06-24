@@ -54,6 +54,13 @@ import java.util.*
  * search result ranges.
  * @property searchActiveMatchBackground packed ARGB overlay used for the active
  * search result.
+ * @property visualBellEnabled whether host BEL events trigger the Swing visual
+ * bell overlay.
+ * @property visualBellColor packed ARGB color used for the visual bell edge
+ * pulse.
+ * @property visualBellDurationMillis visual bell fade duration in milliseconds.
+ * @property visualBellEdgeThicknessPixels thickness of the visual bell edge
+ * bands in component pixels.
  * @property shellIntegrationPromptDotsVisible whether shell-integration prompt
  * dots are painted in the left gutter.
  * @property shellIntegrationPromptDotColor packed ARGB color for normal prompt dots.
@@ -64,12 +71,11 @@ import java.util.*
  * @property shellIntegrationFailedCommandRailColor packed ARGB color for failed-command rails.
  * @property shellIntegrationFailedCommandRailWidth failed-command rail width in pixels.
  * @property padding optional host-owned visual inset around the terminal grid
- * in pixels. The default keeps vertical padding at zero so smooth scrolling
- * uses the full component height. The default retains horizontal breathing
- * room, the shell-integration decoration gutter, and a small bottom visual
- * spacer; alternate-screen rendering replaces the inactive prompt gutter with
- * symmetric side insets and resizes the terminal grid to the newly available
- * columns.
+ * in pixels. The default keeps top padding at zero so smooth scrolling can
+ * enter through the top edge, while retaining a compact right edge, the
+ * shell-integration decoration gutter, and a small bottom visual spacer.
+ * Alternate-screen rendering replaces the inactive prompt gutter with symmetric
+ * side insets and resizes the terminal grid to the newly available columns.
  * @property pasteOnMiddleClick whether middle mouse button click triggers a clipboard paste.
  * @property cursorShape default cursor shape configured for the session.
  * @property scrollbackLines maximum scrollback lines retained by the terminal.
@@ -95,6 +101,10 @@ data class SwingSettings
         val selectionBackground: Int = DEFAULT_SELECTION_BACKGROUND,
         val searchMatchBackground: Int = DEFAULT_SEARCH_MATCH_BACKGROUND,
         val searchActiveMatchBackground: Int = DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND,
+        val visualBellEnabled: Boolean = true,
+        val visualBellColor: Int = DEFAULT_VISUAL_BELL_COLOR,
+        val visualBellDurationMillis: Int = DEFAULT_VISUAL_BELL_DURATION_MILLIS,
+        val visualBellEdgeThicknessPixels: Int = DEFAULT_VISUAL_BELL_EDGE_THICKNESS_PIXELS,
         val shellIntegrationPromptDotsVisible: Boolean = true,
         val shellIntegrationPromptDotColor: Int = DEFAULT_SHELL_INTEGRATION_PROMPT_DOT_COLOR,
         val shellIntegrationFailedPromptDotColor: Int = DEFAULT_SHELL_INTEGRATION_FAILED_PROMPT_DOT_COLOR,
@@ -103,7 +113,7 @@ data class SwingSettings
         val shellIntegrationFailedCommandRailsVisible: Boolean = true,
         val shellIntegrationFailedCommandRailColor: Int = DEFAULT_SHELL_INTEGRATION_FAILED_COMMAND_RAIL_COLOR,
         val shellIntegrationFailedCommandRailWidth: Int = 3,
-        val padding: Insets = Insets(0, 20, 8, 12),
+        val padding: Insets = Insets(0, 20, 8, 8),
         val pasteOnMiddleClick: Boolean = true,
         val cursorShape: TerminalRenderCursorShape = TerminalRenderCursorShape.BLOCK,
         val scrollbackLines: Int = 1000,
@@ -116,6 +126,12 @@ data class SwingSettings
             require(rows > 0) { "rows must be > 0, was $rows" }
             require(cursorBlinkMillis >= 0) {
                 "cursorBlinkMillis must be >= 0, was $cursorBlinkMillis"
+            }
+            require(visualBellDurationMillis >= 0) {
+                "visualBellDurationMillis must be >= 0, was $visualBellDurationMillis"
+            }
+            require(visualBellEdgeThicknessPixels >= 0) {
+                "visualBellEdgeThicknessPixels must be >= 0, was $visualBellEdgeThicknessPixels"
             }
             require(scrollbackLines >= 0) {
                 "scrollbackLines must be >= 0, was $scrollbackLines"
@@ -143,6 +159,9 @@ data class SwingSettings
             private const val DEFAULT_SELECTION_BACKGROUND = 0x66FFFFFF
             private const val DEFAULT_SEARCH_MATCH_BACKGROUND = 0x55FFD54F
             private const val DEFAULT_SEARCH_ACTIVE_MATCH_BACKGROUND = 0xAAFF8C00.toInt()
+            private const val DEFAULT_VISUAL_BELL_COLOR = 0x664DA3FF
+            private const val DEFAULT_VISUAL_BELL_DURATION_MILLIS = 240
+            private const val DEFAULT_VISUAL_BELL_EDGE_THICKNESS_PIXELS = 18
             private const val DEFAULT_SHELL_INTEGRATION_PROMPT_DOT_COLOR = 0x8CFFFFFF.toInt()
             private const val DEFAULT_SHELL_INTEGRATION_FAILED_PROMPT_DOT_COLOR = 0xFFE74856.toInt()
             private const val DEFAULT_SHELL_INTEGRATION_FAILED_COMMAND_RAIL_COLOR = 0xFFE74856.toInt()

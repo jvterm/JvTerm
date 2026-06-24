@@ -106,6 +106,7 @@ class TerminalWorkspaceConfigManager(
                     ?: default.useSystemFallbackFonts
             val cursorShape = behavior["cursor_shape"] ?: default.cursorShape
             val audibleBell = behavior["audible_bell"]?.toBooleanStrictOrNull() ?: default.audibleBell
+            val visualBell = behavior["visual_bell"]?.toBooleanStrictOrNull() ?: default.visualBell
             val pasteOnMiddleClick = behavior["paste_on_middle_click"]?.toBooleanStrictOrNull() ?: default.pasteOnMiddleClick
             val shellRequestResizeWindow =
                 behavior["shell_request_resize_window"]?.toBooleanStrictOrNull() ?: default.shellRequestResizeWindow
@@ -141,6 +142,7 @@ class TerminalWorkspaceConfigManager(
                 shellPath = cleanShellPath,
                 startDirectory = startDirectory,
                 audibleBell = audibleBell,
+                visualBell = visualBell,
                 pasteOnMiddleClick = pasteOnMiddleClick,
                 scrollbackLines = scrollbackLines,
                 lineHeight = lineHeight,
@@ -227,6 +229,8 @@ class TerminalWorkspaceConfigManager(
         cursor_shape = "${config.cursorShape}"
         # Play a system beep when the terminal receives a BEL character
         audible_bell = ${config.audibleBell}
+        # Show a visual edge pulse when the terminal receives a BEL character
+        visual_bell = ${config.visualBell}
         # Automatically paste clipboard contents when the middle mouse button is clicked
         paste_on_middle_click = ${config.pasteOnMiddleClick}
         # Whether terminal window should resize when the shell requests a grid resize

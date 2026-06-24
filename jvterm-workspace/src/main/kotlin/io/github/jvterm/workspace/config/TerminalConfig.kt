@@ -59,6 +59,7 @@ private fun defaultFontFamily(): String {
  * @property shellPath command or executable path used when opening a local shell.
  * @property startDirectory initial working directory for newly opened shells.
  * @property audibleBell whether host UI should play a system bell for BEL events.
+ * @property visualBell whether host UI should show a visual indicator for BEL events.
  * @property pasteOnMiddleClick whether middle mouse click should paste clipboard text.
  * @property scrollbackLines maximum retained scrollback lines.
  * @property lineHeight font metric line-height multiplier.
@@ -80,6 +81,7 @@ data class TerminalConfig(
     val shellPath: String = DEFAULT_SHELL_PATH,
     val startDirectory: String = DEFAULT_START_DIRECTORY,
     val audibleBell: Boolean = DEFAULT_AUDIBLE_BELL,
+    val visualBell: Boolean = DEFAULT_VISUAL_BELL,
     val pasteOnMiddleClick: Boolean = DEFAULT_PASTE_ON_MIDDLE_CLICK,
     val scrollbackLines: Int = DEFAULT_SCROLLBACK_LINES,
     val lineHeight: Float = DEFAULT_LINE_HEIGHT,
@@ -135,6 +137,7 @@ data class TerminalConfig(
         const val DEFAULT_USE_SYSTEM_FALLBACK_FONTS: Boolean = false
         const val DEFAULT_CURSOR_SHAPE: String = "block"
         const val DEFAULT_AUDIBLE_BELL: Boolean = true
+        const val DEFAULT_VISUAL_BELL: Boolean = true
         const val DEFAULT_PASTE_ON_MIDDLE_CLICK: Boolean = true
         const val DEFAULT_SCROLLBACK_LINES: Int = 1000
         const val DEFAULT_LINE_HEIGHT: Float = 1.0f

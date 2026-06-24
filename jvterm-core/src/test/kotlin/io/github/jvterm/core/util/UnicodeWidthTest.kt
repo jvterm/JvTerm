@@ -16,6 +16,7 @@
 package io.github.jvterm.core.util
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.params.ParameterizedTest
@@ -97,6 +98,22 @@ class UnicodeWidthTest {
             assertEquals(1, UnicodeWidth.calculate(cp, ambiguousAsWide = true))
         }
 
+        @ParameterizedTest(name = "Zero-width cp=0x{0} is not generated ambiguous")
+        @ValueSource(ints = [0x00AD, 0x0300, 0x036F, 0xFE00, 0xFE0F, 0xE0100, 0xE01EF])
+        fun `zero-width codepoints are excluded from generated ambiguous ranges`(cp: Int) {
+            assertFalse(isGeneratedAmbiguous(cp))
+            assertEquals(0, UnicodeWidth.calculate(cp, ambiguousAsWide = false))
+            assertEquals(0, UnicodeWidth.calculate(cp, ambiguousAsWide = true))
+        }
+
+        @ParameterizedTest(name = "Terminal graphic cp=0x{0} is not generated ambiguous")
+        @ValueSource(ints = [0x2500, 0x254B, 0x2550, 0x2573, 0x2580, 0x258F, 0x2592, 0x2595])
+        fun `terminal graphics are excluded from generated ambiguous ranges`(cp: Int) {
+            assertFalse(isGeneratedAmbiguous(cp))
+            assertEquals(1, UnicodeWidth.calculate(cp, ambiguousAsWide = false))
+            assertEquals(1, UnicodeWidth.calculate(cp, ambiguousAsWide = true))
+        }
+
         @ParameterizedTest(name = "Private-use ambiguous cp=0x{0} follows toggle")
         @ValueSource(ints = [0xE000, 0xF0000])
         fun `generated private-use ambiguous ranges honor toggle`(cp: Int) {
@@ -168,5 +185,33 @@ class UnicodeWidthTest {
                 Arguments.of(0xE01EF, 0),
                 Arguments.of(0xE01F0, 1),
             )
+
+        private fun isGeneratedAmbiguous(codepoint: Int): Boolean =
+            if (codepoint < GeneratedUnicodeWidthTable.BITSET_LIMIT) {
+                contains(GeneratedUnicodeWidthTable.AMBIGUOUS_RANGES, codepoint)
+            } else {
+                contains(GeneratedUnicodeWidthTable.AMBIGUOUS_ASTRAL_RANGES, codepoint)
+            }
+
+        private fun contains(
+            ranges: IntArray,
+            codepoint: Int,
+        ): Boolean {
+            var low = 0
+            var high = ranges.size / 2 - 1
+            while (low <= high) {
+                val mid = (low + high) ushr 1
+                val start = ranges[mid * 2]
+                val end = ranges[mid * 2 + 1]
+                if (codepoint < start) {
+                    high = mid - 1
+                } else if (codepoint > end) {
+                    low = mid + 1
+                } else {
+                    return true
+                }
+            }
+            return false
+        }
     }
 }

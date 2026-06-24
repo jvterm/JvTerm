@@ -129,6 +129,10 @@ class SwingSettingsTest {
         assertEquals(false, settings.useSystemFallbackFonts)
         assertEquals(false, settings.treatAmbiguousAsWide)
         assertEquals(0xFF4DA3FF.toInt(), settings.hyperlinkActivationForeground)
+        assertEquals(true, settings.visualBellEnabled)
+        assertEquals(0x664DA3FF, settings.visualBellColor)
+        assertEquals(240, settings.visualBellDurationMillis)
+        assertEquals(18, settings.visualBellEdgeThicknessPixels)
         assertEquals(true, settings.shellIntegrationPromptDotsVisible)
         assertEquals(0x8CFFFFFF.toInt(), settings.shellIntegrationPromptDotColor)
         assertEquals(0xFFE74856.toInt(), settings.shellIntegrationFailedPromptDotColor)
@@ -137,7 +141,7 @@ class SwingSettingsTest {
         assertEquals(true, settings.shellIntegrationFailedCommandRailsVisible)
         assertEquals(0xFFE74856.toInt(), settings.shellIntegrationFailedCommandRailColor)
         assertEquals(3, settings.shellIntegrationFailedCommandRailWidth)
-        assertEquals(Insets(0, 20, 8, 12), settings.padding)
+        assertEquals(Insets(0, 20, 8, 8), settings.padding)
         assertEquals(4, settings.padding.left - settings.shellIntegrationDecorationGutterWidth)
         assertEquals(0, settings.padding.top)
         assertEquals(8, settings.padding.bottom)
@@ -145,6 +149,12 @@ class SwingSettingsTest {
 
     @Test
     fun settingsRejectInvalidShellIntegrationDecorationDimensions() {
+        assertFailsWith<IllegalArgumentException> {
+            SwingSettings(visualBellDurationMillis = -1)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            SwingSettings(visualBellEdgeThicknessPixels = -1)
+        }
         assertFailsWith<IllegalArgumentException> {
             SwingSettings(shellIntegrationPromptDotDiameter = 0)
         }
@@ -167,10 +177,10 @@ class SwingSettingsTest {
         val settings = SwingSettings()
 
         assertEquals(20, SwingTerminalChrome.left(settings, TerminalRenderBufferKind.PRIMARY))
-        assertEquals(12, SwingTerminalChrome.right(settings, TerminalRenderBufferKind.PRIMARY))
+        assertEquals(8, SwingTerminalChrome.right(settings, TerminalRenderBufferKind.PRIMARY))
         assertEquals(8, SwingTerminalChrome.left(settings, TerminalRenderBufferKind.ALTERNATE))
         assertEquals(8, SwingTerminalChrome.right(settings, TerminalRenderBufferKind.ALTERNATE))
-        assertEquals(32, SwingTerminalChrome.horizontalInset(settings, TerminalRenderBufferKind.PRIMARY))
+        assertEquals(28, SwingTerminalChrome.horizontalInset(settings, TerminalRenderBufferKind.PRIMARY))
         assertEquals(16, SwingTerminalChrome.horizontalInset(settings, TerminalRenderBufferKind.ALTERNATE))
         assertEquals(8, SwingTerminalChrome.verticalInset(settings, TerminalRenderBufferKind.ALTERNATE))
         assertEquals(16, SwingTerminalChrome.promptDecorationGutterWidth(settings, TerminalRenderBufferKind.PRIMARY))

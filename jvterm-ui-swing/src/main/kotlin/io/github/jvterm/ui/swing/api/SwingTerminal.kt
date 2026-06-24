@@ -77,6 +77,10 @@ class SwingTerminal
         private val reloadSettingsRunnable = Runnable { reloadSettingsOnEdt() }
 
         private val painter = GridPainter()
+        private val visualBellController =
+            TerminalVisualBellController {
+                repaint()
+            }
         private val viewportController = SwingViewportController(hostServices.viewportListener)
         private val renderCache =
             TerminalRenderCache(
@@ -469,6 +473,7 @@ class SwingTerminal
             preferredSize = preferredGridSize(settings.columns, settings.rows)
             cursorTimer.isRepeats = true
             configureCursorTimerOnEdt()
+            configureVisualBellOnEdt()
         }
 
         /**
@@ -506,6 +511,21 @@ class SwingTerminal
          */
         fun reloadSettings() {
             runOnEdt(reloadSettingsRunnable)
+        }
+
+        /**
+         * Triggers this component's visual bell indicator.
+         *
+         * Hosts should call this when the bound terminal session emits BEL and
+         * the current host settings allow visual bell presentation. The method
+         * may be called from any thread; animation state is updated on the EDT.
+         */
+        fun showVisualBell() {
+            runOnEdt(
+                Runnable {
+                    visualBellController.trigger()
+                },
+            )
         }
 
         /**
@@ -753,6 +773,7 @@ class SwingTerminal
         override fun removeNotify() {
             terminalFocused = false
             cursorTimer.stop()
+            visualBellController.stop()
             rowScroller.finish()
             selectionController.stopSelectionDrag()
 
@@ -786,6 +807,7 @@ class SwingTerminal
             try {
                 if (session == null) {
                     painter.clear(g, settings.palette, width, height)
+                    visualBellController.paint(g, width, height)
                     return
                 }
 
@@ -807,6 +829,7 @@ class SwingTerminal
                     hoveredHyperlinkId = hyperlinkController.hoveredHyperlinkId,
                     hyperlinkActivationHover = hyperlinkController.hyperlinkActivationHover,
                 )
+                visualBellController.paint(g, width, height)
             } finally {
                 g.dispose()
             }
@@ -824,6 +847,7 @@ class SwingTerminal
             shellIntegrationDecorations.reset()
             visualGeometry.reset()
             selectionController.stopSelectionDrag()
+            visualBellController.stop()
             lastResizedColumns = NO_RESIZE_DIMENSION
             lastResizedRows = NO_RESIZE_DIMENSION
             renderFrameController.reset()
@@ -861,6 +885,7 @@ class SwingTerminal
             metrics = buildMetrics(settings)
             preferredSize = preferredGridSize(settings.columns, settings.rows)
             configureCursorTimerOnEdt()
+            configureVisualBellOnEdt()
             session?.let {
                 updateMinimizedStateFromAncestor()
                 applySettingsToSession(it, settings)
@@ -1047,6 +1072,15 @@ class SwingTerminal
             } else {
                 cursorTimer.stop()
             }
+        }
+
+        private fun configureVisualBellOnEdt() {
+            visualBellController.configure(
+                enabled = settings.visualBellEnabled,
+                colorArgb = settings.visualBellColor,
+                durationMillis = settings.visualBellDurationMillis,
+                edgeThicknessPixels = settings.visualBellEdgeThicknessPixels,
+            )
         }
 
         private fun resetScrollbackState() {

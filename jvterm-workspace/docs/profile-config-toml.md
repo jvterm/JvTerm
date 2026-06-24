@@ -30,6 +30,7 @@ cursor_shape = "block"            # cursor shape: block, underline, beam
 cursor_blink_millis = 500         # blink delay (0..5000, 0 means no blink)
 treat_ambiguous_as_wide = false   # sets East Asian Ambiguous width rendering policy
 audible_bell = false              # play audio beep sound on BEL
+visual_bell = true                # show a visual edge pulse on BEL
 paste_on_middle_click = true      # paste clipboard on mouse scroll wheel click
 shell_request_resize_window = true# permits running shell scripts to resize the window
 shell_request_window_manipulation = false # permits shell scripts to move, minimize, maximize, raise, lower window

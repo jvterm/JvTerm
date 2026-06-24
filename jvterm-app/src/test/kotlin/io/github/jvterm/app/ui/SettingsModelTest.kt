@@ -48,6 +48,7 @@ class SettingsModelTest {
         assertEquals(settings.fontSize, state.fontSize)
         assertEquals(settings.columns, state.columns)
         assertEquals(settings.shellPath, state.shellPath)
+        assertEquals(settings.visualBell, state.visualBell)
         assertEquals(settings.shellRequestResizeWindow, state.shellRequestResizeWindow)
         assertEquals(settings.shellRequestWindowManipulation, state.shellRequestWindowManipulation)
         assertFalse(model.hasChanges(state))
@@ -74,6 +75,7 @@ class SettingsModelTest {
             state.copy(
                 fontSize = 22,
                 columns = 120,
+                visualBell = false,
                 shellRequestResizeWindow = true,
                 shellRequestWindowManipulation = true,
             )
@@ -88,6 +90,7 @@ class SettingsModelTest {
         assertTrue(applied)
         assertEquals(22, settings.fontSize)
         assertEquals(120, settings.columns)
+        assertFalse(settings.visualBell)
         assertTrue(settings.shellRequestResizeWindow)
         assertTrue(settings.shellRequestWindowManipulation)
 

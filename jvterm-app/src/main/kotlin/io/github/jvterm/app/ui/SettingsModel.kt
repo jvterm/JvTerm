@@ -41,6 +41,7 @@ internal class SettingsModel(
             shellPath = settings.shellPath,
             startDirectory = settings.startDirectory,
             audibleBell = settings.audibleBell,
+            visualBell = settings.visualBell,
             pasteOnMiddleClick = settings.pasteOnMiddleClick,
             scrollbackLines = settings.scrollbackLines,
             lineHeight = settings.lineHeight.toDouble(),
@@ -67,6 +68,7 @@ internal class SettingsModel(
         settings.shellPath = finalShellPath
         settings.startDirectory = uiState.startDirectory
         settings.audibleBell = uiState.audibleBell
+        settings.visualBell = uiState.visualBell
         settings.pasteOnMiddleClick = uiState.pasteOnMiddleClick
         settings.scrollbackLines = uiState.scrollbackLines
         settings.lineHeight = uiState.lineHeight.toFloat()
@@ -103,6 +105,7 @@ internal data class SettingsState(
     val shellPath: String,
     val startDirectory: String,
     val audibleBell: Boolean,
+    val visualBell: Boolean,
     val pasteOnMiddleClick: Boolean,
     val scrollbackLines: Int,
     val lineHeight: Double,
