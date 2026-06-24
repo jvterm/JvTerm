@@ -29,10 +29,15 @@ object SshSessions {
      * Product UI layers should call it off the UI event thread.
      *
      * @param options SSH connection and terminal options.
+     * @param eventListener host callback listener for parsed terminal metadata.
      * @return running terminal session.
      */
     @JvmStatic
-    fun ssh(options: SshOptions): TerminalSession {
+    @JvmOverloads
+    fun ssh(
+        options: SshOptions,
+        eventListener: SshEventListener = SshEventListener.NONE,
+    ): TerminalSession {
         val connector = SshConnectors.create(options)
         val terminal =
             TerminalBuffers.create(
@@ -41,12 +46,15 @@ object SshSessions {
                 maxHistory = options.maxHistory,
             )
         terminal.setTreatAmbiguousAsWide(options.treatAmbiguousAsWide)
+        val hostEventBridge = SshSessionHostEventBridge(eventListener)
         val session =
             TerminalSession.create(
                 terminal = terminal,
                 connector = connector,
+                hostEvents = hostEventBridge,
                 inputPolicy = options.inputPolicy,
             )
+        hostEventBridge.attach(session)
         session.start(options.columns, options.rows)
         return session
     }

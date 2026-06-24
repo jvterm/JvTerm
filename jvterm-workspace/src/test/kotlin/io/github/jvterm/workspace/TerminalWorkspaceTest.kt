@@ -28,6 +28,8 @@ import io.github.jvterm.pty.PtyEventListener
 import io.github.jvterm.render.api.TerminalRenderFrameReader
 import io.github.jvterm.render.cache.TerminalRenderPublisher
 import io.github.jvterm.session.TerminalSession
+import io.github.jvterm.ssh.SshAuthentication
+import io.github.jvterm.ssh.SshEventListener
 import io.github.jvterm.transport.TerminalConnector
 import io.github.jvterm.transport.TerminalConnectorListener
 import kotlin.test.Test
@@ -245,6 +247,123 @@ class TerminalWorkspaceTest {
         capturedEventListener!!.shellIntegrationMarker(session, event)
 
         assertEquals(listOf(tab.id to event), markerEvents)
+    }
+
+    @Test
+    fun `ssh tab opens with ssh profile metadata and runtime authentication`() {
+        val session = testSession()
+        var openedProfile: TerminalSshProfile? = null
+        var openedOptions: TerminalWorkspaceSshOpenOptions? = null
+        val openedTabs = mutableListOf<TerminalWorkspaceTab>()
+        val auth = listOf(SshAuthentication.Password("secret"))
+        val workspace =
+            TerminalWorkspace(
+                listener =
+                    object : TerminalWorkspaceListener {
+                        override fun tabOpened(tab: TerminalWorkspaceTab) {
+                            openedTabs += tab
+                        }
+                    },
+                sessionFactory = TerminalWorkspaceSessionFactory { _, _, _ -> error("local factory should not be used") },
+                sshSessionFactory =
+                    TerminalWorkspaceSshSessionFactory { profile, options, _ ->
+                        openedProfile = profile
+                        openedOptions = options
+                        session
+                    },
+            )
+        val profile =
+            TerminalSshProfile(
+                id = "prod",
+                displayName = "Production",
+                host = "prod.example.com",
+                username = "deploy",
+            )
+        val options =
+            TerminalWorkspaceSshOpenOptions(
+                columns = 100,
+                rows = 30,
+                treatAmbiguousAsWide = true,
+                maxHistory = 500,
+                authentication = auth,
+            )
+
+        val tab = workspace.openSshTab(profile, options)
+
+        assertEquals(profile, openedProfile)
+        assertEquals(options, openedOptions)
+        assertEquals(profile, tab.sshProfile)
+        assertEquals(TerminalProfileKind.SSH, tab.profile.kind)
+        assertEquals("Production", tab.title)
+        assertEquals(tab, workspace.selectedTab())
+        assertEquals(listOf(tab), openedTabs)
+    }
+
+    @Test
+    fun `ssh session events are forwarded with owning tab`() {
+        var capturedEventListener: SshEventListener? = null
+        val session = testSession()
+        val titleEvents = mutableListOf<String>()
+        val directoryEvents = mutableListOf<String>()
+        val bellEvents = mutableListOf<String>()
+        val workspace =
+            TerminalWorkspace(
+                listener =
+                    object : TerminalWorkspaceListener {
+                        override fun titleChanged(
+                            tab: TerminalWorkspaceTab,
+                            title: String,
+                        ) {
+                            titleEvents += "${tab.id}:$title"
+                        }
+
+                        override fun currentWorkingDirectoryChanged(
+                            tab: TerminalWorkspaceTab,
+                            uri: String,
+                        ) {
+                            directoryEvents += "${tab.id}:$uri"
+                        }
+
+                        override fun bell(tab: TerminalWorkspaceTab) {
+                            bellEvents += tab.id
+                        }
+                    },
+                sessionFactory = TerminalWorkspaceSessionFactory { _, _, _ -> error("local factory should not be used") },
+                sshSessionFactory =
+                    TerminalWorkspaceSshSessionFactory { _, _, eventListener ->
+                        capturedEventListener = eventListener
+                        session
+                    },
+            )
+        val tab =
+            workspace.openSshTab(
+                profile =
+                    TerminalSshProfile(
+                        id = "dev",
+                        displayName = "Development",
+                        host = "dev.example.com",
+                        username = "me",
+                    ),
+                options =
+                    TerminalWorkspaceSshOpenOptions(
+                        columns = 80,
+                        rows = 24,
+                        treatAmbiguousAsWide = false,
+                        maxHistory = 100,
+                        authentication = emptyList(),
+                    ),
+            )
+        val eventListener = requireNotNull(capturedEventListener)
+
+        eventListener.currentWorkingDirectoryChanged(session, "file:///home/me/project")
+        eventListener.windowTitleChanged(session, "nvim")
+        eventListener.bell(session)
+
+        assertEquals("nvim", tab.title)
+        assertEquals(listOf("${tab.id}:project"), titleEvents.take(1))
+        assertEquals(listOf("${tab.id}:file:///home/me/project"), directoryEvents)
+        assertEquals(listOf("${tab.id}:nvim"), titleEvents.takeLast(1))
+        assertEquals(listOf(tab.id), bellEvents)
     }
 
     private fun testSession(): TerminalSession {

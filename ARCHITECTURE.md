@@ -45,6 +45,7 @@ The JvTerm codebase is partitioned into highly specialized modules with strict b
 | [**jvterm-transport-api**](./jvterm-transport-api) | Duplex Channel Contract | `TerminalConnector` interface, connection callbacks, size change signaling | Has no thread policies or payload inspection. |
 | [**jvterm-session**](./jvterm-session) | Pipeline Sync & Event Loop | Synchronized `mutationLock` and `outboundWriteLock`, daemon `renderWorker` coalescing, fast UTF-8 encoder | Does not own transport background threads or paint loops. |
 | [**jvterm-pty**](./jvterm-pty) | Native Process Host | Cross-platform Pty4J management, daemon reader/watcher threads, system default shell detection | Has no input encoding or grid cell mutations. |
+| [**jvterm-ssh**](./jvterm-ssh) | Remote SSH Host | SSH client connection, authentication, host-key verification, remote PTY shell channel, resize forwarding | Has no parser, grid, renderer, UI, or stored-secret policy. |
 | [**jvterm-ui-swing**](./jvterm-ui-swing) | Swing Component | `SwingTerminal` component, bifurcated text rendering, smart double-click path selection | Has no shell process awareness or protocol parsing. |
 | [**jvterm-testkit**](./jvterm-testkit) | Testing Fakes | In-memory `MockConnector`, outbound write capture, remote crash/exit simulators | Has no physical thread spawning or shell requirements. |
 

@@ -66,6 +66,7 @@ internal class ProfileIcons {
             TerminalProfileKind.ZSH -> "$RESOURCE_DIR/profile-zsh.svg"
             TerminalProfileKind.FISH -> "$RESOURCE_DIR/profile-fish.svg"
             TerminalProfileKind.NUSHELL -> "$RESOURCE_DIR/profile-nushell.svg"
+            TerminalProfileKind.SSH -> "$RESOURCE_DIR/profile-shell.svg"
             TerminalProfileKind.WSL -> "$RESOURCE_DIR/profile-wsl.svg"
             TerminalProfileKind.UNIX_SHELL,
             TerminalProfileKind.DEFAULT,

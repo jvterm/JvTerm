@@ -49,6 +49,9 @@ enum class TerminalProfileKind {
     /** Nushell. */
     NUSHELL,
 
+    /** Remote SSH terminal profile. */
+    SSH,
+
     /** Windows Subsystem for Linux (WSL) general command. */
     WSL,
 
@@ -79,6 +82,7 @@ enum class TerminalProfileKind {
             val normalizedId = id.lowercase(Locale.ROOT)
             val normalizedName = displayName.lowercase(Locale.ROOT)
 
+            if (isSsh(executable, normalizedId, normalizedName)) return SSH
             if (isPowerShell(executable, normalizedId, normalizedName)) return POWERSHELL
             if (isCommandPrompt(executable, normalizedId, normalizedName)) return COMMAND_PROMPT
             if (isUbuntu(executable, normalizedId, normalizedName, command)) return UBUNTU
@@ -193,6 +197,16 @@ enum class TerminalProfileKind {
                 id == "nu" ||
                 displayName.contains("nushell") ||
                 displayName.contains("nu shell")
+
+        private fun isSsh(
+            executable: String,
+            id: String,
+            displayName: String,
+        ): Boolean =
+            executable == "ssh" ||
+                executable == "ssh.exe" ||
+                id.startsWith("ssh:") ||
+                displayName.startsWith("ssh:")
 
         private fun isUnixShell(executable: String): Boolean = executable in unixShellExecutables
 

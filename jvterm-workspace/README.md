@@ -12,12 +12,13 @@ This module is designed to be completely decoupled from any specific UI toolkit,
 - **`:jvterm-transport-api`** (duplex connector contracts)
 - **`:jvterm-session`** (session orchestration and lock loops)
 - **`:jvterm-pty`** (local PTY process management and options)
+- **`:jvterm-ssh`** (remote SSH PTY shell sessions and runtime authentication)
 
 ---
 
 ## Architectural Role
 
-`TerminalWorkspace` manages a collection of tabs. Each tab wraps an active, running `TerminalSession` tied to a specific `TerminalProfile` launch configuration.
+`TerminalWorkspace` manages a collection of tabs. Each tab wraps an active, running `TerminalSession` tied to a local `TerminalProfile` or remote `TerminalSshProfile` launch configuration.
 
 ```mermaid
 graph TD
@@ -36,7 +37,8 @@ graph TD
 
 ### Key Components
 * [TerminalWorkspace](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/src/main/kotlin/io/github/jvterm/workspace/TerminalWorkspace.kt): The main lifecycle manager. Handles opening, selecting, closing, and applying settings updates to all open terminal tabs.
-* [TerminalProfile](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/src/main/kotlin/io/github/jvterm/workspace/TerminalProfile.kt): Describes a launch configuration (command, display name, working directory, environment variables).
+* [TerminalProfile](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/src/main/kotlin/io/github/jvterm/workspace/TerminalProfile.kt): Describes a local launch configuration (command, display name, working directory, environment variables).
+* [TerminalSshProfile](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/src/main/kotlin/io/github/jvterm/workspace/TerminalSshProfile.kt): Describes an SSH endpoint profile without storing secrets.
 * [TerminalWorkspaceConfigManager](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/src/main/kotlin/io/github/jvterm/workspace/config/TerminalWorkspaceConfigManager.kt): Handles loading and saving TOML-based configurations from OS-specific directories, with automatic parsing backups and value clamping.
 
 ---

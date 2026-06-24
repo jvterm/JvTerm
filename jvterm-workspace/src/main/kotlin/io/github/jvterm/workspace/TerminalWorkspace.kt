@@ -22,6 +22,11 @@ import io.github.jvterm.pty.PtyOptions
 import io.github.jvterm.pty.TerminalSessions
 import io.github.jvterm.render.api.TerminalColorPalette
 import io.github.jvterm.session.TerminalSession
+import io.github.jvterm.ssh.SshAuthentication
+import io.github.jvterm.ssh.SshEventListener
+import io.github.jvterm.ssh.SshHostKeyPolicy
+import io.github.jvterm.ssh.SshOptions
+import io.github.jvterm.ssh.SshSessions
 import java.net.URI
 import java.net.URISyntaxException
 import java.nio.file.Path
@@ -38,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger
 class TerminalWorkspace internal constructor(
     private val listener: TerminalWorkspaceListener,
     private val sessionFactory: TerminalWorkspaceSessionFactory,
+    private val sshSessionFactory: TerminalWorkspaceSshSessionFactory = SshWorkspaceSessionFactory,
 ) : AutoCloseable {
     /**
      * Creates a workspace backed by local PTY sessions.
@@ -79,12 +85,49 @@ class TerminalWorkspace internal constructor(
         options: TerminalWorkspaceOpenOptions,
     ): TerminalWorkspaceTab {
         val id = "terminal-${nextTabNumber.getAndIncrement()}"
-        val tabEventListener = tabEventListener(id)
-        val session = sessionFactory.open(profile, options, tabEventListener)
+        val dispatcher = TabEventDispatcher(id)
+        val session = sessionFactory.open(profile, options, ptyEventListener(dispatcher))
         val tab =
             TerminalWorkspaceTab(
                 id = id,
                 profile = profile,
+                sshProfile = null,
+                title = profile.displayName,
+                session = session,
+                onColorChanged = { t, color -> listener.colorChanged(t, color) },
+                onTitleChanged = { t, titleText -> listener.titleChanged(t, titleText) },
+                onCurrentWorkingDirectoryChanged = { t, uri -> listener.currentWorkingDirectoryChanged(t, uri) },
+            )
+        tabs += tab
+        session.currentWorkingDirectoryUri()?.let(tab::updateCurrentWorkingDirectoryUri)
+        selectTab(id)
+        listener.tabOpened(tab)
+        return tab
+    }
+
+    /**
+     * Opens a new SSH-backed tab.
+     *
+     * Credentials are supplied through [options] at runtime and are never read
+     * from or written to persisted workspace configuration.
+     *
+     * @param profile SSH launch profile for the remote shell.
+     * @param options initial session dimensions, authentication, and host-key policy.
+     * @return opened workspace tab.
+     */
+    fun openSshTab(
+        profile: TerminalSshProfile,
+        options: TerminalWorkspaceSshOpenOptions,
+    ): TerminalWorkspaceTab {
+        val id = "terminal-${nextTabNumber.getAndIncrement()}"
+        val dispatcher = TabEventDispatcher(id)
+        val session = sshSessionFactory.open(profile, options, sshEventListener(dispatcher))
+        val presentationProfile = profile.toPresentationProfile()
+        val tab =
+            TerminalWorkspaceTab(
+                id = id,
+                profile = presentationProfile,
+                sshProfile = profile,
                 title = profile.displayName,
                 session = session,
                 onColorChanged = { t, color -> listener.colorChanged(t, color) },
@@ -149,10 +192,10 @@ class TerminalWorkspace internal constructor(
         }
     }
 
-    private fun tabEventListener(tabId: String): PtyEventListener =
+    private fun ptyEventListener(dispatcher: TabEventDispatcher): PtyEventListener =
         object : PtyEventListener {
             override fun bell(session: TerminalSession) {
-                tabBySession(session)?.let { listener.bell(it) }
+                dispatcher.bell(session)
             }
 
             override fun iconTitleChanged(
@@ -164,16 +207,14 @@ class TerminalWorkspace internal constructor(
                 session: TerminalSession,
                 title: String,
             ) {
-                val tab = tabById(tabId) ?: return
-                tab.updateDynamicTitle(title.takeIf { it.isNotBlank() })
+                dispatcher.windowTitleChanged(title)
             }
 
             override fun currentWorkingDirectoryChanged(
                 session: TerminalSession,
                 uri: String,
             ) {
-                val tab = tabById(tabId) ?: return
-                tab.updateCurrentWorkingDirectoryUri(uri)
+                dispatcher.currentWorkingDirectoryChanged(uri)
             }
 
             override fun resizeWindow(
@@ -181,7 +222,7 @@ class TerminalWorkspace internal constructor(
                 rows: Int,
                 columns: Int,
             ) {
-                tabBySession(session)?.let { listener.resizeWindow(it, rows, columns) }
+                dispatcher.resizeWindow(session, rows, columns)
             }
 
             override fun moveWindow(
@@ -189,37 +230,37 @@ class TerminalWorkspace internal constructor(
                 x: Int,
                 y: Int,
             ) {
-                tabBySession(session)?.let { listener.moveWindow(it, x, y) }
+                dispatcher.moveWindow(session, x, y)
             }
 
             override fun minimizeWindow(session: TerminalSession) {
-                tabBySession(session)?.let { listener.minimizeWindow(it) }
+                dispatcher.minimizeWindow(session)
             }
 
             override fun deminimizeWindow(session: TerminalSession) {
-                tabBySession(session)?.let { listener.deminimizeWindow(it) }
+                dispatcher.deminimizeWindow(session)
             }
 
             override fun raiseWindow(session: TerminalSession) {
-                tabBySession(session)?.let { listener.raiseWindow(it) }
+                dispatcher.raiseWindow(session)
             }
 
             override fun lowerWindow(session: TerminalSession) {
-                tabBySession(session)?.let { listener.lowerWindow(it) }
+                dispatcher.lowerWindow(session)
             }
 
             override fun setMaximized(
                 session: TerminalSession,
                 maximize: Boolean,
             ) {
-                tabBySession(session)?.let { listener.setMaximized(it, maximize) }
+                dispatcher.setMaximized(session, maximize)
             }
 
             override fun shellIntegrationMarker(
                 session: TerminalSession,
                 event: ShellIntegrationEvent,
             ) {
-                tabBySession(session)?.let { listener.shellIntegrationMarker(it, event) }
+                dispatcher.shellIntegrationMarker(session, event)
             }
 
             override fun showNotification(
@@ -228,16 +269,184 @@ class TerminalWorkspace internal constructor(
                 body: String,
                 level: NotificationLevel,
             ) {
-                tabBySession(session)?.let { listener.showNotification(it, title, body, level) }
+                dispatcher.showNotification(session, title, body, level)
             }
 
             override fun listenerFailed(
                 session: TerminalSession,
                 exception: Exception,
             ) {
-                tabBySession(session)?.let { listener.listenerFailed(it, exception) }
+                dispatcher.listenerFailed(session, exception)
             }
         }
+
+    private fun sshEventListener(dispatcher: TabEventDispatcher): SshEventListener =
+        object : SshEventListener {
+            override fun bell(session: TerminalSession) {
+                dispatcher.bell(session)
+            }
+
+            override fun iconTitleChanged(
+                session: TerminalSession,
+                title: String,
+            ) = Unit
+
+            override fun windowTitleChanged(
+                session: TerminalSession,
+                title: String,
+            ) {
+                dispatcher.windowTitleChanged(title)
+            }
+
+            override fun currentWorkingDirectoryChanged(
+                session: TerminalSession,
+                uri: String,
+            ) {
+                dispatcher.currentWorkingDirectoryChanged(uri)
+            }
+
+            override fun resizeWindow(
+                session: TerminalSession,
+                rows: Int,
+                columns: Int,
+            ) {
+                dispatcher.resizeWindow(session, rows, columns)
+            }
+
+            override fun moveWindow(
+                session: TerminalSession,
+                x: Int,
+                y: Int,
+            ) {
+                dispatcher.moveWindow(session, x, y)
+            }
+
+            override fun minimizeWindow(session: TerminalSession) {
+                dispatcher.minimizeWindow(session)
+            }
+
+            override fun deminimizeWindow(session: TerminalSession) {
+                dispatcher.deminimizeWindow(session)
+            }
+
+            override fun raiseWindow(session: TerminalSession) {
+                dispatcher.raiseWindow(session)
+            }
+
+            override fun lowerWindow(session: TerminalSession) {
+                dispatcher.lowerWindow(session)
+            }
+
+            override fun setMaximized(
+                session: TerminalSession,
+                maximize: Boolean,
+            ) {
+                dispatcher.setMaximized(session, maximize)
+            }
+
+            override fun shellIntegrationMarker(
+                session: TerminalSession,
+                event: ShellIntegrationEvent,
+            ) {
+                dispatcher.shellIntegrationMarker(session, event)
+            }
+
+            override fun showNotification(
+                session: TerminalSession,
+                title: String,
+                body: String,
+                level: NotificationLevel,
+            ) {
+                dispatcher.showNotification(session, title, body, level)
+            }
+
+            override fun listenerFailed(
+                session: TerminalSession,
+                exception: Exception,
+            ) {
+                dispatcher.listenerFailed(session, exception)
+            }
+        }
+
+    private inner class TabEventDispatcher(
+        private val tabId: String,
+    ) {
+        fun bell(session: TerminalSession) {
+            tabBySession(session)?.let { listener.bell(it) }
+        }
+
+        fun windowTitleChanged(title: String) {
+            val tab = tabById(tabId) ?: return
+            tab.updateDynamicTitle(title.takeIf { it.isNotBlank() })
+        }
+
+        fun currentWorkingDirectoryChanged(uri: String) {
+            val tab = tabById(tabId) ?: return
+            tab.updateCurrentWorkingDirectoryUri(uri)
+        }
+
+        fun resizeWindow(
+            session: TerminalSession,
+            rows: Int,
+            columns: Int,
+        ) {
+            tabBySession(session)?.let { listener.resizeWindow(it, rows, columns) }
+        }
+
+        fun moveWindow(
+            session: TerminalSession,
+            x: Int,
+            y: Int,
+        ) {
+            tabBySession(session)?.let { listener.moveWindow(it, x, y) }
+        }
+
+        fun minimizeWindow(session: TerminalSession) {
+            tabBySession(session)?.let { listener.minimizeWindow(it) }
+        }
+
+        fun deminimizeWindow(session: TerminalSession) {
+            tabBySession(session)?.let { listener.deminimizeWindow(it) }
+        }
+
+        fun raiseWindow(session: TerminalSession) {
+            tabBySession(session)?.let { listener.raiseWindow(it) }
+        }
+
+        fun lowerWindow(session: TerminalSession) {
+            tabBySession(session)?.let { listener.lowerWindow(it) }
+        }
+
+        fun setMaximized(
+            session: TerminalSession,
+            maximize: Boolean,
+        ) {
+            tabBySession(session)?.let { listener.setMaximized(it, maximize) }
+        }
+
+        fun shellIntegrationMarker(
+            session: TerminalSession,
+            event: ShellIntegrationEvent,
+        ) {
+            tabBySession(session)?.let { listener.shellIntegrationMarker(it, event) }
+        }
+
+        fun showNotification(
+            session: TerminalSession,
+            title: String,
+            body: String,
+            level: NotificationLevel,
+        ) {
+            tabBySession(session)?.let { listener.showNotification(it, title, body, level) }
+        }
+
+        fun listenerFailed(
+            session: TerminalSession,
+            exception: Exception,
+        ) {
+            tabBySession(session)?.let { listener.listenerFailed(it, exception) }
+        }
+    }
 
     private fun tabById(id: String): TerminalWorkspaceTab? = tabs.firstOrNull { it.id == id }
 
@@ -253,6 +462,14 @@ internal fun interface TerminalWorkspaceSessionFactory {
         profile: TerminalProfile,
         options: TerminalWorkspaceOpenOptions,
         eventListener: PtyEventListener,
+    ): TerminalSession
+}
+
+internal fun interface TerminalWorkspaceSshSessionFactory {
+    fun open(
+        profile: TerminalSshProfile,
+        options: TerminalWorkspaceSshOpenOptions,
+        eventListener: SshEventListener,
     ): TerminalSession
 }
 
@@ -284,6 +501,30 @@ private object LocalPtyWorkspaceSessionFactory : TerminalWorkspaceSessionFactory
     private val DEFAULT_WORKING_DIRECTORY: Path = Path.of(System.getProperty("user.home"))
 }
 
+private object SshWorkspaceSessionFactory : TerminalWorkspaceSshSessionFactory {
+    override fun open(
+        profile: TerminalSshProfile,
+        options: TerminalWorkspaceSshOpenOptions,
+        eventListener: SshEventListener,
+    ): TerminalSession =
+        SshSessions.ssh(
+            options =
+                SshOptions(
+                    host = profile.host,
+                    username = profile.username,
+                    port = profile.port,
+                    authentication = options.authentication,
+                    hostKeyPolicy = options.resolvedHostKeyPolicy(profile),
+                    terminalType = profile.terminalType,
+                    columns = options.columns,
+                    rows = options.rows,
+                    treatAmbiguousAsWide = options.treatAmbiguousAsWide,
+                    maxHistory = options.maxHistory,
+                ),
+            eventListener = eventListener,
+        )
+}
+
 /**
  * Initial terminal options for a workspace tab.
  *
@@ -309,10 +550,47 @@ data class TerminalWorkspaceOpenOptions(
 }
 
 /**
+ * Initial terminal options for an SSH workspace tab.
+ *
+ * @property columns initial terminal width in cells.
+ * @property rows initial terminal height in rows.
+ * @property treatAmbiguousAsWide width policy for future writes.
+ * @property maxHistory max scrollback lines retained by the core buffer.
+ * @property authentication runtime SSH authentication credentials. Secrets in
+ * these values must come from product UI, keychain, or agent integration, not
+ * persisted workspace TOML.
+ * @property hostKeyPolicy optional explicit host-key policy. When null,
+ * [TerminalSshProfile.knownHostsPath] is used if present; otherwise the
+ * session rejects every host key.
+ */
+data class TerminalWorkspaceSshOpenOptions(
+    val columns: Int,
+    val rows: Int,
+    val treatAmbiguousAsWide: Boolean,
+    val maxHistory: Int,
+    val authentication: List<SshAuthentication>,
+    val hostKeyPolicy: SshHostKeyPolicy? = null,
+) {
+    init {
+        require(columns > 0) { "columns must be > 0, was $columns" }
+        require(rows > 0) { "rows must be > 0, was $rows" }
+        require(maxHistory >= 0) { "maxHistory must be >= 0, was $maxHistory" }
+    }
+
+    internal fun resolvedHostKeyPolicy(profile: TerminalSshProfile): SshHostKeyPolicy =
+        hostKeyPolicy
+            ?: profile.knownHostsPath?.let(SshHostKeyPolicy::knownHosts)
+            ?: SshHostKeyPolicy.rejectAll()
+}
+
+/**
  * Open workspace tab and its running session.
  *
  * @property id stable tab id.
- * @property profile launch profile used to create this tab.
+ * @property profile local/presentation launch profile used for existing host
+ * UI surfaces.
+ * @property sshProfile SSH launch profile for remote tabs, or `null` for local
+ * tabs.
  * @property title current host-visible tab title.
  * @property currentWorkingDirectoryUri latest valid OSC 7 directory URI, or
  *   `null` before one is reported.
@@ -321,6 +599,7 @@ data class TerminalWorkspaceOpenOptions(
 class TerminalWorkspaceTab internal constructor(
     val id: String,
     val profile: TerminalProfile,
+    val sshProfile: TerminalSshProfile? = null,
     title: String,
     val session: TerminalSession,
     private val onColorChanged: (TerminalWorkspaceTab, String?) -> Unit,
@@ -420,6 +699,10 @@ class TerminalWorkspaceTab internal constructor(
     }
 
     private fun isLaunchExecutableTitle(candidate: String): Boolean {
+        val ssh = sshProfile
+        if (ssh != null) {
+            return candidate == ssh.host || candidate == "${ssh.username}@${ssh.host}"
+        }
         val launchExecutable = profile.command.firstOrNull() ?: return false
         return executableTitleKey(candidate) == executableTitleKey(launchExecutable)
     }
@@ -436,6 +719,14 @@ class TerminalWorkspaceTab internal constructor(
         private const val MAX_DIRECTORY_TITLE_LENGTH = 256
     }
 }
+
+private fun TerminalSshProfile.toPresentationProfile(): TerminalProfile =
+    TerminalProfile(
+        id = "ssh:$id",
+        displayName = displayName,
+        command = listOf("ssh", "$username@$host"),
+        kind = TerminalProfileKind.SSH,
+    )
 
 /**
  * Host-neutral workspace events.

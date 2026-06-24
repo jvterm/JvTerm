@@ -20,6 +20,7 @@ plugins {
 
 dependencies {
     api(project(":jvterm-session"))
+    api(project(":jvterm-ssh"))
     implementation(project(":jvterm-pty"))
     implementation(project(":jvterm-render-api"))
 
