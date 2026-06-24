@@ -14,6 +14,7 @@ The target is a modern, secure, xterm-compatible terminal pipeline for contempor
 - `TODO(session)`: runtime synchronization, host-side state, or session-owned metadata is missing.
 - `TODO(ui)`: reusable UI presentation, interaction, or rendering behavior is missing.
 - `TODO(input)`: host-bound keyboard/mouse/paste encoding is missing.
+- `TODO(host/profile)`: product host, profile, or settings defaults are not exposed even though the lower-level terminal mechanism exists.
 - `TODO(policy)`: feature needs an explicit security or compatibility policy before implementation.
 
 ---
@@ -121,6 +122,8 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ## Input Module Gaps
 
+- `DONE(input/policy)`: paste encoding, bracketed-paste wrapping, and `TerminalInputPolicy` paste sanitization are implemented and tested. The encoder preserves payloads by default, can strip C0 controls except TAB/CR/LF, can normalize CRLF/lone-CR line endings, and wraps with `CSI 200~` / `CSI 201~` when bracketed paste mode is active.
+- `TODO(host/profile)`: expose product-level paste policy defaults for PTY, SSH, IDE/workspace embedding, and standalone app profiles; input already provides the mechanism.
 - `TODO(input)`: broader modified-key encoding:
   - xterm modifyOtherKeys subparameter mask support such as `CSI > 4 : 1 m`.
   - query/disable controls for xterm key modifier options.
@@ -158,5 +161,4 @@ These are not badges of compatibility for this project. They expand attack surfa
 - `DONE(host/policy)`: host-owned metadata and response controls have explicit policy gates and per-feature host caps for titles, hyperlinks, OSC 7 current-working-directory reports, notifications, palette controls, window manipulation, and terminal response channels.
 - `TODO(parser/policy)`: protocol-family-specific raw OSC/DCS parser payload ceilings beyond the parser's generic bound, especially before large graphics or clipboard protocols are enabled.
 - `DONE(host/policy)`: title/icon updates are host-gated through `HostPolicy.titlePolicy`, which models local vs remote session origin, local/remote allow decisions, and configurable oversized-title handling (`clamp` by default for standalone compatibility, or `reject` for stricter profiles).
-- `DONE(input/policy)`: paste sanitization and bracketed paste behavior are explicit in `TerminalInputPolicy`; remaining product work is host/profile default selection.
 - `DONE(policy)`: terminal capability identity policy is explicit in `TerminalCapabilityIdentity` and consumed by PTY launch defaults plus core terminal-to-host query responses.

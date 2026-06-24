@@ -97,7 +97,7 @@ For a detailed backlog of gaps and intentional non-goals, see the [Terminal Feat
   - Report all keys as escape codes (`8`).
   - Report associated text (`16`).
   - Supports flag application modes: Replace (`1`), Set (`2`), and Clear (`3`), with a bounded mode push/pop stack.
-- **Bracketed Paste**: paste payload wrapping (`CSI 200~` / `CSI 201~`) with configurable sanitization (stripping C0 controls and normalising line endings).
+- **Bracketed Paste**: paste payload wrapping (`CSI 200~` / `CSI 201~`) is driven by the input-facing core mode snapshot. `TerminalInputPolicy` controls payload handling before emission: raw passthrough by default, optional C0 stripping except TAB/CR/LF, or CRLF/lone-CR line-ending normalization. Product hosts still own which policy defaults are exposed for PTY, SSH, IDE, and standalone profiles.
 - **Focus Reporting**: Focus in/out sequences (`CSI I` / `CSI O`).
 - **Mouse Protocols**: SGR mouse tracking (`?1006`), legacy tracking (`ESC [ M` coordinate-clamped to one-based limit 223), UTF-8 mouse (`?1005`), URXVT mouse (`?1015`), and high-precision SGR-Pixels (`?1016`).
 
