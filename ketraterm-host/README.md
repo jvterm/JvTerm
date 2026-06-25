@@ -1,27 +1,27 @@
-# JvTerm Host (`:jvterm-host`)
+# KetraTerm Host (`:ketraterm-host`)
 
-The `jvterm-host` module serves as the production bridge and adapter layer between the byte-stream parser (`jvterm-parser`) and the headless state machine/grid engine (`jvterm-core`).
+The `ketraterm-host` module serves as the production bridge and adapter layer between the byte-stream parser (`ketraterm-parser`) and the headless state machine/grid engine (`ketraterm-core`).
 
 It acts as the single, thin, and explicit translation point where abstract semantic ANSI/DEC protocols become concrete terminal grid mutations, mode changes, and host-facing events.
 
 ---
 
 ## Upstream Dependencies
-- **`:jvterm-protocol`** (vocabulary, mode IDs, enums)
-- **`:jvterm-parser`** (FSM, UTF-8, semantic command sinks)
-- **`:jvterm-core`** (grid representation, text buffer, cell attributes, modes)
+- **`:ketraterm-protocol`** (vocabulary, mode IDs, enums)
+- **`:ketraterm-parser`** (FSM, UTF-8, semantic command sinks)
+- **`:ketraterm-core`** (grid representation, text buffer, cell attributes, modes)
 
 ---
 
 ## Architectural Role & Pipeline Flow
 
-The terminal pipeline operates in strict, unidirectional layers to preserve a Strong Single Responsibility Principle (SRP). `jvterm-host` sits at the center of this pipeline:
+The terminal pipeline operates in strict, unidirectional layers to preserve a Strong Single Responsibility Principle (SRP). `ketraterm-host` sits at the center of this pipeline:
 
 ```mermaid
 graph TD
-    HostBytes[Raw Byte Stream] -->|UTF-8 / Escape Sequences| Parser[jvterm-parser]
-    Parser -->|TerminalCommandSink semantic calls| Integration[jvterm-host: HostCommandAdapter]
-    Integration -->|TerminalBuffer mutations| Core[jvterm-core]
+    HostBytes[Raw Byte Stream] -->|UTF-8 / Escape Sequences| Parser[ketraterm-parser]
+    Parser -->|TerminalCommandSink semantic calls| Integration[ketraterm-host: HostCommandAdapter]
+    Integration -->|TerminalBuffer mutations| Core[ketraterm-core]
     Integration -->|HostEventSink callbacks| HostApp[Host UI Application]
 ```
 
@@ -36,8 +36,8 @@ graph TD
 ## Sub-Documentation
 
 For details on the hyperlink registry and mapping rules:
-* [hyperlink-registry.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-host/docs/hyperlink-registry.md) - OSC 8 URI mapping, numeric cell keys, and LRU eviction thresholds.
-* [command-adapter-mapping.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-host/docs/command-adapter-mapping.md) - Coordinate systems, screen buffer swapping logic, and soft/hard resets.
+* [hyperlink-registry.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-host/docs/hyperlink-registry.md) - OSC 8 URI mapping, numeric cell keys, and LRU eviction thresholds.
+* [command-adapter-mapping.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-host/docs/command-adapter-mapping.md) - Coordinate systems, screen buffer swapping logic, and soft/hard resets.
 
 ---
 
@@ -86,4 +86,4 @@ fun main() {
 
 ## How to Extend: Custom Event Sinks
 
-To react to non-grid events in a custom application UI (for example, to display window titles in an OS frame header), implement the [HostEventSink](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-host/src/main/kotlin/io/github/jvterm/host/HostEventSink.kt) interface and pass it to the `HostCommandAdapter` constructor during startup.
+To react to non-grid events in a custom application UI (for example, to display window titles in an OS frame header), implement the [HostEventSink](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-host/src/main/kotlin/io/github/ketraterm/host/HostEventSink.kt) interface and pass it to the `HostCommandAdapter` constructor during startup.

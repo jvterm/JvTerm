@@ -1,6 +1,6 @@
 # Terminal Core Agent Guide
 
-`jvterm-core` is the headless terminal state engine. It owns grid mutation,
+`ketraterm-core` is the headless terminal state engine. It owns grid mutation,
 cursor physics, scrollback, modes, tab stops, pen attributes, width policy, and
 cluster storage.
 
@@ -55,7 +55,7 @@ cluster references remain.
 
 ## Width Ownership
 
-Width calculation belongs here, not in `jvterm-parser`.
+Width calculation belongs here, not in `ketraterm-parser`.
 
 Core width policy must account for:
 

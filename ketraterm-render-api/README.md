@@ -1,6 +1,6 @@
-# JvTerm Render API (`:jvterm-render-api`)
+# KetraTerm Render API (`:ketraterm-render-api`)
 
-The `jvterm-render-api` module defines the strictly bounded, dependency-free public render contract and vocabulary shared across the terminal pipeline. It acts as the immutable, allocation-conscious bridge between stateful terminal state providers, frame caches, and UI rendering modules.
+The `ketraterm-render-api` module defines the strictly bounded, dependency-free public render contract and vocabulary shared across the terminal pipeline. It acts as the immutable, allocation-conscious bridge between stateful terminal state providers, frame caches, and UI rendering modules.
 
 This module is designed under a rigid **Single Responsibility Principle (SRP)**: it owns the stable representation of viewport frames, cursor states, cell flags, underline styles, color palettes, and attribute packing/decoding logic. It has no knowledge of grid physics, text input encoding, font selections, or specific platform painting lifecycles.
 
@@ -44,8 +44,8 @@ classDiagram
 
 ### What the Module Owns
 - **Stable Primitives & Encodings**: Value objects and interfaces representing frames, cursors, buffer kinds, and cursor shapes.
-- **Bitwise Layout Specifications**: High-performance, 64-bit packed attribute formats ([TerminalRenderAttrs](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-api/src/main/kotlin/io/github/jvterm/render/api/TerminalRenderAttrs.kt) and [TerminalRenderExtraAttrs](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-api/src/main/kotlin/io/github/jvterm/render/api/TerminalRenderExtraAttrs.kt)) and cell-level flags ([TerminalRenderCellFlags](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-api/src/main/kotlin/io/github/jvterm/render/api/TerminalRenderCellFlags.kt)).
-- **Color Palettes**: An immutable palette model ([TerminalColorPalette](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-api/src/main/kotlin/io/github/jvterm/render/api/TerminalColorPalette.kt)) that converts abstract ANSI/direct colors into packed ARGB integers for fast paint loops.
+- **Bitwise Layout Specifications**: High-performance, 64-bit packed attribute formats ([TerminalRenderAttrs](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-render-api/src/main/kotlin/io/github/ketraterm/render/api/TerminalRenderAttrs.kt) and [TerminalRenderExtraAttrs](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-render-api/src/main/kotlin/io/github/ketraterm/render/api/TerminalRenderExtraAttrs.kt)) and cell-level flags ([TerminalRenderCellFlags](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-render-api/src/main/kotlin/io/github/ketraterm/render/api/TerminalRenderCellFlags.kt)).
+- **Color Palettes**: An immutable palette model ([TerminalColorPalette](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-render-api/src/main/kotlin/io/github/ketraterm/render/api/TerminalColorPalette.kt)) that converts abstract ANSI/direct colors into packed ARGB integers for fast paint loops.
 
 ### What the Module Does NOT Own
 - **Core Internal Storage**: It never exposes or holds references to mutable ring buffers, cell objects, cursor coordinates, or grid physics.
@@ -56,8 +56,8 @@ classDiagram
 ## Sub-Documentation
 
 For deep-dive technical details on attribute packing and thread synchronization:
-* [attribute-packing.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-api/docs/attribute-packing.md) - Exact bit mapping layouts for 64-bit attributes.
-* [render-frame-lifecycle.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-api/docs/render-frame-lifecycle.md) - Lifespans, monotonic generations, and synchronization boundaries.
+* [attribute-packing.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-render-api/docs/attribute-packing.md) - Exact bit mapping layouts for 64-bit attributes.
+* [render-frame-lifecycle.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-render-api/docs/render-frame-lifecycle.md) - Lifespans, monotonic generations, and synchronization boundaries.
 
 ---
 

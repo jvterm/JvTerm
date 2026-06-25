@@ -1,6 +1,6 @@
 # Keyboard & Mouse Input Serialized Encodings
 
-The `jvterm-input` module translates high-level UI events (such as key strokes, mouse clicks, movements, and pasted text) into standard terminal escape sequences.
+The `ketraterm-input` module translates high-level UI events (such as key strokes, mouse clicks, movements, and pasted text) into standard terminal escape sequences.
 
 ---
 

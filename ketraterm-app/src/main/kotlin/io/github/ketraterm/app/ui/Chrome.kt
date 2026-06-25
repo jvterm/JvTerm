@@ -78,7 +78,7 @@ private data class ChromeColors(
  * owns only standalone chrome colors such as tab states, menus, and scrollbars.
  */
 internal object Chrome {
-    const val APP_TITLE = "JvTerm"
+    const val APP_TITLE = "KetraTerm"
 
     /** Root window background and deep surface. */
     val surface: Color

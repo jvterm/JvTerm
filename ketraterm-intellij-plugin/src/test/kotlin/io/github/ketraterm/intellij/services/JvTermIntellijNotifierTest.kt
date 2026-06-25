@@ -23,25 +23,25 @@ import org.junit.Test
 /**
  * Tests IntelliJ notification mapping without requiring an open IDE window.
  */
-class JvTermIntellijNotifierTest {
+class KetraTermIntellijNotifierTest {
     @Test
     fun `maps terminal severities to IntelliJ notification types`() {
-        assertEquals(NotificationType.INFORMATION, JvTermIntellijNotifier.notificationType(NotificationLevel.INFO))
-        assertEquals(NotificationType.INFORMATION, JvTermIntellijNotifier.notificationType(NotificationLevel.NONE))
-        assertEquals(NotificationType.WARNING, JvTermIntellijNotifier.notificationType(NotificationLevel.WARNING))
-        assertEquals(NotificationType.ERROR, JvTermIntellijNotifier.notificationType(NotificationLevel.ERROR))
+        assertEquals(NotificationType.INFORMATION, KetraTermIntellijNotifier.notificationType(NotificationLevel.INFO))
+        assertEquals(NotificationType.INFORMATION, KetraTermIntellijNotifier.notificationType(NotificationLevel.NONE))
+        assertEquals(NotificationType.WARNING, KetraTermIntellijNotifier.notificationType(NotificationLevel.WARNING))
+        assertEquals(NotificationType.ERROR, KetraTermIntellijNotifier.notificationType(NotificationLevel.ERROR))
     }
 
     @Test
     fun `blank notification title falls back to product name`() {
-        assertEquals("JvTerm", JvTermIntellijNotifier.displayTitle("  "))
+        assertEquals("KetraTerm", KetraTermIntellijNotifier.displayTitle("  "))
     }
 
     @Test
     fun `terminal notification text is escaped before publishing to IDE`() {
         assertEquals(
             "&lt;b&gt;&quot;build&quot; &amp; &#39;test&#39;&lt;/b&gt;",
-            JvTermIntellijNotifier.escapeNotificationText("<b>\"build\" & 'test'</b>"),
+            KetraTermIntellijNotifier.escapeNotificationText("<b>\"build\" & 'test'</b>"),
         )
     }
 
@@ -49,6 +49,6 @@ class JvTermIntellijNotifierTest {
     fun `plain terminal notification text is returned unchanged`() {
         val text = "build finished"
 
-        assertEquals(text, JvTermIntellijNotifier.escapeNotificationText(text))
+        assertEquals(text, KetraTermIntellijNotifier.escapeNotificationText(text))
     }
 }

@@ -28,7 +28,7 @@ import io.github.ketraterm.ui.swing.settings.TerminalTheme
  * The returned palette is immutable and stores packed ARGB integers, so the
  * Swing renderer can keep using its allocation-conscious color path.
  */
-internal object JvTermIntellijThemePalette {
+internal object KetraTermIntellijThemePalette {
     private const val MIN_READABLE_CONTRAST = 3.0
     private const val OPAQUE_MASK = 0xFF000000.toInt()
     private const val WHITE = OPAQUE_MASK or 0x00FFFFFF

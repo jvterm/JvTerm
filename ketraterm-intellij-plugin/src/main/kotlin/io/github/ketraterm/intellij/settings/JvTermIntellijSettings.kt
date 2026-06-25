@@ -31,21 +31,21 @@ private val TerminalTheme.id: String
     get() = name.lowercase(Locale.ROOT).replace('_', '-')
 
 /**
- * Application-level IntelliJ settings service for IDE-hosted JvTerm terminals.
+ * Application-level IntelliJ settings service for IDE-hosted KetraTerm terminals.
  *
  * IntelliJ persists this service through its native XML persistence model. The
- * standalone application keeps using TOML through `jvterm-workspace`; this
+ * standalone application keeps using TOML through `ketraterm-workspace`; this
  * class is the IntelliJ-only adapter that converts persisted IDE state into a
  * reusable [SwingSettings] snapshot.
  */
 @Service(Service.Level.APP)
 @State(
-    name = "JvTermIntellijSettings",
-    storages = [Storage(value = "jvterm.xml", roamingType = RoamingType.DEFAULT)],
+    name = "KetraTermIntellijSettings",
+    storages = [Storage(value = "ketraterm.xml", roamingType = RoamingType.DEFAULT)],
     category = SettingsCategory.TOOLS,
 )
-class JvTermIntellijSettings :
-    SerializablePersistentStateComponent<JvTermIntellijSettings.State>(State()) {
+class KetraTermIntellijSettings :
+    SerializablePersistentStateComponent<KetraTermIntellijSettings.State>(State()) {
     private val changeListeners = CopyOnWriteArrayList<() -> Unit>()
 
     /**
@@ -53,7 +53,7 @@ class JvTermIntellijSettings :
      *
      * @return immutable Swing terminal settings.
      */
-    fun current(): SwingSettings = JvTermIntellijSettingsMapper.toSwingSettings(state)
+    fun current(): SwingSettings = KetraTermIntellijSettingsMapper.toSwingSettings(state)
 
     /**
      * Replaces persisted IDE terminal settings with a normalized state.
@@ -61,7 +61,7 @@ class JvTermIntellijSettings :
      * @param nextState new settings state produced by the IntelliJ settings UI.
      */
     fun replaceState(nextState: State) {
-        val normalized = JvTermIntellijSettingsNormalizer.normalize(nextState)
+        val normalized = KetraTermIntellijSettingsNormalizer.normalize(nextState)
         val oldState = state
         if (normalized == oldState) return
         updateState { normalized }
@@ -207,11 +207,11 @@ class JvTermIntellijSettings :
         const val DEFAULT_FONT_FAMILY: String = "JetBrains Mono"
 
         /**
-         * Returns the application-level JvTerm settings service.
+         * Returns the application-level KetraTerm settings service.
          *
          * @return IntelliJ settings service.
          */
-        fun getInstance(): JvTermIntellijSettings = service()
+        fun getInstance(): KetraTermIntellijSettings = service()
 
         /**
          * Returns the current Swing settings snapshot from the application service.
@@ -234,16 +234,16 @@ class JvTermIntellijSettings :
 /**
  * Normalizes persisted IntelliJ settings before they are saved or mapped.
  */
-internal object JvTermIntellijSettingsNormalizer {
+internal object KetraTermIntellijSettingsNormalizer {
     /**
      * Returns a state with validated bounds and canonical identifiers.
      *
      * @param state persisted or UI-produced state.
      * @return normalized state safe to persist.
      */
-    fun normalize(state: JvTermIntellijSettings.State): JvTermIntellijSettings.State =
+    fun normalize(state: KetraTermIntellijSettings.State): KetraTermIntellijSettings.State =
         state.copy(
-            themeId = JvTermIntellijSettings.normalizeThemeId(state.themeId),
+            themeId = KetraTermIntellijSettings.normalizeThemeId(state.themeId),
             fontFamily = normalizeFontFamily(state.fontFamily),
             fallbackFontFamily = normalizeFontFamily(state.fallbackFontFamily),
             fontSize =
@@ -314,7 +314,7 @@ internal object JvTermIntellijSettingsNormalizer {
     }
 
     private fun normalizeFontFamily(fontFamily: String): String =
-        fontFamily.trim().ifBlank { JvTermIntellijSettings.DEFAULT_FONT_FAMILY }
+        fontFamily.trim().ifBlank { KetraTermIntellijSettings.DEFAULT_FONT_FAMILY }
 
     private fun normalizeEnvironmentText(text: String): String =
         parseEnvironmentVariables(text)
@@ -363,15 +363,15 @@ internal object JvTermIntellijSettingsNormalizer {
 /**
  * Converts IntelliJ persisted state into host-neutral Swing terminal settings.
  */
-internal object JvTermIntellijSettingsMapper {
+internal object KetraTermIntellijSettingsMapper {
     /**
      * Creates a Swing settings snapshot from [state].
      *
      * @param state persisted IntelliJ settings state.
      * @return immutable Swing terminal settings.
      */
-    fun toSwingSettings(state: JvTermIntellijSettings.State): SwingSettings {
-        val normalized = JvTermIntellijSettingsNormalizer.normalize(state)
+    fun toSwingSettings(state: KetraTermIntellijSettings.State): SwingSettings {
+        val normalized = KetraTermIntellijSettingsNormalizer.normalize(state)
         val fontSize = normalized.fontSize
         val fontFamily = SwingSettings.resolveFontFamily(normalized.fontFamily)
         val fallbackFontFamily = SwingSettings.resolveFontFamily(normalized.fallbackFontFamily)
@@ -397,8 +397,8 @@ internal object JvTermIntellijSettingsMapper {
     }
 
     private fun paletteForThemeId(themeId: String) =
-        when (val normalized = JvTermIntellijSettings.normalizeThemeId(themeId)) {
-            JvTermIntellijSettings.DEFAULT_THEME_ID -> JvTermIntellijThemePalette.currentIntellijPalette()
+        when (val normalized = KetraTermIntellijSettings.normalizeThemeId(themeId)) {
+            KetraTermIntellijSettings.DEFAULT_THEME_ID -> KetraTermIntellijThemePalette.currentIntellijPalette()
             else -> TerminalTheme.entries.first { it.id == normalized }.createPalette()
         }
 

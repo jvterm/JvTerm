@@ -1,6 +1,6 @@
 # Profile Configuration Syntax & Path Resolution
 
-The `jvterm-workspace` module manages load-time user profiles, color themes, font preferences, and local environment setups stored in a standardized **TOML** configuration file.
+The `ketraterm-workspace` module manages load-time user profiles, color themes, font preferences, and local environment setups stored in a standardized **TOML** configuration file.
 
 ---
 
@@ -9,7 +9,7 @@ The `jvterm-workspace` module manages load-time user profiles, color themes, fon
 The configuration file is divided into clean blocks describing different parts of the workspace environment:
 
 ```toml
-# Default JvTerm configuration
+# Default KetraTerm configuration
 
 [window]
 columns = 80              # Grid columns (10..500)
@@ -48,13 +48,13 @@ start_directory = ""              # Shell startup directory
 The config manager resolves the location of the `config.toml` file dynamically across operating systems:
 
 1. **System Property Override**:
-   * Uses `-Djvterm.config.path=/path/to/config.toml` if defined.
+   * Uses `-Dketraterm.config.path=/path/to/config.toml` if defined.
 2. **Environment Variable Override**:
-   * Uses the env variable `JVTERM_CONFIG_PATH=/path/to/config.toml` if defined.
+   * Uses the env variable `KetraTerm_CONFIG_PATH=/path/to/config.toml` if defined.
 3. **OS-Specific Default Directories**:
-   * **Windows**: `%APPDATA%\JvTerm\config.toml` (falls back to `%USERPROFILE%\.config\jvterm\config.toml`).
-   * **macOS**: `~/Library/Application Support/JvTerm/config.toml`.
-   * **Linux/Unix**: `$XDG_CONFIG_HOME/jvterm/config.toml` (falls back to `~/.config/jvterm/config.toml`).
+   * **Windows**: `%APPDATA%\KetraTerm\config.toml` (falls back to `%USERPROFILE%\.config\ketraterm\config.toml`).
+   * **macOS**: `~/Library/Application Support/KetraTerm/config.toml`.
+   * **Linux/Unix**: `$XDG_CONFIG_HOME/ketraterm/config.toml` (falls back to `~/.config/ketraterm/config.toml`).
 
 ---
 

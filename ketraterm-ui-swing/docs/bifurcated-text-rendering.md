@@ -1,6 +1,6 @@
 # Bifurcated Text Rendering Pipeline & Font Fallbacks
 
-Text rendering is the primary CPU hotspot in terminal emulators. To achieve high frame rates and support modern Unicode features, `jvterm-ui-swing` implements a bifurcated rendering engine.
+Text rendering is the primary CPU hotspot in terminal emulators. To achieve high frame rates and support modern Unicode features, `ketraterm-ui-swing` implements a bifurcated rendering engine.
 
 ---
 

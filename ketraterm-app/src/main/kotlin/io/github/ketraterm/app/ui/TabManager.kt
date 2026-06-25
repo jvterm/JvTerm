@@ -15,7 +15,7 @@
  */
 package io.github.ketraterm.app.ui
 
-import io.github.ketraterm.app.config.JvTermSettings
+import io.github.ketraterm.app.config.KetraTermSettings
 import io.github.ketraterm.app.history.CommandHistoryStore
 import io.github.ketraterm.workspace.*
 import java.awt.*
@@ -41,7 +41,7 @@ internal class TabManager(
     private val frame: JFrame,
     val tabBar: TabBar,
     private val tabContentPanel: JPanel,
-    private val settings: JvTermSettings,
+    private val settings: KetraTermSettings,
     private val defaultProfileProvider: () -> TerminalProfile,
 ) {
     private val panes = ArrayList<TerminalPane>(INITIAL_TAB_CAPACITY)

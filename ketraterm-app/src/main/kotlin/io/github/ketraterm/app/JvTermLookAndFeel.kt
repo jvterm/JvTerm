@@ -25,7 +25,7 @@ import javax.swing.UIManager
 /**
  * Installs the standalone application's Swing look and feel.
  */
-internal object JvTermLookAndFeel {
+internal object KetraTermLookAndFeel {
     fun install() {
         try {
             System.setProperty("flatlaf.useWindowDecorations", "true")

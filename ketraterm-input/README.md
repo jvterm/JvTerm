@@ -1,20 +1,20 @@
-# JvTerm Input (`:jvterm-input`)
+# KetraTerm Input (`:ketraterm-input`)
 
-The `jvterm-input` module is the platform-agnostic, host-bound input encoding engine for **JvTerm Terminal**. It converts UI-level, platform-neutral events—such as keyboard presses, text paste, window focus transitions, and mouse pointer actions—into standardized ANSI/DEC/xterm byte sequences written to the terminal host's input stream.
+The `ketraterm-input` module is the platform-agnostic, host-bound input encoding engine for **KetraTerm Terminal**. It converts UI-level, platform-neutral events—such as keyboard presses, text paste, window focus transitions, and mouse pointer actions—into standardized ANSI/DEC/xterm byte sequences written to the terminal host's input stream.
 
 The module is engineered to be highly performant, allocation-minimal, and robust, with explicit support for modern shell and TUI protocols (e.g., bracketed paste, focus reporting, SGR mouse tracking, and xterm `modifyOtherKeys`).
 
 ---
 
 ## Upstream Dependencies
-- **`:jvterm-protocol`** (for shared mouse, keyboard, and mode constants).
-- **`:jvterm-core`** (for reading terminal input state and modes).
+- **`:ketraterm-protocol`** (for shared mouse, keyboard, and mode constants).
+- **`:ketraterm-core`** (for reading terminal input state and modes).
 
 ---
 
 ## Architectural Scope & Flow
 
-To preserve a strict separation of concerns, `jvterm-input` operates under clear design constraints:
+To preserve a strict separation of concerns, `ketraterm-input` operates under clear design constraints:
 
 ```text
 UI Adapter  ───►  Terminal Event Loop Actor  ───►  TerminalInputEncoder  ───►  TerminalHostOutput  ───►  PTY stdin
@@ -23,9 +23,9 @@ Parser/Core Replies  ───────────────────�
 ```
 
 ### What the Module Owns
-- **Platform-Neutral Models**: Normalized representation of [TerminalKeyEvent](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-input/src/main/kotlin/io/github/jvterm/input/event/TerminalKeyEvent.kt), [TerminalPasteEvent](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-input/src/main/kotlin/io/github/jvterm/input/event/TerminalPasteEvent.kt), [TerminalFocusEvent](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-input/src/main/kotlin/io/github/jvterm/input/event/TerminalFocusEvent.kt), and [TerminalMouseEvent](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-input/src/main/kotlin/io/github/jvterm/input/event/TerminalMouseEvent.kt).
+- **Platform-Neutral Models**: Normalized representation of [TerminalKeyEvent](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-input/src/main/kotlin/io/github/ketraterm/input/event/TerminalKeyEvent.kt), [TerminalPasteEvent](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-input/src/main/kotlin/io/github/ketraterm/input/event/TerminalPasteEvent.kt), [TerminalFocusEvent](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-input/src/main/kotlin/io/github/ketraterm/input/event/TerminalFocusEvent.kt), and [TerminalMouseEvent](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-input/src/main/kotlin/io/github/ketraterm/input/event/TerminalMouseEvent.kt).
 - **ANSI/DEC Encoding**: Translating events into byte sequences based on the terminal's active modes.
-- **Input Policy**: Decision-making policies ([TerminalInputPolicy](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-input/src/main/kotlin/io/github/jvterm/input/policy/TerminalInputPolicy.kt)) for handling backspace bytes, meta keys, and paste sanitization.
+- **Input Policy**: Decision-making policies ([TerminalInputPolicy](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-input/src/main/kotlin/io/github/ketraterm/input/policy/TerminalInputPolicy.kt)) for handling backspace bytes, meta keys, and paste sanitization.
 
 ### What the Module Does NOT Own
 - **Terminal Output Parsing**: The input module never parses byte streams or terminal replies.
@@ -36,8 +36,8 @@ Parser/Core Replies  ───────────────────�
 ## Sub-Documentation
 
 For specifications on the input API contract and wire formats:
-* [terminal-input-contract.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-input/docs/terminal-input-contract.md) - Input event definitions, validation criteria, modifiers, and thread-safety limits.
-* [keyboard-mouse-encoding.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-input/docs/keyboard-mouse-encoding.md) - Escape sequence specifications for cursor modes, modifyOtherKeys, CSI-u, and mouse coordinates (SGR/legacy/URXVT).
+* [terminal-input-contract.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-input/docs/terminal-input-contract.md) - Input event definitions, validation criteria, modifiers, and thread-safety limits.
+* [keyboard-mouse-encoding.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-input/docs/keyboard-mouse-encoding.md) - Escape sequence specifications for cursor modes, modifyOtherKeys, CSI-u, and mouse coordinates (SGR/legacy/URXVT).
 
 ---
 

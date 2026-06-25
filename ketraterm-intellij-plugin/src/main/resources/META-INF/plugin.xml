@@ -1,12 +1,12 @@
 <idea-plugin>
     <id>io.github.ketraterm.terminal</id>
 
-    <name>JvTerm</name>
+    <name>KetraTerm</name>
 
-    <vendor url="https://github.com/jvterm/JvTerm">JvTerm</vendor>
+    <vendor url="https://github.com/ketraterm/KetraTerm">KetraTerm</vendor>
 
     <description><![CDATA[
-        JvTerm terminal emulator integration for IntelliJ Platform IDEs.
+        KetraTerm terminal emulator integration for IntelliJ Platform IDEs.
         ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -15,20 +15,20 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable parentId="tools"
-                                 instance="io.github.ketraterm.intellij.settings.JvTermSettingsConfigurable"
+                                 instance="io.github.ketraterm.intellij.settings.KetraTermSettingsConfigurable"
                                  id="io.github.ketraterm.terminal.settings"
-                                 key="settings.jvterm.displayName"
+                                 key="settings.ketraterm.displayName"
                                  bundle="messages.MyMessageBundle"/>
 
-        <notificationGroup id="JvTerm Terminal"
+        <notificationGroup id="KetraTerm Terminal"
                            displayType="BALLOON"
-                           key="notification.group.jvterm.terminal"/>
+                           key="notification.group.ketraterm.terminal"/>
 
-        <toolWindow id="JvTerm"
+        <toolWindow id="KetraTerm"
                     anchor="bottom"
                     canCloseContents="true"
-                    factoryClass="io.github.ketraterm.intellij.ui.JvTermToolWindowFactory"
-                    icon="/icons/jvterm-toolwindow.svg"/>
+                    factoryClass="io.github.ketraterm.intellij.ui.KetraTermToolWindowFactory"
+                    icon="/icons/ketraterm-toolwindow.svg"/>
     </extensions>
 
 </idea-plugin>

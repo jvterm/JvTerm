@@ -20,20 +20,20 @@ import java.nio.file.Path
 import javax.swing.SwingUtilities
 
 /**
- * Starts the JvTerm standalone terminal application.
+ * Starts the KetraTerm standalone terminal application.
  */
 fun main(args: Array<String>) {
     SwingUtilities.invokeLater {
-        JvTermApp.start(args.toList())
+        KetraTermApp.start(args.toList())
     }
 }
 
-private object JvTermApp {
+private object KetraTermApp {
     fun start(args: List<String>) {
-        JvTermLookAndFeel.install()
+        KetraTermLookAndFeel.install()
 
         val settings =
-            _root_ide_package_.io.github.ketraterm.app.config.JvTermSettings()
+            _root_ide_package_.io.github.ketraterm.app.config.KetraTermSettings()
         io.github.ketraterm.app.ui.Chrome
             .applyPalette(settings.current().palette)
         val profileRegistry =

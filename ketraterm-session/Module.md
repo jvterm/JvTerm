@@ -1,23 +1,23 @@
-# Module jvterm-session
+# Module ketraterm-session
 
-## JvTerm Session (`:jvterm-session`)
+## KetraTerm Session (`:ketraterm-session`)
 
-The `jvterm-session` module is the central orchestration hub and runtime synchronization engine of the **JvTerm Terminal** pipeline. It coordinates the data-flow between the asynchronous transport layer, the byte-stream parser, the headless terminal grid, and platform-agnostic keyboard/mouse input encoders.
+The `ketraterm-session` module is the central orchestration hub and runtime synchronization engine of the **KetraTerm Terminal** pipeline. It coordinates the data-flow between the asynchronous transport layer, the byte-stream parser, the headless terminal grid, and platform-agnostic keyboard/mouse input encoders.
 
 The module encapsulates the synchronization policies necessary to support concurrent multithreaded execution—ensuring that rapid host output, user keystrokes, window resizing, and UI rendering frames never corrupt the terminal state.
 
 ---
 
 ## Upstream Dependencies
-- **`:jvterm-protocol`** (vocabulary, mode IDs, enums)
-- **`:jvterm-render-api`** (render frame contracts)
-- **`:jvterm-render-cache`** (triple-buffered frame publication)
-- **`:jvterm-transport-api`** (duplex connector contracts)
-- **`:jvterm-parser`** (byte-stream parser)
-- **`:jvterm-core`** (headless terminal grid)
-- **`:jvterm-host`** (command mapping and security policies)
-- **`:jvterm-input`** (keyboard/mouse encoding and policies)
-- **`:jvterm-testkit`** (test connector doubles)
+- **`:ketraterm-protocol`** (vocabulary, mode IDs, enums)
+- **`:ketraterm-render-api`** (render frame contracts)
+- **`:ketraterm-render-cache`** (triple-buffered frame publication)
+- **`:ketraterm-transport-api`** (duplex connector contracts)
+- **`:ketraterm-parser`** (byte-stream parser)
+- **`:ketraterm-core`** (headless terminal grid)
+- **`:ketraterm-host`** (command mapping and security policies)
+- **`:ketraterm-input`** (keyboard/mouse encoding and policies)
+- **`:ketraterm-testkit`** (test connector doubles)
 
 ---
 
@@ -30,7 +30,7 @@ Parser/Core Replies  ───────────────────�
 ```
 
 The session integrates all independent components into a single lifecycle loop:
-1. **PTY Inbound**: Raw bytes arriving from [TerminalConnector](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-transport-api/src/main/kotlin/io/github/jvterm/transport/TerminalConnector.kt) are parsed and applied to the core [TerminalBuffer](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-core/src/main/kotlin/io/github/jvterm/core/api/TerminalBuffer.kt).
+1. **PTY Inbound**: Raw bytes arriving from [TerminalConnector](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-transport-api/src/main/kotlin/io/github/ketraterm/transport/TerminalConnector.kt) are parsed and applied to the core [TerminalBuffer](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-core/src/main/kotlin/io/github/ketraterm/core/api/TerminalBuffer.kt).
 2. **UI Outbound**: Key strokes and paste events are serialized, encoded, and written back to the connector stdin.
 3. **Cache Synchronization**: Render cache updates are scheduled on background workers and published to the triple-buffered cache.
 

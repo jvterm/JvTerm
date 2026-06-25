@@ -1,15 +1,15 @@
-# Module jvterm-testkit
+# Module ketraterm-testkit
 
-## JvTerm Testkit (`:jvterm-testkit`)
+## KetraTerm Testkit (`:ketraterm-testkit`)
 
-The `jvterm-testkit` module is the dedicated test double and mock harness module for JvTerm Terminal. It provides in-memory connectors and lifecycle simulation tools for testing terminal runtimes, transport layers, and host-bound input/output loops without spinning up physical shells, PTYs, or socket connections.
+The `ketraterm-testkit` module is the dedicated test double and mock harness module for KetraTerm Terminal. It provides in-memory connectors and lifecycle simulation tools for testing terminal runtimes, transport layers, and host-bound input/output loops without spinning up physical shells, PTYs, or socket connections.
 
-By decoupling testing from physical operating system interfaces (like OS-level pseudo-terminals or SSH processes), `jvterm-testkit` enables ultra-fast, deterministic, and platform-agnostic testing of terminal components.
+By decoupling testing from physical operating system interfaces (like OS-level pseudo-terminals or SSH processes), `ketraterm-testkit` enables ultra-fast, deterministic, and platform-agnostic testing of terminal components.
 
 ---
 
 ## Upstream Dependencies
-* **`:jvterm-transport-api`** (for standard connector and listener contracts).
+* **`:ketraterm-transport-api`** (for standard connector and listener contracts).
 
 ---
 
@@ -107,5 +107,5 @@ class ConnectorTest {
 
 To run the checks for this module:
 ```bash
-./gradlew :jvterm-testkit:test
+./gradlew :ketraterm-testkit:test
 ```

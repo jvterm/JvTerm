@@ -1,6 +1,6 @@
 ---
 name: terminal-naming-convention
-description: Naming conventions and file layout policy for JVM Terminal (JVTerm) codebase. Use when creating new classes, renaming files, adding public APIs, application components, or internal adapters.
+description: Naming conventions and file layout policy for JVM Terminal (KetraTerm) codebase. Use when creating new classes, renaming files, adding public APIs, application components, or internal adapters.
 ---
 
 # JVM Terminal Naming Conventions
@@ -16,14 +16,14 @@ Public classes and interfaces that represent primary cross-module abstractions m
 
 ## 2. Module-Specific Public APIs (Distinguishing Prefixes)
 When a module has a strong distinguishing prefix, use it instead of the generic `Terminal` prefix to avoid verbosity and redundant stuttering.
-- **Swing UI (`jvterm-ui-swing`)**: Use the `Swing*` prefix.
+- **Swing UI (`ketraterm-ui-swing`)**: Use the `Swing*` prefix.
   - *Yes*: `SwingTerminal`, `SwingHostServices`, `SwingSettings`, `SwingMetrics`.
   - *No*: `SwingTerminal`, `SwingSettings`, `SwingMetrics`.
-- **PTY Processes (`jvterm-pty`)**: Use the `Pty*` prefix.
+- **PTY Processes (`ketraterm-pty`)**: Use the `Pty*` prefix.
   - *Yes*: `PtyOptions`, `PtyEventListener`, `PtyConnector`, `PtyConnectors`.
   - *No*: `PtyOptions`, `PtyEventListener`, `TerminalSessions` (as a PTY factory).
   - *Note*: High-level public session creation should go through `TerminalSessions.localPty(...)` to provide a single, unified factory entry-point rather than exposing local PTY factories.
-- **Cell Styling (`jvterm-core`)**: Use the `Cell*` prefix.
+- **Cell Styling (`ketraterm-core`)**: Use the `Cell*` prefix.
   - *Yes*: `CellAttributes`, `CellColor`, `CellColorKind`.
   - *No*: `TerminalAttributes`, `TerminalColor`, `TerminalColorKind`.
 
@@ -37,9 +37,9 @@ Use the `Host*` prefix for parser-to-core host metadata and policy APIs to keep 
 ---
 
 ## 4. Product/Application Layer
-Use the `JvTerm*` prefix only for runnable applications, shell wrappers, or look-and-feel classes. Do not use it for library-level models or parsers.
-- *Yes*: `JvTermApp`, `JvTermLookAndFeel`, `JvTermLauncher`.
-- *No*: `JvTermBuffer`, `JvTermParser`, `JvTermSession`.
+Use the `KetraTerm*` prefix only for runnable applications, shell wrappers, or look-and-feel classes. Do not use it for library-level models or parsers.
+- *Yes*: `KetraTermApp`, `KetraTermLookAndFeel`, `KetraTermLauncher`.
+- *No*: `KetraTermBuffer`, `KetraTermParser`, `KetraTermSession`.
 
 ---
 

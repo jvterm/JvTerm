@@ -31,7 +31,7 @@ private const val PROFILE_ICON_HEIGHT = 16
 /**
  * IntelliJ-side loader for shell profile icons keyed by shared profile kind.
  */
-internal class JvTermIntellijProfileIcons {
+internal class KetraTermIntellijProfileIcons {
     private val icons = EnumMap<TerminalProfileKind, Icon>(TerminalProfileKind::class.java)
 
     /**
@@ -43,7 +43,7 @@ internal class JvTermIntellijProfileIcons {
     fun icon(profileKind: TerminalProfileKind): Icon =
         icons.getOrPut(profileKind) {
             FixedSizeIcon(
-                IconLoader.getIcon(resourcePath(profileKind), JvTermIntellijProfileIcons::class.java),
+                IconLoader.getIcon(resourcePath(profileKind), KetraTermIntellijProfileIcons::class.java),
                 PROFILE_ICON_WIDTH,
                 PROFILE_ICON_HEIGHT,
             )

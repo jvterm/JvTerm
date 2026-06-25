@@ -1,20 +1,20 @@
-# Module jvterm-pty
+# Module ketraterm-pty
 
-## JvTerm PTY (`:jvterm-pty`)
+## KetraTerm PTY (`:ketraterm-pty`)
 
-The `jvterm-pty` module owns the lifecycle management, process stream pumping, and terminal size synchronizations of local, host-backed pseudo-terminal (PTY) processes.
+The `ketraterm-pty` module owns the lifecycle management, process stream pumping, and terminal size synchronizations of local, host-backed pseudo-terminal (PTY) processes.
 
-Using JetBrains [Pty4J](https://github.com/JetBrains/pty4j) as the underlying native transport layer, this module exposes system-bound shells (such as `cmd.exe` on Windows or `bash`/`zsh` on macOS/Linux) through standard `jvterm-transport-api` abstractions. It also provides factory entry points to wire process byte-streams directly into the synchronized terminal session runtime (`jvterm-session`).
+Using JetBrains [Pty4J](https://github.com/JetBrains/pty4j) as the underlying native transport layer, this module exposes system-bound shells (such as `cmd.exe` on Windows or `bash`/`zsh` on macOS/Linux) through standard `ketraterm-transport-api` abstractions. It also provides factory entry points to wire process byte-streams directly into the synchronized terminal session runtime (`ketraterm-session`).
 
 ---
 
 ## Upstream Dependencies
-- **`:jvterm-protocol`** (vocabulary, mode IDs, enums)
-- **`:jvterm-transport-api`** (duplex connector contracts)
-- **`:jvterm-core`** (headless terminal grid)
-- **`:jvterm-host`** (command mapping and security policies)
-- **`:jvterm-input`** (keyboard/mouse encoding and policies)
-- **`:jvterm-session`** (session orchestration and lock loops)
+- **`:ketraterm-protocol`** (vocabulary, mode IDs, enums)
+- **`:ketraterm-transport-api`** (duplex connector contracts)
+- **`:ketraterm-core`** (headless terminal grid)
+- **`:ketraterm-host`** (command mapping and security policies)
+- **`:ketraterm-input`** (keyboard/mouse encoding and policies)
+- **`:ketraterm-session`** (session orchestration and lock loops)
 
 ---
 
@@ -51,7 +51,7 @@ flowchart TD
 ## Sub-Documentation
 
 For deep-dive details on daemon threading and ConPTY integration:
-* [pty4j-process-lifecycle.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-pty/docs/pty4j-process-lifecycle.md) - PTY reader and watcher loops, exit-code capture, and Windows sizing adjustments.
+* [pty4j-process-lifecycle.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-pty/docs/pty4j-process-lifecycle.md) - PTY reader and watcher loops, exit-code capture, and Windows sizing adjustments.
 
 ---
 
@@ -89,7 +89,7 @@ fun main() {
     val session: TerminalSession = TerminalSessions.localPty(options)
 
     // 4. Send typing events
-    session.pasteText("echo 'Hello JvTerm'\n")
+    session.pasteText("echo 'Hello KetraTerm'\n")
 }
 ```
 

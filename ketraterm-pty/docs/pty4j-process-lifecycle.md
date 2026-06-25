@@ -1,12 +1,12 @@
 # Pty4j Local Process Lifecycle & Watcher Threads
 
-The `jvterm-pty` module exposes local pseudo-terminal (PTY) processes through the `TerminalConnector` contract, using the JetBrains `pty4j` library as the underlying native engine.
+The `ketraterm-pty` module exposes local pseudo-terminal (PTY) processes through the `TerminalConnector` contract, using the JetBrains `pty4j` library as the underlying native engine.
 
 ---
 
 ## 1. Threading Architecture
 
-To prevent blocking client threads during blocking Native I/O reads or process waiting, [PtyConnector](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-pty/src/main/kotlin/io/github/jvterm/pty/PtyConnector.kt) spawns two background daemon threads upon startup:
+To prevent blocking client threads during blocking Native I/O reads or process waiting, [PtyConnector](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-pty/src/main/kotlin/io/github/ketraterm/pty/PtyConnector.kt) spawns two background daemon threads upon startup:
 
 ```
                   +──────────────────────────+

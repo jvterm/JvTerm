@@ -1,22 +1,22 @@
-# Module jvterm-intellij-plugin
+# Module ketraterm-intellij-plugin
 
-## JvTerm IntelliJ Plugin
+## KetraTerm IntelliJ Plugin
 
-The `jvterm-intellij-plugin` build is the IntelliJ Platform host for JvTerm.
+The `ketraterm-intellij-plugin` build is the IntelliJ Platform host for KetraTerm.
 It is a product integration build, not a terminal implementation module.
 
-This build stays independent from the root JvTerm Gradle build so IntelliJ
+This build stays independent from the root KetraTerm Gradle build so IntelliJ
 Platform plugin tooling, repositories, sandbox tasks, verification, signing,
 and publishing do not leak into the terminal library build.
 
 ## Role
 
-The plugin adapts reusable JvTerm modules to IntelliJ IDE services:
+The plugin adapts reusable KetraTerm modules to IntelliJ IDE services:
 
-- terminal rendering and input through `jvterm-ui-swing`.
-- workspace and session state through `jvterm-workspace` and
-  `jvterm-session`.
-- local process lifecycle through `jvterm-pty`.
+- terminal rendering and input through `ketraterm-ui-swing`.
+- workspace and session state through `ketraterm-workspace` and
+  `ketraterm-session`.
+- local process lifecycle through `ketraterm-pty`.
 - IDE lifecycle, actions, settings, notifications, tool windows, and disposal
   through IntelliJ Platform APIs.
 
@@ -24,7 +24,7 @@ The plugin adapts reusable JvTerm modules to IntelliJ IDE services:
 
 The plugin must not parse terminal protocols, mutate core terminal state,
 implement reusable renderer behavior, encode host-bound input bytes directly,
-or add IntelliJ dependencies to reusable JvTerm modules.
+or add IntelliJ dependencies to reusable KetraTerm modules.
 
 ## Current Scope
 

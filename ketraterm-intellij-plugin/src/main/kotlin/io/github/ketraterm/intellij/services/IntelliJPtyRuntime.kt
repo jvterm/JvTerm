@@ -23,7 +23,7 @@ import io.github.ketraterm.workspace.TerminalWorkspaceTab
 /**
  * IntelliJ host adapter for local PTY startup.
  *
- * The reusable JvTerm modules own PTY process creation and session wiring.
+ * The reusable KetraTerm modules own PTY process creation and session wiring.
  * IntelliJ owns the Pty4J/JNA runtime through its platform classpath and native
  * distribution. The plugin build excludes Maven Pty4J/JNA artifacts from the
  * plugin package so the IDE process never loads a second native stack from the
@@ -57,7 +57,7 @@ internal class IntelliJPtyRuntime {
          *
          * The class lookup is intentionally tiny and side-effect free: classpath
          * ownership is a build/plugin descriptor contract, while actual process
-         * creation remains in `jvterm-pty`.
+         * creation remains in `ketraterm-pty`.
          */
         fun requireAvailable() {
             requireAvailable(javaClass.classLoader)

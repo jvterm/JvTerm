@@ -40,7 +40,7 @@ internal object DesktopNotificationManager {
      * This method can be called from any thread; it will safely schedule execution
      * on the Event Dispatch Thread.
      *
-     * @param title the notification title (e.g. command name). If blank, it will show "JvTerm".
+     * @param title the notification title (e.g. command name). If blank, it will show "KetraTerm".
      * @param body the notification body text.
      */
     fun showNotification(
@@ -60,12 +60,12 @@ internal object DesktopNotificationManager {
                     return@invokeLater
                 }
 
-            val displayTitle = title.ifBlank { "JvTerm" }
+            val displayTitle = title.ifBlank { "KetraTerm" }
 
             var icon = trayIcon
             if (icon == null) {
                 val image = createTrayImage()
-                icon = TrayIcon(image, "JvTerm")
+                icon = TrayIcon(image, "KetraTerm")
                 icon.isImageAutoSize = true
                 trayIcon = icon
             }

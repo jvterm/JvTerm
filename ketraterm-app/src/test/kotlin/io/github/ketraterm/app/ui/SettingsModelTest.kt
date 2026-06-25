@@ -15,7 +15,7 @@
  */
 package io.github.ketraterm.app.ui
 
-import io.github.ketraterm.app.config.JvTermSettings
+import io.github.ketraterm.app.config.KetraTermSettings
 import io.github.ketraterm.host.*
 import io.github.ketraterm.workspace.TerminalProfileRegistry
 import io.github.ketraterm.workspace.config.TerminalWorkspaceConfigManager
@@ -24,15 +24,15 @@ import kotlin.test.*
 
 class SettingsModelTest {
     private lateinit var tempFile: java.nio.file.Path
-    private lateinit var settings: JvTermSettings
+    private lateinit var settings: KetraTermSettings
     private lateinit var registry: TerminalProfileRegistry
     private lateinit var model: SettingsModel
 
     @BeforeTest
     fun setUp() {
-        tempFile = Files.createTempFile("jvterm-settings-test", ".toml")
+        tempFile = Files.createTempFile("ketraterm-settings-test", ".toml")
         val manager = TerminalWorkspaceConfigManager(tempFile)
-        settings = JvTermSettings(manager)
+        settings = KetraTermSettings(manager)
         registry = TerminalProfileRegistry(executableExists = { false })
         model = SettingsModel(settings, registry)
     }

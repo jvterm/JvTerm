@@ -1,7 +1,7 @@
 # Terminal Integration Agent Guide
 
-`jvterm-host` is the bridge between `jvterm-parser` and
-`jvterm-core`.
+`ketraterm-host` is the bridge between `ketraterm-parser` and
+`ketraterm-core`.
 
 It maps `TerminalCommandSink` calls to `TerminalBuffer` calls and host-facing
 metadata. It must stay thin, explicit, and honest about unsupported behavior.

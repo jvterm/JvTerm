@@ -1,6 +1,6 @@
 # Terminal Session Agent Guide
 
-`jvterm-session` owns the runtime synchronization point that connects a
+`ketraterm-session` owns the runtime synchronization point that connects a
 transport connector, parser, core buffer, response queue, and input encoder.
 
 ## Boundary
@@ -14,9 +14,9 @@ Session owns:
 - idempotent local close, remote close, and parser cleanup.
 
 It must not own transport threads, parse bytes itself, mutate core internals, or
-encode input outside `jvterm-input`.
+encode input outside `ketraterm-input`.
 
 ## Testing
 
-Use `jvterm-testkit` connectors for lifecycle and ordering tests before PTY or
+Use `ketraterm-testkit` connectors for lifecycle and ordering tests before PTY or
 UI tests. Tests should assert exact bytes and idempotent cleanup behavior.

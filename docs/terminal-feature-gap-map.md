@@ -1,8 +1,8 @@
 # Terminal Feature Gap Map
 
-This is the living backlog of gaps, TODOs, and policy constraints in the JVTerm parser, core, host, input, and UI layers. 
+This is the living backlog of gaps, TODOs, and policy constraints in the KetraTerm parser, core, host, input, and UI layers. 
 
-For a complete directory of supported features, see the [Terminal Feature Map](file:///c:/Users/gagik/IdeaProjects/JvTerm/docs/terminal-feature-map.md).
+For a complete directory of supported features, see the [Terminal Feature Map](file:///c:/Users/gagik/IdeaProjects/KetraTerm/docs/terminal-feature-map.md).
 
 The target is a modern, secure, xterm-compatible terminal pipeline for contemporary shells and TUIs. Obsolete or risky legacy protocols remain excluded unless they earn their place.
 

@@ -15,7 +15,7 @@
  */
 package io.github.ketraterm.app.ui
 
-import io.github.ketraterm.app.config.JvTermSettings
+import io.github.ketraterm.app.config.KetraTermSettings
 import io.github.ketraterm.host.TerminalClipboardPermission
 import io.github.ketraterm.host.TerminalTitlePermission
 import io.github.ketraterm.ui.swing.settings.TerminalTheme
@@ -23,7 +23,7 @@ import io.github.ketraterm.workspace.TerminalProfileRegistry
 import io.github.ketraterm.workspace.config.TerminalConfig
 
 internal class SettingsModel(
-    private val settings: JvTermSettings,
+    private val settings: KetraTermSettings,
     private val profileRegistry: TerminalProfileRegistry,
 ) {
     var initialUiState: SettingsState = getSettingsState()

@@ -1,6 +1,6 @@
 # Terminal Render Cache Agent Guide
 
-`jvterm-render-cache` owns renderer-side copies of primitive render frames. It
+`ketraterm-render-cache` owns renderer-side copies of primitive render frames. It
 lets UI consumers work from stable cached row, cluster, attribute, hyperlink,
 wrap, cursor, and generation data without reaching back into core storage.
 
@@ -8,7 +8,7 @@ wrap, cursor, and generation data without reaching back into core storage.
 
 Render cache owns:
 
-- copying `TerminalRenderFrameReader` data from `jvterm-render-api`.
+- copying `TerminalRenderFrameReader` data from `ketraterm-render-api`.
 - retaining copied structure and line generations for renderer-side comparison.
 - retaining copied cluster text and flattened primitive cell planes.
 - publishing cache snapshots with clear ownership between render workers and UI

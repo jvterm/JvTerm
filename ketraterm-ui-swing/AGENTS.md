@@ -1,6 +1,6 @@
 # Terminal UI Swing Agent Guide
 
-`jvterm-ui-swing` owns the reusable Swing terminal UI. It converts terminal
+`ketraterm-ui-swing` owns the reusable Swing terminal UI. It converts terminal
 render frames and user input into a desktop component without knowing which
 transport produced the byte stream.
 
@@ -21,7 +21,7 @@ internal unless hosts genuinely need the type as part of the UI contract.
 
 ## Responsibilities
 
-`jvterm-ui-swing` owns:
+`ketraterm-ui-swing` owns:
 
 - public Swing terminal component APIs.
 - internal Swing component layering.

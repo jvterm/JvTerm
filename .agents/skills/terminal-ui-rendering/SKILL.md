@@ -13,21 +13,21 @@ before editing.
 
 Route work to the narrowest owning layer:
 
-- reusable Swing component behavior: `jvterm-ui-swing`
-- Java2D painting, cursor, selection, viewport: `jvterm-ui-swing`
-- Swing settings, font, color, and clipboard abstractions: `jvterm-ui-swing`
-- render-frame contract changes: `jvterm-render-api`
-- render-frame caching and publishing changes: `jvterm-render-cache`
+- reusable Swing component behavior: `ketraterm-ui-swing`
+- Java2D painting, cursor, selection, viewport: `ketraterm-ui-swing`
+- Swing settings, font, color, and clipboard abstractions: `ketraterm-ui-swing`
+- render-frame contract changes: `ketraterm-render-api`
+- render-frame caching and publishing changes: `ketraterm-render-cache`
 - host window/app/IDE wiring: host modules outside reusable Swing UI
 
 Do not put host-specific code into reusable UI code.
 
 ## 2. Enforce Swing UI Boundaries
 
-For `jvterm-ui-swing` changes, verify:
+For `ketraterm-ui-swing` changes, verify:
 
 - no IntelliJ Platform imports.
-- no dependency on `jvterm-pty`.
+- no dependency on `ketraterm-pty`.
 - no PTY, SSH, WebSocket, or transport-specific logic.
 - no ANSI/VT/OSC/DCS parsing.
 - no direct terminal core mutation.

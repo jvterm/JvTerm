@@ -1,6 +1,6 @@
 # Terminal Standalone App Agent Guide
 
-`jvterm-app` owns the product standalone Swing host for JvTerm.
+`ketraterm-app` owns the product standalone Swing host for KetraTerm.
 It wires reusable terminal UI, local PTY sessions, app chrome, host services,
 and process lifecycle.
 
@@ -19,11 +19,11 @@ This module may:
 
 This module must not:
 
-- add reusable rendering logic that belongs in `jvterm-ui-swing`.
+- add reusable rendering logic that belongs in `ketraterm-ui-swing`.
 - parse terminal output protocols.
 - mutate terminal core internals.
 - encode input bytes directly.
 - introduce IntelliJ Platform dependencies.
 
 Reusable UI fixes discovered while building the standalone app belong in
-`jvterm-ui-swing`.
+`ketraterm-ui-swing`.

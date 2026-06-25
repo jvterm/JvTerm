@@ -1,6 +1,6 @@
 # Terminal Protocol Agent Guide
 
-`jvterm-protocol` holds dependency-free terminal protocol vocabulary shared by
+`ketraterm-protocol` holds dependency-free terminal protocol vocabulary shared by
 parser, core, host, input, and host-facing modules.
 
 ## Boundary

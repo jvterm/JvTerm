@@ -29,29 +29,29 @@ import java.awt.Insets
 /**
  * Tests IntelliJ settings persistence mapping without opening an IDE window.
  */
-class JvTermIntellijSettingsTest {
+class KetraTermIntellijSettingsTest {
     @Test
     fun `default theme id follows IntelliJ`() {
-        val state = JvTermIntellijSettings.State()
+        val state = KetraTermIntellijSettings.State()
 
-        assertEquals(JvTermIntellijSettings.DEFAULT_THEME_ID, state.themeId)
+        assertEquals(KetraTermIntellijSettings.DEFAULT_THEME_ID, state.themeId)
     }
 
     @Test
     fun `default font size matches IntelliJ terminal default`() {
         val settings =
-            JvTermIntellijSettingsMapper.toSwingSettings(
-                JvTermIntellijSettings.State(themeId = "nord"),
+            KetraTermIntellijSettingsMapper.toSwingSettings(
+                KetraTermIntellijSettings.State(themeId = "nord"),
             )
 
-        assertEquals(JvTermIntellijSettings.DEFAULT_FONT_SIZE, settings.font.size)
+        assertEquals(KetraTermIntellijSettings.DEFAULT_FONT_SIZE, settings.font.size)
     }
 
     @Test
     fun `default terminal grid keeps top edge open with horizontal gutter and bottom spacer`() {
         val settings =
-            JvTermIntellijSettingsMapper.toSwingSettings(
-                JvTermIntellijSettings.State(themeId = "nord"),
+            KetraTermIntellijSettingsMapper.toSwingSettings(
+                KetraTermIntellijSettings.State(themeId = "nord"),
             )
 
         assertEquals(Insets(0, 20, 8, 8), settings.padding)
@@ -61,12 +61,12 @@ class JvTermIntellijSettingsTest {
     @Test
     fun `visual bell defaults on and maps to swing settings`() {
         val enabled =
-            JvTermIntellijSettingsMapper.toSwingSettings(
-                JvTermIntellijSettings.State(themeId = "nord"),
+            KetraTermIntellijSettingsMapper.toSwingSettings(
+                KetraTermIntellijSettings.State(themeId = "nord"),
             )
         val disabled =
-            JvTermIntellijSettingsMapper.toSwingSettings(
-                JvTermIntellijSettings.State(themeId = "nord", visualBell = false),
+            KetraTermIntellijSettingsMapper.toSwingSettings(
+                KetraTermIntellijSettings.State(themeId = "nord", visualBell = false),
             )
 
         assertEquals(true, enabled.visualBellEnabled)
@@ -76,16 +76,16 @@ class JvTermIntellijSettingsTest {
     @Test
     fun `normalizes unknown theme ids to IntelliJ native theme`() {
         assertEquals(
-            JvTermIntellijSettings.DEFAULT_THEME_ID,
-            JvTermIntellijSettings.normalizeThemeId("missing-theme"),
+            KetraTermIntellijSettings.DEFAULT_THEME_ID,
+            KetraTermIntellijSettings.normalizeThemeId("missing-theme"),
         )
     }
 
     @Test
     fun `maps built in theme ids to built in palettes`() {
         val settings =
-            JvTermIntellijSettingsMapper.toSwingSettings(
-                JvTermIntellijSettings.State(themeId = "one-dark"),
+            KetraTermIntellijSettingsMapper.toSwingSettings(
+                KetraTermIntellijSettings.State(themeId = "one-dark"),
             )
         val expected = TerminalTheme.ONE_DARK.createPalette()
 
@@ -97,8 +97,8 @@ class JvTermIntellijSettingsTest {
     @Test
     fun `clamps hostile persisted dimensions before creating Swing settings`() {
         val settings =
-            JvTermIntellijSettingsMapper.toSwingSettings(
-                JvTermIntellijSettings.State(
+            KetraTermIntellijSettingsMapper.toSwingSettings(
+                KetraTermIntellijSettings.State(
                     themeId = "nord",
                     columns = Int.MAX_VALUE,
                     rows = Int.MIN_VALUE,
@@ -122,8 +122,8 @@ class JvTermIntellijSettingsTest {
     @Test
     fun `normalizer canonicalizes persisted ui state`() {
         val state =
-            JvTermIntellijSettingsNormalizer.normalize(
-                JvTermIntellijSettings.State(
+            KetraTermIntellijSettingsNormalizer.normalize(
+                KetraTermIntellijSettings.State(
                     themeId = "TOKYO-NIGHT",
                     fontFamily = "  ",
                     fallbackFontFamily = "  ",
@@ -141,8 +141,8 @@ class JvTermIntellijSettingsTest {
             )
 
         assertEquals("tokyo-night", state.themeId)
-        assertEquals(JvTermIntellijSettings.DEFAULT_FONT_FAMILY, state.fontFamily)
-        assertEquals(JvTermIntellijSettings.DEFAULT_FONT_FAMILY, state.fallbackFontFamily)
+        assertEquals(KetraTermIntellijSettings.DEFAULT_FONT_FAMILY, state.fontFamily)
+        assertEquals(KetraTermIntellijSettings.DEFAULT_FONT_FAMILY, state.fallbackFontFamily)
         assertEquals(TerminalConfig.FONT_SIZE_MIN, state.fontSize)
         assertEquals(TerminalConfig.COLUMNS_MIN, state.columns)
         assertEquals(TerminalConfig.ROWS_MAX, state.rows)
@@ -158,8 +158,8 @@ class JvTermIntellijSettingsTest {
     @Test
     fun `normalizer uses field specific security defaults for invalid persisted values`() {
         val state =
-            JvTermIntellijSettingsNormalizer.normalize(
-                JvTermIntellijSettings.State(
+            KetraTermIntellijSettingsNormalizer.normalize(
+                KetraTermIntellijSettings.State(
                     clipboardLocalWrite = "invalid",
                     clipboardRemoteWrite = "invalid",
                     clipboardRead = "invalid",
@@ -177,7 +177,7 @@ class JvTermIntellijSettingsTest {
 
     @Test
     fun `host policy maps ssh executable names to remote origin only`() {
-        val settings = JvTermIntellijSettings()
+        val settings = KetraTermIntellijSettings()
 
         val localPolicy = settings.createHostPolicy(listOf("powershell.exe"))
         val remotePolicy = settings.createHostPolicy(listOf("ssh", "example.com"))
@@ -197,7 +197,7 @@ class JvTermIntellijSettingsTest {
     @Test
     fun `parses environment variables without accepting malformed entries`() {
         val environment =
-            JvTermIntellijSettingsNormalizer.parseEnvironmentVariables(
+            KetraTermIntellijSettingsNormalizer.parseEnvironmentVariables(
                 " JVM_OPTS =-Xmx1g\nNO_EQUALS\n=missing\nEMPTY=\nPATH=C:\\Tools=StillValue",
             )
 
@@ -214,8 +214,8 @@ class JvTermIntellijSettingsTest {
     @Test
     fun `maps cursor shape ids`() {
         val settings =
-            JvTermIntellijSettingsMapper.toSwingSettings(
-                JvTermIntellijSettings.State(themeId = "nord", cursorShape = "beam"),
+            KetraTermIntellijSettingsMapper.toSwingSettings(
+                KetraTermIntellijSettings.State(themeId = "nord", cursorShape = "beam"),
             )
 
         assertEquals(TerminalRenderCursorShape.BAR, settings.cursorShape)
@@ -224,8 +224,8 @@ class JvTermIntellijSettingsTest {
     @Test
     fun `native palette uses editor foreground background selection and cursor colors`() {
         val palette =
-            JvTermIntellijThemePalette.fromSource(
-                JvTermIntellijThemePalette.ColorSource(
+            KetraTermIntellijThemePalette.fromSource(
+                KetraTermIntellijThemePalette.ColorSource(
                     foreground = 0xFF202124.toInt(),
                     background = 0xFFFAFAFA.toInt(),
                     selectionForeground = 0xFFFFFFFF.toInt(),

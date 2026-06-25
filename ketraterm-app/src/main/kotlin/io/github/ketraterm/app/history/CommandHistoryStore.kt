@@ -44,7 +44,7 @@ internal class CommandHistoryStore(
     private val entries = ArrayDeque<CommandHistoryEntry>(capacity)
     private val worker =
         Executors.newSingleThreadExecutor { task ->
-            Thread(task, "jvterm-command-history").apply { isDaemon = true }
+            Thread(task, "ketraterm-command-history").apply { isDaemon = true }
         }
 
     init {
@@ -162,7 +162,7 @@ internal class CommandHistoryStore(
     private fun decodeText(value: String): String = String(decoder.decode(value), StandardCharsets.UTF_8)
 
     private companion object {
-        private const val HEADER = "JVTERM_COMMAND_HISTORY\t1"
+        private const val HEADER = "KetraTerm_COMMAND_HISTORY\t1"
         private const val FIELD_COUNT = 6
         private const val DEFAULT_CAPACITY = 10_000
         private const val CLOSE_TIMEOUT_SECONDS = 5L

@@ -1,6 +1,6 @@
 # Terminal Protocol Modes Reference
 
-This document defines the standard ANSI and DEC private modes supported by the `jvterm-protocol` module. These mode constants are used to toggle terminal behavior via standard control sequences.
+This document defines the standard ANSI and DEC private modes supported by the `ketraterm-protocol` module. These mode constants are used to toggle terminal behavior via standard control sequences.
 
 ---
 

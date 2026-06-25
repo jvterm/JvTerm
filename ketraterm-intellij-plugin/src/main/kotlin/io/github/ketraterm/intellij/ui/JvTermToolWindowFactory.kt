@@ -25,22 +25,22 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ex.ToolWindowEx
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener
-import io.github.ketraterm.intellij.JvTermBundle
-import io.github.ketraterm.intellij.services.JvTermProjectTerminalService
-import io.github.ketraterm.intellij.settings.JvTermIntellijProfileIcons
-import io.github.ketraterm.intellij.settings.JvTermSettingsConfigurable
+import io.github.ketraterm.intellij.KetraTermBundle
+import io.github.ketraterm.intellij.services.KetraTermProjectTerminalService
+import io.github.ketraterm.intellij.settings.KetraTermIntellijProfileIcons
+import io.github.ketraterm.intellij.settings.KetraTermSettingsConfigurable
 import io.github.ketraterm.workspace.TerminalProfile
 import io.github.ketraterm.workspace.TerminalProfileRegistry
 
 /**
- * Creates the IntelliJ tool window that hosts JvTerm terminal tabs.
+ * Creates the IntelliJ tool window that hosts KetraTerm terminal tabs.
  */
-class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
+class KetraTermToolWindowFactory : ToolWindowFactory, DumbAware {
     override fun createToolWindowContent(
         project: Project,
         toolWindow: ToolWindow,
     ) {
-        val terminalService = JvTermProjectTerminalService.getInstance(project)
+        val terminalService = KetraTermProjectTerminalService.getInstance(project)
         installTitleActions(project, toolWindow, terminalService)
         installEmptyToolWindowReopenListener(project, toolWindow, terminalService)
         terminalService.ensureInitialTab(toolWindow)
@@ -49,7 +49,7 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
     private fun installTitleActions(
         project: Project,
         toolWindow: ToolWindow,
-        terminalService: JvTermProjectTerminalService,
+        terminalService: KetraTermProjectTerminalService,
     ) {
         val toolWindowEx = toolWindow as? ToolWindowEx ?: return
         toolWindowEx.setTabActions(
@@ -63,7 +63,7 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
     private fun installEmptyToolWindowReopenListener(
         project: Project,
         toolWindow: ToolWindow,
-        terminalService: JvTermProjectTerminalService,
+        terminalService: KetraTermProjectTerminalService,
     ) {
         project.messageBus
             .connect(toolWindow.disposable)
@@ -82,10 +82,10 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
     private class NewTerminalAction(
         private val project: Project,
         private val toolWindow: ToolWindow,
-        private val terminalService: JvTermProjectTerminalService,
+        private val terminalService: KetraTermProjectTerminalService,
     ) : DumbAwareAction(
-            JvTermBundle.message("action.jvterm.newTerminal.text"),
-            JvTermBundle.message("action.jvterm.newTerminal.description"),
+            KetraTermBundle.message("action.ketraterm.newTerminal.text"),
+            KetraTermBundle.message("action.ketraterm.newTerminal.description"),
             AllIcons.General.Add,
         ) {
         override fun actionPerformed(event: AnActionEvent) {
@@ -102,12 +102,12 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
     private class NewTerminalProfileGroup(
         private val project: Project,
         private val toolWindow: ToolWindow,
-        private val terminalService: JvTermProjectTerminalService,
+        private val terminalService: KetraTermProjectTerminalService,
     ) : DefaultActionGroup(
             "",
             true,
         ) {
-        private val profileIcons = JvTermIntellijProfileIcons()
+        private val profileIcons = KetraTermIntellijProfileIcons()
         private val profileActions: Array<AnAction> =
             TerminalProfileRegistry()
                 .availableProfiles()
@@ -122,7 +122,7 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
                 }.toTypedArray()
 
         init {
-            templatePresentation.description = JvTermBundle.message("action.jvterm.newTerminalProfile.description")
+            templatePresentation.description = KetraTermBundle.message("action.ketraterm.newTerminalProfile.description")
             templatePresentation.icon = AllIcons.General.ButtonDropTriangle
         }
 
@@ -134,12 +134,12 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
     private class OpenTerminalProfileAction(
         private val project: Project,
         private val toolWindow: ToolWindow,
-        private val terminalService: JvTermProjectTerminalService,
+        private val terminalService: KetraTermProjectTerminalService,
         private val profile: TerminalProfile,
         icon: javax.swing.Icon,
     ) : DumbAwareAction(
             profile.displayName,
-            JvTermBundle.message("action.jvterm.openTerminalProfile.description", profile.displayName),
+            KetraTermBundle.message("action.ketraterm.openTerminalProfile.description", profile.displayName),
             icon,
         ) {
         override fun actionPerformed(event: AnActionEvent) {
@@ -164,12 +164,12 @@ class JvTermToolWindowFactory : ToolWindowFactory, DumbAware {
     private class OpenSettingsAction(
         private val project: Project,
     ) : DumbAwareAction(
-            JvTermBundle.message("action.jvterm.settings.text"),
-            JvTermBundle.message("action.jvterm.settings.description"),
+            KetraTermBundle.message("action.ketraterm.settings.text"),
+            KetraTermBundle.message("action.ketraterm.settings.description"),
             AllIcons.General.Settings,
         ) {
         override fun actionPerformed(event: AnActionEvent) {
-            ShowSettingsUtil.getInstance().showSettingsDialog(project, JvTermSettingsConfigurable::class.java)
+            ShowSettingsUtil.getInstance().showSettingsDialog(project, KetraTermSettingsConfigurable::class.java)
         }
 
         override fun update(event: AnActionEvent) {

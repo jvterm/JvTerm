@@ -27,13 +27,13 @@ import io.github.ketraterm.protocol.NotificationLevel
  * render lightweight HTML, so this bridge escapes terminal-provided title and
  * body text before publishing through the IDE notification subsystem.
  */
-internal object JvTermIntellijNotifier {
+internal object KetraTermIntellijNotifier {
     /**
      * Notification group registered in `plugin.xml`.
      */
-    const val GROUP_ID: String = "JvTerm Terminal"
+    const val GROUP_ID: String = "KetraTerm Terminal"
 
-    private const val DEFAULT_TITLE = "JvTerm"
+    private const val DEFAULT_TITLE = "KetraTerm"
 
     /**
      * Shows an IDE-native notification for a terminal request.
