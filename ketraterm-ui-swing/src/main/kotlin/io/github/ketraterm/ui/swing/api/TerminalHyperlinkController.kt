@@ -32,7 +32,12 @@ internal interface TerminalHyperlinkHost {
         y: Int,
     ): Long
 
-    fun repaint()
+    fun repaintHyperlinkSpan(
+        startRow: Int,
+        startColumn: Int,
+        endRow: Int,
+        endColumn: Int,
+    )
 }
 
 internal class TerminalHyperlinkController(
@@ -81,7 +86,13 @@ internal class TerminalHyperlinkController(
     fun updateHyperlinkActivationHover(active: Boolean) {
         if (hoveredHyperlinkId == NO_HYPERLINK_ID || hyperlinkActivationHover == active) return
         hyperlinkActivationHover = active
-        host.repaint()
+        repaintHyperlinkSpan(
+            hoveredHyperlinkId,
+            hoveredHyperlinkStartRow,
+            hoveredHyperlinkStartColumn,
+            hoveredHyperlinkEndRow,
+            hoveredHyperlinkEndColumn,
+        )
     }
 
     fun clearHyperlinkHover() {
@@ -114,6 +125,11 @@ internal class TerminalHyperlinkController(
         activationHover: Boolean,
     ) {
         val normalizedActivationHover = hyperlinkId != NO_HYPERLINK_ID && activationHover
+        val previousHyperlinkId = hoveredHyperlinkId
+        val previousStartRow = hoveredHyperlinkStartRow
+        val previousStartColumn = hoveredHyperlinkStartColumn
+        val previousEndRow = hoveredHyperlinkEndRow
+        val previousEndColumn = hoveredHyperlinkEndColumn
         val changed =
             hoveredHyperlinkId != hyperlinkId ||
                 hyperlinkActivationHover != normalizedActivationHover ||
@@ -129,7 +145,21 @@ internal class TerminalHyperlinkController(
         hyperlinkActivationHover = normalizedActivationHover
         val nextCursor = if (hyperlinkId != NO_HYPERLINK_ID) HAND_CURSOR else DEFAULT_CURSOR
         if (host.cursor !== nextCursor) host.cursor = nextCursor
-        if (changed) host.repaint()
+        if (changed) {
+            repaintHyperlinkSpan(previousHyperlinkId, previousStartRow, previousStartColumn, previousEndRow, previousEndColumn)
+            repaintHyperlinkSpan(hyperlinkId, pendingHoverStartRow, pendingHoverStartColumn, pendingHoverEndRow, pendingHoverEndColumn)
+        }
+    }
+
+    private fun repaintHyperlinkSpan(
+        hyperlinkId: Int,
+        startRow: Int,
+        startColumn: Int,
+        endRow: Int,
+        endColumn: Int,
+    ) {
+        if (hyperlinkId == NO_HYPERLINK_ID || startRow == NO_HYPERLINK_ROW || endRow == NO_HYPERLINK_ROW) return
+        host.repaintHyperlinkSpan(startRow, startColumn, endRow, endColumn)
     }
 
     private fun hyperlinkUriAt(event: MouseEvent): String? {
