@@ -32,6 +32,7 @@ treat_ambiguous_as_wide = false   # sets East Asian Ambiguous width rendering po
 audible_bell = false              # play audio beep sound on BEL
 visual_bell = true                # show a visual edge pulse on BEL
 paste_on_middle_click = true      # paste clipboard on mouse scroll wheel click
+paste_sanitization = "raw"        # raw, strip-c0, or normalize-line-endings
 shell_request_resize_window = true# permits running shell scripts to resize the window
 shell_request_window_manipulation = false # permits shell scripts to move, minimize, maximize, raise, lower window
 

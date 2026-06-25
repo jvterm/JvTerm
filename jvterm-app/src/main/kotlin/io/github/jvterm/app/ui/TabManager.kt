@@ -188,6 +188,8 @@ internal class TabManager(
                                 rows = snapshot.rows,
                                 treatAmbiguousAsWide = snapshot.treatAmbiguousAsWide,
                                 maxHistory = snapshot.scrollbackLines,
+                                pasteSanitizationPolicy = snapshot.pasteSanitizationPolicy,
+                                hostPolicy = settings.createHostPolicy(profile.command),
                             )
                         },
                 )
@@ -329,6 +331,8 @@ internal class TabManager(
                                 rows = snapshot.rows,
                                 treatAmbiguousAsWide = snapshot.treatAmbiguousAsWide,
                                 maxHistory = snapshot.scrollbackLines,
+                                pasteSanitizationPolicy = snapshot.pasteSanitizationPolicy,
+                                hostPolicy = settings.createHostPolicy(profile.command),
                             )
                         },
                 )

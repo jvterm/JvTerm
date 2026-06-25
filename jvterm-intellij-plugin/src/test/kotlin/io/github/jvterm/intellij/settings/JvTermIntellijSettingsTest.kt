@@ -15,6 +15,10 @@
  */
 package io.github.jvterm.intellij.settings
 
+import io.github.jvterm.host.TerminalClipboardOrigin
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalTitleOrigin
+import io.github.jvterm.host.TerminalTitlePermission
 import io.github.jvterm.render.api.TerminalRenderCursorShape
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.config.TerminalConfig
@@ -52,7 +56,7 @@ class JvTermIntellijSettingsTest {
                 JvTermIntellijSettings.State(themeId = "nord"),
             )
 
-        assertEquals(Insets(0, 20, 8, 12), settings.padding)
+        assertEquals(Insets(0, 20, 8, 8), settings.padding)
         assertEquals(4, settings.padding.left - settings.shellIntegrationDecorationGutterWidth)
     }
 
@@ -151,6 +155,45 @@ class JvTermIntellijSettingsTest {
         assertEquals(TerminalConfig.DEFAULT_SHELL_PATH, state.shellPath)
         assertEquals("ONE=last\nTWO=second", state.environmentVariables)
         assertEquals("Local", state.defaultTabName)
+    }
+
+    @Test
+    fun `normalizer uses field specific security defaults for invalid persisted values`() {
+        val state =
+            JvTermIntellijSettingsNormalizer.normalize(
+                JvTermIntellijSettings.State(
+                    clipboardLocalWrite = "invalid",
+                    clipboardRemoteWrite = "invalid",
+                    clipboardRead = "invalid",
+                    titleLocalPermission = "invalid",
+                    titleRemotePermission = "invalid",
+                ),
+            )
+
+        assertEquals(TerminalClipboardPermission.PROMPT.name.lowercase(), state.clipboardLocalWrite)
+        assertEquals(TerminalClipboardPermission.DENY.name.lowercase(), state.clipboardRemoteWrite)
+        assertEquals(TerminalClipboardPermission.DENY.name.lowercase(), state.clipboardRead)
+        assertEquals(TerminalTitlePermission.ALLOW.name.lowercase(), state.titleLocalPermission)
+        assertEquals(TerminalTitlePermission.DENY.name.lowercase(), state.titleRemotePermission)
+    }
+
+    @Test
+    fun `host policy maps ssh executable names to remote origin only`() {
+        val settings = JvTermIntellijSettings()
+
+        val localPolicy = settings.createHostPolicy(listOf("powershell.exe"))
+        val remotePolicy = settings.createHostPolicy(listOf("ssh", "example.com"))
+        val remoteWindowsPathPolicy = settings.createHostPolicy(listOf("""C:\Windows\System32\OpenSSH\ssh.exe"""))
+        val nonSshPrefixPolicy = settings.createHostPolicy(listOf("sshuttle"))
+
+        assertEquals(TerminalClipboardOrigin.LOCAL, localPolicy.clipboardPolicy.origin)
+        assertEquals(TerminalTitleOrigin.LOCAL, localPolicy.titlePolicy.origin)
+        assertEquals(TerminalClipboardOrigin.REMOTE, remotePolicy.clipboardPolicy.origin)
+        assertEquals(TerminalTitleOrigin.REMOTE, remotePolicy.titlePolicy.origin)
+        assertEquals(TerminalClipboardOrigin.REMOTE, remoteWindowsPathPolicy.clipboardPolicy.origin)
+        assertEquals(TerminalTitleOrigin.REMOTE, remoteWindowsPathPolicy.titlePolicy.origin)
+        assertEquals(TerminalClipboardOrigin.LOCAL, nonSshPrefixPolicy.clipboardPolicy.origin)
+        assertEquals(TerminalTitleOrigin.LOCAL, nonSshPrefixPolicy.titlePolicy.origin)
     }
 
     @Test

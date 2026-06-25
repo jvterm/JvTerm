@@ -15,6 +15,8 @@
  */
 package io.github.jvterm.workspace
 
+import io.github.jvterm.host.HostPolicy
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.protocol.NotificationLevel
 import io.github.jvterm.protocol.ShellIntegrationEvent
 import io.github.jvterm.pty.PtyEventListener
@@ -275,8 +277,13 @@ private object LocalPtyWorkspaceSessionFactory : TerminalWorkspaceSessionFactory
                 columns = options.columns,
                 rows = options.rows,
                 treatAmbiguousAsWide = options.treatAmbiguousAsWide,
+                inputPolicy =
+                    PtyOptions
+                        .defaultInputPolicy()
+                        .copy(pasteSanitizationPolicy = options.pasteSanitizationPolicy),
                 maxHistory = options.maxHistory,
                 eventListener = eventListener,
+                hostPolicy = options.hostPolicy,
             ),
         )
     }
@@ -291,15 +298,20 @@ private object LocalPtyWorkspaceSessionFactory : TerminalWorkspaceSessionFactory
  * @property rows initial terminal height in rows.
  * @property treatAmbiguousAsWide width policy for future writes.
  * @property maxHistory max scrollback lines retained by the core buffer.
+ * @property pasteSanitizationPolicy paste payload transformation applied before
+ * host-bound input emission.
  * @property shellIntegrationEnabled whether supported launch profiles should
  * install shell hooks that emit OSC 7 and OSC 133 metadata.
+ * @property hostPolicy safety policy.
  */
 data class TerminalWorkspaceOpenOptions(
     val columns: Int,
     val rows: Int,
     val treatAmbiguousAsWide: Boolean,
     val maxHistory: Int,
+    val pasteSanitizationPolicy: PasteSanitizationPolicy = PasteSanitizationPolicy.RAW,
     val shellIntegrationEnabled: Boolean = true,
+    val hostPolicy: HostPolicy = HostPolicy(),
 ) {
     init {
         require(columns > 0) { "columns must be > 0, was $columns" }

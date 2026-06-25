@@ -17,6 +17,9 @@ package io.github.jvterm.session
 
 import io.github.jvterm.core.TerminalBuffers
 import io.github.jvterm.input.event.*
+import io.github.jvterm.input.policy.EnterNewLineModePolicy
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
+import io.github.jvterm.input.policy.TerminalInputPolicy
 import io.github.jvterm.testkit.MockConnector
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -93,6 +96,27 @@ class TerminalSessionHeadlessTest {
     }
 
     @Test
+    fun `paste policy update preserves existing non paste input policy`() {
+        val connector = MockConnector()
+        val session =
+            createStartedSession(
+                connector,
+                inputPolicy =
+                    TerminalInputPolicy(
+                        enterNewLineModePolicy = EnterNewLineModePolicy.SEND_CR,
+                    ),
+            )
+
+        connector.feedFromHost("\u001B[20h".ascii())
+        session.setPasteSanitizationPolicy(PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF)
+        session.encodePaste(TerminalPasteEvent("A\u0001B"))
+        session.encodeKey(TerminalKeyEvent.key(TerminalKey.ENTER))
+
+        assertEquals("AB\r", connector.writtenBytes.asciiText())
+        session.close()
+    }
+
+    @Test
     fun `local close stops host bytes and UI input from mutating the headless session`() {
         val connector = MockConnector()
         val session = createStartedSession(connector)
@@ -139,9 +163,10 @@ class TerminalSessionHeadlessTest {
         connector: MockConnector,
         columns: Int = 10,
         rows: Int = 3,
+        inputPolicy: TerminalInputPolicy = TerminalInputPolicy(),
     ): TerminalSession {
         val terminal = TerminalBuffers.create(width = columns, height = rows)
-        val session = TerminalSession.create(terminal, connector)
+        val session = TerminalSession.create(terminal, connector, inputPolicy = inputPolicy)
         session.start(columns, rows)
         return session
     }

@@ -44,8 +44,17 @@ import java.net.URISyntaxException
 class HostCommandAdapter(
     private val terminal: TerminalBuffer,
     private val hostEvents: HostEventSink = HostEventSink.NONE,
-    private val hostPolicy: HostPolicy = HostPolicy(),
+    @Volatile private var hostPolicy: HostPolicy = HostPolicy(),
 ) : TerminalCommandSink {
+    /**
+     * Updates the active host security policy dynamically.
+     *
+     * @param policy new security policy.
+     */
+    fun setHostPolicy(policy: HostPolicy) {
+        this.hostPolicy = policy
+    }
+
     @Volatile
     private var currentWorkingDirectory: String? = null
 
@@ -507,6 +516,7 @@ class HostCommandAdapter(
         mode: Int,
         decPrivate: Boolean,
     ) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.requestDeviceStatusReport(mode, decPrivate)
     }
 
@@ -514,10 +524,12 @@ class HostCommandAdapter(
         kind: Int,
         parameter: Int,
     ) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.requestDeviceAttributes(kind, parameter)
     }
 
     override fun requestWindowReport(mode: Int) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.requestWindowReport(mode)
     }
 
@@ -525,6 +537,7 @@ class HostCommandAdapter(
         rows: Int,
         columns: Int,
     ) {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.resizeWindow(rows, columns)
     }
 
@@ -532,30 +545,37 @@ class HostCommandAdapter(
         x: Int,
         y: Int,
     ) {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.moveWindow(x, y)
     }
 
     override fun minimizeWindow() {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.minimizeWindow()
     }
 
     override fun deminimizeWindow() {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.deminimizeWindow()
     }
 
     override fun raiseWindow() {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.raiseWindow()
     }
 
     override fun lowerWindow() {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.lowerWindow()
     }
 
     override fun setMaximized(maximize: Boolean) {
+        if (!hostPolicy.windowManipulationPolicy.isAllowed) return
         hostEvents.setMaximized(maximize)
     }
 
     override fun pushTitleStack(scope: Int) {
+        if (!hostPolicy.titlePolicy.isAllowed) return
         when (scope) {
             0 -> {
                 pushTitle(windowTitleStack, windowTitle)
@@ -567,6 +587,7 @@ class HostCommandAdapter(
     }
 
     override fun popTitleStack(scope: Int) {
+        if (!hostPolicy.titlePolicy.isAllowed) return
         when (scope) {
             0 -> {
                 popTitle(windowTitleStack)?.let { updateWindowTitle(it) }
@@ -707,19 +728,21 @@ class HostCommandAdapter(
     }
 
     override fun setWindowTitle(title: String) {
-        updateWindowTitle(title)
+        acceptedTitle(title)?.let { updateWindowTitle(it) }
     }
 
     override fun setIconTitle(title: String) {
-        updateIconTitle(title)
+        acceptedTitle(title)?.let { updateIconTitle(it) }
     }
 
     override fun setIconAndWindowTitle(title: String) {
-        updateIconTitle(title)
-        updateWindowTitle(title)
+        val accepted = acceptedTitle(title) ?: return
+        updateIconTitle(accepted)
+        updateWindowTitle(accepted)
     }
 
     override fun setCurrentWorkingDirectoryUri(uri: String) {
+        if (!hostPolicy.currentWorkingDirectoryPolicy.isAllowed) return
         if (!isCurrentWorkingDirectoryUriAllowed(uri)) return
         currentWorkingDirectory = uri
         hostEvents.currentWorkingDirectoryChanged(uri)
@@ -729,11 +752,12 @@ class HostCommandAdapter(
         uri: String,
         id: String?,
     ) {
+        if (!hostPolicy.hyperlinkPolicy.isAllowed) {
+            clearActiveHyperlink()
+            return
+        }
         if (!isHyperlinkAllowed(uri, id)) {
-            activeHyperlinkUri = null
-            activeHyperlinkId = null
-            activeHyperlinkNumericId = NO_HYPERLINK_ID
-            terminal.setHyperlinkId(NO_HYPERLINK_ID)
+            clearActiveHyperlink()
             return
         }
 
@@ -744,20 +768,26 @@ class HostCommandAdapter(
     }
 
     override fun endHyperlink() {
-        activeHyperlinkUri = null
-        activeHyperlinkId = null
-        activeHyperlinkNumericId = 0
-        terminal.setHyperlinkId(0)
+        clearActiveHyperlink()
+    }
+
+    override fun requestClipboard(
+        selection: String,
+        encodedData: String,
+    ) {
+        hostEvents.terminalClipboardRequest(evaluateClipboardRequest(selection, encodedData))
     }
 
     override fun setPaletteColor(
         index: Int,
         color: Int,
     ) {
+        if (!hostPolicy.palettePolicy.isAllowed) return
         terminal.setPaletteColor(index, color)
     }
 
     override fun queryPaletteColor(index: Int) {
+        if (!hostPolicy.palettePolicy.isAllowed) return
         terminal.queryPaletteColor(index)
     }
 
@@ -765,18 +795,22 @@ class HostCommandAdapter(
         target: Int,
         color: Int,
     ) {
+        if (!hostPolicy.palettePolicy.isAllowed) return
         terminal.setDynamicColor(target, color)
     }
 
     override fun queryDynamicColor(target: Int) {
+        if (!hostPolicy.palettePolicy.isAllowed) return
         terminal.queryDynamicColor(target)
     }
 
     override fun queryStatusString(query: String) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.queryStatusString(query)
     }
 
     override fun queryTerminfo(rawPayload: String) {
+        if (!hostPolicy.terminalResponsePolicy.isAllowed) return
         terminal.queryTerminfo(rawPayload)
     }
 
@@ -789,6 +823,7 @@ class HostCommandAdapter(
         body: String,
         level: NotificationLevel,
     ) {
+        if (!hostPolicy.notificationPolicy.isAllowed) return
         val clampedTitle = title.take(hostPolicy.maxNotificationTitleLength)
         val clampedBody = body.take(hostPolicy.maxNotificationBodyLength)
         hostEvents.showNotification(clampedTitle, clampedBody, level)
@@ -845,6 +880,96 @@ class HostCommandAdapter(
         hostEvents.windowTitleChanged(title)
     }
 
+    private fun clearActiveHyperlink() {
+        activeHyperlinkUri = null
+        activeHyperlinkId = null
+        activeHyperlinkNumericId = NO_HYPERLINK_ID
+        terminal.setHyperlinkId(NO_HYPERLINK_ID)
+    }
+
+    private fun evaluateClipboardRequest(
+        selection: String,
+        encodedData: String,
+    ): TerminalClipboardAuditEvent {
+        val policy = hostPolicy.clipboardPolicy
+        val operation =
+            if (encodedData == CLIPBOARD_QUERY_MARKER) {
+                TerminalClipboardOperation.READ_QUERY
+            } else {
+                TerminalClipboardOperation.WRITE
+            }
+
+        if (operation == TerminalClipboardOperation.READ_QUERY) {
+            return clipboardAudit(
+                selection = selection,
+                operation = operation,
+                encodedData = encodedData,
+                decodedBytes = 0,
+                decision = clipboardDecisionForRead(policy),
+            )
+        }
+
+        val decodedBytes = decodedBase64ByteCount(encodedData)
+        val decision =
+            when {
+                decodedBytes < 0 -> TerminalClipboardDecision.DENIED_MALFORMED_PAYLOAD
+                decodedBytes > policy.maxDecodedBytes -> TerminalClipboardDecision.DENIED_PAYLOAD_TOO_LARGE
+                else -> clipboardDecisionForWrite(policy)
+            }
+        return clipboardAudit(
+            selection = selection,
+            operation = operation,
+            encodedData = encodedData,
+            decodedBytes = decodedBytes.coerceAtLeast(0),
+            decision = decision,
+        )
+    }
+
+    private fun clipboardAudit(
+        selection: String,
+        operation: TerminalClipboardOperation,
+        encodedData: String,
+        decodedBytes: Int,
+        decision: TerminalClipboardDecision,
+    ): TerminalClipboardAuditEvent {
+        val policy = hostPolicy.clipboardPolicy
+        return TerminalClipboardAuditEvent(
+            operation = operation,
+            selection = selection,
+            origin = policy.origin,
+            encodedLength = encodedData.length,
+            decodedBytes = decodedBytes,
+            maxDecodedBytes = policy.maxDecodedBytes,
+            decision = decision,
+        )
+    }
+
+    private fun clipboardDecisionForWrite(policy: TerminalClipboardPolicy): TerminalClipboardDecision =
+        when (policy.writePermission) {
+            TerminalClipboardPermission.DENY -> TerminalClipboardDecision.DENIED_BY_POLICY
+            TerminalClipboardPermission.PROMPT -> TerminalClipboardDecision.PROMPT_REQUIRED
+            TerminalClipboardPermission.ALLOWLIST ->
+                if (policy.allowlisted) {
+                    TerminalClipboardDecision.ALLOWED_BY_POLICY
+                } else {
+                    TerminalClipboardDecision.DENIED_NOT_ALLOWLISTED
+                }
+            TerminalClipboardPermission.ALLOW -> TerminalClipboardDecision.ALLOWED_BY_POLICY
+        }
+
+    private fun clipboardDecisionForRead(policy: TerminalClipboardPolicy): TerminalClipboardDecision =
+        when (policy.readPermission) {
+            TerminalClipboardPermission.DENY -> TerminalClipboardDecision.DENIED_READ_DISABLED
+            TerminalClipboardPermission.PROMPT -> TerminalClipboardDecision.PROMPT_REQUIRED
+            TerminalClipboardPermission.ALLOWLIST ->
+                if (policy.allowlisted) {
+                    TerminalClipboardDecision.ALLOWED_BY_POLICY
+                } else {
+                    TerminalClipboardDecision.DENIED_NOT_ALLOWLISTED
+                }
+            TerminalClipboardPermission.ALLOW -> TerminalClipboardDecision.ALLOWED_BY_POLICY
+        }
+
     private fun hyperlinkIdFor(
         uri: String,
         id: String?,
@@ -878,6 +1003,16 @@ class HostCommandAdapter(
         uri.length <= hostPolicy.maxHyperlinkUriLength &&
             (id?.length ?: 0) <= hostPolicy.maxHyperlinkIdLength
 
+    private fun acceptedTitle(title: String): String? {
+        val policy = hostPolicy.titlePolicy
+        if (!policy.isAllowed) return null
+        if (title.length <= policy.maxLength) return title
+        return when (policy.overflowPolicy) {
+            TerminalTitleOverflowPolicy.REJECT -> null
+            TerminalTitleOverflowPolicy.CLAMP -> title.take(policy.maxLength)
+        }
+    }
+
     private fun nextHyperlinkIdAfter(current: Int): Int = if (current == Int.MAX_VALUE) 1 else current + 1
 
     private fun applyPen() {
@@ -900,6 +1035,7 @@ class HostCommandAdapter(
     private companion object {
         const val NO_HYPERLINK_ID: Int = 0
         const val MAX_TITLE_STACK_DEPTH: Int = 16
+        const val CLIPBOARD_QUERY_MARKER: String = "?"
     }
 
     private data class HyperlinkKey(
@@ -922,4 +1058,54 @@ class HostCommandAdapter(
             uri.rawQuery == null &&
             uri.rawFragment == null
     }
+
+    private fun decodedBase64ByteCount(value: String): Int {
+        if (value.isEmpty()) return 0
+
+        var nonPaddingChars = 0
+        var paddingChars = 0
+        var sawPadding = false
+        var i = 0
+        while (i < value.length) {
+            when (value[i]) {
+                in 'A'..'Z',
+                in 'a'..'z',
+                in '0'..'9',
+                '+',
+                '/',
+                -> {
+                    if (sawPadding) return -1
+                    nonPaddingChars++
+                }
+                '=' -> {
+                    sawPadding = true
+                    paddingChars++
+                    if (paddingChars > 2) return -1
+                }
+                else -> return -1
+            }
+            i++
+        }
+
+        if (paddingChars > 0) {
+            val encodedChars = nonPaddingChars + paddingChars
+            if (encodedChars % 4 != 0) return -1
+            return (encodedChars / 4) * 3 - paddingChars
+        }
+
+        val remainder = nonPaddingChars % 4
+        if (remainder == 1) return -1
+        return (nonPaddingChars / 4) * 3 +
+            when (remainder) {
+                2 -> 1
+                3 -> 2
+                else -> 0
+            }
+    }
 }
+
+private val HostControlPolicy.isAllowed: Boolean
+    get() = this == HostControlPolicy.ALLOW
+
+private val TerminalTitlePolicy.isAllowed: Boolean
+    get() = permission == TerminalTitlePermission.ALLOW

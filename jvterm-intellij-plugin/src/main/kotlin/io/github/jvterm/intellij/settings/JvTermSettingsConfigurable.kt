@@ -82,6 +82,14 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
     private val visualBellCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.visualBell"))
     private val pasteOnMiddleClickCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.pasteOnMiddleClick"))
 
+    private val pasteSanitizationCombo = ComboBox(pasteSanitizationOptions())
+    private val clipboardLocalWriteCombo = ComboBox(permissionOptions())
+    private val clipboardRemoteWriteCombo = ComboBox(permissionOptions())
+    private val clipboardReadCombo = ComboBox(permissionOptions())
+    private val clipboardMaxDecodedBytesSpinner = spinner(TerminalConfig.DEFAULT_CLIPBOARD_MAX_DECODED_BYTES, 0, Int.MAX_VALUE)
+    private val titleLocalPermissionCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.titleLocalPermission"))
+    private val titleRemotePermissionCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.titleRemotePermission"))
+
     private var panel: JComponent? = null
 
     init {
@@ -106,6 +114,10 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
         val created =
             panel {
                 group(JvTermBundle.message("settings.jvterm.group.session")) {
+                    row(JvTermBundle.message("settings.jvterm.shellPath")) {
+                        cell(shellPathCombo)
+                            .align(AlignX.FILL)
+                    }
                     row(JvTermBundle.message("settings.jvterm.startDirectory")) {
                         cell(startDirectoryField)
                             .align(AlignX.FILL)
@@ -115,6 +127,10 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
                         cell(environmentVariablesField)
                             .align(AlignX.FILL)
                             .comment(JvTermBundle.message("settings.jvterm.environmentVariables.comment"))
+                    }
+                    row(JvTermBundle.message("settings.jvterm.defaultTabName")) {
+                        cell(defaultTabNameField)
+                            .align(AlignX.FILL)
                     }
                 }
 
@@ -138,17 +154,12 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
                             .align(AlignX.LEFT)
                             .comment(JvTermBundle.message("settings.jvterm.theme.comment"))
                     }
+                    row {
+                        cell(systemFallbackFontsCheckBox)
+                    }
                 }
 
                 group(JvTermBundle.message("settings.jvterm.group.application")) {
-                    row(JvTermBundle.message("settings.jvterm.shellPath")) {
-                        cell(shellPathCombo)
-                            .align(AlignX.FILL)
-                    }
-                    row(JvTermBundle.message("settings.jvterm.defaultTabName")) {
-                        cell(defaultTabNameField)
-                            .align(AlignX.FILL)
-                    }
                     row(JvTermBundle.message("settings.jvterm.initialColumns")) {
                         cell(columnsSpinner)
                     }
@@ -158,9 +169,6 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
                     row(JvTermBundle.message("settings.jvterm.scrollback")) {
                         cell(scrollbackSpinner)
                     }
-                }
-
-                group(JvTermBundle.message("settings.jvterm.group.behavior")) {
                     row(JvTermBundle.message("settings.jvterm.cursorShape")) {
                         cell(cursorShapeCombo).align(AlignX.LEFT)
                     }
@@ -168,17 +176,41 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
                         cell(cursorBlinkSpinner)
                             .comment(JvTermBundle.message("settings.jvterm.cursorBlink.comment"))
                     }
+                }
+
+                group(JvTermBundle.message("settings.jvterm.group.behavior")) {
                     row {
                         cell(ambiguousWidthCheckBox)
-                    }
-                    row {
-                        cell(systemFallbackFontsCheckBox)
                     }
                     row {
                         cell(visualBellCheckBox)
                     }
                     row {
                         cell(pasteOnMiddleClickCheckBox)
+                    }
+                }
+
+                group(JvTermBundle.message("settings.jvterm.group.security")) {
+                    row(JvTermBundle.message("settings.jvterm.pasteSanitization")) {
+                        cell(pasteSanitizationCombo).align(AlignX.LEFT)
+                    }
+                    row(JvTermBundle.message("settings.jvterm.clipboardLocalWrite")) {
+                        cell(clipboardLocalWriteCombo).align(AlignX.LEFT)
+                    }
+                    row(JvTermBundle.message("settings.jvterm.clipboardRemoteWrite")) {
+                        cell(clipboardRemoteWriteCombo).align(AlignX.LEFT)
+                    }
+                    row(JvTermBundle.message("settings.jvterm.clipboardRead")) {
+                        cell(clipboardReadCombo).align(AlignX.LEFT)
+                    }
+                    row(JvTermBundle.message("settings.jvterm.clipboardMaxDecodedBytes")) {
+                        cell(clipboardMaxDecodedBytesSpinner)
+                    }
+                    row {
+                        cell(titleLocalPermissionCheckBox)
+                    }
+                    row {
+                        cell(titleRemotePermissionCheckBox)
                     }
                 }
             }
@@ -223,6 +255,13 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
         systemFallbackFontsCheckBox.isSelected = normalized.useSystemFallbackFonts
         visualBellCheckBox.isSelected = normalized.visualBell
         pasteOnMiddleClickCheckBox.isSelected = normalized.pasteOnMiddleClick
+        pasteSanitizationCombo.selectedItem = pasteSanitizationOptions().firstOrNull { it.id == normalized.pasteSanitization }
+        clipboardLocalWriteCombo.selectedItem = permissionOptions().firstOrNull { it.id == normalized.clipboardLocalWrite }
+        clipboardRemoteWriteCombo.selectedItem = permissionOptions().firstOrNull { it.id == normalized.clipboardRemoteWrite }
+        clipboardReadCombo.selectedItem = permissionOptions().firstOrNull { it.id == normalized.clipboardRead }
+        clipboardMaxDecodedBytesSpinner.value = normalized.clipboardMaxDecodedBytes
+        titleLocalPermissionCheckBox.isSelected = normalized.titleLocalPermission == "allow"
+        titleRemotePermissionCheckBox.isSelected = normalized.titleRemotePermission == "allow"
     }
 
     private fun uiState(): JvTermIntellijSettings.State =
@@ -245,6 +284,13 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
             startDirectory = startDirectoryField.text.trim(),
             environmentVariables = environmentVariablesField.text.trim(),
             defaultTabName = defaultTabNameField.text.trim(),
+            pasteSanitization = (pasteSanitizationCombo.selectedItem as? PasteSanitizationOption)?.id ?: "raw",
+            clipboardLocalWrite = (clipboardLocalWriteCombo.selectedItem as? PermissionOption)?.id ?: "prompt",
+            clipboardRemoteWrite = (clipboardRemoteWriteCombo.selectedItem as? PermissionOption)?.id ?: "deny",
+            clipboardRead = (clipboardReadCombo.selectedItem as? PermissionOption)?.id ?: "deny",
+            clipboardMaxDecodedBytes = spinnerValue(clipboardMaxDecodedBytesSpinner),
+            titleLocalPermission = if (titleLocalPermissionCheckBox.isSelected) "allow" else "deny",
+            titleRemotePermission = if (titleRemotePermissionCheckBox.isSelected) "allow" else "deny",
         )
 
     private fun selectedThemeId(): String =
@@ -386,4 +432,35 @@ private fun cursorShapeOptions(): Array<CursorShapeOption> =
         CursorShapeOption("block", JvTermBundle.message("settings.jvterm.cursorShape.block")),
         CursorShapeOption("beam", JvTermBundle.message("settings.jvterm.cursorShape.beam")),
         CursorShapeOption("underline", JvTermBundle.message("settings.jvterm.cursorShape.underline")),
+    )
+
+private data class PermissionOption(
+    val id: String,
+    private val label: String,
+) {
+    override fun toString(): String = label
+}
+
+private fun permissionOptions(): Array<PermissionOption> =
+    arrayOf(
+        PermissionOption("allow", JvTermBundle.message("settings.jvterm.permission.allow")),
+        PermissionOption("prompt", JvTermBundle.message("settings.jvterm.permission.prompt")),
+        PermissionOption("allowlist", JvTermBundle.message("settings.jvterm.permission.allowlist")),
+        PermissionOption("deny", JvTermBundle.message("settings.jvterm.permission.deny")),
+    )
+
+
+
+private data class PasteSanitizationOption(
+    val id: String,
+    private val label: String,
+) {
+    override fun toString(): String = label
+}
+
+private fun pasteSanitizationOptions(): Array<PasteSanitizationOption> =
+    arrayOf(
+        PasteSanitizationOption("raw", JvTermBundle.message("settings.jvterm.pasteSanitization.raw")),
+        PasteSanitizationOption("strip-c0", JvTermBundle.message("settings.jvterm.pasteSanitization.stripC0")),
+        PasteSanitizationOption("normalize-line-endings", JvTermBundle.message("settings.jvterm.pasteSanitization.normalize")),
     )

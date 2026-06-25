@@ -35,6 +35,7 @@ import javax.swing.JPanel
  * JvTerm modules.
  */
 internal class JvTermTerminalPane private constructor(
+    val tab: TerminalWorkspaceTab,
     val terminal: SwingTerminal,
     val component: JPanel,
 ) {
@@ -51,6 +52,7 @@ internal class JvTermTerminalPane private constructor(
     fun reloadSettings() {
         terminal.reloadSettings()
         component.background = terminal.background
+        tab.session.setHostPolicy(JvTermIntellijSettings.getInstance().createHostPolicy(tab.profile.command))
     }
 
     /**
@@ -97,7 +99,7 @@ internal class JvTermTerminalPane private constructor(
             }
 
             tab.session.notifyRenderDirty()
-            return JvTermTerminalPane(terminal, component)
+            return JvTermTerminalPane(tab, terminal, component)
         }
 
         private fun configureScrollbar(scrollbar: JBScrollBar) {

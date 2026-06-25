@@ -55,4 +55,11 @@ interface TerminalInputEncoder {
      * @param event zero-based cell-coordinate mouse event.
      */
     fun encodeMouse(event: TerminalMouseEvent)
+
+    /**
+     * Updates the input policy dynamically.
+     *
+     * @param policy new input policy.
+     */
+    fun setInputPolicy(policy: io.github.jvterm.input.policy.TerminalInputPolicy) {}
 }

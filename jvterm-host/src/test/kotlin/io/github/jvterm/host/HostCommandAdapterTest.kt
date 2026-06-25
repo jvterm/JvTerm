@@ -598,6 +598,23 @@ class HostCommandAdapterTest {
         }
 
         @Test
+        fun `terminal response policy can deny DSR CPR and DA responses`() {
+            val f =
+                Fixture(
+                    terminal = TerminalBuffers.create(width = 10, height = 5),
+                    hostPolicy = HostPolicy(terminalResponsePolicy = HostControlPolicy.DENY),
+                )
+
+            f.acceptAscii("\u001B[5n")
+            f.acceptAscii("\u001B[6n")
+            f.acceptAscii("\u001B[c")
+            f.acceptAscii("\u001B[>c")
+            f.end()
+
+            assertEquals("", f.drainResponses())
+        }
+
+        @Test
         fun `safe xterm window reports parsed from bytes queue terminal-to-host responses`() {
             val f = Fixture(terminal = TerminalBuffers.create(width = 120, height = 40))
 
@@ -608,6 +625,32 @@ class HostCommandAdapterTest {
             f.end()
 
             assertEquals("\u001B[4;400;800t\u001B[8;40;120t", f.drainResponses())
+        }
+
+        @Test
+        fun `terminal response policy can deny safe xterm window reports`() {
+            val f =
+                Fixture(
+                    terminal = TerminalBuffers.create(width = 120, height = 40),
+                    hostPolicy = HostPolicy(terminalResponsePolicy = HostControlPolicy.DENY),
+                )
+
+            f.terminal.setWindowSizePixels(width = 800, height = 400)
+            f.acceptAscii("\u001B[14t")
+            f.acceptAscii("\u001B[18t")
+            f.end()
+
+            assertEquals("", f.drainResponses())
+        }
+
+        @Test
+        fun `palette policy can deny palette query responses`() {
+            val f = Fixture(hostPolicy = HostPolicy(palettePolicy = HostControlPolicy.DENY))
+
+            f.sink.queryPaletteColor(1)
+            f.sink.queryDynamicColor(10)
+
+            assertEquals("", f.drainResponses())
         }
 
         @Test
@@ -898,6 +941,132 @@ class HostCommandAdapterTest {
                 { assertEquals("https://example.com", f.sink.hyperlinkUri(1)) },
                 { assertEquals(0, f.terminal.getAttrAt(1, 0)?.hyperlinkId) },
                 { assertNull(f.sink.hyperlinkUri(0)) },
+            )
+        }
+
+        @Test
+        fun `title policy can deny OSC title updates and title stack changes`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy = TerminalTitlePolicy(localPermission = TerminalTitlePermission.DENY),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]0;denied\u0007")
+            f.acceptAscii("\u001B[22t")
+            f.acceptAscii("\u001B]2;also-denied\u0007")
+            f.acceptAscii("\u001B[23t")
+
+            assertAll(
+                { assertEquals("", f.sink.iconTitle) },
+                { assertEquals("", f.sink.windowTitle) },
+                { assertTrue(f.events.iconTitles.isEmpty()) },
+                { assertTrue(f.events.windowTitles.isEmpty()) },
+            )
+        }
+
+        @Test
+        fun `overlong OSC titles are clamped by default host policy`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy = TerminalTitlePolicy(maxLength = 5),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]2;short\u0007")
+            f.acceptAscii("\u001B]2;too-long\u0007")
+
+            assertAll(
+                { assertEquals("too-l", f.sink.windowTitle) },
+                { assertEquals(listOf("short", "too-l"), f.events.windowTitles) },
+            )
+        }
+
+        @Test
+        fun `overlong OSC titles can be rejected by profile policy`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy =
+                                TerminalTitlePolicy(
+                                    maxLength = 5,
+                                    overflowPolicy = TerminalTitleOverflowPolicy.REJECT,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]2;short\u0007")
+            f.acceptAscii("\u001B]2;too-long\u0007")
+
+            assertAll(
+                { assertEquals("short", f.sink.windowTitle) },
+                { assertEquals(listOf("short"), f.events.windowTitles) },
+            )
+        }
+
+        @Test
+        fun `remote OSC titles can be denied while local titles remain allowed by profile policy`() {
+            val remote =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy =
+                                TerminalTitlePolicy(
+                                    origin = TerminalTitleOrigin.REMOTE,
+                                    localPermission = TerminalTitlePermission.ALLOW,
+                                    remotePermission = TerminalTitlePermission.DENY,
+                                ),
+                        ),
+                )
+            val local =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            titlePolicy =
+                                TerminalTitlePolicy(
+                                    origin = TerminalTitleOrigin.LOCAL,
+                                    localPermission = TerminalTitlePermission.ALLOW,
+                                    remotePermission = TerminalTitlePermission.DENY,
+                                ),
+                        ),
+                )
+
+            remote.acceptAscii("\u001B]0;ssh-title\u0007")
+            local.acceptAscii("\u001B]0;local-title\u0007")
+
+            assertAll(
+                { assertEquals("", remote.sink.windowTitle) },
+                { assertEquals("", remote.sink.iconTitle) },
+                { assertTrue(remote.events.windowTitles.isEmpty()) },
+                { assertTrue(remote.events.iconTitles.isEmpty()) },
+                { assertEquals("local-title", local.sink.windowTitle) },
+                { assertEquals("local-title", local.sink.iconTitle) },
+                { assertEquals(listOf("local-title"), local.events.windowTitles) },
+                { assertEquals(listOf("local-title"), local.events.iconTitles) },
+            )
+        }
+
+        @Test
+        fun `hyperlink policy can deny OSC hyperlink metadata`() {
+            val f =
+                Fixture(
+                    terminal = TerminalBuffers.create(width = 1, height = 1),
+                    hostPolicy = HostPolicy(hyperlinkPolicy = HostControlPolicy.DENY),
+                )
+
+            f.sink.startHyperlink(uri = "https://example.com", id = "denied")
+            f.sink.writeCodepoint('A'.code)
+
+            assertAll(
+                { assertNull(f.sink.activeHyperlinkUri) },
+                { assertNull(f.sink.activeHyperlinkId) },
+                { assertEquals(0, f.terminal.getAttrAt(0, 0)?.hyperlinkId) },
+                { assertNull(f.sink.hyperlinkUri(1)) },
             )
         }
 
@@ -1228,6 +1397,17 @@ class HostCommandAdapterTest {
             f.end()
             assertEquals("\u001BP0+r\u001B\\", f.drainResponses())
         }
+
+        @Test
+        fun `terminal response policy can deny DECRQSS and XTGETTCAP responses`() {
+            val f = Fixture(hostPolicy = HostPolicy(terminalResponsePolicy = HostControlPolicy.DENY))
+
+            f.acceptAscii("\u001BP\$qm\u001B\\")
+            f.acceptAscii("\u001BP+q436f\u001B\\")
+            f.end()
+
+            assertEquals("", f.drainResponses())
+        }
     }
 
     @Nested
@@ -1272,6 +1452,18 @@ class HostCommandAdapterTest {
             assertAll(
                 { assertEquals(listOf("file:///safe"), f.events.currentWorkingDirectories) },
                 { assertEquals("file:///safe", f.sink.currentWorkingDirectoryUri()) },
+            )
+        }
+
+        @Test
+        fun `OSC 7 current working directory policy can deny metadata updates`() {
+            val f = Fixture(hostPolicy = HostPolicy(currentWorkingDirectoryPolicy = HostControlPolicy.DENY))
+
+            f.acceptAscii("\u001B]7;file:///safe\u001B\\")
+
+            assertAll(
+                { assertTrue(f.events.currentWorkingDirectories.isEmpty()) },
+                { assertNull(f.sink.currentWorkingDirectoryUri()) },
             )
         }
 
@@ -1329,6 +1521,250 @@ class HostCommandAdapterTest {
             f.acceptAscii("\u001B]777;notify;1234567;1234567890123;error\u0007")
             assertEquals(listOf(Triple("12345", "1234567890", NotificationLevel.ERROR)), f.events.notifications)
         }
+
+        @Test
+        fun `notification policy can deny desktop notification requests`() {
+            val f = Fixture(hostPolicy = HostPolicy(notificationPolicy = HostControlPolicy.DENY))
+
+            f.acceptAscii("\u001B]9;denied\u0007")
+            f.acceptAscii("\u001B]777;notify;Denied;Body;warning\u0007")
+
+            assertTrue(f.events.notifications.isEmpty())
+        }
+    }
+
+    @Nested
+    @DisplayName("clipboard policy")
+    inner class ClipboardPolicy {
+        @Test
+        fun `OSC 52 clipboard writes are denied by default and audited without payload content`() {
+            val f = Fixture()
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                listOf(
+                    TerminalClipboardAuditEvent(
+                        operation = TerminalClipboardOperation.WRITE,
+                        selection = "c",
+                        origin = TerminalClipboardOrigin.REMOTE,
+                        encodedLength = 8,
+                        decodedBytes = 5,
+                        maxDecodedBytes = TerminalClipboardPolicy.DEFAULT_MAX_DECODED_BYTES,
+                        decision = TerminalClipboardDecision.DENIED_BY_POLICY,
+                    ),
+                ),
+                f.events.clipboardAudits,
+            )
+        }
+
+        @Test
+        fun `OSC 52 clipboard read queries are denied by default`() {
+            val f = Fixture()
+
+            f.acceptAscii("\u001B]52;c;?\u001B\\")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_READ_DISABLED,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+            assertEquals(
+                TerminalClipboardOperation.READ_QUERY,
+                f.events.clipboardAudits
+                    .single()
+                    .operation,
+            )
+        }
+
+        @Test
+        fun `OSC 52 local prompt policy requests host prompt without writing clipboard`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.PROMPT,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.PROMPT_REQUIRED,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 remote writes remain denied when only local writes are promptable`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.REMOTE,
+                                    localWritePermission = TerminalClipboardPermission.PROMPT,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_BY_POLICY,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 allowed policy audits allowance but adapter performs no clipboard IO`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOW,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.ALLOWED_BY_POLICY,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 allowlist policy denies requests when session is not allowlisted`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOWLIST,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_NOT_ALLOWLISTED,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 allowlist policy allows requests when session is allowlisted`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOWLIST,
+                                    allowlisted = true,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.ALLOWED_BY_POLICY,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+        }
+
+        @Test
+        fun `OSC 52 malformed base64 is denied before permission evaluation`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOW,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;not base64\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_MALFORMED_PAYLOAD,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+            assertEquals(
+                0,
+                f.events.clipboardAudits
+                    .single()
+                    .decodedBytes,
+            )
+        }
+
+        @Test
+        fun `OSC 52 payload exceeding decoded size limit is denied`() {
+            val f =
+                Fixture(
+                    hostPolicy =
+                        HostPolicy(
+                            clipboardPolicy =
+                                TerminalClipboardPolicy(
+                                    origin = TerminalClipboardOrigin.LOCAL,
+                                    localWritePermission = TerminalClipboardPermission.ALLOW,
+                                    maxDecodedBytes = 4,
+                                ),
+                        ),
+                )
+
+            f.acceptAscii("\u001B]52;c;SGVsbG8=\u0007")
+
+            assertEquals(
+                TerminalClipboardDecision.DENIED_PAYLOAD_TOO_LARGE,
+                f.events.clipboardAudits
+                    .single()
+                    .decision,
+            )
+            assertEquals(
+                5,
+                f.events.clipboardAudits
+                    .single()
+                    .decodedBytes,
+            )
+            assertEquals(
+                4,
+                f.events.clipboardAudits
+                    .single()
+                    .maxDecodedBytes,
+            )
+        }
     }
 
     @Nested
@@ -1337,6 +1773,7 @@ class HostCommandAdapterTest {
         @Test
         fun `window manipulations are forwarded to the event sink`() {
             val f = Fixture()
+            f.sink.resizeWindow(24, 80)
             f.sink.moveWindow(100, 200)
             f.sink.minimizeWindow()
             f.sink.deminimizeWindow()
@@ -1345,6 +1782,7 @@ class HostCommandAdapterTest {
             f.sink.setMaximized(true)
             f.sink.setMaximized(false)
 
+            assertEquals(listOf(24 to 80), f.events.resizes)
             assertEquals(listOf(100 to 200), f.events.moves)
             assertEquals(1, f.events.minimizes)
             assertEquals(1, f.events.deminimizes)
@@ -1352,12 +1790,35 @@ class HostCommandAdapterTest {
             assertEquals(1, f.events.lowers)
             assertEquals(listOf(true, false), f.events.maximisedStates)
         }
+
+        @Test
+        fun `window manipulation policy can deny host window requests`() {
+            val f = Fixture(hostPolicy = HostPolicy(windowManipulationPolicy = HostControlPolicy.DENY))
+            f.sink.resizeWindow(24, 80)
+            f.sink.moveWindow(100, 200)
+            f.sink.minimizeWindow()
+            f.sink.deminimizeWindow()
+            f.sink.raiseWindow()
+            f.sink.lowerWindow()
+            f.sink.setMaximized(true)
+
+            assertAll(
+                { assertTrue(f.events.resizes.isEmpty()) },
+                { assertTrue(f.events.moves.isEmpty()) },
+                { assertEquals(0, f.events.minimizes) },
+                { assertEquals(0, f.events.deminimizes) },
+                { assertEquals(0, f.events.raises) },
+                { assertEquals(0, f.events.lowers) },
+                { assertTrue(f.events.maximisedStates.isEmpty()) },
+            )
+        }
     }
 
     private class RecordingHostEventSink : HostEventSink {
         var bells: Int = 0
         val iconTitles = mutableListOf<String>()
         val windowTitles = mutableListOf<String>()
+        val resizes = mutableListOf<Pair<Int, Int>>()
         val moves = mutableListOf<Pair<Int, Int>>()
         var minimizes = 0
         var deminimizes = 0
@@ -1387,7 +1848,7 @@ class HostCommandAdapterTest {
             rows: Int,
             columns: Int,
         ) {
-            // No-op for tests unless assertions need it
+            resizes += rows to columns
         }
 
         override fun moveWindow(
@@ -1422,6 +1883,7 @@ class HostCommandAdapterTest {
         }
 
         val notifications = mutableListOf<Triple<String, String, NotificationLevel>>()
+        val clipboardAudits = mutableListOf<TerminalClipboardAuditEvent>()
 
         override fun showNotification(
             title: String,
@@ -1429,6 +1891,10 @@ class HostCommandAdapterTest {
             level: NotificationLevel,
         ) {
             notifications += Triple(title, body, level)
+        }
+
+        override fun terminalClipboardRequest(event: TerminalClipboardAuditEvent) {
+            clipboardAudits += event
         }
     }
 }

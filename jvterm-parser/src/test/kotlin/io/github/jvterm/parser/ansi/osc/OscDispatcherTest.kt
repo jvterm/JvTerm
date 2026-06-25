@@ -315,6 +315,36 @@ class OscDispatcherTest {
     }
 
     @Nested
+    @DisplayName("clipboard")
+    inner class Clipboard {
+        @Test
+        fun `OSC 52 dispatches clipboard write request for host policy evaluation`() {
+            assertEquals(
+                listOf("requestClipboard:c:SGVsbG8="),
+                dispatch("52;c;SGVsbG8=").events,
+            )
+        }
+
+        @Test
+        fun `OSC 52 dispatches clipboard query request for host policy evaluation`() {
+            assertEquals(
+                listOf("requestClipboard:c:?"),
+                dispatch("52;c;?").events,
+            )
+        }
+
+        @Test
+        fun `OSC 52 with missing payload separator is ignored`() {
+            assertTrue(dispatch("52;c").events.isEmpty())
+        }
+
+        @Test
+        fun `overflowed OSC 52 is ignored`() {
+            assertTrue(dispatch("52;c;SGVsbG8=", overflowed = true).events.isEmpty())
+        }
+    }
+
+    @Nested
     @DisplayName("ignored payloads")
     inner class IgnoredPayloads {
         @Test
@@ -333,11 +363,6 @@ class OscDispatcherTest {
         @Test
         fun `overflowed payload is ignored`() {
             assertTrue(dispatch("0;truncated", overflowed = true).events.isEmpty())
-        }
-
-        @Test
-        fun `OSC 52 clipboard is ignored`() {
-            assertTrue(dispatch("52;c;SGVsbG8=").events.isEmpty())
         }
     }
 }

@@ -15,6 +15,9 @@
  */
 package io.github.jvterm.workspace.config
 
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalTitlePermission
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.*
@@ -118,11 +121,18 @@ class TerminalConfigTest {
         assertEquals(16, config.fontSize)
         assertFalse(config.treatAmbiguousAsWide)
         assertEquals(600, config.cursorBlinkMillis)
-        assertFalse(config.useSystemFallbackFonts)
+        assertTrue(config.useSystemFallbackFonts)
         assertEquals("block", config.cursorShape)
         assertTrue(config.visualBell)
+        assertEquals(PasteSanitizationPolicy.RAW, config.pasteSanitizationPolicy)
         assertFalse(config.shellRequestResizeWindow)
         assertFalse(config.shellRequestWindowManipulation)
+        assertEquals(TerminalClipboardPermission.PROMPT, config.clipboardLocalWrite)
+        assertEquals(TerminalClipboardPermission.DENY, config.clipboardRemoteWrite)
+        assertEquals(TerminalClipboardPermission.DENY, config.clipboardRead)
+        assertEquals(1024 * 1024, config.clipboardMaxDecodedBytes)
+        assertEquals(TerminalTitlePermission.ALLOW, config.titleLocalPermission)
+        assertEquals(TerminalTitlePermission.DENY, config.titleRemotePermission)
 
         // Clean up
         Files.deleteIfExists(configFile)
@@ -148,13 +158,23 @@ class TerminalConfigTest {
                 cursorShape = "beam",
                 audibleBell = false,
                 visualBell = false,
+                pasteSanitizationPolicy = PasteSanitizationPolicy.NORMALIZE_LINE_ENDINGS,
                 shellRequestResizeWindow = true,
                 shellRequestWindowManipulation = true,
                 desktopNotificationsEnabled = false,
+                clipboardLocalWrite = TerminalClipboardPermission.ALLOW,
+                clipboardRemoteWrite = TerminalClipboardPermission.ALLOWLIST,
+                clipboardRead = TerminalClipboardPermission.PROMPT,
+                clipboardMaxDecodedBytes = 500,
+                titleLocalPermission = TerminalTitlePermission.DENY,
+                titleRemotePermission = TerminalTitlePermission.ALLOW,
             )
 
         manager.save(customConfig)
         assertTrue(Files.exists(configFile))
+        assertTrue(Files.readString(configFile).contains("""paste_sanitization = "normalize-line-endings""""))
+        assertTrue(Files.readString(configFile).contains("""clipboard_local_write = "allow""""))
+        assertTrue(Files.readString(configFile).contains("""clipboard_max_decoded_bytes = 500"""))
 
         val loaded = manager.load()
         assertEquals(customConfig, loaded)
@@ -189,6 +209,7 @@ class TerminalConfigTest {
             [behavior]
             cursor_blink_millis = 999999999999999999999999
             cursor_shape = "beam"
+            paste_sanitization = "strip-c0"
             """.trimIndent(),
         )
 
@@ -200,6 +221,67 @@ class TerminalConfigTest {
         assertEquals(TerminalConfig.FONT_SIZE_MIN, loaded.fontSize)
         assertEquals(TerminalConfig.LINE_HEIGHT_MIN, loaded.lineHeight)
         assertEquals(TerminalConfig.CURSOR_BLINK_MAX, loaded.cursorBlinkMillis)
+        assertEquals(PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF, loaded.pasteSanitizationPolicy)
+
+        Files.deleteIfExists(configFile)
+        Files.deleteIfExists(tempDir)
+    }
+
+    @Test
+    fun `test TerminalWorkspaceConfigManager uses field specific security defaults for invalid values`() {
+        val tempDir = Files.createTempDirectory("jvterm-config-test-security-defaults")
+        val configFile = tempDir.resolve("config.toml")
+        val manager = TerminalWorkspaceConfigManager(configFile)
+
+        Files.writeString(
+            configFile,
+            """
+            [security]
+            clipboard_local_write = "invalid"
+            clipboard_remote_write = "invalid"
+            clipboard_read = "invalid"
+            title_local_permission = "invalid"
+            title_remote_permission = "invalid"
+            """.trimIndent(),
+        )
+
+        val loaded = manager.load()
+
+        assertEquals(TerminalClipboardPermission.PROMPT, loaded.clipboardLocalWrite)
+        assertEquals(TerminalClipboardPermission.DENY, loaded.clipboardRemoteWrite)
+        assertEquals(TerminalClipboardPermission.DENY, loaded.clipboardRead)
+        assertEquals(TerminalTitlePermission.ALLOW, loaded.titleLocalPermission)
+        assertEquals(TerminalTitlePermission.DENY, loaded.titleRemotePermission)
+
+        Files.deleteIfExists(configFile)
+        Files.deleteIfExists(tempDir)
+    }
+
+    @Test
+    fun `test TerminalWorkspaceConfigManager clamps clipboard decoded byte boundaries`() {
+        val tempDir = Files.createTempDirectory("jvterm-config-test-clipboard-size")
+        val configFile = tempDir.resolve("config.toml")
+        val manager = TerminalWorkspaceConfigManager(configFile)
+
+        Files.writeString(
+            configFile,
+            """
+            [security]
+            clipboard_max_decoded_bytes = -1
+            """.trimIndent(),
+        )
+
+        assertEquals(0, manager.load().clipboardMaxDecodedBytes)
+
+        Files.writeString(
+            configFile,
+            """
+            [security]
+            clipboard_max_decoded_bytes = 999999999999999999999999
+            """.trimIndent(),
+        )
+
+        assertEquals(Int.MAX_VALUE, manager.load().clipboardMaxDecodedBytes)
 
         Files.deleteIfExists(configFile)
         Files.deleteIfExists(tempDir)

@@ -21,6 +21,7 @@ import io.github.jvterm.input.event.TerminalFocusEvent
 import io.github.jvterm.input.event.TerminalKeyEvent
 import io.github.jvterm.input.event.TerminalMouseEvent
 import io.github.jvterm.input.event.TerminalPasteEvent
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.parser.api.TerminalOutputParser
 import io.github.jvterm.protocol.ShellIntegrationEvent
 import io.github.jvterm.protocol.ShellIntegrationMarker
@@ -138,6 +139,38 @@ class TerminalWorkspaceTest {
 
         eventListener.windowTitleChanged(session, "")
         assertEquals("Other", tab.title)
+    }
+
+    @Test
+    fun `workspace open options carry paste sanitization profile default`() {
+        val session = testSession()
+        var capturedOptions: TerminalWorkspaceOpenOptions? = null
+        val workspace =
+            TerminalWorkspace(
+                listener = TerminalWorkspaceListener.NONE,
+                sessionFactory =
+                    TerminalWorkspaceSessionFactory { _, options, _ ->
+                        capturedOptions = options
+                        session
+                    },
+            )
+
+        workspace.openTab(
+            profile = TerminalProfile("p1", "Profile 1", listOf("mock-shell")),
+            options =
+                TerminalWorkspaceOpenOptions(
+                    columns = 80,
+                    rows = 24,
+                    treatAmbiguousAsWide = false,
+                    maxHistory = 100,
+                    pasteSanitizationPolicy = PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF,
+                ),
+        )
+
+        assertEquals(
+            PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF,
+            capturedOptions?.pasteSanitizationPolicy,
+        )
     }
 
     @Test

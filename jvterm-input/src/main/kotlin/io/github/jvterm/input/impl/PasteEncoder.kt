@@ -25,7 +25,7 @@ import io.github.jvterm.protocol.host.TerminalHostOutput
 internal class PasteEncoder(
     private val output: TerminalHostOutput,
     private val scratch: InputScratchBuffer,
-    private val policy: TerminalInputPolicy = TerminalInputPolicy(),
+    @Volatile internal var policy: TerminalInputPolicy = TerminalInputPolicy(),
 ) {
     fun encode(
         event: TerminalPasteEvent,

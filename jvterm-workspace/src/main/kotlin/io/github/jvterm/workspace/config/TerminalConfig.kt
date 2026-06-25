@@ -15,6 +15,10 @@
  */
 package io.github.jvterm.workspace.config
 
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalClipboardPolicy
+import io.github.jvterm.host.TerminalTitlePermission
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import java.util.*
 
 private fun defaultShellPath(): String {
@@ -61,12 +65,20 @@ private fun defaultFontFamily(): String {
  * @property audibleBell whether host UI should play a system bell for BEL events.
  * @property visualBell whether host UI should show a visual indicator for BEL events.
  * @property pasteOnMiddleClick whether middle mouse click should paste clipboard text.
+ * @property pasteSanitizationPolicy transformation applied to pasted text before
+ * terminal-host emission.
  * @property scrollbackLines maximum retained scrollback lines.
  * @property lineHeight font metric line-height multiplier.
  * @property shellRequestResizeWindow whether shell application window/grid resize requests are honored.
  * @property desktopNotificationsEnabled whether desktop notifications are enabled.
  * @property persistentCommandHistoryEnabled whether completed command metadata
  * is retained by supporting product hosts across application restarts.
+ * @property clipboardLocalWrite OSC 52 write permission for local sessions.
+ * @property clipboardRemoteWrite OSC 52 write permission for remote sessions.
+ * @property clipboardRead OSC 52 read/query permission.
+ * @property clipboardMaxDecodedBytes maximum decoded clipboard payload size.
+ * @property titleLocalPermission window/tab renaming permission for local sessions.
+ * @property titleRemotePermission window/tab renaming permission for remote sessions.
  */
 data class TerminalConfig(
     val theme: String = DEFAULT_THEME,
@@ -83,12 +95,19 @@ data class TerminalConfig(
     val audibleBell: Boolean = DEFAULT_AUDIBLE_BELL,
     val visualBell: Boolean = DEFAULT_VISUAL_BELL,
     val pasteOnMiddleClick: Boolean = DEFAULT_PASTE_ON_MIDDLE_CLICK,
+    val pasteSanitizationPolicy: PasteSanitizationPolicy = DEFAULT_PASTE_SANITIZATION_POLICY,
     val scrollbackLines: Int = DEFAULT_SCROLLBACK_LINES,
     val lineHeight: Float = DEFAULT_LINE_HEIGHT,
     val shellRequestResizeWindow: Boolean = DEFAULT_SHELL_REQUEST_RESIZE_WINDOW,
     val shellRequestWindowManipulation: Boolean = DEFAULT_SHELL_REQUEST_WINDOW_MANIPULATION,
     val desktopNotificationsEnabled: Boolean = DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED,
     val persistentCommandHistoryEnabled: Boolean = DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED,
+    val clipboardLocalWrite: TerminalClipboardPermission = DEFAULT_CLIPBOARD_LOCAL_WRITE,
+    val clipboardRemoteWrite: TerminalClipboardPermission = DEFAULT_CLIPBOARD_REMOTE_WRITE,
+    val clipboardRead: TerminalClipboardPermission = DEFAULT_CLIPBOARD_READ,
+    val clipboardMaxDecodedBytes: Int = DEFAULT_CLIPBOARD_MAX_DECODED_BYTES,
+    val titleLocalPermission: TerminalTitlePermission = DEFAULT_TITLE_LOCAL_PERMISSION,
+    val titleRemotePermission: TerminalTitlePermission = DEFAULT_TITLE_REMOTE_PERMISSION,
 ) {
     init {
         require(columns in COLUMNS_MIN..COLUMNS_MAX) {
@@ -113,6 +132,9 @@ data class TerminalConfig(
         require(lineHeight in LINE_HEIGHT_MIN..LINE_HEIGHT_MAX) {
             "lineHeight must be in ${LINE_HEIGHT_MIN}..${LINE_HEIGHT_MAX}, was $lineHeight"
         }
+        require(clipboardMaxDecodedBytes >= 0) {
+            "clipboardMaxDecodedBytes must be non-negative, was $clipboardMaxDecodedBytes"
+        }
     }
 
     /**
@@ -134,17 +156,25 @@ data class TerminalConfig(
         const val DEFAULT_COLUMNS: Int = 100
         const val DEFAULT_ROWS: Int = 30
         const val DEFAULT_CURSOR_BLINK_MILLIS: Int = 600
-        const val DEFAULT_USE_SYSTEM_FALLBACK_FONTS: Boolean = false
+        const val DEFAULT_USE_SYSTEM_FALLBACK_FONTS: Boolean = true
         const val DEFAULT_CURSOR_SHAPE: String = "block"
         const val DEFAULT_AUDIBLE_BELL: Boolean = true
         const val DEFAULT_VISUAL_BELL: Boolean = true
         const val DEFAULT_PASTE_ON_MIDDLE_CLICK: Boolean = true
+        val DEFAULT_PASTE_SANITIZATION_POLICY: PasteSanitizationPolicy = PasteSanitizationPolicy.RAW
         const val DEFAULT_SCROLLBACK_LINES: Int = 1000
         const val DEFAULT_LINE_HEIGHT: Float = 1.0f
         const val DEFAULT_SHELL_REQUEST_RESIZE_WINDOW: Boolean = false
         const val DEFAULT_SHELL_REQUEST_WINDOW_MANIPULATION: Boolean = false
         const val DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED: Boolean = true
         const val DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED: Boolean = false
+
+        val DEFAULT_CLIPBOARD_LOCAL_WRITE: TerminalClipboardPermission = TerminalClipboardPermission.PROMPT
+        val DEFAULT_CLIPBOARD_REMOTE_WRITE: TerminalClipboardPermission = TerminalClipboardPermission.DENY
+        val DEFAULT_CLIPBOARD_READ: TerminalClipboardPermission = TerminalClipboardPermission.DENY
+        const val DEFAULT_CLIPBOARD_MAX_DECODED_BYTES: Int = TerminalClipboardPolicy.DEFAULT_MAX_DECODED_BYTES
+        val DEFAULT_TITLE_LOCAL_PERMISSION: TerminalTitlePermission = TerminalTitlePermission.ALLOW
+        val DEFAULT_TITLE_REMOTE_PERMISSION: TerminalTitlePermission = TerminalTitlePermission.DENY
 
         val DEFAULT_FONT_FAMILY: String get() = defaultFontFamily()
         val DEFAULT_SHELL_PATH: String get() = defaultShellPath()

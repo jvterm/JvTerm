@@ -15,6 +15,15 @@
  */
 package io.github.jvterm.app.config
 
+import io.github.jvterm.host.HostControlPolicy
+import io.github.jvterm.host.HostPolicy
+import io.github.jvterm.host.TerminalClipboardOrigin
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalClipboardPolicy
+import io.github.jvterm.host.TerminalTitleOrigin
+import io.github.jvterm.host.TerminalTitlePermission
+import io.github.jvterm.host.TerminalTitlePolicy
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.config.TerminalConfig
@@ -122,6 +131,12 @@ internal class JvTermSettings(
             updateConfig(config.copy(pasteOnMiddleClick = value))
         }
 
+    var pasteSanitizationPolicy: PasteSanitizationPolicy
+        get() = config.pasteSanitizationPolicy
+        set(value) {
+            updateConfig(config.copy(pasteSanitizationPolicy = value))
+        }
+
     var scrollbackLines: Int
         get() = config.scrollbackLines
         set(value) {
@@ -158,6 +173,42 @@ internal class JvTermSettings(
             updateConfig(config.copy(persistentCommandHistoryEnabled = value))
         }
 
+    var clipboardLocalWrite: TerminalClipboardPermission
+        get() = config.clipboardLocalWrite
+        set(value) {
+            updateConfig(config.copy(clipboardLocalWrite = value))
+        }
+
+    var clipboardRemoteWrite: TerminalClipboardPermission
+        get() = config.clipboardRemoteWrite
+        set(value) {
+            updateConfig(config.copy(clipboardRemoteWrite = value))
+        }
+
+    var clipboardRead: TerminalClipboardPermission
+        get() = config.clipboardRead
+        set(value) {
+            updateConfig(config.copy(clipboardRead = value))
+        }
+
+    var clipboardMaxDecodedBytes: Int
+        get() = config.clipboardMaxDecodedBytes
+        set(value) {
+            updateConfig(config.copy(clipboardMaxDecodedBytes = value))
+        }
+
+    var titleLocalPermission: TerminalTitlePermission
+        get() = config.titleLocalPermission
+        set(value) {
+            updateConfig(config.copy(titleLocalPermission = value))
+        }
+
+    var titleRemotePermission: TerminalTitlePermission
+        get() = config.titleRemotePermission
+        set(value) {
+            updateConfig(config.copy(titleRemotePermission = value))
+        }
+
     val commandHistoryPath: Path
         get() = configManager.configPath.resolveSibling("command-history-v1.tsv")
 
@@ -173,11 +224,41 @@ internal class JvTermSettings(
             useSystemFallbackFonts = config.useSystemFallbackFonts,
             visualBellEnabled = config.visualBell,
             pasteOnMiddleClick = config.pasteOnMiddleClick,
+            pasteSanitizationPolicy = config.pasteSanitizationPolicy,
             cursorShape = parseCursorShape(config.cursorShape),
             scrollbackLines = config.scrollbackLines,
             lineHeight = config.lineHeight,
             shellRequestResizeWindow = config.shellRequestResizeWindow,
             shellRequestWindowManipulation = config.shellRequestWindowManipulation,
+        )
+    }
+
+    fun createHostPolicy(command: List<String>): HostPolicy {
+        val isRemote = command.firstOrNull()?.let(::isSshExecutable) == true
+        val clipboardOrigin = if (isRemote) TerminalClipboardOrigin.REMOTE else TerminalClipboardOrigin.LOCAL
+        val titleOrigin = if (isRemote) TerminalTitleOrigin.REMOTE else TerminalTitleOrigin.LOCAL
+
+        return HostPolicy(
+            titlePolicy =
+                TerminalTitlePolicy(
+                    origin = titleOrigin,
+                    localPermission = config.titleLocalPermission,
+                    remotePermission = config.titleRemotePermission,
+                ),
+            clipboardPolicy =
+                TerminalClipboardPolicy(
+                    origin = clipboardOrigin,
+                    localWritePermission = config.clipboardLocalWrite,
+                    remoteWritePermission = config.clipboardRemoteWrite,
+                    readPermission = config.clipboardRead,
+                    maxDecodedBytes = config.clipboardMaxDecodedBytes,
+                ),
+            windowManipulationPolicy =
+                if (config.shellRequestResizeWindow || config.shellRequestWindowManipulation) {
+                    HostControlPolicy.ALLOW
+                } else {
+                    HostControlPolicy.DENY
+                },
         )
     }
 
@@ -187,6 +268,17 @@ internal class JvTermSettings(
             "underline" -> io.github.jvterm.render.api.TerminalRenderCursorShape.UNDERLINE
             else -> io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK
         }
+
+    private fun isSshExecutable(command: String): Boolean {
+        val executable =
+            command
+                .trim()
+                .trim('"')
+                .replace('\\', '/')
+                .substringAfterLast('/')
+                .lowercase(Locale.ROOT)
+        return executable == "ssh" || executable == "ssh.exe"
+    }
 
     private fun updateConfig(newConfig: TerminalConfig) {
         config = newConfig

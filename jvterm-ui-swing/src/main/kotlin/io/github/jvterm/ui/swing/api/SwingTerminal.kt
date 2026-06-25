@@ -947,6 +947,7 @@ class SwingTerminal
             session.setTreatAmbiguousAsWide(settings.treatAmbiguousAsWide)
             session.setThemePalette(settings.palette)
             session.setCursorShape(settings.cursorShape)
+            session.setPasteSanitizationPolicy(settings.pasteSanitizationPolicy)
         }
 
         /**

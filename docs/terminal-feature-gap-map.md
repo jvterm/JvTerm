@@ -14,6 +14,7 @@ The target is a modern, secure, xterm-compatible terminal pipeline for contempor
 - `TODO(session)`: runtime synchronization, host-side state, or session-owned metadata is missing.
 - `TODO(ui)`: reusable UI presentation, interaction, or rendering behavior is missing.
 - `TODO(input)`: host-bound keyboard/mouse/paste encoding is missing.
+- `TODO(host/profile)`: product host, profile, or settings defaults are not exposed even though the lower-level terminal mechanism exists.
 - `TODO(policy)`: feature needs an explicit security or compatibility policy before implementation.
 
 ---
@@ -24,7 +25,7 @@ The target is a modern, secure, xterm-compatible terminal pipeline for contempor
 - *No outstanding CSI cursor, SGR color, alternate screen, or basic input gaps.*
 
 ### Tier 2: Useful (Under consideration / partial gaps)
-- *No outstanding SAFE query-response, DECRQSS/XTGETTCAP, or push/pop title stack gaps (all implemented and verified).*
+- *No outstanding SAFE query-response, DECRQSS/XTGETTCAP, push/pop title stack, or host-adapter allow/deny policy-surface gaps (all implemented and verified).*
 
 ### Tier 3: Optional (Graphics & advanced features)
 - Sixel or modern graphics protocols (e.g. Kitty graphics protocol).
@@ -40,7 +41,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 - Tektronix 4014 emulation.
 - Media Copy / printer passthrough (`CSI i`).
 - X11-specific font loading protocols.
-- Blind OSC 52 clipboard writes.
+- Blind OSC 52 clipboard writes; only bounded request parsing plus policy/audit reporting is in scope.
 - Unbounded or unaudited DCS/OSC responses.
 - Literal "everything xterm ever accepted" parity.
 - Tertiary Device Attributes (`DA3` / `CSI = c`) query response (excluded to prevent unique hardware serial number leak/user fingerprinting).
@@ -72,7 +73,8 @@ These are not badges of compatibility for this project. They expand attack surfa
 - `TODO(parser)`: save/restore state parity between DEC and SCO cursor save forms, if compatibility requires it.
 
 ### OSC Protocols
-- `TODO(policy)`: OSC 52 clipboard support. This needs an explicit permission and security policy before implementation.
+- `DONE(parser/host/policy)`: OSC 52 clipboard requests are bounded, parsed, denied by default, size-checked, origin-aware, and surfaced as content-free host audit events.
+- `TODO(host/ui/policy)`: OSC 52 clipboard write execution, user prompting, allowlists, and any read/query response path remain unimplemented until product hosts explicitly opt in.
 - `TODO(parser)`: OSC 1337/iTerm2 extensions, if desired.
 - `TODO(parser)`: OSC query responses. Requires terminal-to-host output.
 - `TODO(parser)`: payload encoding policy for non-UTF-8 or invalid UTF-8 OSC data.
@@ -113,12 +115,16 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ## Integration Gaps
 
-- `TODO(host/host/policy)`: host callbacks or policy surfaces for palette updates, terminal notifications, mouse-report policy, and clipboard policy.
+- `DONE(host/policy)`: host-adapter allow/deny policy surface for title updates, OSC 8 hyperlinks, OSC 7 current-working-directory reports, desktop notifications, window manipulation requests, palette controls, terminal response channels, and OSC 52 clipboard request auditing.
+- `TODO(host)`: richer host callbacks for palette updates, terminal notifications, mouse-report policy, and future clipboard decisions when those product surfaces need UI or embedding feedback.
 
 ---
 
 ## Input Module Gaps
 
+- `DONE(input/policy)`: paste encoding, bracketed-paste wrapping, and `TerminalInputPolicy` paste sanitization are implemented and tested. The encoder preserves payloads by default, can strip C0 controls except TAB/CR/LF, can normalize CRLF/lone-CR line endings, and wraps with `CSI 200~` / `CSI 201~` when bracketed paste mode is active.
+- `DONE(host/profile)`: standalone/workspace local PTY profiles persist `paste_sanitization` (`raw`, `strip-c0`, or `normalize-line-endings`) and apply it to newly opened tabs and splits through `TerminalWorkspaceOpenOptions` and `PtyOptions.inputPolicy`.
+- `TODO(host/profile)`: expose paste policy defaults for SSH and IDE/workspace embedding profiles when those product surfaces are wired; input already provides the mechanism.
 - `TODO(input)`: broader modified-key encoding:
   - xterm modifyOtherKeys subparameter mask support such as `CSI > 4 : 1 m`.
   - query/disable controls for xterm key modifier options.
@@ -127,7 +133,8 @@ These are not badges of compatibility for this project. They expand attack surfa
 - `TODO(parser/core/input)`: xterm highlight mouse tracking (`?1001`) if full xterm mouse parity is required.
 
 ### Deferred Kitty Keyboard Protocol Scope
-- `CSI ? u` query response and terminal capability identity policy.
+- `DONE(protocol/core/pty)`: terminal capability identity contract centralizes `$TERM`, `COLORTERM`, DA/DA2, XTGETTCAP terminal-name/color claims, and the implemented Kitty keyboard flag mask.
+- `TODO(parser/core/policy)`: `CSI ? u` Kitty keyboard capability query response remains disabled until a response shape and fingerprinting policy are implemented.
 - separate left/right modifier reporting if host event vocabulary grows it.
 - key repeat/release reporting.
 - alternate-key fields and associated text fields.
@@ -149,9 +156,10 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ## Security and Policy Gaps
 
-- `TODO(policy)`: OSC 52 clipboard permission model.
-- `TODO(policy)`: richer hyperlink validation and display policy beyond host resource limits and Swing's explicit-activation handler.
-- `TODO(policy)`: protocol-family-specific payload limits and host-configurable caps beyond the parser's generic bound.
-- `TODO(policy)`: whether title/icon updates are always accepted or host-gated.
-- `TODO(policy)`: paste sanitization and bracketed paste defaults.
-- `TODO(policy)`: terminal capability identity policies.
+- `DONE(policy)`: OSC 52 clipboard permission model covers local vs remote origin, deny/prompt/allowlist/allow write decisions, disabled read/query behavior, decoded payload limits, malformed payload rejection, and content-free audit events.
+- `TODO(host/ui/policy)`: actual OSC 52 clipboard writes, prompts, allowlists, and read/query responses remain intentionally absent.
+- `TODO(policy)`: richer hyperlink validation and display policy beyond host resource limits, host allow/deny gating, and Swing's explicit-activation handler.
+- `DONE(host/policy)`: host-owned metadata and response controls have explicit policy gates and per-feature host caps for titles, hyperlinks, OSC 7 current-working-directory reports, notifications, palette controls, window manipulation, and terminal response channels.
+- `TODO(parser/policy)`: protocol-family-specific raw OSC/DCS parser payload ceilings beyond the parser's generic bound, especially before large graphics or clipboard protocols are enabled.
+- `DONE(host/policy)`: title/icon updates are host-gated through `HostPolicy.titlePolicy`, which models local vs remote session origin, local/remote allow decisions, and configurable oversized-title handling (`clamp` by default for standalone compatibility, or `reject` for stricter profiles).
+- `DONE(policy)`: terminal capability identity policy is explicit in `TerminalCapabilityIdentity` and consumed by PTY launch defaults plus core terminal-to-host query responses.

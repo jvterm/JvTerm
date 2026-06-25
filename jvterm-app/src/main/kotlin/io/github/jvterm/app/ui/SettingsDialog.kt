@@ -16,6 +16,9 @@
 package io.github.jvterm.app.ui
 
 import io.github.jvterm.app.config.JvTermSettings
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalTitlePermission
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfile
@@ -178,6 +181,12 @@ internal class SettingsDialog(
     private val treatAmbiguousCheckbox = JCheckBox("Treat East Asian ambiguous characters as wide", settings.treatAmbiguousAsWide)
     private val useSystemFallbackCheckbox = JCheckBox("Use system font fallback for missing glyphs", settings.useSystemFallbackFonts)
     private val pasteOnMiddleClickCheckbox = JCheckBox("Paste on middle mouse button click", settings.pasteOnMiddleClick)
+    private val pasteSanitizationCombo =
+        createComboBox(
+            PASTE_SANITIZATION_OPTIONS.toTypedArray(),
+            PASTE_SANITIZATION_OPTIONS.first { it.policy == settings.pasteSanitizationPolicy },
+            220,
+        )
     private val shellRequestResizeWindowCheckbox = JCheckBox("Allow window resize from shell", settings.shellRequestResizeWindow)
     private val shellRequestWindowManipulationCheckbox =
         JCheckBox("Allow window manipulation from shell", settings.shellRequestWindowManipulation)
@@ -187,8 +196,21 @@ internal class SettingsDialog(
         createSpinner(settings.cursorBlinkMillis, TerminalConfig.CURSOR_BLINK_MIN, TerminalConfig.CURSOR_BLINK_MAX, 50, 70)
     private val cursorShapeCombo = createComboBox(arrayOf("block", "underline", "beam"), settings.cursorShape.lowercase(Locale.ROOT), 150)
 
+    // Form Controls - Security
+    private val clipboardLocalWriteCombo =
+        createComboBox(arrayOf("allow", "prompt", "allowlist", "deny"), settings.clipboardLocalWrite.name.lowercase(Locale.ROOT), 150)
+    private val clipboardRemoteWriteCombo =
+        createComboBox(arrayOf("allow", "prompt", "allowlist", "deny"), settings.clipboardRemoteWrite.name.lowercase(Locale.ROOT), 150)
+    private val clipboardReadCombo =
+        createComboBox(arrayOf("allow", "prompt", "allowlist", "deny"), settings.clipboardRead.name.lowercase(Locale.ROOT), 150)
+    private val clipboardMaxDecodedBytesSpinner = createSpinner(settings.clipboardMaxDecodedBytes, 0, Int.MAX_VALUE, 1024, 150)
+    private val titleLocalPermissionCheckbox =
+        JCheckBox("Allow local sessions to rename window/tab", settings.titleLocalPermission == TerminalTitlePermission.ALLOW)
+    private val titleRemotePermissionCheckbox =
+        JCheckBox("Allow remote sessions to rename window/tab", settings.titleRemotePermission == TerminalTitlePermission.ALLOW)
+
     init {
-        size = Dimension(750, 550)
+        size = Dimension(820, 600)
         setLocationRelativeTo(parent)
         layout = BorderLayout()
         isUndecorated = false
@@ -215,9 +237,10 @@ internal class SettingsDialog(
         add(buildFooterPanel(), BorderLayout.SOUTH)
 
         // Add Pages
-        addPage("Application", buildApplicationPanel())
+        addPage("General", buildGeneralPanel())
         addPage("Appearance", buildAppearancePanel())
         addPage("Behavior", buildBehaviorPanel())
+        addPage("Security", buildSecurityPanel())
 
         selectCategory(categories.first().categoryName)
 
@@ -241,7 +264,14 @@ internal class SettingsDialog(
         registerChangeListener(themeCombo, updateApplyState)
         registerChangeListener(treatAmbiguousCheckbox, updateApplyState)
         registerChangeListener(useSystemFallbackCheckbox, updateApplyState)
+        registerChangeListener(clipboardLocalWriteCombo, updateApplyState)
+        registerChangeListener(clipboardRemoteWriteCombo, updateApplyState)
+        registerChangeListener(clipboardReadCombo, updateApplyState)
+        registerChangeListener(clipboardMaxDecodedBytesSpinner, updateApplyState)
+        registerChangeListener(titleLocalPermissionCheckbox, updateApplyState)
+        registerChangeListener(titleRemotePermissionCheckbox, updateApplyState)
         registerChangeListener(pasteOnMiddleClickCheckbox, updateApplyState)
+        registerChangeListener(pasteSanitizationCombo, updateApplyState)
         registerChangeListener(shellRequestResizeWindowCheckbox, updateApplyState)
         registerChangeListener(shellRequestWindowManipulationCheckbox, updateApplyState)
         registerChangeListener(persistentCommandHistoryCheckbox, updateApplyState)
@@ -289,14 +319,14 @@ internal class SettingsDialog(
         cardLayout.show(cardPanel, title)
     }
 
-    private fun buildApplicationPanel(): JPanel {
+    private fun buildGeneralPanel(): JPanel {
         val panel =
             JPanel().apply {
                 layout = BoxLayout(this, BoxLayout.Y_AXIS)
                 isOpaque = false
             }
 
-        panel.add(SectionHeader("Project Settings"))
+        panel.add(SectionHeader("Shell & Session"))
         val projectSection = createSectionPanel()
         addFormRow(projectSection, 0, "Default shell:", shellPathCombo)
 
@@ -355,11 +385,31 @@ internal class SettingsDialog(
         addFormRow(projectSection, 2, "Start directory:", startDirWrapper)
         panel.add(projectSection)
 
-        panel.add(SectionHeader("Application Settings"))
+        panel.add(SectionHeader("Terminal Bells"))
         val appSection = createSectionPanel()
-        addCheckboxRow(appSection, 0, audibleBellCheckbox)
-        addCheckboxRow(appSection, 1, visualBellCheckbox)
+        addCheckboxRow(
+            appSection,
+            0,
+            audibleBellCheckbox,
+            "Play an alert sound when the terminal triggers the bell sequence (ASCII BEL).",
+        )
+        addCheckboxRow(
+            appSection,
+            2,
+            visualBellCheckbox,
+            "Flash the screen or window when the terminal triggers the bell sequence.",
+        )
         panel.add(appSection)
+
+        panel.add(SectionHeader("Command History"))
+        val historySection = createSectionPanel()
+        addCheckboxRow(
+            historySection,
+            0,
+            persistentCommandHistoryCheckbox,
+            "Persist bounded command text, working directory, exit status, and timestamps. Terminal output is never stored.",
+        )
+        panel.add(historySection)
 
         return panel
     }
@@ -374,13 +424,56 @@ internal class SettingsDialog(
         panel.add(SectionHeader("Typography & Theme"))
         val typoSection = createSectionPanel()
         addFormRow(typoSection, 0, "Font family:", fontFamilyCombo)
-        addFormRow(typoSection, 1, "Font size:", fontSizeSpinner, "Line height:", lineHeightSpinner)
+
+        val fontGridWrapper =
+            JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply {
+                isOpaque = false
+                add(fontSizeSpinner)
+                add(Box.createHorizontalStrut(24))
+                add(
+                    JLabel("Line height:").apply {
+                        foreground = Chrome.textPrimary
+                        font = font.deriveFont(Font.PLAIN, 13f)
+                        border = EmptyBorder(0, 0, 0, 12)
+                    },
+                )
+                add(lineHeightSpinner)
+            }
+        addFormRow(typoSection, 1, "Font size:", fontGridWrapper)
+
         addFormRow(typoSection, 2, "Color theme:", themeCombo)
+        addCheckboxRow(
+            typoSection,
+            3,
+            useSystemFallbackCheckbox,
+            "Query the system catalog to resolve characters and symbols missing in the primary typeface.",
+        )
         panel.add(typoSection)
 
-        panel.add(SectionHeader("Window Layout"))
+        panel.add(SectionHeader("Cursor Settings"))
+        val cursorSection = createSectionPanel()
+        addFormRow(cursorSection, 0, "Cursor shape:", cursorShapeCombo)
+        addFormRow(cursorSection, 1, "Blink period (ms):", cursorBlinkSpinner)
+        panel.add(cursorSection)
+
+        panel.add(SectionHeader("Layout & Scrollback"))
         val windowSection = createSectionPanel()
-        addFormRow(windowSection, 0, "Columns:", columnsSpinner, "Rows:", rowsSpinner)
+
+        val layoutGridWrapper =
+            JPanel(FlowLayout(FlowLayout.LEFT, 0, 0)).apply {
+                isOpaque = false
+                add(columnsSpinner)
+                add(Box.createHorizontalStrut(24))
+                add(
+                    JLabel("Rows:").apply {
+                        foreground = Chrome.textPrimary
+                        font = font.deriveFont(Font.PLAIN, 13f)
+                        border = EmptyBorder(0, 0, 0, 12)
+                    },
+                )
+                add(rowsSpinner)
+            }
+        addFormRow(windowSection, 0, "Columns:", layoutGridWrapper)
         addFormRow(windowSection, 1, "Scrollback lines:", scrollbackSpinner)
         panel.add(windowSection)
 
@@ -394,50 +487,25 @@ internal class SettingsDialog(
                 isOpaque = false
             }
 
-        panel.add(SectionHeader("Terminal Behavior"))
-        val behaviorSection = createSectionPanel()
+        panel.add(SectionHeader("Input & Keyboard"))
+        val keyboardSection = createSectionPanel()
         addCheckboxRow(
-            behaviorSection,
+            keyboardSection,
             0,
             treatAmbiguousCheckbox,
             "Render East Asian ambiguous characters (e.g. smart quotes, emojis) with double cell width.",
         )
-        addCheckboxRow(
-            behaviorSection,
-            2,
-            useSystemFallbackCheckbox,
-            "Query the system catalog to resolve characters and symbols missing in the primary typeface.",
-        )
-        addCheckboxRow(
-            behaviorSection,
-            4,
-            pasteOnMiddleClickCheckbox,
-        )
-        addCheckboxRow(
-            behaviorSection,
-            5,
-            shellRequestResizeWindowCheckbox,
-            "Allow the terminal window to resize itself when the shell requests a grid resize.",
-        )
-        addCheckboxRow(
-            behaviorSection,
-            7,
-            shellRequestWindowManipulationCheckbox,
-            "Allow the shell to move, minimize, maximize, raise, or lower the terminal window.",
-        )
-        addCheckboxRow(
-            behaviorSection,
-            9,
-            persistentCommandHistoryCheckbox,
-            "Persist bounded command text, working directory, exit status, and timestamps. Terminal output is never stored.",
-        )
-        panel.add(behaviorSection)
+        panel.add(keyboardSection)
 
-        panel.add(SectionHeader("Cursor Settings"))
-        val cursorSection = createSectionPanel()
-        addFormRow(cursorSection, 0, "Cursor shape:", cursorShapeCombo)
-        addFormRow(cursorSection, 1, "Blink period (ms):", cursorBlinkSpinner)
-        panel.add(cursorSection)
+        panel.add(SectionHeader("Mouse"))
+        val mouseSection = createSectionPanel()
+        addCheckboxRow(
+            mouseSection,
+            0,
+            pasteOnMiddleClickCheckbox,
+            "Insert the system clipboard content when clicking the middle mouse button.",
+        )
+        panel.add(mouseSection)
 
         return panel
     }
@@ -454,13 +522,12 @@ internal class SettingsDialog(
         row: Int,
         labelText: String,
         comp1: Component,
-        label2Text: String? = null,
-        comp2: Component? = null,
     ): JLabel {
         val label =
             JLabel(labelText).apply {
                 foreground = Chrome.textPrimary
                 font = font.deriveFont(Font.PLAIN, 13f)
+                preferredSize = Dimension(190, 26)
             }
 
         val gbc =
@@ -470,39 +537,19 @@ internal class SettingsDialog(
                 anchor = GridBagConstraints.WEST
             }
 
-        // Column 0: First Label
+        // Column 0: Label
         gbc.gridx = 0
         gbc.weightx = 0.0
         gbc.gridwidth = 1
         gbc.insets = Insets(6, 0, 6, 12)
         panel.add(label, gbc)
 
-        // Column 1: First Component
+        // Column 1: Component
         gbc.gridx = 1
-        gbc.weightx = if (label2Text == null) 1.0 else 0.0
-        gbc.gridwidth = if (label2Text == null) 3 else 1
+        gbc.weightx = 1.0
+        gbc.gridwidth = 3
         gbc.insets = Insets(6, 0, 6, 0)
         panel.add(comp1, gbc)
-
-        // Columns 2 & 3: Optional Second Label and Component
-        if (label2Text != null && comp2 != null) {
-            val label2 =
-                JLabel(label2Text).apply {
-                    foreground = Chrome.textPrimary
-                    font = font.deriveFont(Font.PLAIN, 13f)
-                }
-            gbc.gridx = 2
-            gbc.weightx = 0.0
-            gbc.gridwidth = 1
-            gbc.insets = Insets(6, 24, 6, 12) // Generous 24px gap before the second label
-            panel.add(label2, gbc)
-
-            gbc.gridx = 3
-            gbc.weightx = 1.0
-            gbc.gridwidth = 1
-            gbc.insets = Insets(6, 0, 6, 0)
-            panel.add(comp2, gbc)
-        }
 
         return label
     }
@@ -543,6 +590,61 @@ internal class SettingsDialog(
                 }
             panel.add(descLabel, descGbc)
         }
+    }
+
+    private fun buildSecurityPanel(): JPanel {
+        val panel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                isOpaque = false
+            }
+
+        panel.add(SectionHeader("Clipboard Safety (OSC 52)"))
+        val clipboardSection = createSectionPanel()
+        addFormRow(clipboardSection, 0, "Local write permission:", clipboardLocalWriteCombo)
+        addFormRow(clipboardSection, 1, "Remote write permission:", clipboardRemoteWriteCombo)
+        addFormRow(clipboardSection, 2, "Read / Query permission:", clipboardReadCombo)
+        addFormRow(clipboardSection, 3, "Max decoded size (bytes):", clipboardMaxDecodedBytesSpinner)
+        panel.add(clipboardSection)
+
+        panel.add(SectionHeader("Paste Safety"))
+        val pasteSection = createSectionPanel()
+        addFormRow(pasteSection, 0, "Paste handling:", pasteSanitizationCombo)
+        panel.add(pasteSection)
+
+        panel.add(SectionHeader("Window Security"))
+        val windowSection = createSectionPanel()
+        addCheckboxRow(
+            windowSection,
+            0,
+            shellRequestResizeWindowCheckbox,
+            "Allow the terminal window to resize itself when the shell requests a grid resize.",
+        )
+        addCheckboxRow(
+            windowSection,
+            2,
+            shellRequestWindowManipulationCheckbox,
+            "Allow the shell to move, minimize, maximize, raise, or lower the terminal window.",
+        )
+        panel.add(windowSection)
+
+        panel.add(SectionHeader("Title Safety (OSC 0/1/2)"))
+        val titleSection = createSectionPanel()
+        addCheckboxRow(
+            titleSection,
+            0,
+            titleLocalPermissionCheckbox,
+            "Allow local processes to dynamically change the window or tab title via escape sequences.",
+        )
+        addCheckboxRow(
+            titleSection,
+            2,
+            titleRemotePermissionCheckbox,
+            "Allow remote processes (e.g. SSH sessions) to dynamically change the window or tab title via escape sequences.",
+        )
+        panel.add(titleSection)
+
+        return panel
     }
 
     private fun buildFooterPanel(): JPanel =
@@ -617,11 +719,22 @@ internal class SettingsDialog(
         treatAmbiguousCheckbox.isSelected = TerminalConfig.DEFAULT_TREAT_AMBIGUOUS_AS_WIDE
         useSystemFallbackCheckbox.isSelected = TerminalConfig.DEFAULT_USE_SYSTEM_FALLBACK_FONTS
         pasteOnMiddleClickCheckbox.isSelected = TerminalConfig.DEFAULT_PASTE_ON_MIDDLE_CLICK
+        pasteSanitizationCombo.selectedItem =
+            PASTE_SANITIZATION_OPTIONS.first {
+                it.policy == TerminalConfig.DEFAULT_PASTE_SANITIZATION_POLICY
+            }
         shellRequestResizeWindowCheckbox.isSelected = TerminalConfig.DEFAULT_SHELL_REQUEST_RESIZE_WINDOW
         shellRequestWindowManipulationCheckbox.isSelected = TerminalConfig.DEFAULT_SHELL_REQUEST_WINDOW_MANIPULATION
         persistentCommandHistoryCheckbox.isSelected = TerminalConfig.DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED
         cursorBlinkSpinner.value = TerminalConfig.DEFAULT_CURSOR_BLINK_MILLIS
         cursorShapeCombo.selectedItem = TerminalConfig.DEFAULT_CURSOR_SHAPE
+
+        clipboardLocalWriteCombo.selectedItem = TerminalConfig.DEFAULT_CLIPBOARD_LOCAL_WRITE.name.lowercase(Locale.ROOT)
+        clipboardRemoteWriteCombo.selectedItem = TerminalConfig.DEFAULT_CLIPBOARD_REMOTE_WRITE.name.lowercase(Locale.ROOT)
+        clipboardReadCombo.selectedItem = TerminalConfig.DEFAULT_CLIPBOARD_READ.name.lowercase(Locale.ROOT)
+        clipboardMaxDecodedBytesSpinner.value = TerminalConfig.DEFAULT_CLIPBOARD_MAX_DECODED_BYTES
+        titleLocalPermissionCheckbox.isSelected = TerminalConfig.DEFAULT_TITLE_LOCAL_PERMISSION == TerminalTitlePermission.ALLOW
+        titleRemotePermissionCheckbox.isSelected = TerminalConfig.DEFAULT_TITLE_REMOTE_PERMISSION == TerminalTitlePermission.ALLOW
     }
 
     private fun applyChanges() {
@@ -676,11 +789,41 @@ internal class SettingsDialog(
             audibleBell = audibleBellCheckbox.isSelected,
             visualBell = visualBellCheckbox.isSelected,
             pasteOnMiddleClick = pasteOnMiddleClickCheckbox.isSelected,
+            pasteSanitizationPolicy =
+                (pasteSanitizationCombo.selectedItem as? PasteSanitizationOption)?.policy
+                    ?: TerminalConfig.DEFAULT_PASTE_SANITIZATION_POLICY,
             scrollbackLines = scrollbackSpinner.value as? Int ?: TerminalConfig.DEFAULT_SCROLLBACK_LINES,
             lineHeight = lineHeightSpinner.value as? Double ?: TerminalConfig.DEFAULT_LINE_HEIGHT.toDouble(),
             shellRequestResizeWindow = shellRequestResizeWindowCheckbox.isSelected,
             shellRequestWindowManipulation = shellRequestWindowManipulationCheckbox.isSelected,
             persistentCommandHistoryEnabled = persistentCommandHistoryCheckbox.isSelected,
+            clipboardLocalWrite =
+                TerminalClipboardPermission.valueOf(
+                    (clipboardLocalWriteCombo.selectedItem as String).uppercase(Locale.ROOT),
+                ),
+            clipboardRemoteWrite =
+                TerminalClipboardPermission.valueOf(
+                    (clipboardRemoteWriteCombo.selectedItem as String).uppercase(Locale.ROOT),
+                ),
+            clipboardRead =
+                TerminalClipboardPermission.valueOf(
+                    (clipboardReadCombo.selectedItem as String).uppercase(Locale.ROOT),
+                ),
+            clipboardMaxDecodedBytes =
+                clipboardMaxDecodedBytesSpinner.value as? Int
+                    ?: TerminalConfig.DEFAULT_CLIPBOARD_MAX_DECODED_BYTES,
+            titleLocalPermission =
+                if (titleLocalPermissionCheckbox.isSelected) {
+                    TerminalTitlePermission.ALLOW
+                } else {
+                    TerminalTitlePermission.DENY
+                },
+            titleRemotePermission =
+                if (titleRemotePermissionCheckbox.isSelected) {
+                    TerminalTitlePermission.ALLOW
+                } else {
+                    TerminalTitlePermission.DENY
+                },
         )
     }
 
@@ -759,3 +902,17 @@ internal class SettingsDialog(
         }
     }
 }
+
+private data class PasteSanitizationOption(
+    val label: String,
+    val policy: PasteSanitizationPolicy,
+) {
+    override fun toString(): String = label
+}
+
+private val PASTE_SANITIZATION_OPTIONS =
+    listOf(
+        PasteSanitizationOption("Raw paste", PasteSanitizationPolicy.RAW),
+        PasteSanitizationOption("Strip control characters", PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF),
+        PasteSanitizationOption("Normalize line endings", PasteSanitizationPolicy.NORMALIZE_LINE_ENDINGS),
+    )

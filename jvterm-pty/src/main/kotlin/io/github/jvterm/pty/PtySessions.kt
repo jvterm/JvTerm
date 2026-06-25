@@ -56,6 +56,7 @@ internal object PtySessions {
                 terminal = terminal,
                 connector = connector,
                 hostEvents = hostEventBridge,
+                hostPolicy = options.hostPolicy,
                 inputPolicy = options.inputPolicy,
             )
         hostEventBridge.attach(session)

@@ -44,6 +44,14 @@ internal class KeyboardEncoder(
     private val legacy = LegacyKeyboardEncoder(output, scratch, policy)
     private val kitty = KittyKeyboardEncoder(output, scratch, policy)
 
+    @Volatile
+    internal var policy: TerminalInputPolicy = policy
+        set(value) {
+            field = value
+            legacy.policy = value
+            kitty.policy = value
+        }
+
     /**
      * Encodes a keyboard event into a sequence of bytes written to the output stream.
      *
