@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render
+package io.github.ketraterm.ui.swing.render
 
-import io.github.jvterm.render.api.TerminalRenderBufferKind
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.session.TerminalShellIntegrationCommandLifecycle
-import io.github.jvterm.session.TerminalShellIntegrationCommandRecord
-import io.github.jvterm.session.TerminalShellIntegrationState
+import io.github.ketraterm.render.api.TerminalRenderBufferKind
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.session.TerminalShellIntegrationCommandLifecycle
+import io.github.ketraterm.session.TerminalShellIntegrationCommandRecord
+import io.github.ketraterm.session.TerminalShellIntegrationState
 
 /**
  * Renderer-local snapshot of shell integration decorations for one viewport.

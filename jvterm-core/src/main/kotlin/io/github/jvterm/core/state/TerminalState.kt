@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.state
+package io.github.ketraterm.core.state
 
-import io.github.jvterm.core.model.*
-import io.github.jvterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.core.model.*
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
 
 /**
  * The global hardware context of the terminal.
@@ -43,7 +43,7 @@ internal class TerminalState(
     val dimensions = GridDimensions(initialWidth, initialHeight)
     val hostResponses = HostResponseQueue()
     var themePalette =
-        io.github.jvterm.render.api
+        io.github.ketraterm.render.api
             .TerminalColorPalette()
     var palette = themePalette
     var windowPixelWidth: Int = 0

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.protocol.keyboard
+package io.github.ketraterm.protocol.keyboard
 
 /**
  * Kitty keyboard numeric codes for functional keys in the initial input slice.

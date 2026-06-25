@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.ui
+package io.github.ketraterm.app.ui
 
-import io.github.jvterm.app.config.JvTermSettings
-import io.github.jvterm.app.history.CommandHistoryStore
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.protocol.ShellIntegrationEvent
-import io.github.jvterm.protocol.ShellIntegrationMarker
-import io.github.jvterm.workspace.*
+import io.github.ketraterm.app.config.JvTermSettings
+import io.github.ketraterm.app.history.CommandHistoryStore
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.ShellIntegrationEvent
+import io.github.ketraterm.protocol.ShellIntegrationMarker
+import io.github.ketraterm.workspace.*
 import java.awt.*
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent

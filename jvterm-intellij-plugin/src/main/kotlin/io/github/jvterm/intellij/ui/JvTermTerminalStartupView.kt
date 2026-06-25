@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.ui
+package io.github.ketraterm.intellij.ui
 
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel

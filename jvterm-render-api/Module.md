@@ -68,10 +68,10 @@ For deep-dive technical details on attribute packing and thread synchronization:
 The following example shows how a custom drawing canvas consumes a `TerminalRenderFrame` to copy cell data and draw to a screen:
 
 ```kotlin
-import io.github.jvterm.render.api.TerminalRenderFrame
-import io.github.jvterm.render.api.TerminalRenderFrameConsumer
-import io.github.jvterm.render.api.TerminalRenderFrameReader
-import io.github.jvterm.render.api.TerminalColorPalette
+import io.github.ketraterm.render.api.TerminalRenderFrame
+import io.github.ketraterm.render.api.TerminalRenderFrameConsumer
+import io.github.ketraterm.render.api.TerminalRenderFrameReader
+import io.github.ketraterm.render.api.TerminalColorPalette
 
 class CanvasPainter(
     private val reader: TerminalRenderFrameReader,
@@ -113,7 +113,7 @@ class CanvasPainter(
 To expose a custom data structure (such as a remote SSH buffer or custom grid implementation) for rendering, implement the `TerminalRenderFrame` and `TerminalRenderFrameReader` interfaces:
 
 ```kotlin
-import io.github.jvterm.render.api.*
+import io.github.ketraterm.render.api.*
 
 class CustomFrameReader : TerminalRenderFrameReader {
     private val frame = CustomFrame()

@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.ui
+package io.github.ketraterm.app.ui
 
 import com.formdev.flatlaf.extras.FlatSVGIcon
-import io.github.jvterm.app.config.JvTermSettings
-import io.github.jvterm.workspace.TerminalProfileRegistry
+import io.github.ketraterm.app.config.JvTermSettings
+import io.github.ketraterm.workspace.TerminalProfileRegistry
 import java.awt.CardLayout
 import java.awt.Dimension
 import java.awt.event.WindowAdapter
@@ -71,7 +71,7 @@ internal class WindowFactory(
         // Builds a fresh configured profile from the current settings each time
         // a new default tab or split is opened. This means shell changes in the
         // Settings dialog take effect on the very next new tab without a restart.
-        val defaultProfileProvider: () -> io.github.jvterm.workspace.TerminalProfile = {
+        val defaultProfileProvider: () -> io.github.ketraterm.workspace.TerminalProfile = {
             profileRegistry.configuredProfile(
                 shellPath = settings.shellPath,
                 workingDirectory =
@@ -130,9 +130,9 @@ internal class WindowFactory(
         invoker: java.awt.Component,
         x: Int,
         y: Int,
-        profiles: List<io.github.jvterm.workspace.TerminalProfile>,
+        profiles: List<io.github.ketraterm.workspace.TerminalProfile>,
         tabManager: TabManager,
-        defaultProfileProvider: () -> io.github.jvterm.workspace.TerminalProfile,
+        defaultProfileProvider: () -> io.github.ketraterm.workspace.TerminalProfile,
     ) {
         val popup =
             JPopupMenu().apply {

@@ -53,12 +53,12 @@ For detailed specifications on the persistency configuration format and resoluti
 The following example shows how to load workspace configurations, register a workspace listener, and open multiple terminal tabs:
 
 ```kotlin
-import io.github.jvterm.workspace.TerminalWorkspace
-import io.github.jvterm.workspace.TerminalWorkspaceListener
-import io.github.jvterm.workspace.TerminalWorkspaceTab
-import io.github.jvterm.workspace.TerminalWorkspaceOpenOptions
-import io.github.jvterm.workspace.TerminalProfile
-import io.github.jvterm.workspace.config.TerminalWorkspaceConfigManager
+import io.github.ketraterm.workspace.TerminalWorkspace
+import io.github.ketraterm.workspace.TerminalWorkspaceListener
+import io.github.ketraterm.workspace.TerminalWorkspaceTab
+import io.github.ketraterm.workspace.TerminalWorkspaceOpenOptions
+import io.github.ketraterm.workspace.TerminalProfile
+import io.github.ketraterm.workspace.config.TerminalWorkspaceConfigManager
 import java.nio.file.Path
 
 fun main() {
@@ -112,8 +112,8 @@ fun main() {
 UI components (such as Swing tabbed panels or custom IDE interfaces) implement `TerminalWorkspaceListener` to map workspace actions directly onto window views:
 
 ```kotlin
-import io.github.jvterm.workspace.TerminalWorkspaceListener
-import io.github.jvterm.workspace.TerminalWorkspaceTab
+import io.github.ketraterm.workspace.TerminalWorkspaceListener
+import io.github.ketraterm.workspace.TerminalWorkspaceTab
 import javax.swing.JTabbedPane
 
 class SwingTabAdapter(private val tabbedPane: JTabbedPane) : TerminalWorkspaceListener {

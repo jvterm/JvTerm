@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.impl.keyboard
+package io.github.ketraterm.input.impl.keyboard
 
-import io.github.jvterm.input.event.TerminalKey
-import io.github.jvterm.input.impl.TerminalSequences
-import io.github.jvterm.protocol.ControlCode
-import io.github.jvterm.protocol.keyboard.KittyKeyboardFunctionalKeyCode
+import io.github.ketraterm.input.event.TerminalKey
+import io.github.ketraterm.input.impl.TerminalSequences
+import io.github.ketraterm.protocol.ControlCode
+import io.github.ketraterm.protocol.keyboard.KittyKeyboardFunctionalKeyCode
 
 /**
  * Data-oriented lookup tables for mapping [TerminalKey] values.

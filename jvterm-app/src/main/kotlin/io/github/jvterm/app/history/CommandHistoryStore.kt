@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.history
+package io.github.ketraterm.app.history
 
-import io.github.jvterm.session.TerminalShellIntegrationCommandMetadata
+import io.github.ketraterm.session.TerminalShellIntegrationCommandMetadata
 import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files

@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.codec
+package io.github.ketraterm.core.codec
 
-import io.github.jvterm.core.model.CellColor
-import io.github.jvterm.core.model.CellColorKind
-import io.github.jvterm.core.model.UnderlineStyle
+import io.github.ketraterm.core.model.CellColor
+import io.github.ketraterm.core.model.CellColorKind
+import io.github.ketraterm.core.model.UnderlineStyle
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested

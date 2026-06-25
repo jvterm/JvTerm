@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.impl
+package io.github.ketraterm.parser.impl
 
-import io.github.jvterm.parser.ansi.*
-import io.github.jvterm.parser.api.TerminalOutputParser
-import io.github.jvterm.parser.runtime.ParserState
-import io.github.jvterm.parser.spi.TerminalCommandSink
-import io.github.jvterm.parser.text.PrintableProcessor
-import io.github.jvterm.parser.text.PrintableProcessorActionSink
-import io.github.jvterm.parser.utf8.Utf8DecodeResult
-import io.github.jvterm.parser.utf8.Utf8Decoder
+import io.github.ketraterm.parser.ansi.*
+import io.github.ketraterm.parser.api.TerminalOutputParser
+import io.github.ketraterm.parser.runtime.ParserState
+import io.github.ketraterm.parser.spi.TerminalCommandSink
+import io.github.ketraterm.parser.text.PrintableProcessor
+import io.github.ketraterm.parser.text.PrintableProcessorActionSink
+import io.github.ketraterm.parser.utf8.Utf8DecodeResult
+import io.github.ketraterm.parser.utf8.Utf8Decoder
 
 /**
  * Top-level terminal output parser.

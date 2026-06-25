@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer
+package io.github.ketraterm.core.buffer
 
-import io.github.jvterm.core.model.CellColor
-import io.github.jvterm.render.api.*
+import io.github.ketraterm.core.model.CellColor
+import io.github.ketraterm.render.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows

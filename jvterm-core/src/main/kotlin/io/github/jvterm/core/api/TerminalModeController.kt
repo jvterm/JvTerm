@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.api
+package io.github.ketraterm.core.api
 
 /**
  * Mode-control contract for the terminal buffer.
@@ -82,14 +82,14 @@ interface TerminalModeController {
      *
      * @param mode The mouse tracking mode to set.
      */
-    fun setMouseTrackingMode(mode: io.github.jvterm.protocol.MouseTrackingMode)
+    fun setMouseTrackingMode(mode: io.github.ketraterm.protocol.MouseTrackingMode)
 
     /**
      * Sets the active mouse report encoding mode used by terminal-to-host reporting.
      *
      * @param mode The mouse encoding mode to set.
      */
-    fun setMouseEncodingMode(mode: io.github.jvterm.protocol.MouseEncodingMode)
+    fun setMouseEncodingMode(mode: io.github.ketraterm.protocol.MouseEncodingMode)
 
     /**
      * Enables or disables bracketed paste reporting (`CSI ? 2004 h` / `CSI ? 2004 l`).
@@ -175,14 +175,14 @@ interface TerminalModeController {
      *
      * @param shape The cursor shape to set.
      */
-    fun setCursorShape(shape: io.github.jvterm.render.api.TerminalRenderCursorShape)
+    fun setCursorShape(shape: io.github.ketraterm.render.api.TerminalRenderCursorShape)
 
     /**
      * Sets the default cursor shape/style restored on reset.
      *
      * @param shape The default cursor shape to restore.
      */
-    fun setDefaultCursorShape(shape: io.github.jvterm.render.api.TerminalRenderCursorShape)
+    fun setDefaultCursorShape(shape: io.github.ketraterm.render.api.TerminalRenderCursorShape)
 
     /**
      * Controls how East Asian Ambiguous codepoints are measured for future writes.
@@ -251,7 +251,7 @@ interface TerminalModeController {
      *
      * @param palette the theme color palette configuration.
      */
-    fun setThemePalette(palette: io.github.jvterm.render.api.TerminalColorPalette)
+    fun setThemePalette(palette: io.github.ketraterm.render.api.TerminalColorPalette)
 
     /**
      * Updates an individual color index in the active 256-color palette.

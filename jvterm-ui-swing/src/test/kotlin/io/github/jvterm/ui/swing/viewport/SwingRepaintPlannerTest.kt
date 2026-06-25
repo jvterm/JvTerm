@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.viewport
+package io.github.ketraterm.ui.swing.viewport
 
-import io.github.jvterm.render.api.*
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.session.TerminalShellIntegrationState
-import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
-import io.github.jvterm.ui.swing.render.TerminalVisualViewportGeometry
-import io.github.jvterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.render.api.*
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.session.TerminalShellIntegrationState
+import io.github.ketraterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
+import io.github.ketraterm.ui.swing.render.TerminalVisualViewportGeometry
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

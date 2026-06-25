@@ -13,23 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.api
+package io.github.ketraterm.ui.swing.api
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.input.api.TerminalInputEncoder
-import io.github.jvterm.input.event.TerminalFocusEvent
-import io.github.jvterm.input.event.TerminalKeyEvent
-import io.github.jvterm.input.event.TerminalMouseEvent
-import io.github.jvterm.input.event.TerminalPasteEvent
-import io.github.jvterm.parser.api.TerminalOutputParser
-import io.github.jvterm.render.api.*
-import io.github.jvterm.render.cache.TerminalRenderPublisher
-import io.github.jvterm.session.TerminalSession
-import io.github.jvterm.session.TerminalShellIntegrationState
-import io.github.jvterm.transport.TerminalConnector
-import io.github.jvterm.transport.TerminalConnectorListener
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.ui.swing.settings.SwingSettingsProvider
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.input.api.TerminalInputEncoder
+import io.github.ketraterm.input.event.TerminalFocusEvent
+import io.github.ketraterm.input.event.TerminalKeyEvent
+import io.github.ketraterm.input.event.TerminalMouseEvent
+import io.github.ketraterm.input.event.TerminalPasteEvent
+import io.github.ketraterm.parser.api.TerminalOutputParser
+import io.github.ketraterm.render.api.*
+import io.github.ketraterm.render.cache.TerminalRenderPublisher
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.session.TerminalShellIntegrationState
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.transport.TerminalConnectorListener
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.ui.swing.settings.SwingSettingsProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

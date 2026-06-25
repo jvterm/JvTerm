@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.pty
+package io.github.ketraterm.pty
 
-import io.github.jvterm.transport.TerminalConnector
+import io.github.ketraterm.transport.TerminalConnector
 import java.io.IOException
 import java.nio.file.Path
 

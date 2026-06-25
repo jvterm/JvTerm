@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.workspace.config
+package io.github.ketraterm.workspace.config
 
 /**
  * Lightweight and robust parser for section-based TOML configuration files.

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.settings
+package io.github.ketraterm.ui.swing.settings
 
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent

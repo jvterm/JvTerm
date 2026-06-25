@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi
+package io.github.ketraterm.parser.ansi
 
-import io.github.jvterm.parser.charset.CharsetMapper
-import io.github.jvterm.parser.fixture.AnsiPrintableBridgeFixture
-import io.github.jvterm.parser.fixture.ParserEvents.writeCodepoint
-import io.github.jvterm.parser.runtime.ParserState
+import io.github.ketraterm.parser.charset.CharsetMapper
+import io.github.ketraterm.parser.fixture.AnsiPrintableBridgeFixture
+import io.github.ketraterm.parser.fixture.ParserEvents.writeCodepoint
+import io.github.ketraterm.parser.runtime.ParserState
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested

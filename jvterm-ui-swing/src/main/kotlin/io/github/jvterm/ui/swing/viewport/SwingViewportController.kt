@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.viewport
+package io.github.ketraterm.ui.swing.viewport
 
-import io.github.jvterm.render.api.TerminalRenderBufferKind
-import io.github.jvterm.ui.swing.api.TerminalViewportListener
-import io.github.jvterm.ui.swing.api.TerminalViewportState
-import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.ui.swing.settings.SwingTerminalChrome
+import io.github.ketraterm.render.api.TerminalRenderBufferKind
+import io.github.ketraterm.ui.swing.api.TerminalViewportListener
+import io.github.ketraterm.ui.swing.api.TerminalViewportState
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.ui.swing.settings.SwingTerminalChrome
 import java.awt.Dimension
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong

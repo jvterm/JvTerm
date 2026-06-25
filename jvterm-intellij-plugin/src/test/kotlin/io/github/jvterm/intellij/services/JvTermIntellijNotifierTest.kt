@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.services
+package io.github.ketraterm.intellij.services
 
 import com.intellij.notification.NotificationType
-import io.github.jvterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.NotificationLevel
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

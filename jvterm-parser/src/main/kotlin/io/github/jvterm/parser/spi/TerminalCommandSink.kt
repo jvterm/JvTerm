@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.spi
+package io.github.ketraterm.parser.spi
 
-import io.github.jvterm.protocol.AnsiMode
-import io.github.jvterm.protocol.DecPrivateMode
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.protocol.ShellIntegrationEvent
+import io.github.ketraterm.protocol.AnsiMode
+import io.github.ketraterm.protocol.DecPrivateMode
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.ShellIntegrationEvent
 
 /**
  * Parser-facing terminal command sink.

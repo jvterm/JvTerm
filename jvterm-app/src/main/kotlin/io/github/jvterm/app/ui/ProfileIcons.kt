@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.ui
+package io.github.ketraterm.app.ui
 
 import com.formdev.flatlaf.extras.FlatSVGIcon
-import io.github.jvterm.workspace.TerminalProfileKind
+import io.github.ketraterm.workspace.TerminalProfileKind
 import java.awt.AlphaComposite
 import java.awt.Graphics2D
 import java.util.*

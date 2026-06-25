@@ -85,7 +85,7 @@ Below are typical integration examples demonstrating how a client codebase would
 
 ### A. Byte Classification in a Byte Stream Parser
 ```kotlin
-import io.github.jvterm.protocol.ControlCode
+import io.github.ketraterm.protocol.ControlCode
 
 fun processNextByte(byte: Int) {
     when (byte) {
@@ -99,8 +99,8 @@ fun processNextByte(byte: Int) {
 
 ### B. Tracking Configuration State in a Grid Component
 ```kotlin
-import io.github.jvterm.protocol.MouseEncodingMode
-import io.github.jvterm.protocol.MouseTrackingMode
+import io.github.ketraterm.protocol.MouseEncodingMode
+import io.github.ketraterm.protocol.MouseTrackingMode
 
 class CustomTerminalWidget {
     var mouseTracking: MouseTrackingMode = MouseTrackingMode.OFF
@@ -115,7 +115,7 @@ class CustomTerminalWidget {
 To output bytes from the emulator to a custom channel (such as a TCP Socket, SSH Session, or Mock Console), implement the [TerminalHostOutput](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-protocol/src/main/kotlin/io/github/jvterm/protocol/host/TerminalHostOutput.kt) interface:
 
 ```kotlin
-import io.github.jvterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.protocol.host.TerminalHostOutput
 import java.io.OutputStream
 
 class OutputStreamHostOutput(private val out: OutputStream) : TerminalHostOutput {

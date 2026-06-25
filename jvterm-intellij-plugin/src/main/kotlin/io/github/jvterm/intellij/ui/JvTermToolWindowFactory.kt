@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.ui
+package io.github.ketraterm.intellij.ui
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
@@ -29,12 +29,12 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.openapi.wm.ex.ToolWindowManagerListener
 import com.intellij.openapi.wm.ex.ToolWindowEx
-import io.github.jvterm.intellij.JvTermBundle
-import io.github.jvterm.intellij.services.JvTermProjectTerminalService
-import io.github.jvterm.intellij.settings.JvTermIntellijProfileIcons
-import io.github.jvterm.intellij.settings.JvTermSettingsConfigurable
-import io.github.jvterm.workspace.TerminalProfile
-import io.github.jvterm.workspace.TerminalProfileRegistry
+import io.github.ketraterm.intellij.JvTermBundle
+import io.github.ketraterm.intellij.services.JvTermProjectTerminalService
+import io.github.ketraterm.intellij.settings.JvTermIntellijProfileIcons
+import io.github.ketraterm.intellij.settings.JvTermSettingsConfigurable
+import io.github.ketraterm.workspace.TerminalProfile
+import io.github.ketraterm.workspace.TerminalProfileRegistry
 
 /**
  * Creates the IntelliJ tool window that hosts JvTerm terminal tabs.

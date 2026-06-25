@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render
+package io.github.ketraterm.ui.swing.render
 
-import io.github.jvterm.ui.swing.settings.SwingTerminalChrome
-import io.github.jvterm.ui.swing.viewport.SwingRepaintPlanner
-import io.github.jvterm.ui.swing.viewport.TerminalRepaintSink
+import io.github.ketraterm.ui.swing.settings.SwingTerminalChrome
+import io.github.ketraterm.ui.swing.viewport.SwingRepaintPlanner
+import io.github.ketraterm.ui.swing.viewport.TerminalRepaintSink
 import java.awt.Insets
 import java.util.concurrent.atomic.AtomicBoolean
 

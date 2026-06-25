@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.impl
+package io.github.ketraterm.input.impl
 
-import io.github.jvterm.core.api.TerminalInputState
-import io.github.jvterm.input.event.TerminalFocusEvent
-import io.github.jvterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.core.api.TerminalInputState
+import io.github.ketraterm.input.event.TerminalFocusEvent
+import io.github.ketraterm.protocol.host.TerminalHostOutput
 
 internal class FocusEncoder(
     private val output: TerminalHostOutput,

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.utf8
+package io.github.ketraterm.parser.utf8
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName

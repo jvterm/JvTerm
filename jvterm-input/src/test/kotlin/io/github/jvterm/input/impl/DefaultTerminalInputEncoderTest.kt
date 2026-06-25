@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.impl
+package io.github.ketraterm.input.impl
 
-import io.github.jvterm.core.api.TerminalInputState
-import io.github.jvterm.core.api.TerminalModeBits
-import io.github.jvterm.input.event.*
-import io.github.jvterm.input.policy.PasteSanitizationPolicy
-import io.github.jvterm.input.policy.TerminalInputPolicy
-import io.github.jvterm.input.policy.UnsupportedModifiedKeyPolicy
-import io.github.jvterm.protocol.host.TerminalHostOutput
-import io.github.jvterm.protocol.mouse.MouseEncodingMode
-import io.github.jvterm.protocol.mouse.MouseTrackingMode
+import io.github.ketraterm.core.api.TerminalInputState
+import io.github.ketraterm.core.api.TerminalModeBits
+import io.github.ketraterm.input.event.*
+import io.github.ketraterm.input.policy.PasteSanitizationPolicy
+import io.github.ketraterm.input.policy.TerminalInputPolicy
+import io.github.ketraterm.input.policy.UnsupportedModifiedKeyPolicy
+import io.github.ketraterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.protocol.mouse.MouseEncodingMode
+import io.github.ketraterm.protocol.mouse.MouseTrackingMode
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

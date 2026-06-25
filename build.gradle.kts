@@ -35,7 +35,7 @@ val isRelease = System.getenv("RELEASE") == "true"
 val projectVersion = if (isRelease) baseVersion else "$baseVersion-SNAPSHOT"
 
 subprojects {
-    group = "io.github.jvterm"
+    group = "io.github.ketraterm"
     version = projectVersion
 
     repositories {

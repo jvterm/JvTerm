@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer.impl
+package io.github.ketraterm.core.buffer.impl
 
-import io.github.jvterm.core.api.TerminalModeController
-import io.github.jvterm.core.engine.CursorEngine
-import io.github.jvterm.core.state.TerminalState
+import io.github.ketraterm.core.api.TerminalModeController
+import io.github.ketraterm.core.engine.CursorEngine
+import io.github.ketraterm.core.state.TerminalState
 
 internal class TerminalModeControllerImpl(
     private val state: TerminalState,
@@ -63,11 +63,11 @@ internal class TerminalModeControllerImpl(
         mutateMode { state.modes.isNewLineMode = enabled }
     }
 
-    override fun setMouseTrackingMode(mode: io.github.jvterm.protocol.MouseTrackingMode) {
+    override fun setMouseTrackingMode(mode: io.github.ketraterm.protocol.MouseTrackingMode) {
         mutateMode { state.modes.mouseTrackingMode = mode }
     }
 
-    override fun setMouseEncodingMode(mode: io.github.jvterm.protocol.MouseEncodingMode) {
+    override fun setMouseEncodingMode(mode: io.github.ketraterm.protocol.MouseEncodingMode) {
         mutateMode { state.modes.mouseEncodingMode = mode }
     }
 
@@ -130,13 +130,13 @@ internal class TerminalModeControllerImpl(
         }
     }
 
-    override fun setCursorShape(shape: io.github.jvterm.render.api.TerminalRenderCursorShape) {
+    override fun setCursorShape(shape: io.github.ketraterm.render.api.TerminalRenderCursorShape) {
         mutateMode {
             state.cursorShape = shape
         }
     }
 
-    override fun setDefaultCursorShape(shape: io.github.jvterm.render.api.TerminalRenderCursorShape) {
+    override fun setDefaultCursorShape(shape: io.github.ketraterm.render.api.TerminalRenderCursorShape) {
         mutateMode {
             state.defaultCursorShape = shape
         }
@@ -191,7 +191,7 @@ internal class TerminalModeControllerImpl(
         state.markStructureChanged()
     }
 
-    override fun setThemePalette(palette: io.github.jvterm.render.api.TerminalColorPalette) {
+    override fun setThemePalette(palette: io.github.ketraterm.render.api.TerminalColorPalette) {
         mutateMode {
             state.themePalette = palette
             state.palette = palette

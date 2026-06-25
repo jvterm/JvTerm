@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.engine
+package io.github.ketraterm.core.engine
 
-import io.github.jvterm.core.model.TerminalConstants
-import io.github.jvterm.core.state.TerminalState
+import io.github.ketraterm.core.model.TerminalConstants
+import io.github.ketraterm.core.state.TerminalState
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested

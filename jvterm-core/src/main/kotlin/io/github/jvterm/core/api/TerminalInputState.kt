@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.api
+package io.github.ketraterm.core.api
 
 /**
  * Zero-allocation, read-only terminal behavior state required by input encoders.
@@ -79,7 +79,7 @@ interface TerminalInputState {
          * Returns the packed mouse tracking mode ordinal from [bits].
          *
          * @param bits The packed mode bits snapshot.
-         * @return The ordinal integer of the active [io.github.jvterm.protocol.MouseTrackingMode].
+         * @return The ordinal integer of the active [io.github.ketraterm.protocol.MouseTrackingMode].
          */
         @JvmStatic
         fun mouseTrackingMode(bits: Long): Int =
@@ -93,7 +93,7 @@ interface TerminalInputState {
          * Returns the packed mouse encoding mode ordinal from [bits].
          *
          * @param bits The packed mode bits snapshot.
-         * @return The ordinal integer of the active [io.github.jvterm.protocol.MouseEncodingMode].
+         * @return The ordinal integer of the active [io.github.ketraterm.protocol.MouseEncodingMode].
          */
         @JvmStatic
         fun mouseEncodingMode(bits: Long): Int =

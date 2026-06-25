@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer.impl
+package io.github.ketraterm.core.buffer.impl
 
-import io.github.jvterm.core.TerminalBuffers
+import io.github.ketraterm.core.TerminalBuffers
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

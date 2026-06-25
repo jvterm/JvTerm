@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.pty
+package io.github.ketraterm.pty
 
-import io.github.jvterm.host.HostEventSink
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.protocol.ShellIntegrationEvent
-import io.github.jvterm.session.TerminalSession
+import io.github.ketraterm.host.HostEventSink
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.ShellIntegrationEvent
+import io.github.ketraterm.session.TerminalSession
 
 internal class SessionHostEventBridge(
     private val listener: PtyEventListener,

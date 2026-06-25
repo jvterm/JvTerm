@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.session
+package io.github.ketraterm.session
 
 /**
  * Primitive command-record id vocabulary used by shell-integration viewport projections.

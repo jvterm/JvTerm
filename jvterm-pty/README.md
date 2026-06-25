@@ -58,10 +58,10 @@ For deep-dive details on daemon threading and ConPTY integration:
 The following example shows how to launch a local shell session (e.g. `/bin/bash` or `cmd.exe`) using the `TerminalSessions` factory:
 
 ```kotlin
-import io.github.jvterm.pty.TerminalSessions
-import io.github.jvterm.pty.PtyOptions
-import io.github.jvterm.pty.PtyEventListener
-import io.github.jvterm.session.TerminalSession
+import io.github.ketraterm.pty.TerminalSessions
+import io.github.ketraterm.pty.PtyOptions
+import io.github.ketraterm.pty.PtyEventListener
+import io.github.ketraterm.session.TerminalSession
 
 fun main() {
     // 1. Define custom event listeners for terminal title changes or bells
@@ -98,8 +98,8 @@ fun main() {
 You can customize the command array, working directory, and custom environment variables directly via `PtyOptions`:
 
 ```kotlin
-import io.github.jvterm.pty.PtyOptions
-import io.github.jvterm.pty.TerminalSessions
+import io.github.ketraterm.pty.PtyOptions
+import io.github.ketraterm.pty.TerminalSessions
 import java.nio.file.Path
 
 val options = PtyOptions(

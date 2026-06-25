@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.ui
+package io.github.ketraterm.app.ui
 
 import java.awt.Color
 import java.awt.Dimension
@@ -172,7 +172,7 @@ internal object Chrome {
     /**
      * Derives standalone chrome colors from [palette] and updates Swing defaults.
      */
-    fun applyPalette(palette: io.github.jvterm.render.api.TerminalColorPalette) {
+    fun applyPalette(palette: io.github.ketraterm.render.api.TerminalColorPalette) {
         val bg = Color(palette.defaultBackground, true)
         val fg = Color(palette.defaultForeground, true)
         val isDark = isDarkColor(bg)

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi.dcs
+package io.github.ketraterm.parser.ansi.dcs
 
-import io.github.jvterm.parser.spi.TerminalCommandSink
+import io.github.ketraterm.parser.spi.TerminalCommandSink
 
 /**
  * Routes completed DCS payloads to the appropriate [TerminalCommandSink] method.

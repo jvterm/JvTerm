@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.benchmark
+package io.github.ketraterm.benchmark
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBuffer
-import io.github.jvterm.core.model.CellColor
-import io.github.jvterm.core.model.UnderlineStyle
-import io.github.jvterm.render.api.TerminalRenderFrame
-import io.github.jvterm.render.api.TerminalRenderFrameConsumer
-import io.github.jvterm.render.api.TerminalRenderFrameReader
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.core.api.TerminalBuffer
+import io.github.ketraterm.core.model.CellColor
+import io.github.ketraterm.core.model.UnderlineStyle
+import io.github.ketraterm.render.api.TerminalRenderFrame
+import io.github.ketraterm.render.api.TerminalRenderFrameConsumer
+import io.github.ketraterm.render.api.TerminalRenderFrameReader
 import org.openjdk.jmh.annotations.*
 import java.util.concurrent.TimeUnit
 
@@ -214,10 +214,10 @@ open class TerminalBufferClusterBenchmark : TerminalRenderFrameConsumer {
     private lateinit var attrWords: LongArray
     private lateinit var flags: IntArray
     private val clusterSink =
-        io.github.jvterm.render.api
+        io.github.ketraterm.render.api
             .TerminalRenderClusterSink { _, _ -> }
     private val clusterDataSink =
-        io.github.jvterm.render.api
+        io.github.ketraterm.render.api
             .TerminalRenderClusterDataSink { _, _, _, _ -> }
 
     private var runWithDataSink = false

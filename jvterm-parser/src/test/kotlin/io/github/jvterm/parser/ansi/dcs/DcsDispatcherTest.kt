@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi.dcs
+package io.github.ketraterm.parser.ansi.dcs
 
-import io.github.jvterm.parser.ansi.RecordingTerminalCommandSink
+import io.github.ketraterm.parser.ansi.RecordingTerminalCommandSink
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test

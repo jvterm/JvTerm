@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.protocol
+package io.github.ketraterm.protocol
 
 /**
  * ANSI/ECMA-48 C0, DEL, and C1 control-code byte values.

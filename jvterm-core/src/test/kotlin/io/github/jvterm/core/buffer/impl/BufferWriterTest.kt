@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer.impl
+package io.github.ketraterm.core.buffer.impl
 
-import io.github.jvterm.core.codec.AttributeCodec
-import io.github.jvterm.core.engine.CursorEngine
-import io.github.jvterm.core.engine.MutationEngine
-import io.github.jvterm.core.model.CellAttributes
-import io.github.jvterm.core.model.CellColor
-import io.github.jvterm.core.model.UnderlineStyle
-import io.github.jvterm.core.state.TerminalState
+import io.github.ketraterm.core.codec.AttributeCodec
+import io.github.ketraterm.core.engine.CursorEngine
+import io.github.ketraterm.core.engine.MutationEngine
+import io.github.ketraterm.core.model.CellAttributes
+import io.github.ketraterm.core.model.CellColor
+import io.github.ketraterm.core.model.UnderlineStyle
+import io.github.ketraterm.core.state.TerminalState
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

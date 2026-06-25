@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.unicode
+package io.github.ketraterm.parser.unicode
 
 internal object UnicodeClass {
     const val GRAPHEME_OTHER: Int = 0

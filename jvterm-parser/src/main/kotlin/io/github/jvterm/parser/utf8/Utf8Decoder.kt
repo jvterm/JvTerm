@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.utf8
+package io.github.ketraterm.parser.utf8
 
-import io.github.jvterm.parser.utf8.Utf8DecodeResult.EMIT
-import io.github.jvterm.parser.utf8.Utf8DecodeResult.NONE
-import io.github.jvterm.parser.utf8.Utf8DecodeResult.REPROCESS_CURRENT_BYTE
-import io.github.jvterm.parser.utf8.Utf8DecodeResult.hasOutput
+import io.github.ketraterm.parser.utf8.Utf8DecodeResult.EMIT
+import io.github.ketraterm.parser.utf8.Utf8DecodeResult.NONE
+import io.github.ketraterm.parser.utf8.Utf8DecodeResult.REPROCESS_CURRENT_BYTE
+import io.github.ketraterm.parser.utf8.Utf8DecodeResult.hasOutput
 
 /**
  * Packed, allocation-free UTF-8 decode result.

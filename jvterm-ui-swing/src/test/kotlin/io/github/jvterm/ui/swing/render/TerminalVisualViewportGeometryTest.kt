@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render
+package io.github.ketraterm.ui.swing.render
 
-import io.github.jvterm.render.api.TerminalRenderAttrs
-import io.github.jvterm.render.api.TerminalRenderBufferKind
-import io.github.jvterm.render.api.TerminalRenderCellFlags
-import io.github.jvterm.render.api.TerminalRenderClusterDataSink
-import io.github.jvterm.render.api.TerminalRenderClusterSink
-import io.github.jvterm.render.api.TerminalRenderCursor
-import io.github.jvterm.render.api.TerminalRenderCursorShape
-import io.github.jvterm.render.api.TerminalRenderExtraAttrs
-import io.github.jvterm.render.api.TerminalRenderFrame
-import io.github.jvterm.render.api.TerminalRenderFrameConsumer
-import io.github.jvterm.render.api.TerminalRenderFrameReader
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.session.TerminalShellIntegrationState
-import io.github.jvterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.render.api.TerminalRenderAttrs
+import io.github.ketraterm.render.api.TerminalRenderBufferKind
+import io.github.ketraterm.render.api.TerminalRenderCellFlags
+import io.github.ketraterm.render.api.TerminalRenderClusterDataSink
+import io.github.ketraterm.render.api.TerminalRenderClusterSink
+import io.github.ketraterm.render.api.TerminalRenderCursor
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.render.api.TerminalRenderExtraAttrs
+import io.github.ketraterm.render.api.TerminalRenderFrame
+import io.github.ketraterm.render.api.TerminalRenderFrameConsumer
+import io.github.ketraterm.render.api.TerminalRenderFrameReader
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.session.TerminalShellIntegrationState
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

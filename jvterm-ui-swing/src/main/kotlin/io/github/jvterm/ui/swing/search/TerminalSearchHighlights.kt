@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.search
+package io.github.ketraterm.ui.swing.search
 
-import io.github.jvterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.render.cache.TerminalRenderCache
 
 /**
  * Search matches in stable absolute terminal-row coordinates.

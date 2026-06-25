@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.api
+package io.github.ketraterm.ui.swing.api
 
 import java.awt.Adjustable
 import javax.swing.JScrollBar

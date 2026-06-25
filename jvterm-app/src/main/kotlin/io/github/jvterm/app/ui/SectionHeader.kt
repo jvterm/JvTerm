@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.ui
+package io.github.ketraterm.app.ui
 
 import java.awt.*
 import javax.swing.JLabel

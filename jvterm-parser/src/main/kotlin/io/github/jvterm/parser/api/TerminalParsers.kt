@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.api
+package io.github.ketraterm.parser.api
 
-import io.github.jvterm.parser.impl.TerminalParser
-import io.github.jvterm.parser.spi.TerminalCommandSink
+import io.github.ketraterm.parser.impl.TerminalParser
+import io.github.ketraterm.parser.spi.TerminalCommandSink
 
 /**
  * Factory for terminal output parsers.

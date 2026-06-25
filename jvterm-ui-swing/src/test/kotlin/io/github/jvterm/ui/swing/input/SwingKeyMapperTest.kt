@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.input
+package io.github.ketraterm.ui.swing.input
 
-import io.github.jvterm.input.event.TerminalKey
-import io.github.jvterm.input.event.TerminalModifiers
+import io.github.ketraterm.input.event.TerminalKey
+import io.github.ketraterm.input.event.TerminalModifiers
 import java.awt.Canvas
 import java.awt.event.KeyEvent
 import kotlin.test.Test

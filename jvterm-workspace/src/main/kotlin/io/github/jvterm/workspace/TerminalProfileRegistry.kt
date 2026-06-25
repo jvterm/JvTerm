@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.workspace
+package io.github.ketraterm.workspace
 
-import io.github.jvterm.pty.PtyOptions
+import io.github.ketraterm.pty.PtyOptions
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path

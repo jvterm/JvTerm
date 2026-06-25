@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.ui
+package io.github.ketraterm.app.ui
 
-import io.github.jvterm.app.config.JvTermSettings
-import io.github.jvterm.ui.swing.api.SwingHostServices
-import io.github.jvterm.ui.swing.api.SwingScrollbarAdapter
-import io.github.jvterm.ui.swing.api.SwingTerminal
-import io.github.jvterm.workspace.TerminalWorkspaceTab
+import io.github.ketraterm.app.config.JvTermSettings
+import io.github.ketraterm.ui.swing.api.SwingHostServices
+import io.github.ketraterm.ui.swing.api.SwingScrollbarAdapter
+import io.github.ketraterm.ui.swing.api.SwingTerminal
+import io.github.ketraterm.workspace.TerminalWorkspaceTab
 import java.awt.Adjustable
 import java.awt.BorderLayout
 import javax.swing.JPanel

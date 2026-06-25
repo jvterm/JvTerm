@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.painter
+package io.github.ketraterm.ui.swing.render.painter
 
-import io.github.jvterm.render.api.TerminalRenderCellFlags
-import io.github.jvterm.render.api.TerminalRenderCursor
-import io.github.jvterm.render.api.TerminalRenderCursorShape
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.ui.swing.render.*
-import io.github.jvterm.ui.swing.render.cache.AwtColorCache
-import io.github.jvterm.ui.swing.render.platform.TerminalPlatformEmojiRasterizer
-import io.github.jvterm.ui.swing.render.primitives.TerminalPlatformEmojiPainter
-import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.render.api.TerminalRenderCellFlags
+import io.github.ketraterm.render.api.TerminalRenderCursor
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.ui.swing.render.*
+import io.github.ketraterm.ui.swing.render.cache.AwtColorCache
+import io.github.ketraterm.ui.swing.render.platform.TerminalPlatformEmojiRasterizer
+import io.github.ketraterm.ui.swing.render.primitives.TerminalPlatformEmojiPainter
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.ui.swing.settings.SwingSettings
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.awt.Graphics2D

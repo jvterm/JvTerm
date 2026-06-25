@@ -53,8 +53,8 @@ The module's public surface area contains a single, highly configurable test dou
 The following example shows how to write a unit test using `MockConnector` to assert on bidirectional byte flows:
 
 ```kotlin
-import io.github.jvterm.transport.TerminalConnectorListener
-import io.github.jvterm.testkit.MockConnector
+import io.github.ketraterm.transport.TerminalConnectorListener
+import io.github.ketraterm.testkit.MockConnector
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

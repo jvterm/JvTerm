@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.workspace
+package io.github.ketraterm.workspace
 
-import io.github.jvterm.host.HostPolicy
-import io.github.jvterm.input.policy.PasteSanitizationPolicy
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.protocol.ShellIntegrationEvent
-import io.github.jvterm.pty.PtyEventListener
-import io.github.jvterm.pty.PtyOptions
-import io.github.jvterm.pty.TerminalSessions
-import io.github.jvterm.render.api.TerminalColorPalette
-import io.github.jvterm.session.TerminalSession
+import io.github.ketraterm.host.HostPolicy
+import io.github.ketraterm.input.policy.PasteSanitizationPolicy
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.ShellIntegrationEvent
+import io.github.ketraterm.pty.PtyEventListener
+import io.github.ketraterm.pty.PtyOptions
+import io.github.ketraterm.pty.TerminalSessions
+import io.github.ketraterm.render.api.TerminalColorPalette
+import io.github.ketraterm.session.TerminalSession
 import java.net.URI
 import java.net.URISyntaxException
 import java.nio.file.Path

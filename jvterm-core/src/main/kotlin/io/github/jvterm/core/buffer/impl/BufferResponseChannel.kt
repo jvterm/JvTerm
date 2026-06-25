@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer.impl
+package io.github.ketraterm.core.buffer.impl
 
-import io.github.jvterm.core.api.TerminalResponseChannel
-import io.github.jvterm.core.codec.AttributeCodec
-import io.github.jvterm.core.model.CellColor
-import io.github.jvterm.core.model.CellColorKind
-import io.github.jvterm.core.model.UnderlineStyle
-import io.github.jvterm.core.state.TerminalState
-import io.github.jvterm.protocol.TerminalCapabilityIdentity
+import io.github.ketraterm.core.api.TerminalResponseChannel
+import io.github.ketraterm.core.codec.AttributeCodec
+import io.github.ketraterm.core.model.CellColor
+import io.github.ketraterm.core.model.CellColorKind
+import io.github.ketraterm.core.model.UnderlineStyle
+import io.github.ketraterm.core.state.TerminalState
+import io.github.ketraterm.protocol.TerminalCapabilityIdentity
 
 internal class BufferResponseChannel(
     private val state: TerminalState,
@@ -226,9 +226,9 @@ internal class BufferResponseChannel(
             "q" -> {
                 val shapeCode =
                     when (state.cursorShape) {
-                        io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK -> if (state.modes.isCursorBlinking) 1 else 2
-                        io.github.jvterm.render.api.TerminalRenderCursorShape.UNDERLINE -> if (state.modes.isCursorBlinking) 3 else 4
-                        io.github.jvterm.render.api.TerminalRenderCursorShape.BAR -> if (state.modes.isCursorBlinking) 5 else 6
+                        io.github.ketraterm.render.api.TerminalRenderCursorShape.BLOCK -> if (state.modes.isCursorBlinking) 1 else 2
+                        io.github.ketraterm.render.api.TerminalRenderCursorShape.UNDERLINE -> if (state.modes.isCursorBlinking) 3 else 4
+                        io.github.ketraterm.render.api.TerminalRenderCursorShape.BAR -> if (state.modes.isCursorBlinking) 5 else 6
                     }
                 enqueueDecrqssResponse(status = 1, "$shapeCode q")
             }
@@ -249,7 +249,7 @@ internal class BufferResponseChannel(
         status: Int,
         responseData: String,
     ) {
-        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.ketraterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte('P'.code)
         state.hostResponses.enqueuePositiveDecimal(status)
         state.hostResponses.enqueueByte('$'.code)
@@ -325,7 +325,7 @@ internal class BufferResponseChannel(
 
     /** Emits `ESC P [statusChar] + r`. */
     private fun enqueueXtgettcapPrefix(statusChar: Char) {
-        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.ketraterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte('P'.code)
         state.hostResponses.enqueueByte(statusChar.code)
         state.hostResponses.enqueueByte('+'.code)
@@ -522,17 +522,17 @@ internal class BufferResponseChannel(
     }
 
     private fun enqueueOscPrefix() {
-        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.ketraterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte(']'.code)
     }
 
     private fun enqueueStSuffix() {
-        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.ketraterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte('\\'.code)
     }
 
     private fun enqueueCsiPrefix() {
-        state.hostResponses.enqueueByte(io.github.jvterm.protocol.ControlCode.ESC)
+        state.hostResponses.enqueueByte(io.github.ketraterm.protocol.ControlCode.ESC)
         state.hostResponses.enqueueByte('['.code)
     }
 

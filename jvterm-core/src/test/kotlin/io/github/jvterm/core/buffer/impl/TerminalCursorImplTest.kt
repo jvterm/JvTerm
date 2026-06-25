@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer.impl
+package io.github.ketraterm.core.buffer.impl
 
-import io.github.jvterm.core.engine.CursorEngine
-import io.github.jvterm.core.model.UnderlineStyle
-import io.github.jvterm.core.state.TerminalState
+import io.github.ketraterm.core.engine.CursorEngine
+import io.github.ketraterm.core.model.UnderlineStyle
+import io.github.ketraterm.core.state.TerminalState
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

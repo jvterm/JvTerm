@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.api
+package io.github.ketraterm.input.api
 
-import io.github.jvterm.input.event.TerminalFocusEvent
-import io.github.jvterm.input.event.TerminalKeyEvent
-import io.github.jvterm.input.event.TerminalMouseEvent
-import io.github.jvterm.input.event.TerminalPasteEvent
+import io.github.ketraterm.input.event.TerminalFocusEvent
+import io.github.ketraterm.input.event.TerminalKeyEvent
+import io.github.ketraterm.input.event.TerminalMouseEvent
+import io.github.ketraterm.input.event.TerminalPasteEvent
 
 /**
  * Encodes UI-level terminal input events into host-bound bytes.
@@ -61,5 +61,5 @@ interface TerminalInputEncoder {
      *
      * @param policy new input policy.
      */
-    fun setInputPolicy(policy: io.github.jvterm.input.policy.TerminalInputPolicy) {}
+    fun setInputPolicy(policy: io.github.ketraterm.input.policy.TerminalInputPolicy) {}
 }

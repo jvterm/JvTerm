@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.benchmark
+package io.github.ketraterm.benchmark
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBuffer
-import io.github.jvterm.host.HostCommandAdapter
-import io.github.jvterm.parser.api.TerminalParsers
-import io.github.jvterm.render.cache.TerminalRenderPublisher
-import io.github.jvterm.session.TerminalSession
-import io.github.jvterm.transport.TerminalConnector
-import io.github.jvterm.transport.TerminalConnectorListener
-import io.github.jvterm.ui.swing.api.SwingTerminal
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.ui.swing.settings.SwingSettingsProvider
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.core.api.TerminalBuffer
+import io.github.ketraterm.host.HostCommandAdapter
+import io.github.ketraterm.parser.api.TerminalParsers
+import io.github.ketraterm.render.cache.TerminalRenderPublisher
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.transport.TerminalConnectorListener
+import io.github.ketraterm.ui.swing.api.SwingTerminal
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.ui.swing.settings.SwingSettingsProvider
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 import java.awt.Graphics2D
@@ -45,7 +45,7 @@ open class TerminalLargeInputBenchmark {
 
     private lateinit var bytes: ByteArray
     private lateinit var terminal: TerminalBuffer
-    private lateinit var renderReader: io.github.jvterm.render.api.TerminalRenderFrameReader
+    private lateinit var renderReader: io.github.ketraterm.render.api.TerminalRenderFrameReader
     private lateinit var publisher: TerminalRenderPublisher
 
     @Setup(Level.Trial)
@@ -68,7 +68,7 @@ open class TerminalLargeInputBenchmark {
                 height = LARGE_INPUT_ROWS,
                 maxHistory = LARGE_INPUT_LINES,
             )
-        renderReader = terminal as io.github.jvterm.render.api.TerminalRenderFrameReader
+        renderReader = terminal as io.github.ketraterm.render.api.TerminalRenderFrameReader
         publisher = TerminalRenderPublisher(LARGE_INPUT_COLUMNS, LARGE_INPUT_ROWS)
     }
 
@@ -97,7 +97,7 @@ open class TerminalRenderPublishBenchmark {
     @Param("0", "5000", "15000")
     var scrollbackOffset: Int = 0
 
-    private lateinit var renderReader: io.github.jvterm.render.api.TerminalRenderFrameReader
+    private lateinit var renderReader: io.github.ketraterm.render.api.TerminalRenderFrameReader
     private lateinit var publisher: TerminalRenderPublisher
 
     @Setup(Level.Trial)
@@ -109,7 +109,7 @@ open class TerminalRenderPublishBenchmark {
                 maxHistory = LARGE_INPUT_LINES,
             )
         writeScrollbackContent(terminal, LARGE_INPUT_LINES, LARGE_INPUT_COLUMNS)
-        renderReader = terminal as io.github.jvterm.render.api.TerminalRenderFrameReader
+        renderReader = terminal as io.github.ketraterm.render.api.TerminalRenderFrameReader
     }
 
     @Setup(Level.Trial)
@@ -168,7 +168,7 @@ open class SwingPaintBenchmark {
         }
 
         session = benchmarkSession(terminal)
-        session.publisher.updateAndPublish(terminal as io.github.jvterm.render.api.TerminalRenderFrameReader)
+        session.publisher.updateAndPublish(terminal as io.github.ketraterm.render.api.TerminalRenderFrameReader)
 
         component =
             SwingTerminal(

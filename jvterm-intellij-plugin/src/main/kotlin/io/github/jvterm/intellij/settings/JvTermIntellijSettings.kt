@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.settings
+package io.github.ketraterm.intellij.settings
 
 import com.intellij.openapi.components.RoamingType
 import com.intellij.openapi.components.SerializablePersistentStateComponent
@@ -23,19 +23,19 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.util.ui.JBFont
-import io.github.jvterm.host.HostControlPolicy
-import io.github.jvterm.host.HostPolicy
-import io.github.jvterm.host.TerminalClipboardOrigin
-import io.github.jvterm.host.TerminalClipboardPermission
-import io.github.jvterm.host.TerminalClipboardPolicy
-import io.github.jvterm.host.TerminalTitleOrigin
-import io.github.jvterm.host.TerminalTitlePermission
-import io.github.jvterm.host.TerminalTitlePolicy
-import io.github.jvterm.input.policy.PasteSanitizationPolicy
-import io.github.jvterm.render.api.TerminalRenderCursorShape
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.ui.swing.settings.TerminalTheme
-import io.github.jvterm.workspace.config.TerminalConfig
+import io.github.ketraterm.host.HostControlPolicy
+import io.github.ketraterm.host.HostPolicy
+import io.github.ketraterm.host.TerminalClipboardOrigin
+import io.github.ketraterm.host.TerminalClipboardPermission
+import io.github.ketraterm.host.TerminalClipboardPolicy
+import io.github.ketraterm.host.TerminalTitleOrigin
+import io.github.ketraterm.host.TerminalTitlePermission
+import io.github.ketraterm.host.TerminalTitlePolicy
+import io.github.ketraterm.input.policy.PasteSanitizationPolicy
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.ui.swing.settings.TerminalTheme
+import io.github.ketraterm.workspace.config.TerminalConfig
 import java.awt.Font
 import java.util.Locale
 import java.util.concurrent.CopyOnWriteArrayList

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.render.cache
+package io.github.ketraterm.render.cache
 
-import io.github.jvterm.render.api.*
+import io.github.ketraterm.render.api.*
 
 /**
  * Caller-owned primitive cache for render frames.

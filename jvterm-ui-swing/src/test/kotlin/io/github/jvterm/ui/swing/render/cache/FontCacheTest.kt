@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.cache
+package io.github.ketraterm.ui.swing.render.cache
 
-import io.github.jvterm.ui.swing.render.font.TerminalSystemFontFamilies
+import io.github.ketraterm.ui.swing.render.font.TerminalSystemFontFamilies
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import java.awt.Font

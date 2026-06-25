@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.pty
+package io.github.ketraterm.pty
 
-import io.github.jvterm.host.HostPolicy
-import io.github.jvterm.input.policy.EnterNewLineModePolicy
-import io.github.jvterm.input.policy.TerminalInputPolicy
-import io.github.jvterm.protocol.TerminalCapabilityIdentity
+import io.github.ketraterm.host.HostPolicy
+import io.github.ketraterm.input.policy.EnterNewLineModePolicy
+import io.github.ketraterm.input.policy.TerminalInputPolicy
+import io.github.ketraterm.protocol.TerminalCapabilityIdentity
 import java.nio.file.Path
 
 /**

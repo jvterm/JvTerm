@@ -75,7 +75,7 @@ For less common attributes, an optional `Long` extra-attribute word is used. Ren
 Instead of writing manual bit shifts, consumers should always use the decoder helpers:
 
 ```kotlin
-import io.github.jvterm.render.api.TerminalRenderAttrs
+import io.github.ketraterm.render.api.TerminalRenderAttrs
 
 fun drawCell(x: Int, y: Int, attrWord: Long) {
     val fgKind = TerminalRenderAttrs.foregroundKind(attrWord)

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.impl
+package io.github.ketraterm.input.impl
 
-import io.github.jvterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.protocol.host.TerminalHostOutput
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

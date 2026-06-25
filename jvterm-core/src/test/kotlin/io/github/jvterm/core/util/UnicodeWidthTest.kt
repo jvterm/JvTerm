@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.util
+package io.github.ketraterm.core.util
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -122,7 +122,7 @@ class UnicodeWidthTest {
         }
 
         @ParameterizedTest(name = "Non-ambiguous cp=0x{0} ignores toggle")
-        @MethodSource("io.github.jvterm.core.util.UnicodeWidthTest#nonAmbiguousSamples")
+        @MethodSource("io.github.ketraterm.core.util.UnicodeWidthTest#nonAmbiguousSamples")
         fun `non-ambiguous classes ignore toggle`(
             cp: Int,
             expected: Int,
@@ -143,7 +143,7 @@ class UnicodeWidthTest {
         }
 
         @ParameterizedTest(name = "Boundary cp=0x{0} expected={1}")
-        @MethodSource("io.github.jvterm.core.util.UnicodeWidthTest#astralBoundaryCases")
+        @MethodSource("io.github.ketraterm.core.util.UnicodeWidthTest#astralBoundaryCases")
         fun `astral boundary checks`(
             cp: Int,
             expected: Int,

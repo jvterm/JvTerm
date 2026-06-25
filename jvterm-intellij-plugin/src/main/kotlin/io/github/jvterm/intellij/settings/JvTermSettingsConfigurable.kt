@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.settings
+package io.github.ketraterm.intellij.settings
 
 import com.intellij.openapi.fileChooser.FileChooser
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
@@ -24,12 +24,12 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
-import io.github.jvterm.intellij.JvTermBundle
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.ui.swing.settings.TerminalTheme
-import io.github.jvterm.workspace.TerminalProfile
-import io.github.jvterm.workspace.TerminalProfileRegistry
-import io.github.jvterm.workspace.config.TerminalConfig
+import io.github.ketraterm.intellij.JvTermBundle
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.ui.swing.settings.TerminalTheme
+import io.github.ketraterm.workspace.TerminalProfile
+import io.github.ketraterm.workspace.TerminalProfileRegistry
+import io.github.ketraterm.workspace.config.TerminalConfig
 import java.awt.Component
 import java.util.Locale
 import javax.swing.DefaultListCellRenderer
@@ -39,7 +39,7 @@ import javax.swing.JList
 import javax.swing.JSpinner
 import javax.swing.SpinnerNumberModel
 
-private const val JVTERM_SETTINGS_CONFIGURABLE_ID = "io.github.jvterm.terminal.settings"
+private const val JVTERM_SETTINGS_CONFIGURABLE_ID = "io.github.ketraterm.terminal.settings"
 
 /**
  * IntelliJ-native settings page for IDE-hosted JvTerm terminals.

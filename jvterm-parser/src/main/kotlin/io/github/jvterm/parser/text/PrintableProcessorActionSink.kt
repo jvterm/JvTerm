@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.text
+package io.github.ketraterm.parser.text
 
-import io.github.jvterm.parser.ansi.PrintableActionSink
-import io.github.jvterm.parser.runtime.ParserState
+import io.github.ketraterm.parser.ansi.PrintableActionSink
+import io.github.ketraterm.parser.runtime.ParserState
 
 /**
  * Adapter from ANSI ActionEngine printable callbacks to the real printable processor.

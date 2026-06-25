@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.render.api
+package io.github.ketraterm.render.api
 
 /**
  * Immutable resolved terminal color palette.

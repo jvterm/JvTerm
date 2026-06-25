@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.api
+package io.github.ketraterm.core.api
 
 /**
  * Full public contract for the terminal buffer.

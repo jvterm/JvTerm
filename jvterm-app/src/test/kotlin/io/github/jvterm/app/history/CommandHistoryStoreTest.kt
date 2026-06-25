@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.history
+package io.github.ketraterm.app.history
 
-import io.github.jvterm.session.TerminalShellIntegrationCommandLifecycle
-import io.github.jvterm.session.TerminalShellIntegrationCommandMetadata
+import io.github.ketraterm.session.TerminalShellIntegrationCommandLifecycle
+import io.github.ketraterm.session.TerminalShellIntegrationCommandMetadata
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path

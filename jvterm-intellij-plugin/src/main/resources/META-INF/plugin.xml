@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>io.github.jvterm.terminal</id>
+    <id>io.github.ketraterm.terminal</id>
 
     <name>JvTerm</name>
 
@@ -15,8 +15,8 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <applicationConfigurable parentId="tools"
-                                 instance="io.github.jvterm.intellij.settings.JvTermSettingsConfigurable"
-                                 id="io.github.jvterm.terminal.settings"
+                                 instance="io.github.ketraterm.intellij.settings.JvTermSettingsConfigurable"
+                                 id="io.github.ketraterm.terminal.settings"
                                  key="settings.jvterm.displayName"
                                  bundle="messages.MyMessageBundle"/>
 
@@ -27,7 +27,7 @@
         <toolWindow id="JvTerm"
                     anchor="bottom"
                     canCloseContents="true"
-                    factoryClass="io.github.jvterm.intellij.ui.JvTermToolWindowFactory"
+                    factoryClass="io.github.ketraterm.intellij.ui.JvTermToolWindowFactory"
                     icon="/icons/jvterm-toolwindow.svg"/>
     </extensions>
 

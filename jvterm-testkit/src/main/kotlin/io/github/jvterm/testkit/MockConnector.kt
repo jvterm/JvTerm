@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.testkit
+package io.github.ketraterm.testkit
 
-import io.github.jvterm.transport.TerminalConnector
-import io.github.jvterm.transport.TerminalConnectorListener
-import io.github.jvterm.transport.checkBounds
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.transport.TerminalConnectorListener
+import io.github.ketraterm.transport.checkBounds
 
 /**
  * In-memory connector for session and transport-adapter tests.

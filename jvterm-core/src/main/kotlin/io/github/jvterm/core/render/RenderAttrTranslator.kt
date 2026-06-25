@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.render
+package io.github.ketraterm.core.render
 
-import io.github.jvterm.core.codec.AttributeCodec
-import io.github.jvterm.core.model.UnderlineStyle
+import io.github.ketraterm.core.codec.AttributeCodec
+import io.github.ketraterm.core.model.UnderlineStyle
 
 /**
  * Translates core's private attribute packing into the stable public render ABI.
@@ -27,7 +27,7 @@ internal class RenderAttrTranslator {
         extendedAttr: Long,
         reverseVideo: Boolean,
     ): Long =
-        io.github.jvterm.render.api.TerminalRenderAttrs.pack(
+        io.github.ketraterm.render.api.TerminalRenderAttrs.pack(
             foregroundKind = AttributeCodec.foregroundColorKind(primaryAttr).toRenderColorKind(),
             foregroundValue = AttributeCodec.foregroundColorValue(primaryAttr),
             backgroundKind = AttributeCodec.backgroundColorKind(primaryAttr).toRenderColorKind(),
@@ -43,7 +43,7 @@ internal class RenderAttrTranslator {
         )
 
     fun toRenderExtraAttrWord(extendedAttr: Long): Long =
-        io.github.jvterm.render.api.TerminalRenderExtraAttrs.pack(
+        io.github.ketraterm.render.api.TerminalRenderExtraAttrs.pack(
             underlineColorKind = AttributeCodec.underlineColorKind(extendedAttr).toRenderColorKind(),
             underlineColorValue = AttributeCodec.underlineColorValue(extendedAttr),
             overline = AttributeCodec.isOverline(extendedAttr),
@@ -51,18 +51,18 @@ internal class RenderAttrTranslator {
 
     private fun Int.toRenderColorKind(): Int =
         when (this) {
-            AttributeCodec.COLOR_KIND_INDEXED -> io.github.jvterm.render.api.TerminalRenderColorKind.INDEXED
-            AttributeCodec.COLOR_KIND_RGB -> io.github.jvterm.render.api.TerminalRenderColorKind.RGB
-            else -> io.github.jvterm.render.api.TerminalRenderColorKind.DEFAULT
+            AttributeCodec.COLOR_KIND_INDEXED -> io.github.ketraterm.render.api.TerminalRenderColorKind.INDEXED
+            AttributeCodec.COLOR_KIND_RGB -> io.github.ketraterm.render.api.TerminalRenderColorKind.RGB
+            else -> io.github.ketraterm.render.api.TerminalRenderColorKind.DEFAULT
         }
 
     private fun UnderlineStyle.toRenderUnderline(): Int =
         when (this) {
-            UnderlineStyle.NONE -> io.github.jvterm.render.api.TerminalRenderUnderline.NONE
-            UnderlineStyle.SINGLE -> io.github.jvterm.render.api.TerminalRenderUnderline.SINGLE
-            UnderlineStyle.DOUBLE -> io.github.jvterm.render.api.TerminalRenderUnderline.DOUBLE
-            UnderlineStyle.CURLY -> io.github.jvterm.render.api.TerminalRenderUnderline.CURLY
-            UnderlineStyle.DOTTED -> io.github.jvterm.render.api.TerminalRenderUnderline.DOTTED
-            UnderlineStyle.DASHED -> io.github.jvterm.render.api.TerminalRenderUnderline.DASHED
+            UnderlineStyle.NONE -> io.github.ketraterm.render.api.TerminalRenderUnderline.NONE
+            UnderlineStyle.SINGLE -> io.github.ketraterm.render.api.TerminalRenderUnderline.SINGLE
+            UnderlineStyle.DOUBLE -> io.github.ketraterm.render.api.TerminalRenderUnderline.DOUBLE
+            UnderlineStyle.CURLY -> io.github.ketraterm.render.api.TerminalRenderUnderline.CURLY
+            UnderlineStyle.DOTTED -> io.github.ketraterm.render.api.TerminalRenderUnderline.DOTTED
+            UnderlineStyle.DASHED -> io.github.ketraterm.render.api.TerminalRenderUnderline.DASHED
         }
 }

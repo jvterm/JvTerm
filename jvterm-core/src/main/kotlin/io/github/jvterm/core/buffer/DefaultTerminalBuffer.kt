@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer
+package io.github.ketraterm.core.buffer
 
-import io.github.jvterm.core.api.*
-import io.github.jvterm.core.buffer.impl.*
-import io.github.jvterm.core.engine.CursorEngine
-import io.github.jvterm.core.engine.MutationEngine
-import io.github.jvterm.core.engine.TerminalResizer
-import io.github.jvterm.core.model.SavedCursorState
-import io.github.jvterm.core.render.CoreTerminalRenderFrame
-import io.github.jvterm.core.state.TerminalState
+import io.github.ketraterm.core.api.*
+import io.github.ketraterm.core.buffer.impl.*
+import io.github.ketraterm.core.engine.CursorEngine
+import io.github.ketraterm.core.engine.MutationEngine
+import io.github.ketraterm.core.engine.TerminalResizer
+import io.github.ketraterm.core.model.SavedCursorState
+import io.github.ketraterm.core.render.CoreTerminalRenderFrame
+import io.github.ketraterm.core.state.TerminalState
 
 /**
  * Concrete facade for the terminal-buffer core.
@@ -38,7 +38,7 @@ import io.github.jvterm.core.state.TerminalState
 internal class DefaultTerminalBuffer private constructor(
     private val components: Components,
 ) : TerminalBuffer,
-    io.github.jvterm.render.api.TerminalRenderFrameReader,
+    io.github.ketraterm.render.api.TerminalRenderFrameReader,
     TerminalReader by TerminalReaderImpl(components.state),
     TerminalWriter by BufferWriter(components.state, components.mutationEngine, components.cursorEngine),
     TerminalCursor by TerminalCursorImpl(components.state, components.cursorEngine),
@@ -60,13 +60,13 @@ internal class DefaultTerminalBuffer private constructor(
      * Callers that may race with terminal mutation must synchronize externally.
      * `terminal-session` is the intended synchronization point for UI code.
      */
-    override fun readRenderFrame(consumer: io.github.jvterm.render.api.TerminalRenderFrameConsumer) {
+    override fun readRenderFrame(consumer: io.github.ketraterm.render.api.TerminalRenderFrameConsumer) {
         readRenderFrame(scrollbackOffset = 0, consumer = consumer)
     }
 
     override fun readRenderFrame(
         scrollbackOffset: Int,
-        consumer: io.github.jvterm.render.api.TerminalRenderFrameConsumer,
+        consumer: io.github.ketraterm.render.api.TerminalRenderFrameConsumer,
     ) {
         renderFrame.use(scrollbackOffset) {
             consumer.accept(renderFrame)
@@ -76,7 +76,7 @@ internal class DefaultTerminalBuffer private constructor(
     override fun readRenderFrame(
         scrollbackOffset: Int,
         viewportRows: Int,
-        consumer: io.github.jvterm.render.api.TerminalRenderFrameConsumer,
+        consumer: io.github.ketraterm.render.api.TerminalRenderFrameConsumer,
     ) {
         renderFrame.use(scrollbackOffset, viewportRows) {
             consumer.accept(renderFrame)

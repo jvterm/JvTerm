@@ -9,11 +9,11 @@ host, and other Swing hosts.
 
 ## Package Layout
 
-- `io.github.jvterm.ui.swing.api`: public host-facing Swing component APIs.
-- `io.github.jvterm.ui.swing.settings`: public immutable settings and palette
+- `io.github.ketraterm.ui.swing.api`: public host-facing Swing component APIs.
+- `io.github.ketraterm.ui.swing.settings`: public immutable settings and palette
   snapshots, plus internal frozen metrics.
-- `io.github.jvterm.ui.swing.input`: Swing-to-terminal input event adapters.
-- `io.github.jvterm.ui.swing.render`: Java2D painters and renderer-local
+- `io.github.ketraterm.ui.swing.input`: Swing-to-terminal input event adapters.
+- `io.github.ketraterm.ui.swing.render`: Java2D painters and renderer-local
   primitive caches.
 
 Keep reusable public surfaces narrow. Implementation packages should stay

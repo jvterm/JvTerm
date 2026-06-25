@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.services
+package io.github.ketraterm.intellij.services
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -22,16 +22,16 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.content.Content
-import io.github.jvterm.intellij.settings.JvTermIntellijSettings
-import io.github.jvterm.intellij.ui.JvTermTerminalPane
-import io.github.jvterm.intellij.ui.JvTermTerminalStartupView
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.workspace.TerminalProfile
-import io.github.jvterm.workspace.TerminalWorkspace
-import io.github.jvterm.workspace.TerminalWorkspaceListener
-import io.github.jvterm.workspace.TerminalWorkspaceOpenOptions
-import io.github.jvterm.workspace.TerminalWorkspaceTab
+import io.github.ketraterm.intellij.settings.JvTermIntellijSettings
+import io.github.ketraterm.intellij.ui.JvTermTerminalPane
+import io.github.ketraterm.intellij.ui.JvTermTerminalStartupView
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.workspace.TerminalProfile
+import io.github.ketraterm.workspace.TerminalWorkspace
+import io.github.ketraterm.workspace.TerminalWorkspaceListener
+import io.github.ketraterm.workspace.TerminalWorkspaceOpenOptions
+import io.github.ketraterm.workspace.TerminalWorkspaceTab
 import java.awt.BorderLayout
 import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.JPanel

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.store
+package io.github.ketraterm.core.store
 
-import io.github.jvterm.core.model.TerminalConstants
-import io.github.jvterm.core.store.ClusterStore.Companion.NO_FREE
+import io.github.ketraterm.core.model.TerminalConstants
+import io.github.ketraterm.core.store.ClusterStore.Companion.NO_FREE
 
 /**
  * A buffer-scoped arena allocator for multi-codepoint grapheme cluster payloads.
@@ -34,7 +34,7 @@ import io.github.jvterm.core.store.ClusterStore.Companion.NO_FREE
  *
  * ## Lifecycle
  *
- * A [ClusterStore] is owned by a single [io.github.jvterm.core.buffer.HistoryRing].
+ * A [ClusterStore] is owned by a single [io.github.ketraterm.core.buffer.HistoryRing].
  * When the terminal resizes, the resizer creates a fresh [ClusterStore] for the
  * new ring. Clusters that survive reflow are deep-copied into the new store.
  *
@@ -112,7 +112,7 @@ internal class ClusterStore {
     /**
      * Allocates a new slot for the cluster defined by [codepoints][offset..offset+length)
      * and returns its **handle** — a negative [Int] that can be stored directly in
-     * a [io.github.jvterm.core.model.Line]'s codepoint array.
+     * a [io.github.ketraterm.core.model.Line]'s codepoint array.
      *
      * The codepoints are copied into the internal pool via [System.arraycopy];
      * the caller may safely reuse or discard the source array immediately.
@@ -194,10 +194,10 @@ internal class ClusterStore {
      * Bulk-frees all cluster handles found in [array] between [fromIndex] (inclusive)
      * and [toIndex] (exclusive). Non-cluster values are skipped silently.
      *
-     * Called by [io.github.jvterm.core.model.Line] mutation methods ([io.github.jvterm.core.model.Line.clear], [io.github.jvterm.core.model.Line.clearFromColumn], etc.)
+     * Called by [io.github.ketraterm.core.model.Line] mutation methods ([io.github.ketraterm.core.model.Line.clear], [io.github.ketraterm.core.model.Line.clearFromColumn], etc.)
      * whenever a range of cells is about to be overwritten or discarded.
      *
-     * @param array     The raw codepoint array of a [io.github.jvterm.core.model.Line].
+     * @param array     The raw codepoint array of a [io.github.ketraterm.core.model.Line].
      * @param fromIndex Start of the range to sweep (inclusive).
      * @param toIndex   End of the range to sweep (exclusive).
      */

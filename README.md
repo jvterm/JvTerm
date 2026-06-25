@@ -31,11 +31,11 @@ Designed for embedding into IDEs, developer tools, and standalone desktop applic
 Integrating a local shell into a Swing application requires only a few lines of configuration:
 
 ```kotlin
-import io.github.jvterm.pty.TerminalSessions
-import io.github.jvterm.pty.PtyOptions
-import io.github.jvterm.ui.swing.api.SwingTerminal
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.ui.swing.settings.TerminalTheme
+import io.github.ketraterm.pty.TerminalSessions
+import io.github.ketraterm.pty.PtyOptions
+import io.github.ketraterm.ui.swing.api.SwingTerminal
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.ui.swing.settings.TerminalTheme
 import java.awt.BorderLayout
 import javax.swing.JFrame
 

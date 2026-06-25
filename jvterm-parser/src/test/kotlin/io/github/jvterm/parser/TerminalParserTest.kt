@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser
+package io.github.ketraterm.parser
 
-import io.github.jvterm.parser.ansi.AnsiState
-import io.github.jvterm.parser.ansi.RecordingTerminalCommandSink
-import io.github.jvterm.parser.api.TerminalOutputParser
-import io.github.jvterm.parser.api.TerminalParsers
-import io.github.jvterm.parser.fixture.ParserEvents.appendToPreviousCluster
-import io.github.jvterm.parser.fixture.ParserEvents.writeCluster
-import io.github.jvterm.parser.fixture.ParserEvents.writeCodepoint
-import io.github.jvterm.parser.fixture.TerminalParserFixture
-import io.github.jvterm.parser.runtime.ParserState
-import io.github.jvterm.parser.utf8.Utf8Decoder
+import io.github.ketraterm.parser.ansi.AnsiState
+import io.github.ketraterm.parser.ansi.RecordingTerminalCommandSink
+import io.github.ketraterm.parser.api.TerminalOutputParser
+import io.github.ketraterm.parser.api.TerminalParsers
+import io.github.ketraterm.parser.fixture.ParserEvents.appendToPreviousCluster
+import io.github.ketraterm.parser.fixture.ParserEvents.writeCluster
+import io.github.ketraterm.parser.fixture.ParserEvents.writeCodepoint
+import io.github.ketraterm.parser.fixture.TerminalParserFixture
+import io.github.ketraterm.parser.runtime.ParserState
+import io.github.ketraterm.parser.utf8.Utf8Decoder
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested

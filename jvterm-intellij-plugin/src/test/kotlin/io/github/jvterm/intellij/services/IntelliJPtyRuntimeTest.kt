@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.services
+package io.github.ketraterm.intellij.services
 
 import org.junit.Assert.assertThrows
 import org.junit.Test

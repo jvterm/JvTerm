@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app
+package io.github.ketraterm.app
 
 import com.formdev.flatlaf.FlatDarkLaf
 import com.formdev.flatlaf.FlatLaf
@@ -54,7 +54,7 @@ internal object JvTermLookAndFeel {
         UIManager.put("TitlePane.buttonSize", java.awt.Dimension(40, 40))
         UIManager.put("TitlePane.buttonMinimumWidth", 40)
         UIManager.put("TitlePane.buttonMaximizedHeight", 40)
-        io.github.jvterm.app.ui.Chrome
+        io.github.ketraterm.app.ui.Chrome
             .applySwingDefaults()
     }
 }

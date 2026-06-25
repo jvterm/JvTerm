@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.primitives
+package io.github.ketraterm.ui.swing.render.primitives
 
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.DIAGONAL_FALLING
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.DIAGONAL_RISING
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.DOUBLE
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.DOWN_SHIFT
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.HEAVY
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.LEFT_SHIFT
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.LIGHT
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.NONE
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.RIGHT_SHIFT
-import io.github.jvterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.UP_SHIFT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.DIAGONAL_FALLING
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.DIAGONAL_RISING
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.DOUBLE
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.DOWN_SHIFT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.HEAVY
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.LEFT_SHIFT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.LIGHT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.NONE
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.RIGHT_SHIFT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBoxDrawingGlyphs.UP_SHIFT
 import java.awt.BasicStroke
 import java.awt.Graphics2D
 import java.awt.RenderingHints

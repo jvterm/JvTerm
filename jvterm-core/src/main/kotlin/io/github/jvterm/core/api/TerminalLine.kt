@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.api
+package io.github.ketraterm.core.api
 
 /**
  * A read-only, EPHEMERAL view of a single physical terminal line.
@@ -32,8 +32,8 @@ interface TerminalLine {
      * - For plain cells this is the full Unicode scalar value.
      * - For cluster cells this is the leading codepoint of the grapheme sequence.
      *   Simple renderers that map one cell to one glyph can use this value directly.
-     * - Returns [io.github.jvterm.core.model.TerminalConstants.EMPTY] (0) for blank cells.
-     * - Returns [io.github.jvterm.core.model.TerminalConstants.WIDE_CHAR_SPACER] (-1)
+     * - Returns [io.github.ketraterm.core.model.TerminalConstants.EMPTY] (0) for blank cells.
+     * - Returns [io.github.ketraterm.core.model.TerminalConstants.WIDE_CHAR_SPACER] (-1)
      *   for the right half of a 2-cell wide character; renderers should skip such cells.
      *
      * @param col Column index (0-based).
@@ -46,7 +46,7 @@ interface TerminalLine {
      *
      * The primary word stores foreground/background colors plus the most common
      * SGR flags. Renderers should read it together with [getPackedExtendedAttr]
-     * and decode both words with [io.github.jvterm.core.codec.AttributeCodec].
+     * and decode both words with [io.github.ketraterm.core.codec.AttributeCodec].
      *
      * This method is intended for render loops and performs no allocation.
      *
@@ -60,7 +60,7 @@ interface TerminalLine {
      *
      * The extended word stores underline color/style, decoration flags, conceal,
      * and the numeric hyperlink id. Renderers should read it together with
-     * [getPackedAttr] and decode both words with [io.github.jvterm.core.codec.AttributeCodec].
+     * [getPackedAttr] and decode both words with [io.github.ketraterm.core.codec.AttributeCodec].
      *
      * This method is intended for render loops and performs no allocation.
      *
@@ -73,7 +73,7 @@ interface TerminalLine {
      * Returns `true` if the cell at [col] holds a multi-codepoint grapheme cluster
      * requiring a call to [readCluster] for full rendering.
      *
-     * Defaults to `false` so that [io.github.jvterm.core.model.VoidLine] and simple
+     * Defaults to `false` so that [io.github.ketraterm.core.model.VoidLine] and simple
      * stub implementations need not override it.
      *
      * @param col Column index (0-based).

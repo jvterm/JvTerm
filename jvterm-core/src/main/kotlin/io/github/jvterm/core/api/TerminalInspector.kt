@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.api
+package io.github.ketraterm.core.api
 
-import io.github.jvterm.core.model.CellAttributes
+import io.github.ketraterm.core.model.CellAttributes
 
 /**
  * Allocating inspection contract for the terminal buffer.

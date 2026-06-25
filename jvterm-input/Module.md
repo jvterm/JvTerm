@@ -48,14 +48,14 @@ For specifications on the input API contract and wire formats:
 The following example shows how to instantiate the `DefaultTerminalInputEncoder` and encode a keyboard key press event:
 
 ```kotlin
-import io.github.jvterm.input.api.TerminalInputEncoder
-import io.github.jvterm.core.api.TerminalInputState
-import io.github.jvterm.input.impl.DefaultTerminalInputEncoder
-import io.github.jvterm.input.event.TerminalKeyEvent
-import io.github.jvterm.input.event.TerminalKey
-import io.github.jvterm.input.event.TerminalModifiers
-import io.github.jvterm.input.policy.TerminalInputPolicy
-import io.github.jvterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.input.api.TerminalInputEncoder
+import io.github.ketraterm.core.api.TerminalInputState
+import io.github.ketraterm.input.impl.DefaultTerminalInputEncoder
+import io.github.ketraterm.input.event.TerminalKeyEvent
+import io.github.ketraterm.input.event.TerminalKey
+import io.github.ketraterm.input.event.TerminalModifiers
+import io.github.ketraterm.input.policy.TerminalInputPolicy
+import io.github.ketraterm.protocol.host.TerminalHostOutput
 
 fun main() {
     // 1. Create a read-only view of the terminal modes/state

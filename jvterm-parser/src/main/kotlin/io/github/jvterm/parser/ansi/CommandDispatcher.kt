@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi
+package io.github.ketraterm.parser.ansi
 
-import io.github.jvterm.parser.ansi.sgr.SgrDispatcher
-import io.github.jvterm.parser.charset.CharsetMapper
-import io.github.jvterm.parser.runtime.ParserState
-import io.github.jvterm.parser.spi.TerminalCommandSink
-import io.github.jvterm.protocol.ControlCode
-import io.github.jvterm.protocol.keyboard.KittyKeyboardFlagApplicationMode
+import io.github.ketraterm.parser.ansi.sgr.SgrDispatcher
+import io.github.ketraterm.parser.charset.CharsetMapper
+import io.github.ketraterm.parser.runtime.ParserState
+import io.github.ketraterm.parser.spi.TerminalCommandSink
+import io.github.ketraterm.protocol.ControlCode
+import io.github.ketraterm.protocol.keyboard.KittyKeyboardFlagApplicationMode
 
 /**
  * Semantic dispatcher boundary used by ActionEngine.

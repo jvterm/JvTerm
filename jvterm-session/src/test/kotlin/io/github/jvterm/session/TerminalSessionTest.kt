@@ -13,21 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.session
+package io.github.ketraterm.session
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBuffer
-import io.github.jvterm.input.api.TerminalInputEncoder
-import io.github.jvterm.input.event.TerminalFocusEvent
-import io.github.jvterm.input.event.TerminalKeyEvent
-import io.github.jvterm.input.event.TerminalMouseEvent
-import io.github.jvterm.input.event.TerminalPasteEvent
-import io.github.jvterm.parser.api.TerminalOutputParser
-import io.github.jvterm.render.api.*
-import io.github.jvterm.render.cache.TerminalRenderPublisher
-import io.github.jvterm.testkit.MockConnector
-import io.github.jvterm.transport.TerminalConnector
-import io.github.jvterm.transport.TerminalConnectorListener
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.core.api.TerminalBuffer
+import io.github.ketraterm.input.api.TerminalInputEncoder
+import io.github.ketraterm.input.event.TerminalFocusEvent
+import io.github.ketraterm.input.event.TerminalKeyEvent
+import io.github.ketraterm.input.event.TerminalMouseEvent
+import io.github.ketraterm.input.event.TerminalPasteEvent
+import io.github.ketraterm.parser.api.TerminalOutputParser
+import io.github.ketraterm.render.api.*
+import io.github.ketraterm.render.cache.TerminalRenderPublisher
+import io.github.ketraterm.testkit.MockConnector
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.transport.TerminalConnectorListener
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.nio.charset.StandardCharsets

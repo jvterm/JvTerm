@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.ui
+package io.github.ketraterm.app.ui
 
-import io.github.jvterm.ui.swing.settings.TerminalTheme
+import io.github.ketraterm.ui.swing.settings.TerminalTheme
 import javax.swing.UIManager
 import kotlin.test.Test
 import kotlin.test.assertEquals

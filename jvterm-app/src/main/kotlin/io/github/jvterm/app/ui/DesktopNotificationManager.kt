@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.ui
+package io.github.ketraterm.app.ui
 
-import io.github.jvterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.NotificationLevel
 import java.awt.Color
 import java.awt.Font
 import java.awt.Image

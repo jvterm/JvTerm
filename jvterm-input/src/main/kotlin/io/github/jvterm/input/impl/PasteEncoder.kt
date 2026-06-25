@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.impl
+package io.github.ketraterm.input.impl
 
-import io.github.jvterm.core.api.TerminalInputState
-import io.github.jvterm.input.event.TerminalPasteEvent
-import io.github.jvterm.input.impl.keyboard.CsiWriter
-import io.github.jvterm.input.policy.PasteSanitizationPolicy
-import io.github.jvterm.input.policy.TerminalInputPolicy
-import io.github.jvterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.core.api.TerminalInputState
+import io.github.ketraterm.input.event.TerminalPasteEvent
+import io.github.ketraterm.input.impl.keyboard.CsiWriter
+import io.github.ketraterm.input.policy.PasteSanitizationPolicy
+import io.github.ketraterm.input.policy.TerminalInputPolicy
+import io.github.ketraterm.protocol.host.TerminalHostOutput
 
 internal class PasteEncoder(
     private val output: TerminalHostOutput,

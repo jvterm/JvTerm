@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.settings
+package io.github.ketraterm.intellij.settings
 
-import io.github.jvterm.host.TerminalClipboardOrigin
-import io.github.jvterm.host.TerminalClipboardPermission
-import io.github.jvterm.host.TerminalTitleOrigin
-import io.github.jvterm.host.TerminalTitlePermission
-import io.github.jvterm.render.api.TerminalRenderCursorShape
-import io.github.jvterm.ui.swing.settings.TerminalTheme
-import io.github.jvterm.workspace.config.TerminalConfig
+import io.github.ketraterm.host.TerminalClipboardOrigin
+import io.github.ketraterm.host.TerminalClipboardPermission
+import io.github.ketraterm.host.TerminalTitleOrigin
+import io.github.ketraterm.host.TerminalTitlePermission
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.ui.swing.settings.TerminalTheme
+import io.github.ketraterm.workspace.config.TerminalConfig
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals

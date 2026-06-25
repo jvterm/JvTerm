@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.host
+package io.github.ketraterm.host
 
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.protocol.ShellIntegrationEvent
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.ShellIntegrationEvent
 
 /**
  * Host-facing events emitted while parser commands are mapped to core state.

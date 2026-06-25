@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.protocol.keyboard
+package io.github.ketraterm.protocol.keyboard
 
 /**
  * Xterm formatOtherKeys values stored in core's packed input-mode word.

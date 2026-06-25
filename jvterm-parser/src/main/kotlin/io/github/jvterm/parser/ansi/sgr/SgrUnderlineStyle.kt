@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi.sgr
+package io.github.ketraterm.parser.ansi.sgr
 
 internal object SgrUnderlineStyle {
     const val NONE: Int = 0

@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.input
+package io.github.ketraterm.ui.swing.input
 
-import io.github.jvterm.input.event.TerminalModifiers
-import io.github.jvterm.input.event.TerminalMouseButton
-import io.github.jvterm.input.event.TerminalMouseEvent
-import io.github.jvterm.input.event.TerminalMouseEventType
-import io.github.jvterm.protocol.MouseTrackingMode
-import io.github.jvterm.ui.swing.settings.SwingTerminalChrome
+import io.github.ketraterm.input.event.TerminalModifiers
+import io.github.ketraterm.input.event.TerminalMouseButton
+import io.github.ketraterm.input.event.TerminalMouseEvent
+import io.github.ketraterm.input.event.TerminalMouseEventType
+import io.github.ketraterm.protocol.MouseTrackingMode
+import io.github.ketraterm.ui.swing.settings.SwingTerminalChrome
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import java.awt.event.MouseMotionAdapter

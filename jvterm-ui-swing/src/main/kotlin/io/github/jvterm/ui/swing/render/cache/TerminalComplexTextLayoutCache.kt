@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.cache
+package io.github.ketraterm.ui.swing.render.cache
 
-import io.github.jvterm.ui.swing.render.cache.TerminalComplexTextLayoutCache.Companion.MAX_CLUSTER_LENGTH
+import io.github.ketraterm.ui.swing.render.cache.TerminalComplexTextLayoutCache.Companion.MAX_CLUSTER_LENGTH
 import java.awt.Font
 import java.awt.font.FontRenderContext
 import java.awt.font.TextLayout

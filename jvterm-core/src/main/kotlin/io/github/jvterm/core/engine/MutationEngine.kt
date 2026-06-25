@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.engine
+package io.github.ketraterm.core.engine
 
-import io.github.jvterm.core.buffer.HistoryRing
-import io.github.jvterm.core.codec.AttributeCodec
-import io.github.jvterm.core.model.Line
-import io.github.jvterm.core.model.TerminalConstants
-import io.github.jvterm.core.state.TerminalState
-import io.github.jvterm.core.store.ClusterStore
-import io.github.jvterm.core.util.UnicodeWidth
+import io.github.ketraterm.core.buffer.HistoryRing
+import io.github.ketraterm.core.codec.AttributeCodec
+import io.github.ketraterm.core.model.Line
+import io.github.ketraterm.core.model.TerminalConstants
+import io.github.ketraterm.core.state.TerminalState
+import io.github.ketraterm.core.store.ClusterStore
+import io.github.ketraterm.core.util.UnicodeWidth
 
 /**
  * Dedicated mutation engine for grid writes and line-level erase/edit operations.

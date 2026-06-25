@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.session
+package io.github.ketraterm.session
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.input.event.*
-import io.github.jvterm.input.policy.EnterNewLineModePolicy
-import io.github.jvterm.input.policy.PasteSanitizationPolicy
-import io.github.jvterm.input.policy.TerminalInputPolicy
-import io.github.jvterm.testkit.MockConnector
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.input.event.*
+import io.github.ketraterm.input.policy.EnterNewLineModePolicy
+import io.github.ketraterm.input.policy.PasteSanitizationPolicy
+import io.github.ketraterm.input.policy.TerminalInputPolicy
+import io.github.ketraterm.testkit.MockConnector
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

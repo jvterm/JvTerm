@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.services
+package io.github.ketraterm.intellij.services
 
-import io.github.jvterm.intellij.settings.JvTermIntellijSettings
-import io.github.jvterm.workspace.TerminalProfile
+import io.github.ketraterm.intellij.settings.JvTermIntellijSettings
+import io.github.ketraterm.workspace.TerminalProfile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

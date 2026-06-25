@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.session
+package io.github.ketraterm.session
 
-import io.github.jvterm.protocol.host.TerminalHostOutput
-import io.github.jvterm.transport.TerminalConnector
-import io.github.jvterm.transport.checkBounds
+import io.github.ketraterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.transport.checkBounds
 
 /**
  * A zero-allocation, thread-safe bridge between terminal input encoding and

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.protocol.keyboard
+package io.github.ketraterm.protocol.keyboard
 
 /**
  * Xterm XTFMTKEYS resource ids used by `CSI > Pp ; Pv f`.

@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.impl
+package io.github.ketraterm.input.impl
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.input.event.*
-import io.github.jvterm.protocol.MouseEncodingMode
-import io.github.jvterm.protocol.MouseTrackingMode
-import io.github.jvterm.protocol.host.TerminalHostOutput
-import io.github.jvterm.protocol.keyboard.FormatOtherKeysMode
-import io.github.jvterm.protocol.keyboard.ModifyOtherKeysMode
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.input.event.*
+import io.github.ketraterm.protocol.MouseEncodingMode
+import io.github.ketraterm.protocol.MouseTrackingMode
+import io.github.ketraterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.protocol.keyboard.FormatOtherKeysMode
+import io.github.ketraterm.protocol.keyboard.ModifyOtherKeysMode
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Test
 

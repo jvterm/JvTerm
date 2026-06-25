@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.settings
+package io.github.ketraterm.ui.swing.settings
 
-import io.github.jvterm.render.api.TerminalRenderBufferKind
-import io.github.jvterm.ui.swing.api.SwingTerminal
+import io.github.ketraterm.render.api.TerminalRenderBufferKind
+import io.github.ketraterm.ui.swing.api.SwingTerminal
 import java.awt.Canvas
 import java.awt.Font
 import java.awt.Insets

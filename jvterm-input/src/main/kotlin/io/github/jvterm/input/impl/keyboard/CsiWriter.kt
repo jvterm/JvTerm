@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.impl.keyboard
+package io.github.ketraterm.input.impl.keyboard
 
-import io.github.jvterm.input.event.TerminalModifiers
-import io.github.jvterm.input.impl.InputScratchBuffer
-import io.github.jvterm.protocol.ControlCode
-import io.github.jvterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.input.event.TerminalModifiers
+import io.github.ketraterm.input.impl.InputScratchBuffer
+import io.github.ketraterm.protocol.ControlCode
+import io.github.ketraterm.protocol.host.TerminalHostOutput
 
 /**
  * Shared zero-allocation helper for formatting CSI and SS3 terminal sequences.

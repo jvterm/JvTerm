@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.platform
+package io.github.ketraterm.ui.swing.render.platform
 
 import java.awt.image.BufferedImage
 import java.util.*

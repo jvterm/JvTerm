@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render
+package io.github.ketraterm.ui.swing.render
 
-import io.github.jvterm.render.api.*
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.render.api.*
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.ui.swing.settings.SwingSettings
 import java.awt.Font
 import java.awt.Insets
 import java.awt.RenderingHints

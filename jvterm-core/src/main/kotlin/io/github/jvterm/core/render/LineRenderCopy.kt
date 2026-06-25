@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.render
+package io.github.ketraterm.core.render
 
-import io.github.jvterm.core.codec.AttributeCodec
-import io.github.jvterm.core.model.Line
-import io.github.jvterm.core.model.TerminalConstants
+import io.github.ketraterm.core.codec.AttributeCodec
+import io.github.ketraterm.core.model.Line
+import io.github.ketraterm.core.model.TerminalConstants
 
 internal fun Line.copyToRenderAbi(
     width: Int,
@@ -31,8 +31,8 @@ internal fun Line.copyToRenderAbi(
     extraAttrOffset: Int,
     hyperlinkIds: IntArray?,
     hyperlinkOffset: Int,
-    clusterSink: io.github.jvterm.render.api.TerminalRenderClusterSink?,
-    clusterDataSink: io.github.jvterm.render.api.TerminalRenderClusterDataSink?,
+    clusterSink: io.github.ketraterm.render.api.TerminalRenderClusterSink?,
+    clusterDataSink: io.github.ketraterm.render.api.TerminalRenderClusterDataSink?,
     attrTranslator: RenderAttrTranslator,
     clusterScratch: RenderClusterScratch,
     reverseVideo: Boolean,
@@ -84,19 +84,19 @@ private fun Line.cellFlags(
     raw: Int,
 ): Int =
     when {
-        raw == TerminalConstants.EMPTY -> io.github.jvterm.render.api.TerminalRenderCellFlags.EMPTY
-        raw == TerminalConstants.WIDE_CHAR_SPACER -> io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_TRAILING
+        raw == TerminalConstants.EMPTY -> io.github.ketraterm.render.api.TerminalRenderCellFlags.EMPTY
+        raw == TerminalConstants.WIDE_CHAR_SPACER -> io.github.ketraterm.render.api.TerminalRenderCellFlags.WIDE_TRAILING
         raw <= TerminalConstants.CLUSTER_HANDLE_MAX -> {
-            var flags = io.github.jvterm.render.api.TerminalRenderCellFlags.CLUSTER
+            var flags = io.github.ketraterm.render.api.TerminalRenderCellFlags.CLUSTER
             if (isWideLeading(col)) {
-                flags = flags or io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
+                flags = flags or io.github.ketraterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
             }
             flags
         }
         else -> {
-            var flags = io.github.jvterm.render.api.TerminalRenderCellFlags.CODEPOINT
+            var flags = io.github.ketraterm.render.api.TerminalRenderCellFlags.CODEPOINT
             if (isWideLeading(col)) {
-                flags = flags or io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
+                flags = flags or io.github.ketraterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
             }
             flags
         }

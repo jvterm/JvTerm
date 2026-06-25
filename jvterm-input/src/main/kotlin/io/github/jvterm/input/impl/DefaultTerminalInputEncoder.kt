@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.impl
+package io.github.ketraterm.input.impl
 
-import io.github.jvterm.core.api.TerminalInputState
-import io.github.jvterm.input.api.TerminalInputEncoder
-import io.github.jvterm.input.event.TerminalFocusEvent
-import io.github.jvterm.input.event.TerminalKeyEvent
-import io.github.jvterm.input.event.TerminalMouseEvent
-import io.github.jvterm.input.event.TerminalPasteEvent
-import io.github.jvterm.input.impl.keyboard.KeyboardEncoder
-import io.github.jvterm.input.policy.TerminalInputPolicy
-import io.github.jvterm.protocol.host.TerminalHostOutput
+import io.github.ketraterm.core.api.TerminalInputState
+import io.github.ketraterm.input.api.TerminalInputEncoder
+import io.github.ketraterm.input.event.TerminalFocusEvent
+import io.github.ketraterm.input.event.TerminalKeyEvent
+import io.github.ketraterm.input.event.TerminalMouseEvent
+import io.github.ketraterm.input.event.TerminalPasteEvent
+import io.github.ketraterm.input.impl.keyboard.KeyboardEncoder
+import io.github.ketraterm.input.policy.TerminalInputPolicy
+import io.github.ketraterm.protocol.host.TerminalHostOutput
 
 /**
  * Default terminal input encoder facade.

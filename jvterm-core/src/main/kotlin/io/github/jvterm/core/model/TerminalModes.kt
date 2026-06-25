@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.model
+package io.github.ketraterm.core.model
 
-import io.github.jvterm.core.api.TerminalInputState
-import io.github.jvterm.core.api.TerminalModeBits
-import io.github.jvterm.core.api.TerminalModeSnapshot
-import io.github.jvterm.protocol.MouseEncodingMode
-import io.github.jvterm.protocol.MouseTrackingMode
-import io.github.jvterm.protocol.keyboard.KittyKeyboardProgressiveFlag
+import io.github.ketraterm.core.api.TerminalInputState
+import io.github.ketraterm.core.api.TerminalModeBits
+import io.github.ketraterm.core.api.TerminalModeSnapshot
+import io.github.ketraterm.protocol.MouseEncodingMode
+import io.github.ketraterm.protocol.MouseTrackingMode
+import io.github.ketraterm.protocol.keyboard.KittyKeyboardProgressiveFlag
 import java.util.concurrent.atomic.AtomicLong
 
 /**

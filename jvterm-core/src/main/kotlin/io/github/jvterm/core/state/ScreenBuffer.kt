@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.state
+package io.github.ketraterm.core.state
 
-import io.github.jvterm.core.buffer.HistoryRing
-import io.github.jvterm.core.model.Cursor
-import io.github.jvterm.core.model.Line
-import io.github.jvterm.core.model.SavedCursorState
-import io.github.jvterm.core.store.ClusterStore
+import io.github.ketraterm.core.buffer.HistoryRing
+import io.github.ketraterm.core.model.Cursor
+import io.github.ketraterm.core.model.Line
+import io.github.ketraterm.core.model.SavedCursorState
+import io.github.ketraterm.core.store.ClusterStore
 
 /**
  * Represents a single cohesive terminal screen (primary or alternate).

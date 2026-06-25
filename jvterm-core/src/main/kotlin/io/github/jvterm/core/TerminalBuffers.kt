@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core
+package io.github.ketraterm.core
 
-import io.github.jvterm.core.api.TerminalBuffer
-import io.github.jvterm.core.buffer.DefaultTerminalBuffer
+import io.github.ketraterm.core.api.TerminalBuffer
+import io.github.ketraterm.core.buffer.DefaultTerminalBuffer
 
 /**
  * Factory for creating terminal buffer instances behind the public core API.

@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer
+package io.github.ketraterm.core.buffer
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBuffer
-import io.github.jvterm.core.api.TerminalResponseChannel
-import io.github.jvterm.protocol.TerminalCapabilityIdentity
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.core.api.TerminalBuffer
+import io.github.ketraterm.core.api.TerminalResponseChannel
+import io.github.ketraterm.protocol.TerminalCapabilityIdentity
 import org.junit.jupiter.api.Assertions.assertAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

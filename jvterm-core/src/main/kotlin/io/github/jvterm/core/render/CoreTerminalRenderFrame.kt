@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.render
+package io.github.ketraterm.core.render
 
-import io.github.jvterm.core.state.TerminalState
-import io.github.jvterm.render.api.TerminalRenderFrame
+import io.github.ketraterm.core.state.TerminalState
+import io.github.ketraterm.render.api.TerminalRenderFrame
 
 /**
  * Adapter from core state to the stable public render frame ABI.
@@ -102,27 +102,27 @@ internal class CoreTerminalRenderFrame(
             return state.structureGeneration
         }
 
-    override val activeBuffer: io.github.jvterm.render.api.TerminalRenderBufferKind
+    override val activeBuffer: io.github.ketraterm.render.api.TerminalRenderBufferKind
         get() {
             checkValid()
             return if (state.isAltScreenActive) {
-                io.github.jvterm.render.api.TerminalRenderBufferKind.ALTERNATE
+                io.github.ketraterm.render.api.TerminalRenderBufferKind.ALTERNATE
             } else {
-                io.github.jvterm.render.api.TerminalRenderBufferKind.PRIMARY
+                io.github.ketraterm.render.api.TerminalRenderBufferKind.PRIMARY
             }
         }
 
-    override val palette: io.github.jvterm.render.api.TerminalColorPalette
+    override val palette: io.github.ketraterm.render.api.TerminalColorPalette
         get() {
             checkValid()
             return state.palette
         }
 
-    override val cursor: io.github.jvterm.render.api.TerminalRenderCursor
+    override val cursor: io.github.ketraterm.render.api.TerminalRenderCursor
         get() {
             checkValid()
             val row = state.cursor.row + resolvedScrollbackOffset
-            return io.github.jvterm.render.api.TerminalRenderCursor(
+            return io.github.ketraterm.render.api.TerminalRenderCursor(
                 column = state.cursor.col,
                 row = row,
                 visible = state.modes.isCursorVisible && row in 0 until resolvedRows,
@@ -132,7 +132,7 @@ internal class CoreTerminalRenderFrame(
             )
         }
 
-    override fun copyCursor(sink: io.github.jvterm.render.api.TerminalRenderCursorSink) {
+    override fun copyCursor(sink: io.github.ketraterm.render.api.TerminalRenderCursorSink) {
         checkValid()
         val row = state.cursor.row + resolvedScrollbackOffset
         sink.onCursor(
@@ -175,8 +175,8 @@ internal class CoreTerminalRenderFrame(
         extraAttrOffset: Int,
         hyperlinkIds: IntArray?,
         hyperlinkOffset: Int,
-        clusterSink: io.github.jvterm.render.api.TerminalRenderClusterSink?,
-        clusterDataSink: io.github.jvterm.render.api.TerminalRenderClusterDataSink?,
+        clusterSink: io.github.ketraterm.render.api.TerminalRenderClusterSink?,
+        clusterDataSink: io.github.ketraterm.render.api.TerminalRenderClusterDataSink?,
     ) {
         checkValid()
         checkRow(row)

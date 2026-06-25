@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.fixture
+package io.github.ketraterm.parser.fixture
 
-import io.github.jvterm.parser.ansi.RecordingTerminalCommandSink
-import io.github.jvterm.parser.impl.TerminalParser
-import io.github.jvterm.parser.runtime.ParserState
+import io.github.ketraterm.parser.ansi.RecordingTerminalCommandSink
+import io.github.ketraterm.parser.impl.TerminalParser
+import io.github.ketraterm.parser.runtime.ParserState
 
 internal class TerminalParserFixture(
     val sink: RecordingTerminalCommandSink = RecordingTerminalCommandSink(),

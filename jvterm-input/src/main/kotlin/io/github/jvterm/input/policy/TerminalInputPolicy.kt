@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.policy
+package io.github.ketraterm.input.policy
 
 /**
  * Runtime policy for keyboard encodings that do not have one unambiguous

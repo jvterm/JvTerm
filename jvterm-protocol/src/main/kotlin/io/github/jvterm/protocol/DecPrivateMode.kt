@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.protocol
+package io.github.ketraterm.protocol
 
 /**
  * Common DEC private modes used in terminal emulation.

@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render
+package io.github.ketraterm.ui.swing.render
 
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.session.TerminalSession
-import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.ui.swing.settings.SwingSettings
 
 /**
  * Narrow adapter for render-frame scheduling and repaint planning.

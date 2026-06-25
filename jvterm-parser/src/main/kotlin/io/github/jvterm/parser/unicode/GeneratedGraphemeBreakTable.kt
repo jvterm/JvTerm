@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.unicode
+package io.github.ketraterm.parser.unicode
 
 /**
  * Unicode 17.0.0 grapheme break and emoji property table generated from UAX #29 data.

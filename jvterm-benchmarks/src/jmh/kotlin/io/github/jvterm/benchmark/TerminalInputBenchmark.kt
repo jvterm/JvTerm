@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.benchmark
+package io.github.ketraterm.benchmark
 
-import io.github.jvterm.core.api.TerminalInputState
-import io.github.jvterm.core.api.TerminalModeBits
-import io.github.jvterm.input.TerminalInputEncoders
-import io.github.jvterm.input.api.TerminalInputEncoder
-import io.github.jvterm.input.event.*
+import io.github.ketraterm.core.api.TerminalInputState
+import io.github.ketraterm.core.api.TerminalModeBits
+import io.github.ketraterm.input.TerminalInputEncoders
+import io.github.ketraterm.input.api.TerminalInputEncoder
+import io.github.ketraterm.input.event.*
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 import java.util.concurrent.TimeUnit
@@ -170,7 +170,7 @@ private class FixedInputState(
 }
 
 /** Counting output sink that records the number of bytes written. */
-private class CountingHostOutput : io.github.jvterm.protocol.host.TerminalHostOutput {
+private class CountingHostOutput : io.github.ketraterm.protocol.host.TerminalHostOutput {
     @JvmField
     var count: Int = 0
 

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi
+package io.github.ketraterm.parser.ansi
 
-import io.github.jvterm.parser.ansi.AnsiState.ESCAPE
-import io.github.jvterm.parser.ansi.AnsiState.GROUND
+import io.github.ketraterm.parser.ansi.AnsiState.ESCAPE
+import io.github.ketraterm.parser.ansi.AnsiState.GROUND
 
 /**
  * ANSI parser finite-state machine states.

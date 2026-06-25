@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer
+package io.github.ketraterm.core.buffer
 
-import io.github.jvterm.core.model.Line
+import io.github.ketraterm.core.model.Line
 
 /**
  * A fixed-capacity ring buffer of [Line]s.

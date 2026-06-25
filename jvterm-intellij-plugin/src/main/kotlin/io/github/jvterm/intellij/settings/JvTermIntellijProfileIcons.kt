@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.settings
+package io.github.ketraterm.intellij.settings
 
 import com.intellij.openapi.util.IconLoader
-import io.github.jvterm.workspace.TerminalProfileKind
+import io.github.ketraterm.workspace.TerminalProfileKind
 import java.awt.Component
 import java.awt.Graphics
 import java.awt.Graphics2D

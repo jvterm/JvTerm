@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.api
+package io.github.ketraterm.ui.swing.api
 
-import io.github.jvterm.render.api.TerminalRenderCellFlags
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.ui.swing.api.CellSelection.Companion.NO_RANGE
+import io.github.ketraterm.render.api.TerminalRenderCellFlags
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.ui.swing.api.CellSelection.Companion.NO_RANGE
 
 /**
  * Half-open terminal cell selection in visible render-cache coordinates.

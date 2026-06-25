@@ -60,9 +60,9 @@ For deep-dive technical details on triple-buffering logic and grapheme cluster c
 The following example shows how a UI component initializes a publisher and draws using the double/triple-buffered cache:
 
 ```kotlin
-import io.github.jvterm.render.api.TerminalRenderFrameReader
-import io.github.jvterm.render.cache.TerminalRenderPublisher
-import io.github.jvterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.render.api.TerminalRenderFrameReader
+import io.github.ketraterm.render.cache.TerminalRenderPublisher
+import io.github.ketraterm.render.cache.TerminalRenderCache
 
 class ComponentPainter(private val reader: TerminalRenderFrameReader) {
     // 1. Initialize publisher with three cache buffers

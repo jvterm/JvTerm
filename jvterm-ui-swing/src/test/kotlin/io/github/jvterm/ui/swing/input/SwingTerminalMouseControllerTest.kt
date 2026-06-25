@@ -13,24 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.input
+package io.github.ketraterm.ui.swing.input
 
-import io.github.jvterm.input.event.TerminalMouseEvent
-import io.github.jvterm.protocol.MouseTrackingMode
-import io.github.jvterm.render.api.TerminalRenderAttrs
-import io.github.jvterm.render.api.TerminalRenderBufferKind
-import io.github.jvterm.render.api.TerminalRenderCellFlags
-import io.github.jvterm.render.api.TerminalRenderClusterDataSink
-import io.github.jvterm.render.api.TerminalRenderClusterSink
-import io.github.jvterm.render.api.TerminalRenderCursor
-import io.github.jvterm.render.api.TerminalRenderCursorShape
-import io.github.jvterm.render.api.TerminalRenderExtraAttrs
-import io.github.jvterm.render.api.TerminalRenderFrame
-import io.github.jvterm.render.api.TerminalRenderFrameConsumer
-import io.github.jvterm.render.api.TerminalRenderFrameReader
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.input.event.TerminalMouseEvent
+import io.github.ketraterm.protocol.MouseTrackingMode
+import io.github.ketraterm.render.api.TerminalRenderAttrs
+import io.github.ketraterm.render.api.TerminalRenderBufferKind
+import io.github.ketraterm.render.api.TerminalRenderCellFlags
+import io.github.ketraterm.render.api.TerminalRenderClusterDataSink
+import io.github.ketraterm.render.api.TerminalRenderClusterSink
+import io.github.ketraterm.render.api.TerminalRenderCursor
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.render.api.TerminalRenderExtraAttrs
+import io.github.ketraterm.render.api.TerminalRenderFrame
+import io.github.ketraterm.render.api.TerminalRenderFrameConsumer
+import io.github.ketraterm.render.api.TerminalRenderFrameReader
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.ui.swing.settings.SwingSettings
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -177,7 +177,7 @@ class SwingTerminalMouseControllerTest {
             controller.wheelListener.mouseWheelMoved(event)
 
             assertEquals(3, host.mouseReports.size)
-            assertTrue(host.mouseReports.all { it.button == io.github.jvterm.input.event.TerminalMouseButton.WHEEL_UP })
+            assertTrue(host.mouseReports.all { it.button == io.github.ketraterm.input.event.TerminalMouseButton.WHEEL_UP })
             assertEquals(0, host.scrollCount)
             assertTrue(event.isConsumed)
         }

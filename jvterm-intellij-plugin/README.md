@@ -71,8 +71,8 @@ The plugin dependencies should then use normal coordinates rather than root
 project references:
 
 ```kotlin
-implementation("io.github.jvterm:jvterm-ui-swing")
-implementation("io.github.jvterm:jvterm-workspace")
+implementation("io.github.ketraterm:jvterm-ui-swing")
+implementation("io.github.ketraterm:jvterm-workspace")
 ```
 
 This keeps IDE plugin development independent while still using local JvTerm

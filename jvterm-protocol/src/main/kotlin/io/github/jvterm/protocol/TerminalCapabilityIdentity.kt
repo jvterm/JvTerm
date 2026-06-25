@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.protocol
+package io.github.ketraterm.protocol
 
-import io.github.jvterm.protocol.keyboard.KittyKeyboardProgressiveFlag
+import io.github.ketraterm.protocol.keyboard.KittyKeyboardProgressiveFlag
 
 /**
  * JVTerm's advertised terminal identity and capability contract.

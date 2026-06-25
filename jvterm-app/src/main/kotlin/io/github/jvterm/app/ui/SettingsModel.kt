@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app.ui
+package io.github.ketraterm.app.ui
 
-import io.github.jvterm.app.config.JvTermSettings
-import io.github.jvterm.host.TerminalClipboardPermission
-import io.github.jvterm.host.TerminalTitlePermission
-import io.github.jvterm.input.policy.PasteSanitizationPolicy
-import io.github.jvterm.ui.swing.settings.TerminalTheme
-import io.github.jvterm.workspace.TerminalProfileRegistry
-import io.github.jvterm.workspace.config.TerminalConfig
+import io.github.ketraterm.app.config.JvTermSettings
+import io.github.ketraterm.host.TerminalClipboardPermission
+import io.github.ketraterm.host.TerminalTitlePermission
+import io.github.ketraterm.input.policy.PasteSanitizationPolicy
+import io.github.ketraterm.ui.swing.settings.TerminalTheme
+import io.github.ketraterm.workspace.TerminalProfileRegistry
+import io.github.ketraterm.workspace.config.TerminalConfig
 
 internal class SettingsModel(
     private val settings: JvTermSettings,

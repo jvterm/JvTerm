@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.model
+package io.github.ketraterm.core.model
 
 /**
  * Tracks the cursor position within the terminal grid.

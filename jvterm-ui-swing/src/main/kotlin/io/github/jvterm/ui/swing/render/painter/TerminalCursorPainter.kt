@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.painter
+package io.github.ketraterm.ui.swing.render.painter
 
-import io.github.jvterm.render.api.TerminalColorPalette
-import io.github.jvterm.render.api.TerminalRenderCursorShape
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.ui.swing.render.cache.AwtColorCache
-import io.github.jvterm.ui.swing.render.visualCellRangeSpan
-import io.github.jvterm.ui.swing.render.visualCellRangeStart
-import io.github.jvterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.render.api.TerminalColorPalette
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.ui.swing.render.cache.AwtColorCache
+import io.github.ketraterm.ui.swing.render.visualCellRangeSpan
+import io.github.ketraterm.ui.swing.render.visualCellRangeStart
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
 import java.awt.Graphics2D
 import java.awt.font.FontRenderContext
 

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.pty
+package io.github.ketraterm.pty
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.session.TerminalSession
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.session.TerminalSession
 import java.io.IOException
 
 /**

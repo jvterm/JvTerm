@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi
+package io.github.ketraterm.parser.ansi
 
-import io.github.jvterm.parser.spi.TerminalCommandSink
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.protocol.ShellIntegrationEvent
+import io.github.ketraterm.parser.spi.TerminalCommandSink
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.ShellIntegrationEvent
 
 internal class RecordingTerminalCommandSink : TerminalCommandSink {
     val events = ArrayList<String>()

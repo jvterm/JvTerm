@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.primitives
+package io.github.ketraterm.ui.swing.render.primitives
 
-import io.github.jvterm.ui.swing.render.platform.TerminalPlatformEmojiRasterizer
-import io.github.jvterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.ui.swing.render.platform.TerminalPlatformEmojiRasterizer
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
 import java.awt.Graphics2D
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage

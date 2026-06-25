@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.api
+package io.github.ketraterm.ui.swing.api
 
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.session.TerminalSession
-import io.github.jvterm.session.TerminalShellIntegrationCommandOutputRange
-import io.github.jvterm.session.TerminalShellIntegrationCommandRecord
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.session.TerminalShellIntegrationCommandOutputRange
+import io.github.ketraterm.session.TerminalShellIntegrationCommandRecord
 
 /**
  * EDT-owned command navigation, hit-testing, and output selection controller.

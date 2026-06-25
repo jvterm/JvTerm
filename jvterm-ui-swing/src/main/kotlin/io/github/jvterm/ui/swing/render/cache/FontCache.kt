@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.cache
+package io.github.ketraterm.ui.swing.render.cache
 
-import io.github.jvterm.ui.swing.render.font.TerminalSystemFallbackFonts
-import io.github.jvterm.ui.swing.render.font.TerminalSystemFontFamilies
+import io.github.ketraterm.ui.swing.render.font.TerminalSystemFallbackFonts
+import io.github.ketraterm.ui.swing.render.font.TerminalSystemFontFamilies
 import java.awt.Font
 import java.util.*
 

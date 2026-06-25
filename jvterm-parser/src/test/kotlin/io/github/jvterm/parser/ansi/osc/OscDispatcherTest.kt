@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi.osc
+package io.github.ketraterm.parser.ansi.osc
 
-import io.github.jvterm.parser.ansi.RecordingTerminalCommandSink
+import io.github.ketraterm.parser.ansi.RecordingTerminalCommandSink
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName

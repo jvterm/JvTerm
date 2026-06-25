@@ -62,10 +62,10 @@ lifecycle in `jvterm-pty`.
 
 Use narrow packages that describe the IDE adapter boundary:
 
-- `io.github.jvterm.intellij`: plugin entry points and extension classes.
-- `io.github.jvterm.intellij.ui`: IntelliJ tool-window and Swing host assembly.
-- `io.github.jvterm.intellij.settings`: IDE settings bridges.
-- `io.github.jvterm.intellij.services`: project/application services and
+- `io.github.ketraterm.intellij`: plugin entry points and extension classes.
+- `io.github.ketraterm.intellij.ui`: IntelliJ tool-window and Swing host assembly.
+- `io.github.ketraterm.intellij.settings`: IDE settings bridges.
+- `io.github.ketraterm.intellij.services`: project/application services and
   disposal coordination.
 
 Do not create parser, core, renderer, PTY, transport, or input implementation

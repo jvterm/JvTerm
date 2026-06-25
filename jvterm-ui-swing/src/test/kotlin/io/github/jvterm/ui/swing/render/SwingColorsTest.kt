@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render
+package io.github.ketraterm.ui.swing.render
 
-import io.github.jvterm.render.api.TerminalColorPalette
-import io.github.jvterm.render.api.TerminalRenderAttrs
+import io.github.ketraterm.render.api.TerminalColorPalette
+import io.github.ketraterm.render.api.TerminalRenderAttrs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.input
+package io.github.ketraterm.ui.swing.input
 
-import io.github.jvterm.ui.swing.settings.TerminalClipboardAction
+import io.github.ketraterm.ui.swing.settings.TerminalClipboardAction
 import java.awt.event.FocusAdapter
 import java.awt.event.FocusEvent
 import java.awt.event.KeyAdapter

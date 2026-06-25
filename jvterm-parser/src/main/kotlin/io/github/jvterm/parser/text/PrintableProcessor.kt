@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.text
+package io.github.ketraterm.parser.text
 
-import io.github.jvterm.parser.charset.CharsetMapper
-import io.github.jvterm.parser.runtime.ParserState
-import io.github.jvterm.parser.spi.TerminalCommandSink
-import io.github.jvterm.parser.unicode.GraphemeAssembler
+import io.github.ketraterm.parser.charset.CharsetMapper
+import io.github.ketraterm.parser.runtime.ParserState
+import io.github.ketraterm.parser.spi.TerminalCommandSink
+import io.github.ketraterm.parser.unicode.GraphemeAssembler
 
 /**
  * Printable ingress bridge.
@@ -31,7 +31,7 @@ import io.github.jvterm.parser.unicode.GraphemeAssembler
  * - ASCII bytes are accepted through [acceptAsciiByte].
  * - U+FFFD replacement output is treated as normal printable input.
  * - GL charset mapping is applied through [CharsetMapper] before grapheme assembly.
- * - Grapheme segmentation is delegated to [io.github.jvterm.parser.unicode.GraphemeAssembler].
+ * - Grapheme segmentation is delegated to [io.github.ketraterm.parser.unicode.GraphemeAssembler].
  */
 internal class PrintableProcessor(
     private val sink: TerminalCommandSink,

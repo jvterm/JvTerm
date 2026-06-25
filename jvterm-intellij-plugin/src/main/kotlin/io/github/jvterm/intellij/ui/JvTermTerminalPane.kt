@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.ui
+package io.github.ketraterm.intellij.ui
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.ui.components.JBScrollBar
-import io.github.jvterm.intellij.settings.JvTermIntellijSettings
-import io.github.jvterm.ui.swing.api.SwingHostServices
-import io.github.jvterm.ui.swing.api.SwingScrollbarAdapter
-import io.github.jvterm.ui.swing.api.SwingTerminal
-import io.github.jvterm.ui.swing.api.TerminalUiDispatcher
-import io.github.jvterm.workspace.TerminalWorkspaceTab
+import io.github.ketraterm.intellij.settings.JvTermIntellijSettings
+import io.github.ketraterm.ui.swing.api.SwingHostServices
+import io.github.ketraterm.ui.swing.api.SwingScrollbarAdapter
+import io.github.ketraterm.ui.swing.api.SwingTerminal
+import io.github.ketraterm.ui.swing.api.TerminalUiDispatcher
+import io.github.ketraterm.workspace.TerminalWorkspaceTab
 import java.awt.Adjustable
 import java.awt.BorderLayout
 import javax.swing.JPanel

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.benchmark
+package io.github.ketraterm.benchmark
 
-import io.github.jvterm.parser.api.TerminalOutputParser
-import io.github.jvterm.parser.api.TerminalParsers
+import io.github.ketraterm.parser.api.TerminalOutputParser
+import io.github.ketraterm.parser.api.TerminalParsers
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.infra.Blackhole
 import java.nio.charset.StandardCharsets

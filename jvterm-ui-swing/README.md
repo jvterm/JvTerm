@@ -66,10 +66,10 @@ For detailed specifications on Swing painting and text pipelines:
 To place a functional, interactive terminal component in your Swing layout, instantiate `SwingTerminal` and bind it to your active `TerminalSession`:
 
 ```kotlin
-import io.github.jvterm.session.TerminalSession
-import io.github.jvterm.ui.swing.api.SwingTerminal
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.ui.swing.settings.TerminalTheme
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.ui.swing.api.SwingTerminal
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.ui.swing.settings.TerminalTheme
 import java.awt.BorderLayout
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -106,9 +106,9 @@ fun createTerminalView(session: TerminalSession): JComponent {
 To integrate clipboard features, hyperlink clicking, or custom threading/dispatchers into the terminal view, construct a custom [SwingHostServices](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-ui-swing/src/main/kotlin/io/github/jvterm/ui/swing/api/SwingHostServices.kt) instance and pass it to [SwingTerminal](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-ui-swing/src/main/kotlin/io/github/jvterm/ui/swing/api/SwingTerminal.kt):
 
 ```kotlin
-import io.github.jvterm.ui.swing.api.SwingHostServices
-import io.github.jvterm.ui.swing.settings.TerminalClipboardHandler
-import io.github.jvterm.ui.swing.settings.TerminalHyperlinkHandler
+import io.github.ketraterm.ui.swing.api.SwingHostServices
+import io.github.ketraterm.ui.swing.settings.TerminalClipboardHandler
+import io.github.ketraterm.ui.swing.settings.TerminalHyperlinkHandler
 
 val customServices = SwingHostServices(
     clipboardHandler = object : TerminalClipboardHandler {

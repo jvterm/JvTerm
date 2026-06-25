@@ -13,15 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.pty
+package io.github.ketraterm.pty
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.protocol.ShellIntegrationEvent
-import io.github.jvterm.protocol.ShellIntegrationMarker
-import io.github.jvterm.session.TerminalSession
-import io.github.jvterm.transport.TerminalConnector
-import io.github.jvterm.transport.TerminalConnectorListener
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.ShellIntegrationEvent
+import io.github.ketraterm.protocol.ShellIntegrationMarker
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.transport.TerminalConnectorListener
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test

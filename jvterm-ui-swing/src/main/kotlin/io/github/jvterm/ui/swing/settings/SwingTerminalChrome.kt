@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.settings
+package io.github.ketraterm.ui.swing.settings
 
-import io.github.jvterm.render.api.TerminalRenderBufferKind
+import io.github.ketraterm.render.api.TerminalRenderBufferKind
 
 /**
  * Computes visual terminal chrome insets without changing terminal semantics.

@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.services
+package io.github.ketraterm.intellij.services
 
-import io.github.jvterm.workspace.TerminalProfile
-import io.github.jvterm.workspace.TerminalWorkspace
-import io.github.jvterm.workspace.TerminalWorkspaceOpenOptions
-import io.github.jvterm.workspace.TerminalWorkspaceTab
+import io.github.ketraterm.workspace.TerminalProfile
+import io.github.ketraterm.workspace.TerminalWorkspace
+import io.github.ketraterm.workspace.TerminalWorkspaceOpenOptions
+import io.github.ketraterm.workspace.TerminalWorkspaceTab
 
 /**
  * IntelliJ host adapter for local PTY startup.

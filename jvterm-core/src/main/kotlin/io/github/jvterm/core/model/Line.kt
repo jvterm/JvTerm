@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.model
+package io.github.ketraterm.core.model
 
-import io.github.jvterm.core.api.TerminalLine
-import io.github.jvterm.core.store.ClusterStore
+import io.github.ketraterm.core.api.TerminalLine
+import io.github.ketraterm.core.store.ClusterStore
 
 /**
  * A mutable physical terminal line backed by primitive arrays.
@@ -33,14 +33,14 @@ import io.github.jvterm.core.store.ClusterStore
  *
  * ## Ownership
  *
- * [store] is shared by all lines belonging to the same [io.github.jvterm.core.buffer.HistoryRing].
+ * [store] is shared by all lines belonging to the same [io.github.ketraterm.core.buffer.HistoryRing].
  * Lines must never be transferred to a ring that uses a different store without
- * deep-copying their cluster payloads (see [io.github.jvterm.core.engine.TerminalResizer]).
+ * deep-copying their cluster payloads (see [io.github.ketraterm.core.engine.TerminalResizer]).
  *
  * ## Mutability
  *
  * All mutation methods are `internal` and called exclusively by
- * [io.github.jvterm.core.engine.MutationEngine]. The [TerminalLine] surface exposed to
+ * [io.github.ketraterm.core.engine.MutationEngine]. The [TerminalLine] surface exposed to
  * the renderer is strictly read-only.
  *
  * @param width The number of columns in this line. Immutable after construction.
@@ -65,7 +65,7 @@ internal class Line(
 
     /**
      * True when this line's content continues on the next physical line.
-     * Set by [io.github.jvterm.core.engine.MutationEngine] during soft-wrap events.
+     * Set by [io.github.ketraterm.core.engine.MutationEngine] during soft-wrap events.
      */
     var wrapped: Boolean = false
 
@@ -123,7 +123,7 @@ internal class Line(
 
     /**
      * Writes [raw] and [attr] directly into [col] without allocating or freeing any
-     * cluster handle. Used by [io.github.jvterm.core.engine.TerminalResizer] to transplant
+     * cluster handle. Used by [io.github.ketraterm.core.engine.TerminalResizer] to transplant
      * raw values (including live cluster handles) into a newly allocated line that
      * shares the same [store].
      *
@@ -491,7 +491,7 @@ internal class Line(
 }
 
 /**
- * A read-only, zero-allocation sentinel returned by [io.github.jvterm.buffer.TerminalBufferApi.getLine]
+ * A read-only, zero-allocation sentinel returned by [io.github.ketraterm.buffer.TerminalBufferApi.getLine]
  * when the requested row is out of bounds. Avoids null checks in the renderer.
  */
 internal object VoidLine : TerminalLine {

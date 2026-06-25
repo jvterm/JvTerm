@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.primitives
+package io.github.ketraterm.ui.swing.render.primitives
 
-import io.github.jvterm.ui.swing.render.TEST_RED
-import io.github.jvterm.ui.swing.render.containsColor
-import io.github.jvterm.ui.swing.render.platform.TerminalPlatformEmojiRasterizer
-import io.github.jvterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.ui.swing.render.TEST_RED
+import io.github.ketraterm.ui.swing.render.containsColor
+import io.github.ketraterm.ui.swing.render.platform.TerminalPlatformEmojiRasterizer
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
 import org.junit.jupiter.api.Test
 import java.awt.image.BufferedImage
 import kotlin.test.assertEquals

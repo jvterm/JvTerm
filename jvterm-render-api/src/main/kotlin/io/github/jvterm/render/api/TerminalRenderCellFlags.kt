@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.render.api
+package io.github.ketraterm.render.api
 
-import io.github.jvterm.render.api.TerminalRenderCellFlags.CLUSTER
-import io.github.jvterm.render.api.TerminalRenderCellFlags.CODEPOINT
-import io.github.jvterm.render.api.TerminalRenderCellFlags.EMPTY
-import io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
-import io.github.jvterm.render.api.TerminalRenderCellFlags.WIDE_TRAILING
+import io.github.ketraterm.render.api.TerminalRenderCellFlags.CLUSTER
+import io.github.ketraterm.render.api.TerminalRenderCellFlags.CODEPOINT
+import io.github.ketraterm.render.api.TerminalRenderCellFlags.EMPTY
+import io.github.ketraterm.render.api.TerminalRenderCellFlags.WIDE_LEADING
+import io.github.ketraterm.render.api.TerminalRenderCellFlags.WIDE_TRAILING
 
 /**
  * Public render cell flag bit set.

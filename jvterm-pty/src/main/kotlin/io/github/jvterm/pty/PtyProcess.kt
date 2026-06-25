@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.pty
+package io.github.ketraterm.pty
 
 import com.pty4j.PtyProcessBuilder
 import com.pty4j.WinSize

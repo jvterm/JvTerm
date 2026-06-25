@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.session
+package io.github.ketraterm.session
 
-import io.github.jvterm.render.api.TerminalRenderCellFlags
-import io.github.jvterm.render.api.TerminalRenderClusterDataSink
-import io.github.jvterm.render.api.TerminalRenderFrame
+import io.github.ketraterm.render.api.TerminalRenderCellFlags
+import io.github.ketraterm.render.api.TerminalRenderClusterDataSink
+import io.github.ketraterm.render.api.TerminalRenderFrame
 import java.util.Arrays
 
 internal const val DEFAULT_SHELL_INTEGRATION_COMMAND_TEXT_LENGTH = 4096

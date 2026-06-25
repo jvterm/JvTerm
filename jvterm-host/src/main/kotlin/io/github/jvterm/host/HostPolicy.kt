@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.host
+package io.github.ketraterm.host
 
 /**
  * Host-facing security policy for terminal controls that can affect host state,

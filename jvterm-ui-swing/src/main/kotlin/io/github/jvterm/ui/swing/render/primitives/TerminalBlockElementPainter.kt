@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.primitives
+package io.github.ketraterm.ui.swing.render.primitives
 
-import io.github.jvterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.LOWER_LEFT
-import io.github.jvterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.LOWER_RIGHT
-import io.github.jvterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.UPPER_LEFT
-import io.github.jvterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.UPPER_RIGHT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.LOWER_LEFT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.LOWER_RIGHT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.UPPER_LEFT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.UPPER_RIGHT
 import java.awt.Graphics2D
 import java.awt.Paint
 

@@ -265,7 +265,7 @@ $extendedPictographicRanges = Read-NamedPropertyRanges $emojiPath "Extended_Pict
 
 $parserParts = [System.Collections.Generic.List[string]]::new()
 $parserParts.Add($copyright.TrimEnd()) | Out-Null
-$parserParts.Add("package io.github.jvterm.parser.unicode") | Out-Null
+$parserParts.Add("package io.github.ketraterm.parser.unicode") | Out-Null
 $parserParts.Add("") | Out-Null
 $parserParts.Add("/**") | Out-Null
 $parserParts.Add(" * Unicode $UnicodeVersion grapheme break and emoji property table generated from UAX #29 data.") | Out-Null
@@ -368,7 +368,7 @@ $emojiVariationBaseSplit = Split-Ranges $emojiVariationBaseRanges $bitsetLimit
 
 $coreParts = [System.Collections.Generic.List[string]]::new()
 $coreParts.Add($copyright.TrimEnd()) | Out-Null
-$coreParts.Add("package io.github.jvterm.core.util") | Out-Null
+$coreParts.Add("package io.github.ketraterm.core.util") | Out-Null
 $coreParts.Add("") | Out-Null
 $coreParts.Add("/**") | Out-Null
 $coreParts.Add(" * Unicode $UnicodeVersion terminal width property table generated from UCD data.") | Out-Null

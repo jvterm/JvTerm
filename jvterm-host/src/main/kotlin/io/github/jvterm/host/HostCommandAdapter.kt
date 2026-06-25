@@ -13,20 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.host
+package io.github.ketraterm.host
 
-import io.github.jvterm.core.api.TerminalBuffer
-import io.github.jvterm.core.model.CellColor
-import io.github.jvterm.core.model.UnderlineStyle
-import io.github.jvterm.parser.spi.TerminalCommandSink
-import io.github.jvterm.protocol.AnsiMode
-import io.github.jvterm.protocol.DecPrivateMode
-import io.github.jvterm.protocol.MouseEncodingMode
-import io.github.jvterm.protocol.MouseTrackingMode
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.protocol.ShellIntegrationEvent
-import io.github.jvterm.protocol.keyboard.*
-import io.github.jvterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.core.api.TerminalBuffer
+import io.github.ketraterm.core.model.CellColor
+import io.github.ketraterm.core.model.UnderlineStyle
+import io.github.ketraterm.parser.spi.TerminalCommandSink
+import io.github.ketraterm.protocol.AnsiMode
+import io.github.ketraterm.protocol.DecPrivateMode
+import io.github.ketraterm.protocol.MouseEncodingMode
+import io.github.ketraterm.protocol.MouseTrackingMode
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.ShellIntegrationEvent
+import io.github.ketraterm.protocol.keyboard.*
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
 import java.net.URI
 import java.net.URISyntaxException
 

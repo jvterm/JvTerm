@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi
+package io.github.ketraterm.parser.ansi
 
-import io.github.jvterm.parser.ansi.dcs.DcsDispatcher
-import io.github.jvterm.parser.ansi.osc.OscDispatcher
-import io.github.jvterm.parser.runtime.ParserState
-import io.github.jvterm.parser.spi.TerminalCommandSink
-import io.github.jvterm.protocol.ControlCode
+import io.github.ketraterm.parser.ansi.dcs.DcsDispatcher
+import io.github.ketraterm.parser.ansi.osc.OscDispatcher
+import io.github.ketraterm.parser.runtime.ParserState
+import io.github.ketraterm.parser.spi.TerminalCommandSink
+import io.github.ketraterm.protocol.ControlCode
 
 /**
  * Executes parser-internal FSM actions against [ParserState].

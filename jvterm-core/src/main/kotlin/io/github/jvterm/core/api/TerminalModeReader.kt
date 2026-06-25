@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.api
+package io.github.ketraterm.core.api
 
 /**
  * Immutable snapshot of the terminal's durable mode state.
@@ -58,8 +58,8 @@ data class TerminalModeSnapshot(
     val isBracketedPasteEnabled: Boolean,
     val isFocusReportingEnabled: Boolean,
     val treatAmbiguousAsWide: Boolean,
-    val mouseTrackingMode: io.github.jvterm.protocol.MouseTrackingMode,
-    val mouseEncodingMode: io.github.jvterm.protocol.MouseEncodingMode,
+    val mouseTrackingMode: io.github.ketraterm.protocol.MouseTrackingMode,
+    val mouseEncodingMode: io.github.ketraterm.protocol.MouseEncodingMode,
     val modifyOtherKeysMode: Int,
     val formatOtherKeysMode: Int,
     val kittyKeyboardFlags: Int,

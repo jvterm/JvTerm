@@ -13,32 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.api
+package io.github.ketraterm.ui.swing.api
 
-import io.github.jvterm.input.event.TerminalMouseEvent
-import io.github.jvterm.input.event.TerminalPasteEvent
-import io.github.jvterm.protocol.MouseTrackingMode
-import io.github.jvterm.render.api.TerminalRenderBufferKind
-import io.github.jvterm.render.cache.TerminalRenderCache
-import io.github.jvterm.session.TerminalSession
-import io.github.jvterm.session.TerminalShellIntegrationCommandRecord
-import io.github.jvterm.ui.swing.input.SwingTerminalInputController
-import io.github.jvterm.ui.swing.input.SwingTerminalInputHost
-import io.github.jvterm.ui.swing.input.SwingTerminalMouseController
-import io.github.jvterm.ui.swing.input.SwingTerminalMouseHost
-import io.github.jvterm.ui.swing.render.GridPainter
-import io.github.jvterm.ui.swing.render.SwingRenderFrameController
-import io.github.jvterm.ui.swing.render.SwingRenderFrameHost
-import io.github.jvterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
-import io.github.jvterm.ui.swing.render.TerminalVisualViewportGeometry
-import io.github.jvterm.ui.swing.search.*
-import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.ui.swing.settings.SwingSettingsProvider
-import io.github.jvterm.ui.swing.settings.SwingTerminalChrome
-import io.github.jvterm.ui.swing.viewport.SmoothRowScrollHost
-import io.github.jvterm.ui.swing.viewport.SmoothRowScroller
-import io.github.jvterm.ui.swing.viewport.SwingViewportController
+import io.github.ketraterm.input.event.TerminalMouseEvent
+import io.github.ketraterm.input.event.TerminalPasteEvent
+import io.github.ketraterm.protocol.MouseTrackingMode
+import io.github.ketraterm.render.api.TerminalRenderBufferKind
+import io.github.ketraterm.render.cache.TerminalRenderCache
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.session.TerminalShellIntegrationCommandRecord
+import io.github.ketraterm.ui.swing.input.SwingTerminalInputController
+import io.github.ketraterm.ui.swing.input.SwingTerminalInputHost
+import io.github.ketraterm.ui.swing.input.SwingTerminalMouseController
+import io.github.ketraterm.ui.swing.input.SwingTerminalMouseHost
+import io.github.ketraterm.ui.swing.render.GridPainter
+import io.github.ketraterm.ui.swing.render.SwingRenderFrameController
+import io.github.ketraterm.ui.swing.render.SwingRenderFrameHost
+import io.github.ketraterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
+import io.github.ketraterm.ui.swing.render.TerminalVisualViewportGeometry
+import io.github.ketraterm.ui.swing.search.*
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.ui.swing.settings.SwingSettingsProvider
+import io.github.ketraterm.ui.swing.settings.SwingTerminalChrome
+import io.github.ketraterm.ui.swing.viewport.SmoothRowScrollHost
+import io.github.ketraterm.ui.swing.viewport.SmoothRowScroller
+import io.github.ketraterm.ui.swing.viewport.SwingViewportController
 import java.awt.*
 import java.awt.event.*
 import javax.swing.JComponent

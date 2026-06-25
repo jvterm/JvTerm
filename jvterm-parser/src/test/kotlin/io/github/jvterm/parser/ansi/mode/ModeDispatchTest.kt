@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi.mode
+package io.github.ketraterm.parser.ansi.mode
 
-import io.github.jvterm.parser.ansi.AnsiCommandDispatcher
-import io.github.jvterm.parser.ansi.RecordingTerminalCommandSink
-import io.github.jvterm.parser.fixture.TerminalParserFixture
-import io.github.jvterm.parser.runtime.ParserState
-import io.github.jvterm.protocol.AnsiMode
-import io.github.jvterm.protocol.DecPrivateMode
-import io.github.jvterm.protocol.keyboard.KittyKeyboardFlagApplicationMode
-import io.github.jvterm.protocol.keyboard.XtermKeyFormatResource
-import io.github.jvterm.protocol.keyboard.XtermKeyModifierResource
+import io.github.ketraterm.parser.ansi.AnsiCommandDispatcher
+import io.github.ketraterm.parser.ansi.RecordingTerminalCommandSink
+import io.github.ketraterm.parser.fixture.TerminalParserFixture
+import io.github.ketraterm.parser.runtime.ParserState
+import io.github.ketraterm.protocol.AnsiMode
+import io.github.ketraterm.protocol.DecPrivateMode
+import io.github.ketraterm.protocol.keyboard.KittyKeyboardFlagApplicationMode
+import io.github.ketraterm.protocol.keyboard.XtermKeyFormatResource
+import io.github.ketraterm.protocol.keyboard.XtermKeyModifierResource
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName

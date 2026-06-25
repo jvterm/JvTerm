@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.intellij.settings
+package io.github.ketraterm.intellij.settings
 
 import com.intellij.openapi.editor.colors.EditorColors
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.colors.EditorColorsScheme
 import com.intellij.util.ui.UIUtil
-import io.github.jvterm.render.api.TerminalColorPalette
-import io.github.jvterm.ui.swing.settings.TerminalTheme
+import io.github.ketraterm.render.api.TerminalColorPalette
+import io.github.ketraterm.ui.swing.settings.TerminalTheme
 
 /**
  * Builds terminal palettes from IntelliJ editor colors for IDE-hosted terminals.

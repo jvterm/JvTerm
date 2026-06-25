@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.fixture
+package io.github.ketraterm.parser.fixture
 
-import io.github.jvterm.parser.ansi.*
-import io.github.jvterm.parser.runtime.ParserState
-import io.github.jvterm.parser.text.PrintableProcessor
-import io.github.jvterm.parser.text.PrintableProcessorActionSink
+import io.github.ketraterm.parser.ansi.*
+import io.github.ketraterm.parser.runtime.ParserState
+import io.github.ketraterm.parser.text.PrintableProcessor
+import io.github.ketraterm.parser.text.PrintableProcessorActionSink
 
 internal class AnsiPrintableBridgeFixture(
     val state: ParserState = ParserState(),

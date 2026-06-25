@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.event
+package io.github.ketraterm.input.event
 
 /**
  * Bit mask vocabulary for UI keyboard modifiers accepted by terminal input.

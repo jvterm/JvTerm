@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.painter
+package io.github.ketraterm.ui.swing.render.painter
 
-import io.github.jvterm.render.api.TerminalRenderAttrs
-import io.github.jvterm.render.api.TerminalRenderColorKind
-import io.github.jvterm.render.api.TerminalRenderExtraAttrs
-import io.github.jvterm.render.api.TerminalRenderUnderline
-import io.github.jvterm.ui.swing.render.*
-import io.github.jvterm.ui.swing.render.cache.AwtColorCache
-import io.github.jvterm.ui.swing.settings.SwingMetrics
-import io.github.jvterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.render.api.TerminalRenderAttrs
+import io.github.ketraterm.render.api.TerminalRenderColorKind
+import io.github.ketraterm.render.api.TerminalRenderExtraAttrs
+import io.github.ketraterm.render.api.TerminalRenderUnderline
+import io.github.ketraterm.ui.swing.render.*
+import io.github.ketraterm.ui.swing.render.cache.AwtColorCache
+import io.github.ketraterm.ui.swing.settings.SwingMetrics
+import io.github.ketraterm.ui.swing.settings.SwingSettings
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import java.awt.Graphics2D

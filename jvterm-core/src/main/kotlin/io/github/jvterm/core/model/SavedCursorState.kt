@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.model
+package io.github.ketraterm.core.model
 
 /**
  * Pre-allocated mutable slot for DECSC/DECRC (ESC 7 / ESC 8).

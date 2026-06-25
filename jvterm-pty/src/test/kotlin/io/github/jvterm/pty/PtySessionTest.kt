@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.pty
+package io.github.ketraterm.pty
 
-import io.github.jvterm.input.event.TerminalKey
-import io.github.jvterm.input.event.TerminalKeyEvent
-import io.github.jvterm.protocol.TerminalCapabilityIdentity
-import io.github.jvterm.session.TerminalSession
+import io.github.ketraterm.input.event.TerminalKey
+import io.github.ketraterm.input.event.TerminalKeyEvent
+import io.github.ketraterm.protocol.TerminalCapabilityIdentity
+import io.github.ketraterm.session.TerminalSession
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.io.ByteArrayInputStream

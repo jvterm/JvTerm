@@ -56,8 +56,8 @@ For deep-dive technical details on threading invariants and lifecycle states:
 The following example shows how a generic terminal engine can consume a `TerminalConnector` to write user input and listen for incoming host bytes:
 
 ```kotlin
-import io.github.jvterm.transport.TerminalConnector
-import io.github.jvterm.transport.TerminalConnectorListener
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.transport.TerminalConnectorListener
 
 class SimpleTerminalEngine(private val connector: TerminalConnector) {
 
@@ -94,8 +94,8 @@ class SimpleTerminalEngine(private val connector: TerminalConnector) {
 To implement a custom transport connector (e.g., a TCP socket transport), extend `TerminalConnector` and coordinate the background reading threads:
 
 ```kotlin
-import io.github.jvterm.transport.TerminalConnector
-import io.github.jvterm.transport.TerminalConnectorListener
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.transport.TerminalConnectorListener
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.Socket

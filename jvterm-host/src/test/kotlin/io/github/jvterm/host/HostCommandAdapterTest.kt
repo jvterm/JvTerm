@@ -13,24 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.host
+package io.github.ketraterm.host
 
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBuffer
-import io.github.jvterm.core.model.CellColor
-import io.github.jvterm.core.model.UnderlineStyle
-import io.github.jvterm.parser.api.TerminalOutputParser
-import io.github.jvterm.parser.api.TerminalParsers
-import io.github.jvterm.protocol.MouseEncodingMode
-import io.github.jvterm.protocol.MouseTrackingMode
-import io.github.jvterm.protocol.NotificationLevel
-import io.github.jvterm.protocol.ShellIntegrationEvent
-import io.github.jvterm.protocol.ShellIntegrationMarker
-import io.github.jvterm.protocol.keyboard.FormatOtherKeysMode
-import io.github.jvterm.protocol.keyboard.KittyKeyboardProgressiveFlag
-import io.github.jvterm.protocol.keyboard.ModifyOtherKeysMode
-import io.github.jvterm.render.api.TerminalRenderCursorShape
-import io.github.jvterm.render.api.TerminalRenderFrameReader
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.core.api.TerminalBuffer
+import io.github.ketraterm.core.model.CellColor
+import io.github.ketraterm.core.model.UnderlineStyle
+import io.github.ketraterm.parser.api.TerminalOutputParser
+import io.github.ketraterm.parser.api.TerminalParsers
+import io.github.ketraterm.protocol.MouseEncodingMode
+import io.github.ketraterm.protocol.MouseTrackingMode
+import io.github.ketraterm.protocol.NotificationLevel
+import io.github.ketraterm.protocol.ShellIntegrationEvent
+import io.github.ketraterm.protocol.ShellIntegrationMarker
+import io.github.ketraterm.protocol.keyboard.FormatOtherKeysMode
+import io.github.ketraterm.protocol.keyboard.KittyKeyboardProgressiveFlag
+import io.github.ketraterm.protocol.keyboard.ModifyOtherKeysMode
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.render.api.TerminalRenderFrameReader
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested

@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.api
+package io.github.ketraterm.core.api
 
-import io.github.jvterm.core.model.CellColor
-import io.github.jvterm.core.model.UnderlineStyle
+import io.github.ketraterm.core.model.CellColor
+import io.github.ketraterm.core.model.UnderlineStyle
 
 /**
  * Write-side contract for the terminal buffer.

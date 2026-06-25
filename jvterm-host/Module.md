@@ -48,12 +48,12 @@ For details on the hyperlink registry and mapping rules:
 The following example shows how to instantiate the adapter and wire the parser to the core buffer:
 
 ```kotlin
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBuffer
-import io.github.jvterm.parser.TerminalParser
-import io.github.jvterm.host.HostCommandAdapter
-import io.github.jvterm.host.HostEventSink
-import io.github.jvterm.host.HostPolicy
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.core.api.TerminalBuffer
+import io.github.ketraterm.parser.TerminalParser
+import io.github.ketraterm.host.HostCommandAdapter
+import io.github.ketraterm.host.HostEventSink
+import io.github.ketraterm.host.HostPolicy
 
 fun main() {
     // 1. Create the backend core buffer

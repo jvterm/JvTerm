@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.render.primitives
+package io.github.ketraterm.ui.swing.render.primitives
 
-import io.github.jvterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.SHADE_LIGHT
-import io.github.jvterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.SHADE_MEDIUM
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.SHADE_LIGHT
+import io.github.ketraterm.ui.swing.render.primitives.TerminalBlockElementGlyphs.SHADE_MEDIUM
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotSame

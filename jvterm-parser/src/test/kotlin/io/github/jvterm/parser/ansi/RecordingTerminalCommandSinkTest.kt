@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.ansi
+package io.github.ketraterm.parser.ansi
 
-import io.github.jvterm.protocol.keyboard.FormatOtherKeysMode
-import io.github.jvterm.protocol.keyboard.ModifyOtherKeysMode
-import io.github.jvterm.protocol.keyboard.XtermKeyFormatResource
-import io.github.jvterm.protocol.keyboard.XtermKeyModifierResource
+import io.github.ketraterm.protocol.keyboard.FormatOtherKeysMode
+import io.github.ketraterm.protocol.keyboard.ModifyOtherKeysMode
+import io.github.ketraterm.protocol.keyboard.XtermKeyFormatResource
+import io.github.ketraterm.protocol.keyboard.XtermKeyModifierResource
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested

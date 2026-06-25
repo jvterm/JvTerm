@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.input
+package io.github.ketraterm.ui.swing.input
 
-import io.github.jvterm.session.TerminalSession
-import io.github.jvterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.ui.swing.settings.SwingSettings
 
 /**
  * Narrow adapter for Swing keyboard/focus terminal input routing.

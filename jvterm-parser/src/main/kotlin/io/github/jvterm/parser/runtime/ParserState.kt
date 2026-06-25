@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.parser.runtime
+package io.github.ketraterm.parser.runtime
 
-import io.github.jvterm.parser.ansi.AnsiState
+import io.github.ketraterm.parser.ansi.AnsiState
 
 /**
  * Physically flat, logically partitioned parser runtime state.

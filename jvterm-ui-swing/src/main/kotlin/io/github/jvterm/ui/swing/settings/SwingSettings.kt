@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.ui.swing.settings
+package io.github.ketraterm.ui.swing.settings
 
-import io.github.jvterm.input.policy.PasteSanitizationPolicy
-import io.github.jvterm.render.api.TerminalColorPalette
-import io.github.jvterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.input.policy.PasteSanitizationPolicy
+import io.github.ketraterm.render.api.TerminalColorPalette
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
 import java.awt.Font
 import java.awt.GraphicsEnvironment
 import java.awt.Insets

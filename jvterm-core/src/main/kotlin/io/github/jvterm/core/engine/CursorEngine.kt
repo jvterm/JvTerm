@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.engine
+package io.github.ketraterm.core.engine
 
-import io.github.jvterm.core.state.TerminalState
+import io.github.ketraterm.core.state.TerminalState
 
 /**
  * Handles cursor and pen state operations that require no grid mutation.

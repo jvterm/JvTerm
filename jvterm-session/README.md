@@ -47,13 +47,13 @@ For detailed specifications on session locks and thread architectures:
 The following example shows how to create and start a `TerminalSession` by wiring together the core, transport, host, and input elements:
 
 ```kotlin
-import io.github.jvterm.core.TerminalBuffers
-import io.github.jvterm.core.api.TerminalBuffer
-import io.github.jvterm.session.TerminalSession
-import io.github.jvterm.transport.TerminalConnector
-import io.github.jvterm.host.HostEventSink
-import io.github.jvterm.host.HostPolicy
-import io.github.jvterm.input.policy.TerminalInputPolicy
+import io.github.ketraterm.core.TerminalBuffers
+import io.github.ketraterm.core.api.TerminalBuffer
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.host.HostEventSink
+import io.github.ketraterm.host.HostPolicy
+import io.github.ketraterm.input.policy.TerminalInputPolicy
 
 fun setupSession(connector: TerminalConnector) {
     // 1. Create the backend core buffer

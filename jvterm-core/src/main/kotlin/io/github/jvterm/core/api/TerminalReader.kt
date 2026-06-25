@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.api
+package io.github.ketraterm.core.api
 
 /**
  * Zero-allocation read contract for the terminal buffer.
@@ -75,7 +75,7 @@ interface TerminalReader {
      * Out-of-bounds column probes return the active primary pen word. This
      * mirrors the terminal's current erase/write attribute for off-grid queries.
      * Decode this value together with [getPackedExtendedAttrAt] via
-     * [io.github.jvterm.core.codec.AttributeCodec].
+     * [io.github.ketraterm.core.codec.AttributeCodec].
      *
      * @param col Column index (0-based).
      * @param row Row index (0-based).
@@ -91,7 +91,7 @@ interface TerminalReader {
      *
      * Out-of-bounds column probes return the active extended pen word. Decode
      * this value together with [getPackedAttrAt] via
-     * [io.github.jvterm.core.codec.AttributeCodec].
+     * [io.github.ketraterm.core.codec.AttributeCodec].
      *
      * @param col Column index (0-based).
      * @param row Row index (0-based).

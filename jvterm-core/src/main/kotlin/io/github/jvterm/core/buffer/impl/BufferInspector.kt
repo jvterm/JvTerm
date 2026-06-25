@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer.impl
+package io.github.ketraterm.core.buffer.impl
 
-import io.github.jvterm.core.api.TerminalInspector
-import io.github.jvterm.core.codec.AttributeCodec
-import io.github.jvterm.core.model.CellAttributes
-import io.github.jvterm.core.model.Line
-import io.github.jvterm.core.state.TerminalState
+import io.github.ketraterm.core.api.TerminalInspector
+import io.github.ketraterm.core.codec.AttributeCodec
+import io.github.ketraterm.core.model.CellAttributes
+import io.github.ketraterm.core.model.Line
+import io.github.ketraterm.core.state.TerminalState
 
 internal class BufferInspector(
     private val state: TerminalState,

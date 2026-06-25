@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.app
+package io.github.ketraterm.app
 
 import java.nio.file.Path
 import javax.swing.SwingUtilities
@@ -32,15 +32,15 @@ private object JvTermApp {
         JvTermLookAndFeel.install()
 
         val settings =
-            io.github.jvterm.app.config
+            io.github.ketraterm.app.config
                 .JvTermSettings()
-        io.github.jvterm.app.ui.Chrome
+        io.github.ketraterm.app.ui.Chrome
             .applyPalette(settings.current().palette)
         val profileRegistry =
-            io.github.jvterm.workspace
+            io.github.ketraterm.workspace
                 .TerminalProfileRegistry()
         val windowFactory =
-            io.github.jvterm.app.ui
+            io.github.ketraterm.app.ui
                 .WindowFactory(settings, profileRegistry)
         val window = windowFactory.createWindow()
         val frame = window.frame

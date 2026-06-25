@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.input.event
+package io.github.ketraterm.input.event
 
-import io.github.jvterm.input.event.TerminalKeyEvent.Companion.NO_CODEPOINT
+import io.github.ketraterm.input.event.TerminalKeyEvent.Companion.NO_CODEPOINT
 
 /**
  * One keyboard event accepted by the terminal input encoder.

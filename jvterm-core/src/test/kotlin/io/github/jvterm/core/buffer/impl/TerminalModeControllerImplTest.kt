@@ -13,17 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.jvterm.core.buffer.impl
+package io.github.ketraterm.core.buffer.impl
 
-import io.github.jvterm.core.buffer.DefaultTerminalBuffer
-import io.github.jvterm.core.engine.CursorEngine
-import io.github.jvterm.core.engine.MutationEngine
-import io.github.jvterm.core.state.TerminalState
-import io.github.jvterm.protocol.MouseEncodingMode
-import io.github.jvterm.protocol.MouseTrackingMode
-import io.github.jvterm.protocol.keyboard.KittyKeyboardProgressiveFlag
-import io.github.jvterm.render.api.TerminalRenderCursorShape
-import io.github.jvterm.render.api.TerminalRenderFrameReader
+import io.github.ketraterm.core.buffer.DefaultTerminalBuffer
+import io.github.ketraterm.core.engine.CursorEngine
+import io.github.ketraterm.core.engine.MutationEngine
+import io.github.ketraterm.core.state.TerminalState
+import io.github.ketraterm.protocol.MouseEncodingMode
+import io.github.ketraterm.protocol.MouseTrackingMode
+import io.github.ketraterm.protocol.keyboard.KittyKeyboardProgressiveFlag
+import io.github.ketraterm.render.api.TerminalRenderCursorShape
+import io.github.ketraterm.render.api.TerminalRenderFrameReader
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -408,7 +408,7 @@ class TerminalModeControllerImplTest {
         val modeController = TerminalModeControllerImpl(state, CursorEngine(state))
 
         val themePalette =
-            io.github.jvterm.render.api.TerminalColorPalette(
+            io.github.ketraterm.render.api.TerminalColorPalette(
                 defaultForeground = 0xFF111111.toInt(),
                 defaultBackground = 0xFF222222.toInt(),
             )
