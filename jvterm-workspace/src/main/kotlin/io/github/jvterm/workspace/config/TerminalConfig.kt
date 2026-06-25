@@ -15,6 +15,9 @@
  */
 package io.github.jvterm.workspace.config
 
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalClipboardPolicy
+import io.github.jvterm.host.TerminalTitlePermission
 import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import java.util.*
 
@@ -70,6 +73,12 @@ private fun defaultFontFamily(): String {
  * @property desktopNotificationsEnabled whether desktop notifications are enabled.
  * @property persistentCommandHistoryEnabled whether completed command metadata
  * is retained by supporting product hosts across application restarts.
+ * @property clipboardLocalWrite OSC 52 write permission for local sessions.
+ * @property clipboardRemoteWrite OSC 52 write permission for remote sessions.
+ * @property clipboardRead OSC 52 read/query permission.
+ * @property clipboardMaxDecodedBytes maximum decoded clipboard payload size.
+ * @property titleLocalPermission window/tab renaming permission for local sessions.
+ * @property titleRemotePermission window/tab renaming permission for remote sessions.
  */
 data class TerminalConfig(
     val theme: String = DEFAULT_THEME,
@@ -93,6 +102,12 @@ data class TerminalConfig(
     val shellRequestWindowManipulation: Boolean = DEFAULT_SHELL_REQUEST_WINDOW_MANIPULATION,
     val desktopNotificationsEnabled: Boolean = DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED,
     val persistentCommandHistoryEnabled: Boolean = DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED,
+    val clipboardLocalWrite: TerminalClipboardPermission = DEFAULT_CLIPBOARD_LOCAL_WRITE,
+    val clipboardRemoteWrite: TerminalClipboardPermission = DEFAULT_CLIPBOARD_REMOTE_WRITE,
+    val clipboardRead: TerminalClipboardPermission = DEFAULT_CLIPBOARD_READ,
+    val clipboardMaxDecodedBytes: Int = DEFAULT_CLIPBOARD_MAX_DECODED_BYTES,
+    val titleLocalPermission: TerminalTitlePermission = DEFAULT_TITLE_LOCAL_PERMISSION,
+    val titleRemotePermission: TerminalTitlePermission = DEFAULT_TITLE_REMOTE_PERMISSION,
 ) {
     init {
         require(columns in COLUMNS_MIN..COLUMNS_MAX) {
@@ -116,6 +131,9 @@ data class TerminalConfig(
         }
         require(lineHeight in LINE_HEIGHT_MIN..LINE_HEIGHT_MAX) {
             "lineHeight must be in ${LINE_HEIGHT_MIN}..${LINE_HEIGHT_MAX}, was $lineHeight"
+        }
+        require(clipboardMaxDecodedBytes >= 0) {
+            "clipboardMaxDecodedBytes must be non-negative, was $clipboardMaxDecodedBytes"
         }
     }
 
@@ -150,6 +168,13 @@ data class TerminalConfig(
         const val DEFAULT_SHELL_REQUEST_WINDOW_MANIPULATION: Boolean = false
         const val DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED: Boolean = true
         const val DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED: Boolean = false
+
+        val DEFAULT_CLIPBOARD_LOCAL_WRITE: TerminalClipboardPermission = TerminalClipboardPermission.PROMPT
+        val DEFAULT_CLIPBOARD_REMOTE_WRITE: TerminalClipboardPermission = TerminalClipboardPermission.DENY
+        val DEFAULT_CLIPBOARD_READ: TerminalClipboardPermission = TerminalClipboardPermission.DENY
+        const val DEFAULT_CLIPBOARD_MAX_DECODED_BYTES: Int = TerminalClipboardPolicy.DEFAULT_MAX_DECODED_BYTES
+        val DEFAULT_TITLE_LOCAL_PERMISSION: TerminalTitlePermission = TerminalTitlePermission.ALLOW
+        val DEFAULT_TITLE_REMOTE_PERMISSION: TerminalTitlePermission = TerminalTitlePermission.DENY
 
         val DEFAULT_FONT_FAMILY: String get() = defaultFontFamily()
         val DEFAULT_SHELL_PATH: String get() = defaultShellPath()

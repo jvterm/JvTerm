@@ -70,6 +70,7 @@ class TerminalSession(
     private val hyperlinkResolver: TerminalHyperlinkResolver = TerminalHyperlinkResolver.NONE,
     private val outboundWriteLock: Any = Any(),
     val shellIntegrationState: TerminalShellIntegrationState = TerminalShellIntegrationState(),
+    private val hostCommandAdapter: HostCommandAdapter? = null,
 ) : TerminalConnectorListener,
     TerminalInputEncoder,
     TerminalRenderFrameReader,
@@ -248,6 +249,28 @@ class TerminalSession(
         synchronized(mutationLock) {
             terminal.setDefaultCursorShape(shape)
             terminal.setCursorShape(shape)
+        }
+    }
+
+    /**
+     * Updates the active host security policy dynamically.
+     *
+     * @param policy new security policy.
+     */
+    fun setHostPolicy(policy: HostPolicy) {
+        synchronized(mutationLock) {
+            hostCommandAdapter?.setHostPolicy(policy)
+        }
+    }
+
+    /**
+     * Updates the active terminal input policy dynamically.
+     *
+     * @param policy new input policy.
+     */
+    override fun setInputPolicy(policy: TerminalInputPolicy) {
+        synchronized(inboundLock) {
+            inputEncoder.setInputPolicy(policy)
         }
     }
 
@@ -632,6 +655,7 @@ class TerminalSession(
                 hyperlinkResolver = TerminalHyperlinkResolver(sink::hyperlinkUri),
                 outboundWriteLock = outboundWriteLock,
                 shellIntegrationState = shellIntegrationState,
+                hostCommandAdapter = sink,
             )
         }
     }

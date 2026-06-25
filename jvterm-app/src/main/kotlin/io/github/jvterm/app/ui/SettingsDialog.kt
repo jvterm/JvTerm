@@ -16,6 +16,8 @@
 package io.github.jvterm.app.ui
 
 import io.github.jvterm.app.config.JvTermSettings
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalTitlePermission
 import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
@@ -194,6 +196,19 @@ internal class SettingsDialog(
         createSpinner(settings.cursorBlinkMillis, TerminalConfig.CURSOR_BLINK_MIN, TerminalConfig.CURSOR_BLINK_MAX, 50, 70)
     private val cursorShapeCombo = createComboBox(arrayOf("block", "underline", "beam"), settings.cursorShape.lowercase(Locale.ROOT), 150)
 
+    // Form Controls - Security
+    private val clipboardLocalWriteCombo =
+        createComboBox(arrayOf("allow", "prompt", "allowlist", "deny"), settings.clipboardLocalWrite.name.lowercase(Locale.ROOT), 150)
+    private val clipboardRemoteWriteCombo =
+        createComboBox(arrayOf("allow", "prompt", "allowlist", "deny"), settings.clipboardRemoteWrite.name.lowercase(Locale.ROOT), 150)
+    private val clipboardReadCombo =
+        createComboBox(arrayOf("allow", "prompt", "allowlist", "deny"), settings.clipboardRead.name.lowercase(Locale.ROOT), 150)
+    private val clipboardMaxDecodedBytesSpinner = createSpinner(settings.clipboardMaxDecodedBytes, 0, Int.MAX_VALUE, 1024, 150)
+    private val titleLocalPermissionCombo =
+        createComboBox(arrayOf("allow", "deny"), settings.titleLocalPermission.name.lowercase(Locale.ROOT), 150)
+    private val titleRemotePermissionCombo =
+        createComboBox(arrayOf("allow", "deny"), settings.titleRemotePermission.name.lowercase(Locale.ROOT), 150)
+
     init {
         size = Dimension(750, 550)
         setLocationRelativeTo(parent)
@@ -225,6 +240,7 @@ internal class SettingsDialog(
         addPage("Application", buildApplicationPanel())
         addPage("Appearance", buildAppearancePanel())
         addPage("Behavior", buildBehaviorPanel())
+        addPage("Security", buildSecurityPanel())
 
         selectCategory(categories.first().categoryName)
 
@@ -248,6 +264,12 @@ internal class SettingsDialog(
         registerChangeListener(themeCombo, updateApplyState)
         registerChangeListener(treatAmbiguousCheckbox, updateApplyState)
         registerChangeListener(useSystemFallbackCheckbox, updateApplyState)
+        registerChangeListener(clipboardLocalWriteCombo, updateApplyState)
+        registerChangeListener(clipboardRemoteWriteCombo, updateApplyState)
+        registerChangeListener(clipboardReadCombo, updateApplyState)
+        registerChangeListener(clipboardMaxDecodedBytesSpinner, updateApplyState)
+        registerChangeListener(titleLocalPermissionCombo, updateApplyState)
+        registerChangeListener(titleRemotePermissionCombo, updateApplyState)
         registerChangeListener(pasteOnMiddleClickCheckbox, updateApplyState)
         registerChangeListener(pasteSanitizationCombo, updateApplyState)
         registerChangeListener(shellRequestResizeWindowCheckbox, updateApplyState)
@@ -554,6 +576,30 @@ internal class SettingsDialog(
         }
     }
 
+    private fun buildSecurityPanel(): JPanel {
+        val panel =
+            JPanel().apply {
+                layout = BoxLayout(this, BoxLayout.Y_AXIS)
+                isOpaque = false
+            }
+
+        panel.add(SectionHeader("Clipboard Safety (OSC 52)"))
+        val clipboardSection = createSectionPanel()
+        addFormRow(clipboardSection, 0, "Local write permission:", clipboardLocalWriteCombo)
+        addFormRow(clipboardSection, 1, "Remote write permission:", clipboardRemoteWriteCombo)
+        addFormRow(clipboardSection, 2, "Read / Query permission:", clipboardReadCombo)
+        addFormRow(clipboardSection, 3, "Max decoded size (bytes):", clipboardMaxDecodedBytesSpinner)
+        panel.add(clipboardSection)
+
+        panel.add(SectionHeader("Title Renaming (OSC 0/1/2)"))
+        val titleSection = createSectionPanel()
+        addFormRow(titleSection, 0, "Local rename permission:", titleLocalPermissionCombo)
+        addFormRow(titleSection, 1, "Remote rename permission:", titleRemotePermissionCombo)
+        panel.add(titleSection)
+
+        return panel
+    }
+
     private fun buildFooterPanel(): JPanel =
         JPanel(BorderLayout()).apply {
             isOpaque = true
@@ -635,6 +681,13 @@ internal class SettingsDialog(
         persistentCommandHistoryCheckbox.isSelected = TerminalConfig.DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED
         cursorBlinkSpinner.value = TerminalConfig.DEFAULT_CURSOR_BLINK_MILLIS
         cursorShapeCombo.selectedItem = TerminalConfig.DEFAULT_CURSOR_SHAPE
+
+        clipboardLocalWriteCombo.selectedItem = TerminalConfig.DEFAULT_CLIPBOARD_LOCAL_WRITE.name.lowercase(Locale.ROOT)
+        clipboardRemoteWriteCombo.selectedItem = TerminalConfig.DEFAULT_CLIPBOARD_REMOTE_WRITE.name.lowercase(Locale.ROOT)
+        clipboardReadCombo.selectedItem = TerminalConfig.DEFAULT_CLIPBOARD_READ.name.lowercase(Locale.ROOT)
+        clipboardMaxDecodedBytesSpinner.value = TerminalConfig.DEFAULT_CLIPBOARD_MAX_DECODED_BYTES
+        titleLocalPermissionCombo.selectedItem = TerminalConfig.DEFAULT_TITLE_LOCAL_PERMISSION.name.lowercase(Locale.ROOT)
+        titleRemotePermissionCombo.selectedItem = TerminalConfig.DEFAULT_TITLE_REMOTE_PERMISSION.name.lowercase(Locale.ROOT)
     }
 
     private fun applyChanges() {
@@ -697,6 +750,24 @@ internal class SettingsDialog(
             shellRequestResizeWindow = shellRequestResizeWindowCheckbox.isSelected,
             shellRequestWindowManipulation = shellRequestWindowManipulationCheckbox.isSelected,
             persistentCommandHistoryEnabled = persistentCommandHistoryCheckbox.isSelected,
+            clipboardLocalWrite =
+                TerminalClipboardPermission.valueOf(
+                    (clipboardLocalWriteCombo.selectedItem as String).uppercase(Locale.ROOT),
+                ),
+            clipboardRemoteWrite =
+                TerminalClipboardPermission.valueOf(
+                    (clipboardRemoteWriteCombo.selectedItem as String).uppercase(Locale.ROOT),
+                ),
+            clipboardRead = TerminalClipboardPermission.valueOf((clipboardReadCombo.selectedItem as String).uppercase(Locale.ROOT)),
+            clipboardMaxDecodedBytes = clipboardMaxDecodedBytesSpinner.value as? Int ?: TerminalConfig.DEFAULT_CLIPBOARD_MAX_DECODED_BYTES,
+            titleLocalPermission =
+                TerminalTitlePermission.valueOf(
+                    (titleLocalPermissionCombo.selectedItem as String).uppercase(Locale.ROOT),
+                ),
+            titleRemotePermission =
+                TerminalTitlePermission.valueOf(
+                    (titleRemotePermissionCombo.selectedItem as String).uppercase(Locale.ROOT),
+                ),
         )
     }
 

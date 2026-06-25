@@ -15,6 +15,8 @@
  */
 package io.github.jvterm.workspace.config
 
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalTitlePermission
 import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import java.io.IOException
 import java.nio.file.Files
@@ -57,6 +59,7 @@ class TerminalWorkspaceConfigManager(
             val themeSection = parsed["theme"] ?: emptyMap()
             val behavior = parsed["behavior"] ?: emptyMap()
             val shell = parsed["shell"] ?: emptyMap()
+            val security = parsed["security"] ?: emptyMap()
 
             val default = TerminalConfig()
 
@@ -130,6 +133,39 @@ class TerminalWorkspaceConfigManager(
                     min = TerminalConfig.SCROLLBACK_MIN,
                     max = TerminalConfig.SCROLLBACK_MAX,
                 )
+            val clipboardLocalWrite =
+                parseClipboardPermission(
+                    raw = security["clipboard_local_write"],
+                    defaultValue = default.clipboardLocalWrite,
+                )
+            val clipboardRemoteWrite =
+                parseClipboardPermission(
+                    raw = security["clipboard_remote_write"],
+                    defaultValue = default.clipboardRemoteWrite,
+                )
+            val clipboardRead =
+                parseClipboardPermission(
+                    raw = security["clipboard_read"],
+                    defaultValue = default.clipboardRead,
+                )
+            val clipboardMaxDecodedBytes =
+                parseIntSetting(
+                    raw = security["clipboard_max_decoded_bytes"],
+                    defaultValue = default.clipboardMaxDecodedBytes,
+                    min = 0,
+                    max = Int.MAX_VALUE,
+                )
+            val titleLocalPermission =
+                parseTitlePermission(
+                    raw = security["title_local_permission"],
+                    defaultValue = default.titleLocalPermission,
+                )
+            val titleRemotePermission =
+                parseTitlePermission(
+                    raw = security["title_remote_permission"],
+                    defaultValue = default.titleRemotePermission,
+                )
+
             val cleanTheme = if (theme.isNotBlank()) theme else default.theme
             val cleanFontFamily = if (fontFamily.isNotBlank()) fontFamily else default.fontFamily
             val cleanCursorShape = if (cursorShape.isNotBlank()) cursorShape else default.cursorShape
@@ -157,6 +193,12 @@ class TerminalWorkspaceConfigManager(
                 shellRequestWindowManipulation = shellRequestWindowManipulation,
                 desktopNotificationsEnabled = desktopNotificationsEnabled,
                 persistentCommandHistoryEnabled = persistentCommandHistoryEnabled,
+                clipboardLocalWrite = clipboardLocalWrite,
+                clipboardRemoteWrite = clipboardRemoteWrite,
+                clipboardRead = clipboardRead,
+                clipboardMaxDecodedBytes = clipboardMaxDecodedBytes,
+                titleLocalPermission = titleLocalPermission,
+                titleRemotePermission = titleRemotePermission,
             )
         } catch (e: Exception) {
             try {
@@ -250,6 +292,20 @@ class TerminalWorkspaceConfigManager(
         desktop_notifications_enabled = ${config.desktopNotificationsEnabled}
         # Persist bounded command metadata (never raw terminal output) across application restarts
         persistent_command_history_enabled = ${config.persistentCommandHistoryEnabled}
+
+        [security]
+        # OSC 52 clipboard write permission for local sessions (allow, prompt, allowlist, deny)
+        clipboard_local_write = "${config.clipboardLocalWrite.name.lowercase(Locale.ROOT)}"
+        # OSC 52 clipboard write permission for remote sessions (allow, prompt, allowlist, deny)
+        clipboard_remote_write = "${config.clipboardRemoteWrite.name.lowercase(Locale.ROOT)}"
+        # OSC 52 clipboard read/query permission (allow, prompt, allowlist, deny)
+        clipboard_read = "${config.clipboardRead.name.lowercase(Locale.ROOT)}"
+        # Maximum decoded payload size in bytes for clipboard writes/reads
+        clipboard_max_decoded_bytes = ${config.clipboardMaxDecodedBytes}
+        # Tab/window title renaming permission for local sessions (allow, deny)
+        title_local_permission = "${config.titleLocalPermission.name.lowercase(Locale.ROOT)}"
+        # Tab/window title renaming permission for remote sessions (allow, deny)
+        title_remote_permission = "${config.titleRemotePermission.name.lowercase(Locale.ROOT)}"
         """.trimIndent()
 
     private fun parseIntSetting(
@@ -306,6 +362,28 @@ class TerminalWorkspaceConfigManager(
             PasteSanitizationPolicy.RAW -> "raw"
             PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF -> "strip-c0"
             PasteSanitizationPolicy.NORMALIZE_LINE_ENDINGS -> "normalize-line-endings"
+        }
+
+    private fun parseClipboardPermission(
+        raw: String?,
+        defaultValue: TerminalClipboardPermission,
+    ): TerminalClipboardPermission =
+        when (raw?.trim()?.lowercase(Locale.ROOT)) {
+            "deny" -> TerminalClipboardPermission.DENY
+            "prompt" -> TerminalClipboardPermission.PROMPT
+            "allowlist" -> TerminalClipboardPermission.ALLOWLIST
+            "allow" -> TerminalClipboardPermission.ALLOW
+            else -> defaultValue
+        }
+
+    private fun parseTitlePermission(
+        raw: String?,
+        defaultValue: TerminalTitlePermission,
+    ): TerminalTitlePermission =
+        when (raw?.trim()?.lowercase(Locale.ROOT)) {
+            "deny" -> TerminalTitlePermission.DENY
+            "allow" -> TerminalTitlePermission.ALLOW
+            else -> defaultValue
         }
 
     companion object {

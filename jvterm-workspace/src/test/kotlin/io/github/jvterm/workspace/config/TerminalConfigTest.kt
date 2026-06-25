@@ -15,6 +15,8 @@
  */
 package io.github.jvterm.workspace.config
 
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalTitlePermission
 import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import java.nio.file.Files
 import java.nio.file.Path
@@ -125,6 +127,12 @@ class TerminalConfigTest {
         assertEquals(PasteSanitizationPolicy.RAW, config.pasteSanitizationPolicy)
         assertFalse(config.shellRequestResizeWindow)
         assertFalse(config.shellRequestWindowManipulation)
+        assertEquals(TerminalClipboardPermission.PROMPT, config.clipboardLocalWrite)
+        assertEquals(TerminalClipboardPermission.DENY, config.clipboardRemoteWrite)
+        assertEquals(TerminalClipboardPermission.DENY, config.clipboardRead)
+        assertEquals(1024 * 1024, config.clipboardMaxDecodedBytes)
+        assertEquals(TerminalTitlePermission.ALLOW, config.titleLocalPermission)
+        assertEquals(TerminalTitlePermission.DENY, config.titleRemotePermission)
 
         // Clean up
         Files.deleteIfExists(configFile)
@@ -154,11 +162,19 @@ class TerminalConfigTest {
                 shellRequestResizeWindow = true,
                 shellRequestWindowManipulation = true,
                 desktopNotificationsEnabled = false,
+                clipboardLocalWrite = TerminalClipboardPermission.ALLOW,
+                clipboardRemoteWrite = TerminalClipboardPermission.ALLOWLIST,
+                clipboardRead = TerminalClipboardPermission.PROMPT,
+                clipboardMaxDecodedBytes = 500,
+                titleLocalPermission = TerminalTitlePermission.DENY,
+                titleRemotePermission = TerminalTitlePermission.ALLOW,
             )
 
         manager.save(customConfig)
         assertTrue(Files.exists(configFile))
         assertTrue(Files.readString(configFile).contains("""paste_sanitization = "normalize-line-endings""""))
+        assertTrue(Files.readString(configFile).contains("""clipboard_local_write = "allow""""))
+        assertTrue(Files.readString(configFile).contains("""clipboard_max_decoded_bytes = 500"""))
 
         val loaded = manager.load()
         assertEquals(customConfig, loaded)

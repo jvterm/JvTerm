@@ -50,7 +50,7 @@ import io.github.jvterm.protocol.keyboard.KittyKeyboardProgressiveFlag
 internal class KittyKeyboardEncoder(
     private val output: TerminalHostOutput,
     private val scratch: InputScratchBuffer,
-    private val policy: TerminalInputPolicy,
+    @Volatile internal var policy: TerminalInputPolicy,
 ) {
     /**
      * Encodes a keyboard event under the Kitty Keyboard Protocol rules.

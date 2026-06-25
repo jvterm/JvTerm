@@ -23,6 +23,15 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.util.ui.JBFont
+import io.github.jvterm.host.HostPolicy
+import io.github.jvterm.host.TerminalClipboardOrigin
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalClipboardPolicy
+import io.github.jvterm.host.TerminalTitleOrigin
+import io.github.jvterm.host.TerminalTitlePermission
+import io.github.jvterm.host.TerminalTitlePolicy
+import io.github.jvterm.host.HostControlPolicy
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.render.api.TerminalRenderCursorShape
 import io.github.jvterm.ui.swing.settings.SwingSettings
 import io.github.jvterm.ui.swing.settings.TerminalTheme
@@ -73,6 +82,53 @@ class JvTermIntellijSettings :
             listener()
         }
     }
+
+    fun createHostPolicy(command: List<String>): HostPolicy {
+        val s = state
+        val isRemote = command.firstOrNull()?.trim()?.lowercase(Locale.ROOT)?.startsWith("ssh") == true
+        val clipboardOrigin = if (isRemote) TerminalClipboardOrigin.REMOTE else TerminalClipboardOrigin.LOCAL
+        val titleOrigin = if (isRemote) TerminalTitleOrigin.REMOTE else TerminalTitleOrigin.LOCAL
+
+        val localWrite = parseClipboardPermission(s.clipboardLocalWrite, TerminalConfig.DEFAULT_CLIPBOARD_LOCAL_WRITE)
+        val remoteWrite = parseClipboardPermission(s.clipboardRemoteWrite, TerminalConfig.DEFAULT_CLIPBOARD_REMOTE_WRITE)
+        val read = parseClipboardPermission(s.clipboardRead, TerminalConfig.DEFAULT_CLIPBOARD_READ)
+        val maxBytes = s.clipboardMaxDecodedBytes.coerceAtLeast(0)
+
+        val localTitle = parseTitlePermission(s.titleLocalPermission, TerminalConfig.DEFAULT_TITLE_LOCAL_PERMISSION)
+        val remoteTitle = parseTitlePermission(s.titleRemotePermission, TerminalConfig.DEFAULT_TITLE_REMOTE_PERMISSION)
+
+        return HostPolicy(
+            titlePolicy = TerminalTitlePolicy(
+                origin = titleOrigin,
+                localPermission = localTitle,
+                remotePermission = remoteTitle,
+            ),
+            clipboardPolicy = TerminalClipboardPolicy(
+                origin = clipboardOrigin,
+                localWritePermission = localWrite,
+                remoteWritePermission = remoteWrite,
+                readPermission = read,
+                maxDecodedBytes = maxBytes,
+            ),
+            windowManipulationPolicy = HostControlPolicy.DENY
+        )
+    }
+
+    private fun parseClipboardPermission(value: String, default: TerminalClipboardPermission): TerminalClipboardPermission =
+        when (value.trim().lowercase(Locale.ROOT)) {
+            "allow" -> TerminalClipboardPermission.ALLOW
+            "prompt" -> TerminalClipboardPermission.PROMPT
+            "allowlist" -> TerminalClipboardPermission.ALLOWLIST
+            "deny" -> TerminalClipboardPermission.DENY
+            else -> default
+        }
+
+    private fun parseTitlePermission(value: String, default: TerminalTitlePermission): TerminalTitlePermission =
+        when (value.trim().lowercase(Locale.ROOT)) {
+            "allow" -> TerminalTitlePermission.ALLOW
+            "deny" -> TerminalTitlePermission.DENY
+            else -> default
+        }
 
     /**
      * Registers a listener notified after settings are changed through this service.
@@ -133,6 +189,13 @@ class JvTermIntellijSettings :
         @JvmField val startDirectory: String = "",
         @JvmField val environmentVariables: String = "",
         @JvmField val defaultTabName: String = "Local",
+        @JvmField val pasteSanitization: String = "raw",
+        @JvmField val clipboardLocalWrite: String = TerminalConfig.DEFAULT_CLIPBOARD_LOCAL_WRITE.name.lowercase(Locale.ROOT),
+        @JvmField val clipboardRemoteWrite: String = TerminalConfig.DEFAULT_CLIPBOARD_REMOTE_WRITE.name.lowercase(Locale.ROOT),
+        @JvmField val clipboardRead: String = TerminalConfig.DEFAULT_CLIPBOARD_READ.name.lowercase(Locale.ROOT),
+        @JvmField val clipboardMaxDecodedBytes: Int = TerminalConfig.DEFAULT_CLIPBOARD_MAX_DECODED_BYTES,
+        @JvmField val titleLocalPermission: String = TerminalConfig.DEFAULT_TITLE_LOCAL_PERMISSION.name.lowercase(Locale.ROOT),
+        @JvmField val titleRemotePermission: String = TerminalConfig.DEFAULT_TITLE_REMOTE_PERMISSION.name.lowercase(Locale.ROOT),
     )
 
     companion object {
@@ -209,6 +272,13 @@ internal object JvTermIntellijSettingsNormalizer {
             startDirectory = state.startDirectory.trim(),
             environmentVariables = normalizeEnvironmentText(state.environmentVariables),
             defaultTabName = state.defaultTabName.trim().ifBlank { "Local" },
+            pasteSanitization = normalizePasteSanitization(state.pasteSanitization),
+            clipboardLocalWrite = normalizeClipboardPermission(state.clipboardLocalWrite),
+            clipboardRemoteWrite = normalizeClipboardPermission(state.clipboardRemoteWrite),
+            clipboardRead = normalizeClipboardPermission(state.clipboardRead),
+            clipboardMaxDecodedBytes = state.clipboardMaxDecodedBytes.coerceAtLeast(0),
+            titleLocalPermission = normalizeTitlePermission(state.titleLocalPermission),
+            titleRemotePermission = normalizeTitlePermission(state.titleRemotePermission),
         )
 
     /**
@@ -252,6 +322,24 @@ internal object JvTermIntellijSettingsNormalizer {
         } else {
             TerminalConfig.DEFAULT_LINE_HEIGHT
         }
+
+    private fun normalizeClipboardPermission(perm: String): String =
+        when (val normalized = perm.trim().lowercase(Locale.ROOT)) {
+            "allow", "prompt", "allowlist", "deny" -> normalized
+            else -> TerminalConfig.DEFAULT_CLIPBOARD_LOCAL_WRITE.name.lowercase(Locale.ROOT)
+        }
+
+    private fun normalizeTitlePermission(perm: String): String =
+        when (val normalized = perm.trim().lowercase(Locale.ROOT)) {
+            "allow", "deny" -> normalized
+            else -> TerminalConfig.DEFAULT_TITLE_LOCAL_PERMISSION.name.lowercase(Locale.ROOT)
+        }
+
+    private fun normalizePasteSanitization(policy: String): String =
+        when (val normalized = policy.trim().lowercase(Locale.ROOT)) {
+            "raw", "strip-c0", "normalize-line-endings" -> normalized
+            else -> "raw"
+        }
 }
 
 /**
@@ -281,6 +369,7 @@ internal object JvTermIntellijSettingsMapper {
             useSystemFallbackFonts = normalized.useSystemFallbackFonts,
             visualBellEnabled = normalized.visualBell,
             pasteOnMiddleClick = normalized.pasteOnMiddleClick,
+            pasteSanitizationPolicy = parsePasteSanitization(normalized.pasteSanitization),
             cursorShape = parseCursorShape(normalized.cursorShape),
             scrollbackLines = normalized.scrollbackLines,
             lineHeight = normalized.lineHeight,
@@ -300,5 +389,12 @@ internal object JvTermIntellijSettingsMapper {
             "beam", "bar" -> TerminalRenderCursorShape.BAR
             "underline" -> TerminalRenderCursorShape.UNDERLINE
             else -> TerminalRenderCursorShape.BLOCK
+        }
+
+    private fun parsePasteSanitization(value: String): PasteSanitizationPolicy =
+        when (value.trim().lowercase(Locale.ROOT)) {
+            "strip-c0" -> PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF
+            "normalize-line-endings" -> PasteSanitizationPolicy.NORMALIZE_LINE_ENDINGS
+            else -> PasteSanitizationPolicy.RAW
         }
 }

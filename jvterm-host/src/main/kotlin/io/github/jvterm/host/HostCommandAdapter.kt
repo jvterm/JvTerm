@@ -44,8 +44,17 @@ import java.net.URISyntaxException
 class HostCommandAdapter(
     private val terminal: TerminalBuffer,
     private val hostEvents: HostEventSink = HostEventSink.NONE,
-    private val hostPolicy: HostPolicy = HostPolicy(),
+    @Volatile private var hostPolicy: HostPolicy = HostPolicy(),
 ) : TerminalCommandSink {
+    /**
+     * Updates the active host security policy dynamically.
+     *
+     * @param policy new security policy.
+     */
+    fun setHostPolicy(policy: HostPolicy) {
+        this.hostPolicy = policy
+    }
+
     @Volatile
     private var currentWorkingDirectory: String? = null
 

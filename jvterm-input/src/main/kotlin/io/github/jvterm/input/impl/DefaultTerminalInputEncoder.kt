@@ -93,4 +93,10 @@ internal class DefaultTerminalInputEncoder(
         val modeBits = inputState.getInputModeBits()
         mouse.encode(event, modeBits)
     }
+
+    override fun setInputPolicy(policy: TerminalInputPolicy) {
+        keyboard.policy = policy
+        paste.policy = policy
+        mouse.policy = policy
+    }
 }

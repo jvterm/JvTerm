@@ -29,7 +29,7 @@ import io.github.jvterm.protocol.mouse.MouseTrackingMode
 internal class MouseEncoder(
     private val output: TerminalHostOutput,
     private val scratch: InputScratchBuffer,
-    private val policy: TerminalInputPolicy,
+    @Volatile internal var policy: TerminalInputPolicy,
 ) {
     fun encode(
         event: TerminalMouseEvent,

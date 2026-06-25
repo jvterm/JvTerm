@@ -16,6 +16,8 @@
 package io.github.jvterm.app.ui
 
 import io.github.jvterm.app.config.JvTermSettings
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalTitlePermission
 import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.workspace.TerminalProfileRegistry
 import io.github.jvterm.workspace.config.TerminalWorkspaceConfigManager
@@ -81,6 +83,12 @@ class SettingsModelTest {
                 pasteSanitizationPolicy = PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF,
                 shellRequestResizeWindow = true,
                 shellRequestWindowManipulation = true,
+                clipboardLocalWrite = TerminalClipboardPermission.ALLOW,
+                clipboardRemoteWrite = TerminalClipboardPermission.ALLOWLIST,
+                clipboardRead = TerminalClipboardPermission.PROMPT,
+                clipboardMaxDecodedBytes = 2048,
+                titleLocalPermission = TerminalTitlePermission.DENY,
+                titleRemotePermission = TerminalTitlePermission.ALLOW,
             )
 
         assertTrue(model.hasChanges(modifiedState))
@@ -97,6 +105,12 @@ class SettingsModelTest {
         assertEquals(PasteSanitizationPolicy.STRIP_C0_EXCEPT_TAB_CR_LF, settings.pasteSanitizationPolicy)
         assertTrue(settings.shellRequestResizeWindow)
         assertTrue(settings.shellRequestWindowManipulation)
+        assertEquals(TerminalClipboardPermission.ALLOW, settings.clipboardLocalWrite)
+        assertEquals(TerminalClipboardPermission.ALLOWLIST, settings.clipboardRemoteWrite)
+        assertEquals(TerminalClipboardPermission.PROMPT, settings.clipboardRead)
+        assertEquals(2048, settings.clipboardMaxDecodedBytes)
+        assertEquals(TerminalTitlePermission.DENY, settings.titleLocalPermission)
+        assertEquals(TerminalTitlePermission.ALLOW, settings.titleRemotePermission)
 
         // Snapshot should be updated, so it shouldn't show changes against modified state anymore
         assertFalse(model.hasChanges(modifiedState))

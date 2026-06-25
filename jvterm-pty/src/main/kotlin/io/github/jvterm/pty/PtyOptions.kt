@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.pty
 
+import io.github.jvterm.host.HostPolicy
 import io.github.jvterm.input.policy.EnterNewLineModePolicy
 import io.github.jvterm.input.policy.TerminalInputPolicy
 import io.github.jvterm.protocol.TerminalCapabilityIdentity
@@ -42,6 +43,7 @@ import java.nio.file.Path
  * @param watcherThreadName name for the daemon process exit watcher thread.
  * @param eventListener host callbacks for parser-discovered PTY metadata
  * events such as BEL and title changes.
+ * @param hostPolicy safety policy for terminal-triggered host actions.
  */
 data class PtyOptions
     @JvmOverloads
@@ -58,6 +60,7 @@ data class PtyOptions
         val readerThreadName: String = "terminal-pty-reader",
         val watcherThreadName: String = "terminal-pty-watcher",
         val eventListener: PtyEventListener = PtyEventListener.NONE,
+        val hostPolicy: HostPolicy = HostPolicy(),
     ) {
         init {
             require(command.isNotEmpty()) { "PTY command must not be empty" }

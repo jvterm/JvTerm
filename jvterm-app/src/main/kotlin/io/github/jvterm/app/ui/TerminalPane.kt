@@ -35,6 +35,7 @@ internal class TerminalPane private constructor(
     val tab: TerminalWorkspaceTab,
     val terminal: SwingTerminal,
     val component: JPanel,
+    private val settings: JvTermSettings,
 ) {
     fun requestFocus() {
         terminal.requestFocusInWindow()
@@ -43,6 +44,7 @@ internal class TerminalPane private constructor(
     fun reloadSettings() {
         terminal.reloadSettings()
         component.background = terminal.background
+        tab.session.setHostPolicy(settings.createHostPolicy(tab.profile.command))
     }
 
     fun close() {
@@ -75,6 +77,7 @@ internal class TerminalPane private constructor(
                     tab = tab,
                     terminal = terminal,
                     component = terminalPanel(terminal, scrollbar),
+                    settings = settings,
                 )
 
             terminal.addMouseListener(

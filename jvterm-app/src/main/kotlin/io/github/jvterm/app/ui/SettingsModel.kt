@@ -16,6 +16,8 @@
 package io.github.jvterm.app.ui
 
 import io.github.jvterm.app.config.JvTermSettings
+import io.github.jvterm.host.TerminalClipboardPermission
+import io.github.jvterm.host.TerminalTitlePermission
 import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.ui.swing.settings.TerminalTheme
 import io.github.jvterm.workspace.TerminalProfileRegistry
@@ -50,6 +52,12 @@ internal class SettingsModel(
             shellRequestResizeWindow = settings.shellRequestResizeWindow,
             shellRequestWindowManipulation = settings.shellRequestWindowManipulation,
             persistentCommandHistoryEnabled = settings.persistentCommandHistoryEnabled,
+            clipboardLocalWrite = settings.clipboardLocalWrite,
+            clipboardRemoteWrite = settings.clipboardRemoteWrite,
+            clipboardRead = settings.clipboardRead,
+            clipboardMaxDecodedBytes = settings.clipboardMaxDecodedBytes,
+            titleLocalPermission = settings.titleLocalPermission,
+            titleRemotePermission = settings.titleRemotePermission,
         )
 
     fun hasChanges(uiState: SettingsState): Boolean = uiState != initialUiState
@@ -87,6 +95,12 @@ internal class SettingsModel(
         settings.useSystemFallbackFonts = uiState.useSystemFallbackFonts
         settings.cursorBlinkMillis = uiState.cursorBlinkMillis
         settings.cursorShape = uiState.cursorShape
+        settings.clipboardLocalWrite = uiState.clipboardLocalWrite
+        settings.clipboardRemoteWrite = uiState.clipboardRemoteWrite
+        settings.clipboardRead = uiState.clipboardRead
+        settings.clipboardMaxDecodedBytes = uiState.clipboardMaxDecodedBytes
+        settings.titleLocalPermission = uiState.titleLocalPermission
+        settings.titleRemotePermission = uiState.titleRemotePermission
 
         settings.theme = TerminalTheme.entries.firstOrNull { it.name == uiState.theme } ?: TerminalTheme.TOKYO_NIGHT
 
@@ -116,4 +130,10 @@ internal data class SettingsState(
     val shellRequestResizeWindow: Boolean,
     val shellRequestWindowManipulation: Boolean,
     val persistentCommandHistoryEnabled: Boolean,
+    val clipboardLocalWrite: TerminalClipboardPermission,
+    val clipboardRemoteWrite: TerminalClipboardPermission,
+    val clipboardRead: TerminalClipboardPermission,
+    val clipboardMaxDecodedBytes: Int,
+    val titleLocalPermission: TerminalTitlePermission,
+    val titleRemotePermission: TerminalTitlePermission,
 )
