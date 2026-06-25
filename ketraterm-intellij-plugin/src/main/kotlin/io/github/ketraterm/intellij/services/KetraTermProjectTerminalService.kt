@@ -22,6 +22,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.content.Content
+import io.github.ketraterm.host.TerminalClipboardWriteEvent
 import io.github.ketraterm.intellij.settings.KetraTermIntellijSettings
 import io.github.ketraterm.intellij.ui.KetraTermTerminalPane
 import io.github.ketraterm.intellij.ui.KetraTermTerminalStartupView
@@ -145,7 +146,7 @@ class KetraTermProjectTerminalService(
                     ptyRuntime.openWorkspaceTab(
                         workspace = workspace,
                         profile = profile,
-                        options = openOptions(settings),
+                        options = openOptions(settings, profile),
                     )
                 }
             },
@@ -273,12 +274,17 @@ class KetraTermProjectTerminalService(
         }
     }
 
-    private fun openOptions(settings: SwingSettings): TerminalWorkspaceOpenOptions =
+    private fun openOptions(
+        settings: SwingSettings,
+        profile: TerminalProfile,
+    ): TerminalWorkspaceOpenOptions =
         TerminalWorkspaceOpenOptions(
             columns = settings.columns,
             rows = settings.rows,
             treatAmbiguousAsWide = settings.treatAmbiguousAsWide,
             maxHistory = settings.scrollbackLines,
+            pasteSanitizationPolicy = settings.pasteSanitizationPolicy,
+            hostPolicy = KetraTermIntellijSettings.getInstance().createHostPolicy(profile.command),
         )
 
     private inner class TerminalTabDisposable(
@@ -324,6 +330,16 @@ class KetraTermProjectTerminalService(
             }
         }
 
+        override fun terminalClipboardWrite(
+            tab: TerminalWorkspaceTab,
+            event: TerminalClipboardWriteEvent,
+        ) {
+            if (!IntellijOsc52ClipboardSelections.targetsIdeClipboard(event.selection)) return
+            invokeLaterIfAlive {
+                panesByTabId[tab.id]?.terminal?.copyTextToClipboard(event.text)
+            }
+        }
+
         override fun tabClosed(tabId: String) {
             invokeLaterIfAlive {
                 contentsByTabId.remove(tabId)
@@ -364,4 +380,8 @@ class KetraTermProjectTerminalService(
             val error: Throwable,
         ) : TerminalStartupResult
     }
+}
+
+internal object IntellijOsc52ClipboardSelections {
+    fun targetsIdeClipboard(selection: String): Boolean = selection.isEmpty() || selection.indexOf('c') >= 0
 }
