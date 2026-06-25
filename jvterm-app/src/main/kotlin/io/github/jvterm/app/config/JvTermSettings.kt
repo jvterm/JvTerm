@@ -15,6 +15,7 @@
  */
 package io.github.jvterm.app.config
 
+import io.github.jvterm.host.HostControlPolicy
 import io.github.jvterm.host.HostPolicy
 import io.github.jvterm.host.TerminalClipboardOrigin
 import io.github.jvterm.host.TerminalClipboardPermission
@@ -233,12 +234,7 @@ internal class JvTermSettings(
     }
 
     fun createHostPolicy(command: List<String>): HostPolicy {
-        val isRemote =
-            command
-                .firstOrNull()
-                ?.trim()
-                ?.lowercase(Locale.ROOT)
-                ?.startsWith("ssh") == true
+        val isRemote = command.firstOrNull()?.let(::isSshExecutable) == true
         val clipboardOrigin = if (isRemote) TerminalClipboardOrigin.REMOTE else TerminalClipboardOrigin.LOCAL
         val titleOrigin = if (isRemote) TerminalTitleOrigin.REMOTE else TerminalTitleOrigin.LOCAL
 
@@ -258,10 +254,10 @@ internal class JvTermSettings(
                     maxDecodedBytes = config.clipboardMaxDecodedBytes,
                 ),
             windowManipulationPolicy =
-                if (config.shellRequestWindowManipulation) {
-                    io.github.jvterm.host.HostControlPolicy.ALLOW
+                if (config.shellRequestResizeWindow || config.shellRequestWindowManipulation) {
+                    HostControlPolicy.ALLOW
                 } else {
-                    io.github.jvterm.host.HostControlPolicy.DENY
+                    HostControlPolicy.DENY
                 },
         )
     }
@@ -272,6 +268,17 @@ internal class JvTermSettings(
             "underline" -> io.github.jvterm.render.api.TerminalRenderCursorShape.UNDERLINE
             else -> io.github.jvterm.render.api.TerminalRenderCursorShape.BLOCK
         }
+
+    private fun isSshExecutable(command: String): Boolean {
+        val executable =
+            command
+                .trim()
+                .trim('"')
+                .replace('\\', '/')
+                .substringAfterLast('/')
+                .lowercase(Locale.ROOT)
+        return executable == "ssh" || executable == "ssh.exe"
+    }
 
     private fun updateConfig(newConfig: TerminalConfig) {
         config = newConfig

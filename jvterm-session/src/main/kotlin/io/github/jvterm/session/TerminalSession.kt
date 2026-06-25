@@ -26,6 +26,7 @@ import io.github.jvterm.input.event.TerminalFocusEvent
 import io.github.jvterm.input.event.TerminalKeyEvent
 import io.github.jvterm.input.event.TerminalMouseEvent
 import io.github.jvterm.input.event.TerminalPasteEvent
+import io.github.jvterm.input.policy.PasteSanitizationPolicy
 import io.github.jvterm.input.policy.TerminalInputPolicy
 import io.github.jvterm.parser.api.TerminalOutputParser
 import io.github.jvterm.parser.api.TerminalParsers
@@ -71,6 +72,7 @@ class TerminalSession(
     private val outboundWriteLock: Any = Any(),
     val shellIntegrationState: TerminalShellIntegrationState = TerminalShellIntegrationState(),
     private val hostCommandAdapter: HostCommandAdapter? = null,
+    private var inputPolicy: TerminalInputPolicy = TerminalInputPolicy(),
 ) : TerminalConnectorListener,
     TerminalInputEncoder,
     TerminalRenderFrameReader,
@@ -269,8 +271,26 @@ class TerminalSession(
      * @param policy new input policy.
      */
     override fun setInputPolicy(policy: TerminalInputPolicy) {
-        synchronized(inboundLock) {
+        synchronized(outboundWriteLock) {
+            inputPolicy = policy
             inputEncoder.setInputPolicy(policy)
+        }
+    }
+
+    /**
+     * Updates only the active paste sanitization policy.
+     *
+     * Other host-bound input behavior, including PTY-specific Return handling,
+     * is preserved. The update is serialized with input encoding because the
+     * default encoder owns reusable scratch buffers.
+     *
+     * @param policy new paste sanitization policy.
+     */
+    fun setPasteSanitizationPolicy(policy: PasteSanitizationPolicy) {
+        synchronized(outboundWriteLock) {
+            val next = inputPolicy.copy(pasteSanitizationPolicy = policy)
+            inputPolicy = next
+            inputEncoder.setInputPolicy(next)
         }
     }
 
@@ -656,6 +676,7 @@ class TerminalSession(
                 outboundWriteLock = outboundWriteLock,
                 shellIntegrationState = shellIntegrationState,
                 hostCommandAdapter = sink,
+                inputPolicy = inputPolicy,
             )
         }
     }

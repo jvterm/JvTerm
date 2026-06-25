@@ -228,6 +228,66 @@ class TerminalConfigTest {
     }
 
     @Test
+    fun `test TerminalWorkspaceConfigManager uses field specific security defaults for invalid values`() {
+        val tempDir = Files.createTempDirectory("jvterm-config-test-security-defaults")
+        val configFile = tempDir.resolve("config.toml")
+        val manager = TerminalWorkspaceConfigManager(configFile)
+
+        Files.writeString(
+            configFile,
+            """
+            [security]
+            clipboard_local_write = "invalid"
+            clipboard_remote_write = "invalid"
+            clipboard_read = "invalid"
+            title_local_permission = "invalid"
+            title_remote_permission = "invalid"
+            """.trimIndent(),
+        )
+
+        val loaded = manager.load()
+
+        assertEquals(TerminalClipboardPermission.PROMPT, loaded.clipboardLocalWrite)
+        assertEquals(TerminalClipboardPermission.DENY, loaded.clipboardRemoteWrite)
+        assertEquals(TerminalClipboardPermission.DENY, loaded.clipboardRead)
+        assertEquals(TerminalTitlePermission.ALLOW, loaded.titleLocalPermission)
+        assertEquals(TerminalTitlePermission.DENY, loaded.titleRemotePermission)
+
+        Files.deleteIfExists(configFile)
+        Files.deleteIfExists(tempDir)
+    }
+
+    @Test
+    fun `test TerminalWorkspaceConfigManager clamps clipboard decoded byte boundaries`() {
+        val tempDir = Files.createTempDirectory("jvterm-config-test-clipboard-size")
+        val configFile = tempDir.resolve("config.toml")
+        val manager = TerminalWorkspaceConfigManager(configFile)
+
+        Files.writeString(
+            configFile,
+            """
+            [security]
+            clipboard_max_decoded_bytes = -1
+            """.trimIndent(),
+        )
+
+        assertEquals(0, manager.load().clipboardMaxDecodedBytes)
+
+        Files.writeString(
+            configFile,
+            """
+            [security]
+            clipboard_max_decoded_bytes = 999999999999999999999999
+            """.trimIndent(),
+        )
+
+        assertEquals(Int.MAX_VALUE, manager.load().clipboardMaxDecodedBytes)
+
+        Files.deleteIfExists(configFile)
+        Files.deleteIfExists(tempDir)
+    }
+
+    @Test
     fun `test TerminalConfig rejects direct out of bounds values`() {
         assertFailsWith<IllegalArgumentException> {
             TerminalConfig(columns = TerminalConfig.COLUMNS_MIN - 1)

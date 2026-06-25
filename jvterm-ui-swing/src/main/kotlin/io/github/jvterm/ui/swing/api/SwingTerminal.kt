@@ -17,7 +17,6 @@ package io.github.jvterm.ui.swing.api
 
 import io.github.jvterm.input.event.TerminalMouseEvent
 import io.github.jvterm.input.event.TerminalPasteEvent
-import io.github.jvterm.input.policy.TerminalInputPolicy
 import io.github.jvterm.protocol.MouseTrackingMode
 import io.github.jvterm.render.api.TerminalRenderBufferKind
 import io.github.jvterm.render.cache.TerminalRenderCache
@@ -948,7 +947,7 @@ class SwingTerminal
             session.setTreatAmbiguousAsWide(settings.treatAmbiguousAsWide)
             session.setThemePalette(settings.palette)
             session.setCursorShape(settings.cursorShape)
-            session.setInputPolicy(TerminalInputPolicy(pasteSanitizationPolicy = settings.pasteSanitizationPolicy))
+            session.setPasteSanitizationPolicy(settings.pasteSanitizationPolicy)
         }
 
         /**
