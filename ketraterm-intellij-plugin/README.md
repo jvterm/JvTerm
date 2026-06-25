@@ -1,8 +1,8 @@
-# JvTerm IntelliJ Plugin
+# KetraTerm IntelliJ Plugin
 
-`jvterm-intellij-plugin` is the IntelliJ Platform host build for JvTerm.
+`ketraterm-intellij-plugin` is the IntelliJ Platform host build for KetraTerm.
 
-This build is intentionally independent from the root JvTerm Gradle build. The
+This build is intentionally independent from the root KetraTerm Gradle build. The
 root build owns the terminal libraries, standalone app, tests, and benchmarks.
 This build owns IntelliJ Platform plugin packaging, sandbox runs, plugin
 verification, IDE services, and future Marketplace publishing.
@@ -15,11 +15,11 @@ added in small, verifiable slices after the build structure is clean.
 Current intent:
 
 - keep IntelliJ Gradle plugins and repositories inside this build.
-- reuse JvTerm modules instead of copying terminal logic into the plugin.
+- reuse KetraTerm modules instead of copying terminal logic into the plugin.
 - keep the root `settings.gradle.kts` and root `build.gradle.kts` free of
   IntelliJ Platform configuration.
 - use a composite build for local development when the plugin begins depending
-  on JvTerm modules.
+  on KetraTerm modules.
 
 ## Build
 
@@ -34,9 +34,9 @@ From this directory:
 From the repository root:
 
 ```text
-./gradlew -p jvterm-intellij-plugin test
-./gradlew -p jvterm-intellij-plugin runIde
-./gradlew -p jvterm-intellij-plugin verifyPlugin
+./gradlew -p ketraterm-intellij-plugin test
+./gradlew -p ketraterm-intellij-plugin runIde
+./gradlew -p ketraterm-intellij-plugin verifyPlugin
 ```
 
 ## Architecture
@@ -44,14 +44,14 @@ From the repository root:
 The plugin is a thin IDE host. It may register IntelliJ extensions, actions,
 services, tool windows, settings bridges, notifications, and disposal hooks.
 
-Reusable terminal behavior stays in the main JvTerm modules:
+Reusable terminal behavior stays in the main KetraTerm modules:
 
-- `jvterm-ui-swing`: Swing terminal component, painting, selection, input, and
+- `ketraterm-ui-swing`: Swing terminal component, painting, selection, input, and
   viewport behavior.
-- `jvterm-workspace`: host-neutral terminal profiles and workspace/session
+- `ketraterm-workspace`: host-neutral terminal profiles and workspace/session
   state.
-- `jvterm-session`: parser/core/input/transport synchronization.
-- `jvterm-pty`: local PTY process lifecycle.
+- `ketraterm-session`: parser/core/input/transport synchronization.
+- `ketraterm-pty`: local PTY process lifecycle.
 
 The plugin must not parse terminal bytes, mutate core grid state, implement
 renderer hot paths, encode terminal input bytes directly, or add IntelliJ
@@ -63,7 +63,7 @@ When plugin implementation begins, prefer published-style dependencies in this
 build and local substitution through a composite build:
 
 ```kotlin
-// jvterm-intellij-plugin/settings.gradle.kts
+// ketraterm-intellij-plugin/settings.gradle.kts
 includeBuild("..")
 ```
 
@@ -71,11 +71,11 @@ The plugin dependencies should then use normal coordinates rather than root
 project references:
 
 ```kotlin
-implementation("io.github.ketraterm:jvterm-ui-swing")
-implementation("io.github.ketraterm:jvterm-workspace")
+implementation("io.github.ketraterm:ketraterm-ui-swing")
+implementation("io.github.ketraterm:ketraterm-workspace")
 ```
 
-This keeps IDE plugin development independent while still using local JvTerm
+This keeps IDE plugin development independent while still using local KetraTerm
 sources during development.
 
 ## Documentation

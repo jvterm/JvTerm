@@ -1,6 +1,6 @@
-# JvTerm Transport API (`:jvterm-transport-api`)
+# KetraTerm Transport API (`:ketraterm-transport-api`)
 
-The `jvterm-transport-api` module defines the transport-neutral, highly performant connection contracts between terminal runtimes and host byte-streams.
+The `ketraterm-transport-api` module defines the transport-neutral, highly performant connection contracts between terminal runtimes and host byte-streams.
 
 It is designed with strict **Single Responsibility Principles (SRP)** and serves as a **pure vocabulary module**. It has no knowledge of byte-stream parsing, escape-sequence interpretation, grid physics, input event encoding, rendering caches, or platform-specific pseudo-terminal (PTY) mechanisms. This separation keeps the core abstraction lightweight, decoupled, and easily mockable for deterministic unit testing.
 
@@ -39,15 +39,15 @@ classDiagram
 ```
 
 ### Key Components:
-* [TerminalConnector](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-transport-api/src/main/kotlin/io/github/jvterm/transport/TerminalConnector.kt): Represents a transport-neutral, duplex communication channel to a terminal host.
-* [TerminalConnectorListener](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-transport-api/src/main/kotlin/io/github/jvterm/transport/TerminalConnectorListener.kt): Callback event sink for incoming raw bytes and transport lifecycle updates.
+* [TerminalConnector](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-transport-api/src/main/kotlin/io/github/ketraterm/transport/TerminalConnector.kt): Represents a transport-neutral, duplex communication channel to a terminal host.
+* [TerminalConnectorListener](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-transport-api/src/main/kotlin/io/github/ketraterm/transport/TerminalConnectorListener.kt): Callback event sink for incoming raw bytes and transport lifecycle updates.
 
 ---
 
 ## Sub-Documentation
 
 For deep-dive technical details on threading invariants and lifecycle states:
-* [connector-lifecycle.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-transport-api/docs/connector-lifecycle.md) - Startup/shutdown transitions, concurrent writes, and synchronous consumption invariants.
+* [connector-lifecycle.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-transport-api/docs/connector-lifecycle.md) - Startup/shutdown transitions, concurrent writes, and synchronous consumption invariants.
 
 ---
 

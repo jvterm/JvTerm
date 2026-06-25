@@ -18,7 +18,7 @@ package io.github.ketraterm.protocol
 import io.github.ketraterm.protocol.keyboard.KittyKeyboardProgressiveFlag
 
 /**
- * JVTerm's advertised terminal identity and capability contract.
+ * KetraTerm's advertised terminal identity and capability contract.
  *
  * These values are shared vocabulary for launch environments and
  * terminal-to-host query responses. They are intentionally conservative:

@@ -15,7 +15,7 @@
  */
 package io.github.ketraterm.app.ui
 
-import io.github.ketraterm.app.config.JvTermSettings
+import io.github.ketraterm.app.config.KetraTermSettings
 import io.github.ketraterm.ui.swing.api.SwingHostServices
 import io.github.ketraterm.ui.swing.api.SwingScrollbarAdapter
 import io.github.ketraterm.ui.swing.api.SwingTerminal
@@ -35,7 +35,7 @@ internal class TerminalPane private constructor(
     val tab: TerminalWorkspaceTab,
     val terminal: SwingTerminal,
     val component: JPanel,
-    private val settings: JvTermSettings,
+    private val settings: KetraTermSettings,
 ) {
     fun requestFocus() {
         terminal.requestFocusInWindow()
@@ -54,7 +54,7 @@ internal class TerminalPane private constructor(
     internal companion object {
         fun create(
             tab: TerminalWorkspaceTab,
-            settings: JvTermSettings,
+            settings: KetraTermSettings,
             onContextMenu: (TerminalPane, Int, Int) -> Unit,
         ): TerminalPane {
             val scrollbar = JScrollBar(Adjustable.VERTICAL)

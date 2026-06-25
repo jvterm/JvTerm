@@ -16,8 +16,8 @@
 package io.github.ketraterm.intellij.services
 
 import com.intellij.openapi.project.Project
-import io.github.ketraterm.intellij.settings.JvTermIntellijSettings
-import io.github.ketraterm.intellij.settings.JvTermIntellijSettingsNormalizer
+import io.github.ketraterm.intellij.settings.KetraTermIntellijSettings
+import io.github.ketraterm.intellij.settings.KetraTermIntellijSettingsNormalizer
 import io.github.ketraterm.workspace.TerminalProfile
 import io.github.ketraterm.workspace.TerminalProfileRegistry
 import java.nio.file.Path
@@ -25,7 +25,7 @@ import java.nio.file.Path
 /**
  * Creates launch profiles for IntelliJ-hosted local terminal tabs.
  */
-internal object JvTermDefaultProfileFactory {
+internal object KetraTermDefaultProfileFactory {
     /**
      * Creates the default profile for [project].
      *
@@ -37,7 +37,7 @@ internal object JvTermDefaultProfileFactory {
      */
     fun defaultProfile(
         project: Project,
-        settings: JvTermIntellijSettings.State = JvTermIntellijSettings.getInstance().state,
+        settings: KetraTermIntellijSettings.State = KetraTermIntellijSettings.getInstance().state,
     ): TerminalProfile = defaultProfile(project.basePath, settings)
 
     /**
@@ -49,15 +49,15 @@ internal object JvTermDefaultProfileFactory {
      */
     fun defaultProfile(
         basePath: String?,
-        settings: JvTermIntellijSettings.State = JvTermIntellijSettings.State(),
+        settings: KetraTermIntellijSettings.State = KetraTermIntellijSettings.State(),
     ): TerminalProfile {
-        val normalized = JvTermIntellijSettingsNormalizer.normalize(settings)
+        val normalized = KetraTermIntellijSettingsNormalizer.normalize(settings)
         val workingDirectory = workingDirectory(basePath, normalized.startDirectory)
         return TerminalProfileRegistry()
             .configuredProfile(normalized.shellPath, workingDirectory)
             .copy(
                 displayName = normalized.defaultTabName,
-                environment = JvTermIntellijSettingsNormalizer.parseEnvironmentVariables(normalized.environmentVariables),
+                environment = KetraTermIntellijSettingsNormalizer.parseEnvironmentVariables(normalized.environmentVariables),
             )
     }
 
@@ -72,7 +72,7 @@ internal object JvTermDefaultProfileFactory {
     fun profileForSelectedShell(
         project: Project,
         profile: TerminalProfile,
-        settings: JvTermIntellijSettings.State = JvTermIntellijSettings.getInstance().state,
+        settings: KetraTermIntellijSettings.State = KetraTermIntellijSettings.getInstance().state,
     ): TerminalProfile = profileForSelectedShell(project.basePath, profile, settings)
 
     /**
@@ -86,12 +86,12 @@ internal object JvTermDefaultProfileFactory {
     fun profileForSelectedShell(
         basePath: String?,
         profile: TerminalProfile,
-        settings: JvTermIntellijSettings.State = JvTermIntellijSettings.State(),
+        settings: KetraTermIntellijSettings.State = KetraTermIntellijSettings.State(),
     ): TerminalProfile {
-        val normalized = JvTermIntellijSettingsNormalizer.normalize(settings)
+        val normalized = KetraTermIntellijSettingsNormalizer.normalize(settings)
         return profile.copy(
             workingDirectory = workingDirectory(basePath, normalized.startDirectory),
-            environment = JvTermIntellijSettingsNormalizer.parseEnvironmentVariables(normalized.environmentVariables),
+            environment = KetraTermIntellijSettingsNormalizer.parseEnvironmentVariables(normalized.environmentVariables),
         )
     }
 

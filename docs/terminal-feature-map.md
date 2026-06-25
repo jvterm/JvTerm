@@ -1,8 +1,8 @@
 # Terminal Feature Map
 
-This document catalogs every supported terminal feature, protocol, and capability in JvTerm.
+This document catalogs every supported terminal feature, protocol, and capability in KetraTerm.
 
-For a detailed backlog of gaps and intentional non-goals, see the [Terminal Feature Gap Map](file:///c:/Users/gagik/IdeaProjects/JvTerm/docs/terminal-feature-gap-map.md).
+For a detailed backlog of gaps and intentional non-goals, see the [Terminal Feature Gap Map](file:///c:/Users/gagik/IdeaProjects/KetraTerm/docs/terminal-feature-gap-map.md).
 
 ---
 
@@ -57,7 +57,7 @@ For a detailed backlog of gaps and intentional non-goals, see the [Terminal Feat
 - **Desktop Notifications**:
   - **iTerm2 Style (`OSC 9`)**: Triggers a notification body payload (`OSC 9 ; message ST` or `BEL`).
   - **urxvt Style (`OSC 777`)**: Triggers a notification with separate title and body (`OSC 777 ; notify ; title ; body ST` or `BEL`).
-  - **Extended Severity Protocol**: Optional fourth parameter (`OSC 777 ; notify ; title ; body ; level ST`) accepting `info` (standard info icon), `warning` (warning icon), `error` (error icon), or `none` (renders the custom JVTerm `>` symbol instead of OS defaults).
+  - **Extended Severity Protocol**: Optional fourth parameter (`OSC 777 ; notify ; title ; body ; level ST`) accepting `info` (standard info icon), `warning` (warning icon), `error` (error icon), or `none` (renders the custom KetraTerm `>` symbol instead of OS defaults).
   - **Operational Policies**: Explicitly filters ConEmu conflicting subcommands (skips digits `0-4`, `9` after `OSC 9;`). Protects the system tray by reusing a single `TrayIcon` instance on the EDT with a self-cleaning **10-second** inactivity cleanup timer. Clamps parameters to a maximum title length of 256 characters and body of 1024 characters.
 - **Capability Queries (DCS)**:
   - **DECRQSS**: Queries active SGR attributes (`m`), top/bottom scroll regions (`r`), left/right margins (`s`), and cursor shape configurations (`q`).
@@ -67,9 +67,9 @@ For a detailed backlog of gaps and intentional non-goals, see the [Terminal Feat
 
 ## 4. Query-Response Channels
 
-- **Host Security Policy**: Host-affecting terminal controls are gated at the `jvterm-host` adapter boundary before they mutate host metadata, call host event sinks, alter palette state, or enqueue terminal-to-host response bytes. `HostPolicy` provides explicit controls for title/icon updates, OSC 8 hyperlinks, OSC 7 current-working-directory reports, desktop notifications, window manipulation requests, OSC palette controls, terminal response channels, and clipboard request auditing. Implemented controls default to allowed for compatibility, while OSC 52 clipboard I/O remains disabled unless a product host explicitly builds on the permission/audit surface. Host-owned payloads are bounded per feature, including title clamp/reject policy, hyperlink URIs/IDs and registry size, notification title/body text, and OSC 7 directory URI length.
+- **Host Security Policy**: Host-affecting terminal controls are gated at the `ketraterm-host` adapter boundary before they mutate host metadata, call host event sinks, alter palette state, or enqueue terminal-to-host response bytes. `HostPolicy` provides explicit controls for title/icon updates, OSC 8 hyperlinks, OSC 7 current-working-directory reports, desktop notifications, window manipulation requests, OSC palette controls, terminal response channels, and clipboard request auditing. Implemented controls default to allowed for compatibility, while OSC 52 clipboard I/O remains disabled unless a product host explicitly builds on the permission/audit surface. Host-owned payloads are bounded per feature, including title clamp/reject policy, hyperlink URIs/IDs and registry size, notification title/body text, and OSC 7 directory URI length.
 - **OSC 52 Clipboard Policy Surface**: OSC 52 clipboard requests are parsed as bounded semantic requests and evaluated by a deny-by-default host policy. The policy models local vs remote session origin, independent local and remote write permissions (`deny`, `prompt`, `allowlist`, or `allow`), disabled read/query behavior by default, an allowlisted-session marker owned by product hosts, and a maximum decoded payload size. Host audit events report operation type, selection, origin, encoded length, decoded byte count, limit, and decision without including clipboard contents. The adapter does not perform clipboard I/O or emit clipboard read responses; blind terminal writes remain unsupported.
-- **Terminal Capability Identity**: A shared `TerminalCapabilityIdentity` contract owns all advertised identity constants used by launch environments and terminal query responses. JVTerm currently advertises `$TERM=xterm-256color`, `COLORTERM=truecolor`, primary DA `CSI ? 1 ; 2 c`, secondary DA `CSI > 0 ; 0 ; 0 c`, XTGETTCAP `TN`/`name=xterm-256color`, `Co`/`colors=256`, boolean `RGB`/`Tc`, and the implemented Kitty keyboard progressive flag mask. DA3 remains silent to avoid stable unit-id fingerprinting, and `CSI ? u` Kitty keyboard capability query responses remain disabled until a response policy is implemented.
+- **Terminal Capability Identity**: A shared `TerminalCapabilityIdentity` contract owns all advertised identity constants used by launch environments and terminal query responses. KetraTerm currently advertises `$TERM=xterm-256color`, `COLORTERM=truecolor`, primary DA `CSI ? 1 ; 2 c`, secondary DA `CSI > 0 ; 0 ; 0 c`, XTGETTCAP `TN`/`name=xterm-256color`, `Co`/`colors=256`, boolean `RGB`/`Tc`, and the implemented Kitty keyboard progressive flag mask. DA3 remains silent to avoid stable unit-id fingerprinting, and `CSI ? u` Kitty keyboard capability query responses remain disabled until a response policy is implemented.
 - **Operating Status**: Responds operating status `CSI 0 n` on `DSR 5`.
 - **Cursor Position Reports**: Responds active coordinate position on `CPR` / `DSR 6`.
 - **Device Attributes**: VT100-compatible primary attribute response (`DA`) and generic secondary attribute response (`DA2`).

@@ -52,7 +52,7 @@ interface TerminalResponseChannel : TerminalHostResponseReader {
      * Enqueues a device attributes (DA) report response.
      *
      * Response identity values are governed by the shared terminal capability
-     * identity contract in `jvterm-protocol`; DA3 remains silent by policy.
+     * identity contract in `ketraterm-protocol`; DA3 remains silent by policy.
      *
      * @param kind The device attributes query type (primary, secondary, or tertiary).
      * @param parameter The request parameter/subtype (usually 0).

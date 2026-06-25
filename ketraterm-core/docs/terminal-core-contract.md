@@ -1,8 +1,8 @@
 # Terminal Core Contract
 
-This document defines the public behavioral contract of `:jvterm-core`.
+This document defines the public behavioral contract of `:ketraterm-core`.
 
-It is the handoff boundary for future `:jvterm-parser` and `:jvterm-input`
+It is the handoff boundary for future `:ketraterm-parser` and `:ketraterm-input`
 modules. If code outside the core depends on behavior not described here, that
 behavior is not yet guaranteed.
 
@@ -80,7 +80,7 @@ Not guaranteed:
 - deciding whether a codepoint is a combining mark, variation selector, or ZWJ
   continuation
 
-Those belong to `:jvterm-parser`.
+Those belong to `:ketraterm-parser`.
 
 ### Erase and edit commands
 
@@ -133,7 +133,7 @@ The core does not save or restore:
 - locking shifts
 - parser-owned shift state
 
-Those remain parser state and must be handled outside `:jvterm-core`.
+Those remain parser state and must be handled outside `:ketraterm-core`.
 
 If no save slot exists, `restoreCursor()` falls back to the core's documented
 absolute home plus pen reset behavior.
@@ -308,4 +308,4 @@ Likely to evolve before 1.0:
 - parser-facing docs around charset ownership and Unicode ingestion
 
 The runtime semantics described in this document are the current intended
-contract for integrating `:jvterm-parser` and `:jvterm-input`.
+contract for integrating `:ketraterm-parser` and `:ketraterm-input`.

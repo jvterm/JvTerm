@@ -22,9 +22,9 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.content.Content
-import io.github.ketraterm.intellij.settings.JvTermIntellijSettings
-import io.github.ketraterm.intellij.ui.JvTermTerminalPane
-import io.github.ketraterm.intellij.ui.JvTermTerminalStartupView
+import io.github.ketraterm.intellij.settings.KetraTermIntellijSettings
+import io.github.ketraterm.intellij.ui.KetraTermTerminalPane
+import io.github.ketraterm.intellij.ui.KetraTermTerminalStartupView
 import io.github.ketraterm.protocol.NotificationLevel
 import io.github.ketraterm.ui.swing.settings.SwingSettings
 import io.github.ketraterm.workspace.*
@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import javax.swing.JPanel
 
 /**
- * Project-level owner for IntelliJ-hosted JvTerm tabs and sessions.
+ * Project-level owner for IntelliJ-hosted KetraTerm tabs and sessions.
  *
  * The service adapts IntelliJ `Content` tabs to the host-neutral
  * [TerminalWorkspace]. Closing an IDE tab disposes the corresponding pane and
@@ -42,12 +42,12 @@ import javax.swing.JPanel
  * @property project IntelliJ project that owns this terminal workspace.
  */
 @Service(Service.Level.PROJECT)
-class JvTermProjectTerminalService(
+class KetraTermProjectTerminalService(
     private val project: Project,
 ) : Disposable {
     private val contentsByTabId = LinkedHashMap<String, Content>()
     private val pendingTabsById = LinkedHashMap<String, PendingTerminalTab>()
-    private val panesByTabId = LinkedHashMap<String, JvTermTerminalPane>()
+    private val panesByTabId = LinkedHashMap<String, KetraTermTerminalPane>()
     private val workspace = TerminalWorkspace(IntellijWorkspaceListener())
     private val workspaceLock = Any()
     private val nextPendingTabNumber = AtomicInteger(1)
@@ -56,7 +56,7 @@ class JvTermProjectTerminalService(
     private var disposed = false
 
     init {
-        JvTermIntellijSettings.getInstance().addChangeListener(settingsChangedListener)
+        KetraTermIntellijSettings.getInstance().addChangeListener(settingsChangedListener)
     }
 
     /**
@@ -81,11 +81,11 @@ class JvTermProjectTerminalService(
      * @return created content tab containing either a pending, running, or failure state.
      */
     fun openDefaultTab(toolWindow: ToolWindow): Content {
-        check(!disposed) { "JvTerm project terminal service is disposed" }
+        check(!disposed) { "KetraTerm project terminal service is disposed" }
 
-        val settingsService = JvTermIntellijSettings.getInstance()
+        val settingsService = KetraTermIntellijSettings.getInstance()
         val settingsState = settingsService.state
-        val profile = JvTermDefaultProfileFactory.defaultProfile(project, settingsState)
+        val profile = KetraTermDefaultProfileFactory.defaultProfile(project, settingsState)
         val settings = settingsService.current()
         return openTab(toolWindow, profile, settings)
     }
@@ -101,12 +101,12 @@ class JvTermProjectTerminalService(
         toolWindow: ToolWindow,
         profile: TerminalProfile,
     ): Content {
-        check(!disposed) { "JvTerm project terminal service is disposed" }
+        check(!disposed) { "KetraTerm project terminal service is disposed" }
 
-        val settingsState = JvTermIntellijSettings.getInstance().state
+        val settingsState = KetraTermIntellijSettings.getInstance().state
         val configuredProfile =
-            JvTermDefaultProfileFactory.profileForSelectedShell(project, profile, settingsState)
-        val settings = JvTermIntellijSettings.getInstance().current()
+            KetraTermDefaultProfileFactory.profileForSelectedShell(project, profile, settingsState)
+        val settings = KetraTermIntellijSettings.getInstance().current()
         return openTab(toolWindow, configuredProfile, settings)
     }
 
@@ -119,7 +119,7 @@ class JvTermProjectTerminalService(
         val container =
             JPanel(BorderLayout()).apply {
                 border = null
-                add(JvTermTerminalStartupView.starting(profile.displayName), BorderLayout.CENTER)
+                add(KetraTermTerminalStartupView.starting(profile.displayName), BorderLayout.CENTER)
             }
         val contentManager = toolWindow.contentManager
         val content =
@@ -165,7 +165,7 @@ class JvTermProjectTerminalService(
         for (pane in panes) {
             pane.close()
         }
-        JvTermIntellijSettings.getInstance().removeChangeListener(settingsChangedListener)
+        KetraTermIntellijSettings.getInstance().removeChangeListener(settingsChangedListener)
         synchronized(workspaceLock) {
             workspace.close()
         }
@@ -233,7 +233,7 @@ class JvTermProjectTerminalService(
         pendingTab: PendingTerminalTab,
         workspaceTab: TerminalWorkspaceTab,
     ) {
-        val pane = JvTermTerminalPane.create(workspaceTab)
+        val pane = KetraTermTerminalPane.create(workspaceTab)
         replaceContent(pendingTab.container, pane.component)
         pendingTab.content.displayName = workspaceTab.title
         pendingTab.content.preferredFocusableComponent = pane.terminal
@@ -251,7 +251,7 @@ class JvTermProjectTerminalService(
         pendingTab.content.displayName = "Failed: $profileName"
         replaceContent(
             pendingTab.container,
-            JvTermTerminalStartupView.failure(profileName, error),
+            KetraTermTerminalStartupView.failure(profileName, error),
         )
     }
 
@@ -320,7 +320,7 @@ class JvTermProjectTerminalService(
             level: NotificationLevel,
         ) {
             invokeLaterIfAlive {
-                JvTermIntellijNotifier.showNotification(project, title, body, level)
+                KetraTermIntellijNotifier.showNotification(project, title, body, level)
             }
         }
 
@@ -347,7 +347,7 @@ class JvTermProjectTerminalService(
          * @param project IntelliJ project.
          * @return project terminal service.
          */
-        fun getInstance(project: Project): JvTermProjectTerminalService = project.service()
+        fun getInstance(project: Project): KetraTermProjectTerminalService = project.service()
     }
 
     private data class PendingTerminalTab(

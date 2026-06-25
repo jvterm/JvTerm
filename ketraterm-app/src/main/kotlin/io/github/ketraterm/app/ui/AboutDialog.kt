@@ -23,12 +23,12 @@ import javax.swing.*
 import javax.swing.border.EmptyBorder
 
 /**
- * A clean, professional about dialog showcasing the JvTerm Terminal brand,
+ * A clean, professional about dialog showcasing the KetraTerm Terminal brand,
  * version information, and developer credits.
  */
 internal class AboutDialog(
     parent: JFrame,
-) : JDialog(parent, "About JvTerm Terminal", true) {
+) : JDialog(parent, "About KetraTerm Terminal", true) {
     init {
         contentPane = buildAboutPanel()
         defaultCloseOperation = DISPOSE_ON_CLOSE
@@ -78,7 +78,7 @@ internal class AboutDialog(
             }
 
         // SVG Logo
-        val logoIcon = FlatSVGIcon("io/github/jvterm/app/icons/logo.svg", 48, 48)
+        val logoIcon = FlatSVGIcon("io/github/ketraterm/app/icons/logo.svg", 48, 48)
         val logoLabel =
             JLabel(logoIcon).apply {
                 alignmentY = CENTER_ALIGNMENT
@@ -96,7 +96,7 @@ internal class AboutDialog(
             }
 
         val titleLabel =
-            JLabel("JvTerm Terminal").apply {
+            JLabel("KetraTerm Terminal").apply {
                 font = Font("Dialog", Font.BOLD, 20)
                 foreground = Chrome.textPrimary
             }
@@ -194,7 +194,7 @@ internal class AboutDialog(
             val properties = Properties()
             val inputStream: InputStream? =
                 AboutDialog::class.java.classLoader
-                    .getResourceAsStream("io/github/jvterm/app/version.properties")
+                    .getResourceAsStream("io/github/ketraterm/app/version.properties")
             if (inputStream != null) {
                 properties.load(inputStream)
                 properties.getProperty("version") ?: "0.1.0"

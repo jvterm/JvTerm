@@ -238,7 +238,7 @@ class TerminalWorkspaceConfigManager(
 
     private fun generateToml(config: TerminalConfig): String =
         """
-        # JvTerm Terminal Emulator Configuration File
+        # KetraTerm Terminal Emulator Configuration File
         # Power users can edit this file directly to customize behavior.
         # Changes will take effect on next application launch.
 
@@ -402,13 +402,13 @@ class TerminalWorkspaceConfigManager(
             userHome: String = System.getProperty("user.home"),
         ): Path {
             // 1. System property override
-            val sysProp = System.getProperty("jvterm.config.path")
+            val sysProp = System.getProperty("ketraterm.config.path")
             if (!sysProp.isNullOrBlank()) {
                 return Path.of(sysProp)
             }
 
             // 2. Env variable override
-            val envVar = env["JVTERM_CONFIG_PATH"]
+            val envVar = env["KetraTerm_CONFIG_PATH"]
             if (!envVar.isNullOrBlank()) {
                 return Path.of(envVar)
             }
@@ -419,20 +419,20 @@ class TerminalWorkspaceConfigManager(
                 os.contains("windows") -> {
                     val appData = env["APPDATA"]
                     if (!appData.isNullOrBlank()) {
-                        Path.of(appData, "JvTerm", "config.toml")
+                        Path.of(appData, "KetraTerm", "config.toml")
                     } else {
-                        Path.of(userHome, ".config", "jvterm", "config.toml")
+                        Path.of(userHome, ".config", "ketraterm", "config.toml")
                     }
                 }
                 os.contains("mac") -> {
-                    Path.of(userHome, "Library", "Application Support", "JvTerm", "config.toml")
+                    Path.of(userHome, "Library", "Application Support", "KetraTerm", "config.toml")
                 }
                 else -> {
                     val xdgConfig = env["XDG_CONFIG_HOME"]
                     if (!xdgConfig.isNullOrBlank()) {
-                        Path.of(xdgConfig, "jvterm", "config.toml")
+                        Path.of(xdgConfig, "ketraterm", "config.toml")
                     } else {
-                        Path.of(userHome, ".config", "jvterm", "config.toml")
+                        Path.of(userHome, ".config", "ketraterm", "config.toml")
                     }
                 }
             }

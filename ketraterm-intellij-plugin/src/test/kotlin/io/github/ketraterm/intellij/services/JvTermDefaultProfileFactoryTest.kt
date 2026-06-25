@@ -15,7 +15,7 @@
  */
 package io.github.ketraterm.intellij.services
 
-import io.github.ketraterm.intellij.settings.JvTermIntellijSettings
+import io.github.ketraterm.intellij.settings.KetraTermIntellijSettings
 import io.github.ketraterm.workspace.TerminalProfile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -25,10 +25,10 @@ import java.nio.file.Path
 /**
  * Tests for IntelliJ-specific profile defaults that do not require an IDE UI or PTY.
  */
-class JvTermDefaultProfileFactoryTest {
+class KetraTermDefaultProfileFactoryTest {
     @Test
     fun `uses project base path as working directory`() {
-        val profile = JvTermDefaultProfileFactory.defaultProfile("C:\\work\\project")
+        val profile = KetraTermDefaultProfileFactory.defaultProfile("C:\\work\\project")
 
         assertEquals(Path.of("C:\\work\\project"), profile.workingDirectory)
         assertTrue(profile.command.isNotEmpty())
@@ -36,7 +36,7 @@ class JvTermDefaultProfileFactoryTest {
 
     @Test
     fun `falls back to user home when project path is missing`() {
-        val profile = JvTermDefaultProfileFactory.defaultProfile(null)
+        val profile = KetraTermDefaultProfileFactory.defaultProfile(null)
 
         assertEquals(Path.of(System.getProperty("user.home")), profile.workingDirectory)
         assertTrue(profile.command.isNotEmpty())
@@ -45,9 +45,9 @@ class JvTermDefaultProfileFactoryTest {
     @Test
     fun `uses configured start directory before project base path`() {
         val profile =
-            JvTermDefaultProfileFactory.defaultProfile(
+            KetraTermDefaultProfileFactory.defaultProfile(
                 "C:\\work\\project",
-                JvTermIntellijSettings.State(startDirectory = "C:\\work\\project\\tools"),
+                KetraTermIntellijSettings.State(startDirectory = "C:\\work\\project\\tools"),
             )
 
         assertEquals(Path.of("C:\\work\\project\\tools"), profile.workingDirectory)
@@ -56,11 +56,11 @@ class JvTermDefaultProfileFactoryTest {
     @Test
     fun `maps plugin launch settings into terminal profile`() {
         val profile =
-            JvTermDefaultProfileFactory.defaultProfile(
+            KetraTermDefaultProfileFactory.defaultProfile(
                 "C:\\work\\project",
-                JvTermIntellijSettings.State(
+                KetraTermIntellijSettings.State(
                     shellPath = "custom-shell.exe",
-                    environmentVariables = "JVTERM_MODE=plugin\nEMPTY=\nignored",
+                    environmentVariables = "KetraTerm_MODE=plugin\nEMPTY=\nignored",
                     defaultTabName = "Project Shell",
                 ),
             )
@@ -69,7 +69,7 @@ class JvTermDefaultProfileFactoryTest {
         assertEquals(listOf("custom-shell.exe"), profile.command)
         assertEquals(
             mapOf(
-                "JVTERM_MODE" to "plugin",
+                "KetraTerm_MODE" to "plugin",
                 "EMPTY" to "",
             ),
             profile.environment,
@@ -86,12 +86,12 @@ class JvTermDefaultProfileFactoryTest {
             )
 
         val profile =
-            JvTermDefaultProfileFactory.profileForSelectedShell(
+            KetraTermDefaultProfileFactory.profileForSelectedShell(
                 "C:\\work\\project",
                 selectedProfile,
-                JvTermIntellijSettings.State(
+                KetraTermIntellijSettings.State(
                     startDirectory = "C:\\work\\project\\scripts",
-                    environmentVariables = "JVTERM_MODE=profile",
+                    environmentVariables = "KetraTerm_MODE=profile",
                     defaultTabName = "Ignored For Explicit Profile",
                 ),
             )
@@ -99,6 +99,6 @@ class JvTermDefaultProfileFactoryTest {
         assertEquals("PowerShell", profile.displayName)
         assertEquals(listOf("pwsh.exe", "-NoLogo"), profile.command)
         assertEquals(Path.of("C:\\work\\project\\scripts"), profile.workingDirectory)
-        assertEquals(mapOf("JVTERM_MODE" to "profile"), profile.environment)
+        assertEquals(mapOf("KetraTerm_MODE" to "profile"), profile.environment)
     }
 }

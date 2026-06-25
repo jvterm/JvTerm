@@ -1,8 +1,8 @@
 # Terminal PTY Agent Guide
 
-`jvterm-pty` owns local pseudo-terminal process lifecycle and stream wiring.
-It exposes local PTY processes through `jvterm-transport-api` connectors and
-convenience factories that return the shared `jvterm-session` runtime.
+`ketraterm-pty` owns local pseudo-terminal process lifecycle and stream wiring.
+It exposes local PTY processes through `ketraterm-transport-api` connectors and
+convenience factories that return the shared `ketraterm-session` runtime.
 
 ## Boundary
 
@@ -20,7 +20,7 @@ PTY must not:
 - parse escape sequences or inspect parser state.
 - mutate grid/cursor state directly.
 - encode keyboard, paste, focus, or mouse bytes itself.
-- duplicate `jvterm-host` command mapping.
+- duplicate `ketraterm-host` command mapping.
 - expose concurrent access to `DefaultTerminalInputEncoder`.
 
 ## Testing
@@ -32,5 +32,5 @@ behavior. Session-level behavior should go through `TerminalSession` plus a
 Native PTY smoke tests are opt-in because PTY4J startup is platform-sensitive:
 
 ```text
-./gradlew :jvterm-pty:test --tests "io.github.ketraterm.pty.PtyRealProcessTest" "-Dterminal.pty.host=true"
+./gradlew :ketraterm-pty:test --tests "io.github.ketraterm.pty.PtyRealProcessTest" "-Dterminal.pty.host=true"
 ```

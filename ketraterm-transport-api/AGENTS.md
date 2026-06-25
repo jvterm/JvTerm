@@ -1,6 +1,6 @@
 # Terminal Transport API Agent Guide
 
-`jvterm-transport-api` owns the transport-neutral connector contract between
+`ketraterm-transport-api` owns the transport-neutral connector contract between
 terminal sessions and host byte streams.
 
 ## Boundary
@@ -17,5 +17,5 @@ synchronization and terminal-to-host ordering.
 
 ## Testing
 
-Keep contract tests in connector implementations or `jvterm-testkit`. This
+Keep contract tests in connector implementations or `ketraterm-testkit`. This
 module should stay dependency-light and vocabulary-only.

@@ -1,6 +1,6 @@
 # Terminal Benchmarks Agent Guide
 
-`jvterm-benchmarks` owns JMH benchmarks for performance-sensitive terminal
+`ketraterm-benchmarks` owns JMH benchmarks for performance-sensitive terminal
 paths.
 
 ## Boundary
@@ -18,11 +18,11 @@ workload.
 Benchmark code should compile with:
 
 ```text
-./gradlew :jvterm-benchmarks:compileKotlin
+./gradlew :ketraterm-benchmarks:compileKotlin
 ```
 
 Run JMH when performance numbers are needed:
 
 ```text
-./gradlew :jvterm-benchmarks:jmh
+./gradlew :ketraterm-benchmarks:jmh
 ```

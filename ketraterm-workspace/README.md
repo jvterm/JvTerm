@@ -1,17 +1,17 @@
-# JvTerm Workspace (`:jvterm-workspace`)
+# KetraTerm Workspace (`:ketraterm-workspace`)
 
-The `jvterm-workspace` module provides a host-neutral session and tab manager for **JvTerm Terminal**. It coordinates multiple active terminal sessions (tabs) under a unified workspace lifecycle, maps configurations onto file-based profiles, and implements standard TOML-backed settings persistence.
+The `ketraterm-workspace` module provides a host-neutral session and tab manager for **KetraTerm Terminal**. It coordinates multiple active terminal sessions (tabs) under a unified workspace lifecycle, maps configurations onto file-based profiles, and implements standard TOML-backed settings persistence.
 
 This module is designed to be completely decoupled from any specific UI toolkit, serving as the headless state controller for tabbed desktop terminal interfaces or IDE tool windows.
 
 ---
 
 ## Upstream Dependencies
-- **`:jvterm-protocol`** (vocabulary, mode IDs, enums)
-- **`:jvterm-render-api`** (render frame primitives and color palettes)
-- **`:jvterm-transport-api`** (duplex connector contracts)
-- **`:jvterm-session`** (session orchestration and lock loops)
-- **`:jvterm-pty`** (local PTY process management and options)
+- **`:ketraterm-protocol`** (vocabulary, mode IDs, enums)
+- **`:ketraterm-render-api`** (render frame primitives and color palettes)
+- **`:ketraterm-transport-api`** (duplex connector contracts)
+- **`:ketraterm-session`** (session orchestration and lock loops)
+- **`:ketraterm-pty`** (local PTY process management and options)
 
 ---
 
@@ -35,16 +35,16 @@ graph TD
 ```
 
 ### Key Components
-* [TerminalWorkspace](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/src/main/kotlin/io/github/jvterm/workspace/TerminalWorkspace.kt): The main lifecycle manager. Handles opening, selecting, closing, and applying settings updates to all open terminal tabs.
-* [TerminalProfile](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/src/main/kotlin/io/github/jvterm/workspace/TerminalProfile.kt): Describes a launch configuration (command, display name, working directory, environment variables).
-* [TerminalWorkspaceConfigManager](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/src/main/kotlin/io/github/jvterm/workspace/config/TerminalWorkspaceConfigManager.kt): Handles loading and saving TOML-based configurations from OS-specific directories, with automatic parsing backups and value clamping.
+* [TerminalWorkspace](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-workspace/src/main/kotlin/io/github/ketraterm/workspace/TerminalWorkspace.kt): The main lifecycle manager. Handles opening, selecting, closing, and applying settings updates to all open terminal tabs.
+* [TerminalProfile](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-workspace/src/main/kotlin/io/github/ketraterm/workspace/TerminalProfile.kt): Describes a launch configuration (command, display name, working directory, environment variables).
+* [TerminalWorkspaceConfigManager](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-workspace/src/main/kotlin/io/github/ketraterm/workspace/config/TerminalWorkspaceConfigManager.kt): Handles loading and saving TOML-based configurations from OS-specific directories, with automatic parsing backups and value clamping.
 
 ---
 
 ## Sub-Documentation
 
 For detailed specifications on the persistency configuration format and resolution:
-* [profile-config-toml.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-workspace/docs/profile-config-toml.md) - TOML config blocks syntax, configuration properties list, and directory resolution hierarchies per OS.
+* [profile-config-toml.md](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-workspace/docs/profile-config-toml.md) - TOML config blocks syntax, configuration properties list, and directory resolution hierarchies per OS.
 
 ---
 

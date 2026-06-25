@@ -1,6 +1,6 @@
 # Keyboard Input Protocol Vocabulary
 
-This document outlines the low-level constants and structures defined in `jvterm-protocol` to support advanced keyboard input encoding standards, specifically **xterm modifyOtherKeys** and the **Kitty Keyboard Protocol**.
+This document outlines the low-level constants and structures defined in `ketraterm-protocol` to support advanced keyboard input encoding standards, specifically **xterm modifyOtherKeys** and the **Kitty Keyboard Protocol**.
 
 ---
 

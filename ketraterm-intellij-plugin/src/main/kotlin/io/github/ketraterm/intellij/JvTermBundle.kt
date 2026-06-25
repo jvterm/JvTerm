@@ -23,10 +23,10 @@ import java.util.function.Supplier
 private const val BUNDLE = "messages.MyMessageBundle"
 
 /**
- * Typed access point for localized JvTerm plugin messages.
+ * Typed access point for localized KetraTerm plugin messages.
  */
-internal object JvTermBundle {
-    private val instance = DynamicBundle(JvTermBundle::class.java, BUNDLE)
+internal object KetraTermBundle {
+    private val instance = DynamicBundle(KetraTermBundle::class.java, BUNDLE)
 
     /**
      * Resolves a localized message by key.

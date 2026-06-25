@@ -1,10 +1,10 @@
 # Terminal Input Agent Guide
 
-`jvterm-input` owns host-to-terminal input encoding. It converts UI-level key,
+`ketraterm-input` owns host-to-terminal input encoding. It converts UI-level key,
 paste, focus, and mouse events into bytes written to the terminal host input
 stream.
 
-Read `docs/jvterm-input-contract.md` before changing public input behavior.
+Read `docs/ketraterm-input-contract.md` before changing public input behavior.
 
 Keyboard, paste, focus, and cell-coordinate mouse encoding are implemented.
 Richer keyboard protocols and pixel-coordinate mouse reporting remain future
@@ -23,14 +23,14 @@ Input must not:
 
 - parse terminal output bytes or escape sequences.
 - mutate terminal grid, cursor, scrollback, or pen state.
-- depend on `jvterm-parser` or `jvterm-host`.
+- depend on `ketraterm-parser` or `ketraterm-host`.
 - read renderer state, grid arrays, cursor internals, or parser state.
 - invent terminal mode semantics outside core/protocol vocabulary.
 
 The intended dependency shape is:
 
 ```text
-UI adapter -> terminal actor -> jvterm-input -> TerminalHostOutput -> PTY stdin
+UI adapter -> terminal actor -> ketraterm-input -> TerminalHostOutput -> PTY stdin
 parser/core responses -> same terminal actor -> TerminalHostOutput -> PTY stdin
 ```
 
@@ -45,17 +45,17 @@ from core's input-readable API and then encode from that stable value.
 
 ## Current Dependency Note
 
-The target plan refers to a future `:jvterm-core-api` module. This repository
-currently exposes core API types from `:jvterm-core`, so the scaffold depends
-on `:jvterm-core` until that API split exists.
+The target plan refers to a future `:ketraterm-core-api` module. This repository
+currently exposes core API types from `:ketraterm-core`, so the scaffold depends
+on `:ketraterm-core` until that API split exists.
 
 ## Implementation Rules
 
-- Add `TerminalHostOutput` to `:jvterm-protocol` before adding encoders.
+- Add `TerminalHostOutput` to `:ketraterm-protocol` before adding encoders.
 - Keep `KeyboardEncoder` stateless with respect to modes; pass packed mode bits
   into each encode call.
 - Do not add a `TerminalInputModeSnapshot` data class.
-- Do not decode mode bit positions in `:jvterm-input`; use core API helpers.
+- Do not decode mode bit positions in `:ketraterm-input`; use core API helpers.
 - Do not allocate arrays or strings for generated CSI/SS3 sequences on the hot
   path.
 - Keep new protocol work layered behind explicit event vocabulary, policy, and

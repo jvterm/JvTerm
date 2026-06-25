@@ -1,6 +1,6 @@
 # Stable Public Render Attribute Packing
 
-To minimize allocation overhead and maintain a JIT-friendly performance profile, cell attributes in the **JvTerm Terminal** are packed into 64-bit primitive `Long` values.
+To minimize allocation overhead and maintain a JIT-friendly performance profile, cell attributes in the **KetraTerm Terminal** are packed into 64-bit primitive `Long` values.
 
 ---
 

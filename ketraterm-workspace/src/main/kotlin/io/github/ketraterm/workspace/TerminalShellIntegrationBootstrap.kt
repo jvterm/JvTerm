@@ -78,7 +78,7 @@ internal object TerminalShellIntegrationBootstrap {
                 "bash", "bash.exe" -> environment.withWslEnvironmentExport("PROMPT_COMMAND/u")
                 "zsh", "zsh.exe" ->
                     environment
-                        .withWslEnvironmentExport("JVTERM_ORIGINAL_ZDOTDIR/up")
+                        .withWslEnvironmentExport("KetraTerm_ORIGINAL_ZDOTDIR/up")
                         .withWslEnvironmentExport("ZDOTDIR/up")
                 else -> environment
             }
@@ -159,7 +159,7 @@ internal object TerminalShellIntegrationBootstrap {
         val environment =
             profile.environment +
                 mapOf(
-                    "JVTERM_ORIGINAL_ZDOTDIR" to originalZdotdir,
+                    "KetraTerm_ORIGINAL_ZDOTDIR" to originalZdotdir,
                     "ZDOTDIR" to zshDirectory.toString(),
                 )
         return profile.copy(environment = environment)
@@ -291,11 +291,11 @@ internal object TerminalShellIntegrationBootstrap {
 
     private fun zshSourceOriginalStartupFile(fileName: String): String =
         """
-        __jvterm_original_zdotdir=${'$'}{JVTERM_ORIGINAL_ZDOTDIR:-${'$'}HOME}
-        if [[ -n "${'$'}__jvterm_original_zdotdir" && "${'$'}__jvterm_original_zdotdir" != "${'$'}ZDOTDIR" && -r "${'$'}__jvterm_original_zdotdir/$fileName" ]]; then
-            source "${'$'}__jvterm_original_zdotdir/$fileName"
+        __ketraterm_original_zdotdir=${'$'}{KetraTerm_ORIGINAL_ZDOTDIR:-${'$'}HOME}
+        if [[ -n "${'$'}__ketraterm_original_zdotdir" && "${'$'}__ketraterm_original_zdotdir" != "${'$'}ZDOTDIR" && -r "${'$'}__ketraterm_original_zdotdir/$fileName" ]]; then
+            source "${'$'}__ketraterm_original_zdotdir/$fileName"
         fi
-        unset __jvterm_original_zdotdir
+        unset __ketraterm_original_zdotdir
         """.trimIndent()
 
     private fun writeIfChanged(
@@ -309,7 +309,7 @@ internal object TerminalShellIntegrationBootstrap {
     private fun defaultScriptDirectory(): Path =
         Path.of(
             System.getProperty("java.io.tmpdir"),
-            "jvterm-shell-integration",
+            "ketraterm-shell-integration",
             "v1",
         )
 
@@ -325,116 +325,116 @@ internal object TerminalShellIntegrationBootstrap {
 
     private val BASH_PROMPT_COMMAND =
         """
-        if [[ -z ${'$'}{__JVTERM_BASH_SHELL_INTEGRATION_INSTALLED:-} ]]; then
-            __JVTERM_BASH_SHELL_INTEGRATION_INSTALLED=1
-            __jvterm_command_started=0
-            __jvterm_in_prompt=0
-            __jvterm_osc133() { printf '\033]133;%s\a' "${'$'}1"; }
-            __jvterm_hostname=${'$'}{HOSTNAME:-${'$'}(hostname 2>/dev/null)}
-            [[ -n "${'$'}__jvterm_hostname" ]] || __jvterm_hostname=localhost
-            __jvterm_encode_uri_path() {
-                local LC_ALL=C __jvterm_value=${'$'}1 __jvterm_encoded= __jvterm_char __jvterm_hex __jvterm_index
-                for (( __jvterm_index=0; __jvterm_index<${'$'}{${'#'}__jvterm_value}; __jvterm_index++ )); do
-                    __jvterm_char=${'$'}{__jvterm_value:__jvterm_index:1}
-                    case "${'$'}__jvterm_char" in
-                        [a-zA-Z0-9/._~-]) __jvterm_encoded+=${'$'}__jvterm_char ;;
-                        *) printf -v __jvterm_hex '%%%02X' "'${'$'}__jvterm_char"; __jvterm_encoded+=${'$'}__jvterm_hex ;;
+        if [[ -z ${'$'}{__KetraTerm_BASH_SHELL_INTEGRATION_INSTALLED:-} ]]; then
+            __KetraTerm_BASH_SHELL_INTEGRATION_INSTALLED=1
+            __ketraterm_command_started=0
+            __ketraterm_in_prompt=0
+            __ketraterm_osc133() { printf '\033]133;%s\a' "${'$'}1"; }
+            __ketraterm_hostname=${'$'}{HOSTNAME:-${'$'}(hostname 2>/dev/null)}
+            [[ -n "${'$'}__ketraterm_hostname" ]] || __ketraterm_hostname=localhost
+            __ketraterm_encode_uri_path() {
+                local LC_ALL=C __ketraterm_value=${'$'}1 __ketraterm_encoded= __ketraterm_char __ketraterm_hex __ketraterm_index
+                for (( __ketraterm_index=0; __ketraterm_index<${'$'}{${'#'}__ketraterm_value}; __ketraterm_index++ )); do
+                    __ketraterm_char=${'$'}{__ketraterm_value:__ketraterm_index:1}
+                    case "${'$'}__ketraterm_char" in
+                        [a-zA-Z0-9/._~-]) __ketraterm_encoded+=${'$'}__ketraterm_char ;;
+                        *) printf -v __ketraterm_hex '%%%02X' "'${'$'}__ketraterm_char"; __ketraterm_encoded+=${'$'}__ketraterm_hex ;;
                     esac
                 done
-                REPLY=${'$'}__jvterm_encoded
+                REPLY=${'$'}__ketraterm_encoded
             }
-            __jvterm_osc7() {
-                __jvterm_encode_uri_path "${'$'}PWD"
-                printf '\033]7;file://%s%s\a' "${'$'}__jvterm_hostname" "${'$'}REPLY"
+            __ketraterm_osc7() {
+                __ketraterm_encode_uri_path "${'$'}PWD"
+                printf '\033]7;file://%s%s\a' "${'$'}__ketraterm_hostname" "${'$'}REPLY"
             }
-            __jvterm_install_prompt_end() {
+            __ketraterm_install_prompt_end() {
                 case "${'$'}PS1" in
                     *${'$'}'\033]133;B\a'*) ;;
                     *) PS1="${'$'}PS1"${'$'}'\[\033]133;B\a\]' ;;
                 esac
             }
-            __jvterm_prompt_command() {
-                local __jvterm_status=${'$'}?
-                __jvterm_in_prompt=1
-                if [[ ${'$'}{__jvterm_command_started:-0} == 1 ]]; then
-                    __jvterm_osc133 "D;${'$'}__jvterm_status"
-                    __jvterm_command_started=0
+            __ketraterm_prompt_command() {
+                local __ketraterm_status=${'$'}?
+                __ketraterm_in_prompt=1
+                if [[ ${'$'}{__ketraterm_command_started:-0} == 1 ]]; then
+                    __ketraterm_osc133 "D;${'$'}__ketraterm_status"
+                    __ketraterm_command_started=0
                 fi
-                __jvterm_install_prompt_end
-                __jvterm_osc7
-                __jvterm_osc133 A
-                __jvterm_in_prompt=0
-                return ${'$'}__jvterm_status
+                __ketraterm_install_prompt_end
+                __ketraterm_osc7
+                __ketraterm_osc133 A
+                __ketraterm_in_prompt=0
+                return ${'$'}__ketraterm_status
             }
-            __jvterm_preexec() {
-                if [[ ${'$'}{__jvterm_in_prompt:-0} == 1 || ${'$'}{__jvterm_command_started:-0} == 1 ]]; then
+            __ketraterm_preexec() {
+                if [[ ${'$'}{__ketraterm_in_prompt:-0} == 1 || ${'$'}{__ketraterm_command_started:-0} == 1 ]]; then
                     return
                 fi
                 case "${'$'}BASH_COMMAND" in
-                    __jvterm_*|*__jvterm_prompt_command*) return ;;
+                    __ketraterm_*|*__ketraterm_prompt_command*) return ;;
                 esac
-                __jvterm_command_started=1
-                __jvterm_osc133 C
+                __ketraterm_command_started=1
+                __ketraterm_osc133 C
             }
-            trap '__jvterm_preexec' DEBUG
+            trap '__ketraterm_preexec' DEBUG
         fi
-        __jvterm_prompt_command
+        __ketraterm_prompt_command
         """.trimIndent()
 
     internal val FISH_INIT_COMMAND =
         """
-        if not set -q __JVTERM_FISH_SHELL_INTEGRATION_INSTALLED
-            set -g __JVTERM_FISH_SHELL_INTEGRATION_INSTALLED 1
-            set -g __jvterm_fish_command_started 0
-            function __jvterm_osc133 --argument-names marker
+        if not set -q __KetraTerm_FISH_SHELL_INTEGRATION_INSTALLED
+            set -g __KetraTerm_FISH_SHELL_INTEGRATION_INSTALLED 1
+            set -g __ketraterm_fish_command_started 0
+            function __ketraterm_osc133 --argument-names marker
                 printf '\e]133;%s\a' "${'$'}marker"
             end
-            set -g __jvterm_fish_hostname (hostname 2>/dev/null)
-            if test -z "${'$'}__jvterm_fish_hostname"
-                set -g __jvterm_fish_hostname localhost
+            set -g __ketraterm_fish_hostname (hostname 2>/dev/null)
+            if test -z "${'$'}__ketraterm_fish_hostname"
+                set -g __ketraterm_fish_hostname localhost
             end
-            function __jvterm_osc7
+            function __ketraterm_osc7
                 set -l encoded_path (string escape --style=url -- "${'$'}PWD" | string replace -a '%2F' '/' | string replace -a '%2f' '/')
-                printf '\e]7;file://%s%s\a' "${'$'}__jvterm_fish_hostname" "${'$'}encoded_path"
+                printf '\e]7;file://%s%s\a' "${'$'}__ketraterm_fish_hostname" "${'$'}encoded_path"
             end
-            function __jvterm_fish_prompt --on-event fish_prompt
+            function __ketraterm_fish_prompt --on-event fish_prompt
                 set -l code ${'$'}status
-                if test "${'$'}__jvterm_fish_command_started" = 1
-                    __jvterm_osc133 "D;${'$'}code"
-                    set -g __jvterm_fish_command_started 0
+                if test "${'$'}__ketraterm_fish_command_started" = 1
+                    __ketraterm_osc133 "D;${'$'}code"
+                    set -g __ketraterm_fish_command_started 0
                 end
-                __jvterm_osc7
-                __jvterm_osc133 A
+                __ketraterm_osc7
+                __ketraterm_osc133 A
             end
-            function __jvterm_fish_preexec --on-event fish_preexec
-                set -g __jvterm_fish_command_started 1
-                __jvterm_osc133 C
+            function __ketraterm_fish_preexec --on-event fish_preexec
+                set -g __ketraterm_fish_command_started 1
+                __ketraterm_osc133 C
             end
-            function __jvterm_fish_postexec --on-event fish_postexec
+            function __ketraterm_fish_postexec --on-event fish_postexec
                 set -l code ${'$'}status
-                if test "${'$'}__jvterm_fish_command_started" = 1
-                    __jvterm_osc133 "D;${'$'}code"
-                    set -g __jvterm_fish_command_started 0
+                if test "${'$'}__ketraterm_fish_command_started" = 1
+                    __ketraterm_osc133 "D;${'$'}code"
+                    set -g __ketraterm_fish_command_started 0
                 end
             end
-            set -l __jvterm_prompt_end (printf '\e]133;B\a')
-            if not string match -q "*${'$'}__jvterm_prompt_end*" -- "${'$'}SHELL_PROMPT_SUFFIX"
-                set -gx SHELL_PROMPT_SUFFIX "${'$'}SHELL_PROMPT_SUFFIX${'$'}__jvterm_prompt_end"
+            set -l __ketraterm_prompt_end (printf '\e]133;B\a')
+            if not string match -q "*${'$'}__ketraterm_prompt_end*" -- "${'$'}SHELL_PROMPT_SUFFIX"
+                set -gx SHELL_PROMPT_SUFFIX "${'$'}SHELL_PROMPT_SUFFIX${'$'}__ketraterm_prompt_end"
             end
         end
         """.trimIndent()
 
     internal val ZSH_INTEGRATION_SCRIPT =
         """
-        if [[ -z ${'$'}{__JVTERM_ZSH_SHELL_INTEGRATION_INSTALLED:-} ]]; then
-            typeset -g __JVTERM_ZSH_SHELL_INTEGRATION_INSTALLED=1
-            typeset -g __jvterm_zsh_command_started=0
-            function __jvterm_osc133() {
+        if [[ -z ${'$'}{__KetraTerm_ZSH_SHELL_INTEGRATION_INSTALLED:-} ]]; then
+            typeset -g __KetraTerm_ZSH_SHELL_INTEGRATION_INSTALLED=1
+            typeset -g __ketraterm_zsh_command_started=0
+            function __ketraterm_osc133() {
                 printf '\033]133;%s\a' "${'$'}1"
             }
-            typeset -g __jvterm_zsh_hostname=${'$'}{HOST:-${'$'}(hostname 2>/dev/null)}
-            [[ -n "${'$'}__jvterm_zsh_hostname" ]] || __jvterm_zsh_hostname=localhost
-            function __jvterm_zsh_encode_uri_path() {
+            typeset -g __ketraterm_zsh_hostname=${'$'}{HOST:-${'$'}(hostname 2>/dev/null)}
+            [[ -n "${'$'}__ketraterm_zsh_hostname" ]] || __ketraterm_zsh_hostname=localhost
+            function __ketraterm_zsh_encode_uri_path() {
                 local LC_ALL=C value=${'$'}1 encoded='' char hex
                 local -i index
                 for (( index=1; index<=${'$'}{${'#'}value}; index++ )); do
@@ -446,27 +446,27 @@ internal object TerminalShellIntegrationBootstrap {
                 done
                 REPLY=${'$'}encoded
             }
-            function __jvterm_zsh_osc7() {
-                __jvterm_zsh_encode_uri_path "${'$'}PWD"
-                printf '\033]7;file://%s%s\a' "${'$'}__jvterm_zsh_hostname" "${'$'}REPLY"
+            function __ketraterm_zsh_osc7() {
+                __ketraterm_zsh_encode_uri_path "${'$'}PWD"
+                printf '\033]7;file://%s%s\a' "${'$'}__ketraterm_zsh_hostname" "${'$'}REPLY"
             }
-            function __jvterm_zsh_preexec() {
-                __jvterm_zsh_command_started=1
-                __jvterm_osc133 C
+            function __ketraterm_zsh_preexec() {
+                __ketraterm_zsh_command_started=1
+                __ketraterm_osc133 C
             }
-            function __jvterm_zsh_precmd() {
+            function __ketraterm_zsh_precmd() {
                 local code=${'$'}?
-                if [[ ${'$'}__jvterm_zsh_command_started == 1 ]]; then
-                    __jvterm_osc133 "D;${'$'}code"
-                    __jvterm_zsh_command_started=0
+                if [[ ${'$'}__ketraterm_zsh_command_started == 1 ]]; then
+                    __ketraterm_osc133 "D;${'$'}code"
+                    __ketraterm_zsh_command_started=0
                 fi
-                __jvterm_zsh_osc7
-                __jvterm_osc133 A
+                __ketraterm_zsh_osc7
+                __ketraterm_osc133 A
                 return ${'$'}code
             }
             autoload -Uz add-zsh-hook
-            add-zsh-hook preexec __jvterm_zsh_preexec
-            add-zsh-hook precmd __jvterm_zsh_precmd
+            add-zsh-hook preexec __ketraterm_zsh_preexec
+            add-zsh-hook precmd __ketraterm_zsh_precmd
             case "${'$'}PROMPT" in
                 *${'$'}'\033]133;B\a'*) ;;
                 *) PROMPT="${'$'}PROMPT"${'$'}'%{\033]133;B\a%}' ;;
@@ -476,14 +476,14 @@ internal object TerminalShellIntegrationBootstrap {
 
     private val POWERSHELL_SCRIPT =
         """
-        if (-not ${'$'}global:__JvTermShellIntegrationInstalled) {
-            ${'$'}global:__JvTermShellIntegrationInstalled = ${'$'}true
-            ${'$'}global:__JvTermCommandStarted = ${'$'}false
-            ${'$'}global:__JvTermLastExitCodeBeforeCommand = ${'$'}global:LASTEXITCODE
-            function global:__JvTermOsc133([string] ${'$'}Marker) {
+        if (-not ${'$'}global:__KetraTermShellIntegrationInstalled) {
+            ${'$'}global:__KetraTermShellIntegrationInstalled = ${'$'}true
+            ${'$'}global:__KetraTermCommandStarted = ${'$'}false
+            ${'$'}global:__KetraTermLastExitCodeBeforeCommand = ${'$'}global:LASTEXITCODE
+            function global:__KetraTermOsc133([string] ${'$'}Marker) {
                 [Console]::Write(([string][char]27) + ']133;' + ${'$'}Marker + ([string][char]7))
             }
-            function global:__JvTermOsc7 {
+            function global:__KetraTermOsc7 {
                 try {
                     ${'$'}location = Get-Location
                     if (${'$'}location.Provider.Name -ne 'FileSystem') {
@@ -495,25 +495,25 @@ internal object TerminalShellIntegrationBootstrap {
                 } catch {
                 }
             }
-            ${'$'}global:__JvTermOriginalPrompt = (Get-Item Function:\prompt).ScriptBlock
+            ${'$'}global:__KetraTermOriginalPrompt = (Get-Item Function:\prompt).ScriptBlock
             function global:prompt {
                 ${'$'}success = ${'$'}?
                 ${'$'}nativeExitCode = ${'$'}global:LASTEXITCODE
-                if (${'$'}global:__JvTermCommandStarted) {
-                    if (${'$'}nativeExitCode -is [int] -and ${'$'}nativeExitCode -ne ${'$'}global:__JvTermLastExitCodeBeforeCommand) {
+                if (${'$'}global:__KetraTermCommandStarted) {
+                    if (${'$'}nativeExitCode -is [int] -and ${'$'}nativeExitCode -ne ${'$'}global:__KetraTermLastExitCodeBeforeCommand) {
                         ${'$'}exitCode = ${'$'}nativeExitCode
                     } elseif (${'$'}success) {
                         ${'$'}exitCode = 0
                     } else {
                         ${'$'}exitCode = 1
                     }
-                    global:__JvTermOsc133 ('D;' + ${'$'}exitCode)
-                    ${'$'}global:__JvTermCommandStarted = ${'$'}false
+                    global:__KetraTermOsc133 ('D;' + ${'$'}exitCode)
+                    ${'$'}global:__KetraTermCommandStarted = ${'$'}false
                 }
-                global:__JvTermOsc7
-                global:__JvTermOsc133 'A'
+                global:__KetraTermOsc7
+                global:__KetraTermOsc133 'A'
                 try {
-                    ${'$'}promptText = & ${'$'}global:__JvTermOriginalPrompt
+                    ${'$'}promptText = & ${'$'}global:__KetraTermOriginalPrompt
                 } finally {
                     if (${'$'}nativeExitCode -is [int]) {
                         ${'$'}global:LASTEXITCODE = ${'$'}nativeExitCode
@@ -523,13 +523,13 @@ internal object TerminalShellIntegrationBootstrap {
             }
             ${'$'}command = Get-Command PSConsoleHostReadLine -CommandType Function -ErrorAction SilentlyContinue
             if (${'$'}command -ne ${'$'}null) {
-                ${'$'}global:__JvTermOriginalPSConsoleHostReadLine = ${'$'}command.ScriptBlock
+                ${'$'}global:__KetraTermOriginalPSConsoleHostReadLine = ${'$'}command.ScriptBlock
                 function global:PSConsoleHostReadLine {
-                    ${'$'}line = & ${'$'}global:__JvTermOriginalPSConsoleHostReadLine
+                    ${'$'}line = & ${'$'}global:__KetraTermOriginalPSConsoleHostReadLine
                     if (${'$'}line -ne ${'$'}null -and ${'$'}line.Trim().Length -gt 0) {
-                        ${'$'}global:__JvTermLastExitCodeBeforeCommand = ${'$'}global:LASTEXITCODE
-                        ${'$'}global:__JvTermCommandStarted = ${'$'}true
-                        global:__JvTermOsc133 'C'
+                        ${'$'}global:__KetraTermLastExitCodeBeforeCommand = ${'$'}global:LASTEXITCODE
+                        ${'$'}global:__KetraTermCommandStarted = ${'$'}true
+                        global:__KetraTermOsc133 'C'
                     }
                     ${'$'}line
                 }

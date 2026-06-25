@@ -1,6 +1,6 @@
 # ANSI Finite-State Machine & CSI Dispatch Specification
 
-The `jvterm-parser` module implements a high-performance, table-driven ANSI escape-sequence state machine that operates in $O(1)$ state transition time with zero runtime allocations.
+The `ketraterm-parser` module implements a high-performance, table-driven ANSI escape-sequence state machine that operates in $O(1)$ state transition time with zero runtime allocations.
 
 ---
 

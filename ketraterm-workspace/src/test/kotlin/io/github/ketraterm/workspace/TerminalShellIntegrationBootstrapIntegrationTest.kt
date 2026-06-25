@@ -95,7 +95,7 @@ class TerminalShellIntegrationBootstrapIntegrationTest {
                     "--noprofile",
                     "--norc",
                 ),
-                standardInput = "$bootstrap; __jvterm_preexec; false; __jvterm_prompt_command\n",
+                standardInput = "$bootstrap; __ketraterm_preexec; false; __ketraterm_prompt_command\n",
                 workingDirectory = workingDirectory,
             )
 
@@ -128,7 +128,7 @@ class TerminalShellIntegrationBootstrapIntegrationTest {
                 ),
                 environment = integrated.environment,
                 standardInput =
-                    "$bootstrap; __jvterm_preexec; { clear >/dev/null 2>&1 || printf '\\033[H\\033[2J\\033[3J'; }; true; __jvterm_prompt_command; __jvterm_preexec; false; __jvterm_prompt_command\n",
+                    "$bootstrap; __ketraterm_preexec; { clear >/dev/null 2>&1 || printf '\\033[H\\033[2J\\033[3J'; }; true; __ketraterm_prompt_command; __ketraterm_preexec; false; __ketraterm_prompt_command\n",
             )
 
         assertEquals(1, result.exitCode)
@@ -149,7 +149,7 @@ class TerminalShellIntegrationBootstrapIntegrationTest {
                 id = "zsh",
                 displayName = "Zsh",
                 command = listOf(zsh!!),
-                environment = mapOf("JVTERM_ORIGINAL_ZDOTDIR" to originalZdotdir.toString()),
+                environment = mapOf("KetraTerm_ORIGINAL_ZDOTDIR" to originalZdotdir.toString()),
             )
         val integrated = TerminalShellIntegrationBootstrap.apply(profile, enabled = true, scriptDirectory = tempDir)
         val zshrc = Path.of(integrated.environment.getValue("ZDOTDIR")).resolve(".zshrc")
@@ -161,7 +161,7 @@ class TerminalShellIntegrationBootstrapIntegrationTest {
                     "-c",
                     "source ${shellSingleQuote(
                         zshrc.toString(),
-                    )}; __jvterm_zsh_precmd; __jvterm_zsh_preexec false; false; __jvterm_zsh_precmd",
+                    )}; __ketraterm_zsh_precmd; __ketraterm_zsh_preexec false; false; __ketraterm_zsh_precmd",
                 ),
                 environment = integrated.environment,
             )

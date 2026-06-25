@@ -15,7 +15,7 @@
  */
 package io.github.ketraterm.app.ui
 
-import io.github.ketraterm.app.config.JvTermSettings
+import io.github.ketraterm.app.config.KetraTermSettings
 import io.github.ketraterm.host.TerminalClipboardPermission
 import io.github.ketraterm.host.TerminalTitlePermission
 import io.github.ketraterm.ui.swing.settings.SwingSettings
@@ -37,7 +37,7 @@ import javax.swing.border.EmptyBorder
  */
 internal class SettingsDialog(
     parent: JFrame,
-    private val settings: JvTermSettings,
+    private val settings: KetraTermSettings,
     private val profileRegistry: TerminalProfileRegistry,
     private val onApply: () -> Unit,
 ) : JDialog(parent, "Terminal Settings", true) {

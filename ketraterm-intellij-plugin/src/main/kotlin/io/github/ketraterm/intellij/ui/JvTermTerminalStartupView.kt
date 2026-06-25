@@ -25,7 +25,7 @@ import javax.swing.JComponent
 /**
  * Small IDE-native placeholder views shown before a terminal session is bound.
  */
-internal object JvTermTerminalStartupView {
+internal object KetraTermTerminalStartupView {
     /**
      * Creates a lightweight view displayed while a shell is starting.
      *

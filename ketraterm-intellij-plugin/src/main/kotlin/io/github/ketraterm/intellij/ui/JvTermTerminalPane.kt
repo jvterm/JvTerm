@@ -17,7 +17,7 @@ package io.github.ketraterm.intellij.ui
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.ui.components.JBScrollBar
-import io.github.ketraterm.intellij.settings.JvTermIntellijSettings
+import io.github.ketraterm.intellij.settings.KetraTermIntellijSettings
 import io.github.ketraterm.ui.swing.api.SwingHostServices
 import io.github.ketraterm.ui.swing.api.SwingScrollbarAdapter
 import io.github.ketraterm.ui.swing.api.SwingTerminal
@@ -32,9 +32,9 @@ import javax.swing.JPanel
  *
  * This class owns only IDE-side Swing assembly. Painting, selection, input
  * mapping, render-cache consumption, and session mutation remain in reusable
- * JvTerm modules.
+ * KetraTerm modules.
  */
-internal class JvTermTerminalPane private constructor(
+internal class KetraTermTerminalPane private constructor(
     val tab: TerminalWorkspaceTab,
     val terminal: SwingTerminal,
     val component: JPanel,
@@ -52,7 +52,7 @@ internal class JvTermTerminalPane private constructor(
     fun reloadSettings() {
         terminal.reloadSettings()
         component.background = terminal.background
-        tab.session.setHostPolicy(JvTermIntellijSettings.getInstance().createHostPolicy(tab.profile.command))
+        tab.session.setHostPolicy(KetraTermIntellijSettings.getInstance().createHostPolicy(tab.profile.command))
     }
 
     /**
@@ -69,13 +69,13 @@ internal class JvTermTerminalPane private constructor(
          * @param tab workspace tab whose session should be rendered.
          * @return bound terminal pane.
          */
-        fun create(tab: TerminalWorkspaceTab): JvTermTerminalPane {
+        fun create(tab: TerminalWorkspaceTab): KetraTermTerminalPane {
             val scrollbar = JBScrollBar(Adjustable.VERTICAL)
             val scrollbarAdapter = SwingScrollbarAdapter(scrollbar)
 
             val terminal =
                 SwingTerminal(
-                    settingsProvider = { JvTermIntellijSettings.current() },
+                    settingsProvider = { KetraTermIntellijSettings.current() },
                     hostServices =
                         SwingHostServices(
                             viewportListener = scrollbarAdapter,
@@ -99,7 +99,7 @@ internal class JvTermTerminalPane private constructor(
             }
 
             tab.session.notifyRenderDirty()
-            return JvTermTerminalPane(tab, terminal, component)
+            return KetraTermTerminalPane(tab, terminal, component)
         }
 
         private fun configureScrollbar(scrollbar: JBScrollBar) {

@@ -24,7 +24,7 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.panel
-import io.github.ketraterm.intellij.JvTermBundle
+import io.github.ketraterm.intellij.KetraTermBundle
 import io.github.ketraterm.ui.swing.settings.SwingSettings
 import io.github.ketraterm.ui.swing.settings.TerminalTheme
 import io.github.ketraterm.workspace.TerminalProfile
@@ -34,22 +34,22 @@ import java.awt.Component
 import java.util.*
 import javax.swing.*
 
-private const val JVTERM_SETTINGS_CONFIGURABLE_ID = "io.github.ketraterm.terminal.settings"
+private const val KetraTerm_SETTINGS_CONFIGURABLE_ID = "io.github.ketraterm.terminal.settings"
 
 /**
- * IntelliJ-native settings page for IDE-hosted JvTerm terminals.
+ * IntelliJ-native settings page for IDE-hosted KetraTerm terminals.
  *
  * The page intentionally exposes only settings the plugin host can honor.
  * Standalone window-manipulation policy remains outside the IntelliJ UI.
  */
-class JvTermSettingsConfigurable : SearchableConfigurable {
-    private val settings: JvTermIntellijSettings
-        get() = JvTermIntellijSettings.getInstance()
+class KetraTermSettingsConfigurable : SearchableConfigurable {
+    private val settings: KetraTermIntellijSettings
+        get() = KetraTermIntellijSettings.getInstance()
 
     private val themeCombo = ComboBox(themeOptions())
     private val fontFamilyCombo = ComboBox(fontFamilyOptions()).apply { isEditable = false }
     private val fallbackFontFamilyCombo = ComboBox(fontFamilyOptions()).apply { isEditable = false }
-    private val fontSizeSpinner = integerSpinner(JvTermIntellijSettings.DEFAULT_FONT_SIZE, TerminalConfig.FONT_SIZE_MIN, TerminalConfig.FONT_SIZE_MAX)
+    private val fontSizeSpinner = integerSpinner(KetraTermIntellijSettings.DEFAULT_FONT_SIZE, TerminalConfig.FONT_SIZE_MIN, TerminalConfig.FONT_SIZE_MAX)
     private val columnsSpinner = spinner(TerminalConfig.DEFAULT_COLUMNS, TerminalConfig.COLUMNS_MIN, TerminalConfig.COLUMNS_MAX)
     private val rowsSpinner = spinner(TerminalConfig.DEFAULT_ROWS, TerminalConfig.ROWS_MIN, TerminalConfig.ROWS_MAX)
     private val scrollbackSpinner =
@@ -72,18 +72,18 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
     private val environmentVariablesField = JBTextField()
     private val defaultTabNameField = JBTextField()
     private val cursorShapeCombo = ComboBox(cursorShapeOptions())
-    private val ambiguousWidthCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.ambiguousWidth"))
-    private val systemFallbackFontsCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.systemFallbackFonts"))
-    private val visualBellCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.visualBell"))
-    private val pasteOnMiddleClickCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.pasteOnMiddleClick"))
+    private val ambiguousWidthCheckBox = JBCheckBox(KetraTermBundle.message("settings.ketraterm.ambiguousWidth"))
+    private val systemFallbackFontsCheckBox = JBCheckBox(KetraTermBundle.message("settings.ketraterm.systemFallbackFonts"))
+    private val visualBellCheckBox = JBCheckBox(KetraTermBundle.message("settings.ketraterm.visualBell"))
+    private val pasteOnMiddleClickCheckBox = JBCheckBox(KetraTermBundle.message("settings.ketraterm.pasteOnMiddleClick"))
 
     private val pasteSanitizationCombo = ComboBox(pasteSanitizationOptions())
     private val clipboardLocalWriteCombo = ComboBox(permissionOptions())
     private val clipboardRemoteWriteCombo = ComboBox(permissionOptions())
     private val clipboardReadCombo = ComboBox(permissionOptions())
     private val clipboardMaxDecodedBytesSpinner = spinner(TerminalConfig.DEFAULT_CLIPBOARD_MAX_DECODED_BYTES, 0, Int.MAX_VALUE)
-    private val titleLocalPermissionCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.titleLocalPermission"))
-    private val titleRemotePermissionCheckBox = JBCheckBox(JvTermBundle.message("settings.jvterm.titleRemotePermission"))
+    private val titleLocalPermissionCheckBox = JBCheckBox(KetraTermBundle.message("settings.ketraterm.titleLocalPermission"))
+    private val titleRemotePermissionCheckBox = JBCheckBox(KetraTermBundle.message("settings.ketraterm.titleRemotePermission"))
 
     private var panel: JComponent? = null
 
@@ -101,79 +101,79 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
         }
     }
 
-    override fun getId(): String = JVTERM_SETTINGS_CONFIGURABLE_ID
+    override fun getId(): String = KetraTerm_SETTINGS_CONFIGURABLE_ID
 
-    override fun getDisplayName(): String = JvTermBundle.message("settings.jvterm.displayName")
+    override fun getDisplayName(): String = KetraTermBundle.message("settings.ketraterm.displayName")
 
     override fun createComponent(): JComponent {
         val created =
             panel {
-                group(JvTermBundle.message("settings.jvterm.group.session")) {
-                    row(JvTermBundle.message("settings.jvterm.shellPath")) {
+                group(KetraTermBundle.message("settings.ketraterm.group.session")) {
+                    row(KetraTermBundle.message("settings.ketraterm.shellPath")) {
                         cell(shellPathCombo)
                             .align(AlignX.FILL)
                     }
-                    row(JvTermBundle.message("settings.jvterm.startDirectory")) {
+                    row(KetraTermBundle.message("settings.ketraterm.startDirectory")) {
                         cell(startDirectoryField)
                             .align(AlignX.FILL)
-                            .comment(JvTermBundle.message("settings.jvterm.startDirectory.comment"))
+                            .comment(KetraTermBundle.message("settings.ketraterm.startDirectory.comment"))
                     }
-                    row(JvTermBundle.message("settings.jvterm.environmentVariables")) {
+                    row(KetraTermBundle.message("settings.ketraterm.environmentVariables")) {
                         cell(environmentVariablesField)
                             .align(AlignX.FILL)
-                            .comment(JvTermBundle.message("settings.jvterm.environmentVariables.comment"))
+                            .comment(KetraTermBundle.message("settings.ketraterm.environmentVariables.comment"))
                     }
-                    row(JvTermBundle.message("settings.jvterm.defaultTabName")) {
+                    row(KetraTermBundle.message("settings.ketraterm.defaultTabName")) {
                         cell(defaultTabNameField)
                             .align(AlignX.FILL)
                     }
                 }
 
-                group(JvTermBundle.message("settings.jvterm.group.font")) {
+                group(KetraTermBundle.message("settings.ketraterm.group.font")) {
                     row {
-                        label(JvTermBundle.message("settings.jvterm.fontFamily"))
+                        label(KetraTermBundle.message("settings.ketraterm.fontFamily"))
                         cell(fontFamilyCombo)
                             .align(AlignX.FILL)
-                        label(JvTermBundle.message("settings.jvterm.fallbackFontFamily"))
+                        label(KetraTermBundle.message("settings.ketraterm.fallbackFontFamily"))
                         cell(fallbackFontFamilyCombo)
                             .align(AlignX.FILL)
                     }
                     row {
-                        label(JvTermBundle.message("settings.jvterm.fontSize"))
+                        label(KetraTermBundle.message("settings.ketraterm.fontSize"))
                         cell(fontSizeSpinner)
-                        label(JvTermBundle.message("settings.jvterm.lineHeight"))
+                        label(KetraTermBundle.message("settings.ketraterm.lineHeight"))
                         cell(lineHeightSpinner)
                     }
-                    row(JvTermBundle.message("settings.jvterm.theme")) {
+                    row(KetraTermBundle.message("settings.ketraterm.theme")) {
                         cell(themeCombo)
                             .align(AlignX.LEFT)
-                            .comment(JvTermBundle.message("settings.jvterm.theme.comment"))
+                            .comment(KetraTermBundle.message("settings.ketraterm.theme.comment"))
                     }
                     row {
                         cell(systemFallbackFontsCheckBox)
                     }
                 }
 
-                group(JvTermBundle.message("settings.jvterm.group.application")) {
-                    row(JvTermBundle.message("settings.jvterm.initialColumns")) {
+                group(KetraTermBundle.message("settings.ketraterm.group.application")) {
+                    row(KetraTermBundle.message("settings.ketraterm.initialColumns")) {
                         cell(columnsSpinner)
                     }
-                    row(JvTermBundle.message("settings.jvterm.initialRows")) {
+                    row(KetraTermBundle.message("settings.ketraterm.initialRows")) {
                         cell(rowsSpinner)
                     }
-                    row(JvTermBundle.message("settings.jvterm.scrollback")) {
+                    row(KetraTermBundle.message("settings.ketraterm.scrollback")) {
                         cell(scrollbackSpinner)
                     }
-                    row(JvTermBundle.message("settings.jvterm.cursorShape")) {
+                    row(KetraTermBundle.message("settings.ketraterm.cursorShape")) {
                         cell(cursorShapeCombo).align(AlignX.LEFT)
                     }
-                    row(JvTermBundle.message("settings.jvterm.cursorBlink")) {
+                    row(KetraTermBundle.message("settings.ketraterm.cursorBlink")) {
                         cell(cursorBlinkSpinner)
-                            .comment(JvTermBundle.message("settings.jvterm.cursorBlink.comment"))
+                            .comment(KetraTermBundle.message("settings.ketraterm.cursorBlink.comment"))
                     }
                 }
 
-                group(JvTermBundle.message("settings.jvterm.group.behavior")) {
+                group(KetraTermBundle.message("settings.ketraterm.group.behavior")) {
                     row {
                         cell(ambiguousWidthCheckBox)
                     }
@@ -185,20 +185,20 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
                     }
                 }
 
-                group(JvTermBundle.message("settings.jvterm.group.security")) {
-                    row(JvTermBundle.message("settings.jvterm.pasteSanitization")) {
+                group(KetraTermBundle.message("settings.ketraterm.group.security")) {
+                    row(KetraTermBundle.message("settings.ketraterm.pasteSanitization")) {
                         cell(pasteSanitizationCombo).align(AlignX.LEFT)
                     }
-                    row(JvTermBundle.message("settings.jvterm.clipboardLocalWrite")) {
+                    row(KetraTermBundle.message("settings.ketraterm.clipboardLocalWrite")) {
                         cell(clipboardLocalWriteCombo).align(AlignX.LEFT)
                     }
-                    row(JvTermBundle.message("settings.jvterm.clipboardRemoteWrite")) {
+                    row(KetraTermBundle.message("settings.ketraterm.clipboardRemoteWrite")) {
                         cell(clipboardRemoteWriteCombo).align(AlignX.LEFT)
                     }
-                    row(JvTermBundle.message("settings.jvterm.clipboardRead")) {
+                    row(KetraTermBundle.message("settings.ketraterm.clipboardRead")) {
                         cell(clipboardReadCombo).align(AlignX.LEFT)
                     }
-                    row(JvTermBundle.message("settings.jvterm.clipboardMaxDecodedBytes")) {
+                    row(KetraTermBundle.message("settings.ketraterm.clipboardMaxDecodedBytes")) {
                         cell(clipboardMaxDecodedBytesSpinner)
                     }
                     row {
@@ -215,8 +215,8 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
     }
 
     override fun isModified(): Boolean =
-        JvTermIntellijSettingsNormalizer.normalize(uiState()) !=
-            JvTermIntellijSettingsNormalizer.normalize(settings.state)
+        KetraTermIntellijSettingsNormalizer.normalize(uiState()) !=
+            KetraTermIntellijSettingsNormalizer.normalize(settings.state)
 
     override fun apply() {
         settings.replaceState(uiState())
@@ -230,8 +230,8 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
         panel = null
     }
 
-    private fun applyState(state: JvTermIntellijSettings.State) {
-        val normalized = JvTermIntellijSettingsNormalizer.normalize(state)
+    private fun applyState(state: KetraTermIntellijSettings.State) {
+        val normalized = KetraTermIntellijSettingsNormalizer.normalize(state)
         themeCombo.selectedItem = themeOptions().first { it.id == normalized.themeId }
         fontFamilyCombo.selectedItem = normalized.fontFamily
         fallbackFontFamilyCombo.selectedItem = normalized.fallbackFontFamily
@@ -259,8 +259,8 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
         titleRemotePermissionCheckBox.isSelected = normalized.titleRemotePermission == "allow"
     }
 
-    private fun uiState(): JvTermIntellijSettings.State =
-        JvTermIntellijSettings.State(
+    private fun uiState(): KetraTermIntellijSettings.State =
+        KetraTermIntellijSettings.State(
             themeId = selectedThemeId(),
             fontFamily = selectedString(fontFamilyCombo),
             fallbackFontFamily = selectedString(fallbackFontFamilyCombo),
@@ -289,7 +289,7 @@ class JvTermSettingsConfigurable : SearchableConfigurable {
         )
 
     private fun selectedThemeId(): String =
-        (themeCombo.selectedItem as? ThemeOption)?.id ?: JvTermIntellijSettings.DEFAULT_THEME_ID
+        (themeCombo.selectedItem as? ThemeOption)?.id ?: KetraTermIntellijSettings.DEFAULT_THEME_ID
 
     private fun selectedCursorShapeId(): String =
         (cursorShapeCombo.selectedItem as? CursorShapeOption)?.id ?: "block"
@@ -354,7 +354,7 @@ private data class ShellPathOption(
 }
 
 private class ShellPathOptionRenderer : DefaultListCellRenderer() {
-    private val profileIcons = JvTermIntellijProfileIcons()
+    private val profileIcons = KetraTermIntellijProfileIcons()
 
     override fun getListCellRendererComponent(
         list: JList<*>?,
@@ -381,7 +381,7 @@ private class ShellPathOptionRenderer : DefaultListCellRenderer() {
 
 private fun fontFamilyOptions(): Array<String> =
     LinkedHashSet<String>().apply {
-        add(JvTermIntellijSettings.DEFAULT_FONT_FAMILY)
+        add(KetraTermIntellijSettings.DEFAULT_FONT_FAMILY)
         addAll(SwingSettings.getMonospaceFontFamilies())
     }.toTypedArray()
 
@@ -406,8 +406,8 @@ private fun String.shellPathMatches(shellPath: String): Boolean {
 private fun themeOptions(): Array<ThemeOption> =
     arrayOf(
         ThemeOption(
-            JvTermIntellijSettings.DEFAULT_THEME_ID,
-            JvTermBundle.message("settings.jvterm.theme.intellij"),
+            KetraTermIntellijSettings.DEFAULT_THEME_ID,
+            KetraTermBundle.message("settings.ketraterm.theme.intellij"),
         ),
         *TerminalTheme.entries
             .map { theme ->
@@ -423,9 +423,9 @@ private fun themeOptions(): Array<ThemeOption> =
 
 private fun cursorShapeOptions(): Array<CursorShapeOption> =
     arrayOf(
-        CursorShapeOption("block", JvTermBundle.message("settings.jvterm.cursorShape.block")),
-        CursorShapeOption("beam", JvTermBundle.message("settings.jvterm.cursorShape.beam")),
-        CursorShapeOption("underline", JvTermBundle.message("settings.jvterm.cursorShape.underline")),
+        CursorShapeOption("block", KetraTermBundle.message("settings.ketraterm.cursorShape.block")),
+        CursorShapeOption("beam", KetraTermBundle.message("settings.ketraterm.cursorShape.beam")),
+        CursorShapeOption("underline", KetraTermBundle.message("settings.ketraterm.cursorShape.underline")),
     )
 
 private data class PermissionOption(
@@ -437,10 +437,10 @@ private data class PermissionOption(
 
 private fun permissionOptions(): Array<PermissionOption> =
     arrayOf(
-        PermissionOption("allow", JvTermBundle.message("settings.jvterm.permission.allow")),
-        PermissionOption("prompt", JvTermBundle.message("settings.jvterm.permission.prompt")),
-        PermissionOption("allowlist", JvTermBundle.message("settings.jvterm.permission.allowlist")),
-        PermissionOption("deny", JvTermBundle.message("settings.jvterm.permission.deny")),
+        PermissionOption("allow", KetraTermBundle.message("settings.ketraterm.permission.allow")),
+        PermissionOption("prompt", KetraTermBundle.message("settings.ketraterm.permission.prompt")),
+        PermissionOption("allowlist", KetraTermBundle.message("settings.ketraterm.permission.allowlist")),
+        PermissionOption("deny", KetraTermBundle.message("settings.ketraterm.permission.deny")),
     )
 
 
@@ -454,7 +454,7 @@ private data class PasteSanitizationOption(
 
 private fun pasteSanitizationOptions(): Array<PasteSanitizationOption> =
     arrayOf(
-        PasteSanitizationOption("raw", JvTermBundle.message("settings.jvterm.pasteSanitization.raw")),
-        PasteSanitizationOption("strip-c0", JvTermBundle.message("settings.jvterm.pasteSanitization.stripC0")),
-        PasteSanitizationOption("normalize-line-endings", JvTermBundle.message("settings.jvterm.pasteSanitization.normalize")),
+        PasteSanitizationOption("raw", KetraTermBundle.message("settings.ketraterm.pasteSanitization.raw")),
+        PasteSanitizationOption("strip-c0", KetraTermBundle.message("settings.ketraterm.pasteSanitization.stripC0")),
+        PasteSanitizationOption("normalize-line-endings", KetraTermBundle.message("settings.ketraterm.pasteSanitization.normalize")),
     )

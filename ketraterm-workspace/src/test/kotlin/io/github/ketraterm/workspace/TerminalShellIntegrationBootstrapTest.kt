@@ -64,7 +64,7 @@ class TerminalShellIntegrationBootstrapTest {
     fun `PowerShell bootstrap restores native exit code even when user prompt fails`() {
         val script = integratedPowerShellScript()
 
-        assertTrue(script.indexOf("try {") < script.indexOf("\$promptText = & \$global:__JvTermOriginalPrompt"))
+        assertTrue(script.indexOf("try {") < script.indexOf("\$promptText = & \$global:__KetraTermOriginalPrompt"))
         assertTrue(script.indexOf("} finally {") < script.indexOf("\$global:LASTEXITCODE = \$nativeExitCode"))
         assertTrue(script.contains("\$global:LASTEXITCODE = \$nativeExitCode"))
     }
@@ -142,9 +142,9 @@ class TerminalShellIntegrationBootstrapTest {
 
         assertEquals(profile.command, integrated.command)
         val promptCommand = integrated.environment.getValue("PROMPT_COMMAND")
-        assertTrue(promptCommand.contains("__jvterm_prompt_command"))
+        assertTrue(promptCommand.contains("__ketraterm_prompt_command"))
         assertTrue(promptCommand.contains("]133;"))
-        assertTrue(promptCommand.contains("__jvterm_osc7"))
+        assertTrue(promptCommand.contains("__ketraterm_osc7"))
         assertTrue(promptCommand.contains("'%%%02X'"))
         assertTrue(promptCommand.endsWith("history -a"))
     }
@@ -161,7 +161,7 @@ class TerminalShellIntegrationBootstrapTest {
         val integrated = TerminalShellIntegrationBootstrap.apply(profile, enabled = true)
 
         assertEquals(profile.command, integrated.command)
-        assertTrue(integrated.environment.getValue("PROMPT_COMMAND").contains("__jvterm_preexec"))
+        assertTrue(integrated.environment.getValue("PROMPT_COMMAND").contains("__ketraterm_preexec"))
     }
 
     @Test
@@ -195,13 +195,13 @@ class TerminalShellIntegrationBootstrapTest {
         val zshDirectory = tempDir.resolve("zsh")
 
         assertEquals(profile.command, integrated.command)
-        assertEquals(originalZdotdir.toString(), integrated.environment.getValue("JVTERM_ORIGINAL_ZDOTDIR"))
+        assertEquals(originalZdotdir.toString(), integrated.environment.getValue("KetraTerm_ORIGINAL_ZDOTDIR"))
         assertEquals(zshDirectory.toString(), integrated.environment.getValue("ZDOTDIR"))
         assertTrue(zshDirectory.resolve(".zshenv").exists())
         assertTrue(zshDirectory.resolve(".zprofile").exists())
-        assertTrue(zshDirectory.resolve(".zshrc").readText().contains("__jvterm_zsh_preexec"))
+        assertTrue(zshDirectory.resolve(".zshrc").readText().contains("__ketraterm_zsh_preexec"))
         assertTrue(zshDirectory.resolve(".zshrc").readText().contains("]133;"))
-        assertTrue(zshDirectory.resolve(".zshrc").readText().contains("__jvterm_zsh_osc7"))
+        assertTrue(zshDirectory.resolve(".zshrc").readText().contains("__ketraterm_zsh_osc7"))
         assertTrue(zshDirectory.resolve(".zshrc").readText().contains("'%%%02X'"))
         assertTrue(zshDirectory.resolve(".zlogin").exists())
         assertTrue(zshDirectory.resolve(".zlogout").exists())
@@ -236,9 +236,9 @@ class TerminalShellIntegrationBootstrapTest {
         val integrated = TerminalShellIntegrationBootstrap.apply(profile, enabled = true)
 
         assertEquals(listOf("/usr/bin/fish", "-l", "--init-command"), integrated.command.dropLast(1))
-        assertTrue(integrated.command.last().contains("__jvterm_fish_preexec"))
+        assertTrue(integrated.command.last().contains("__ketraterm_fish_preexec"))
         assertTrue(integrated.command.last().contains("]133;"))
-        assertTrue(integrated.command.last().contains("__jvterm_osc7"))
+        assertTrue(integrated.command.last().contains("__ketraterm_osc7"))
         assertTrue(integrated.command.last().contains("string escape --style=url"))
     }
 
@@ -305,7 +305,7 @@ class TerminalShellIntegrationBootstrapTest {
 
         assertEquals(profile.command, integrated.command)
         assertEquals(tempDir.resolve("zsh").toString(), integrated.environment["ZDOTDIR"])
-        assertEquals("JVTERM_ORIGINAL_ZDOTDIR/up:ZDOTDIR/up", integrated.environment["WSLENV"])
+        assertEquals("KetraTerm_ORIGINAL_ZDOTDIR/up:ZDOTDIR/up", integrated.environment["WSLENV"])
         assertTrue(tempDir.resolve("zsh/.zshrc").toFile().isFile)
     }
 

@@ -1,12 +1,12 @@
 # Render Frame Lifecycle & Concurrency Invariants
 
-The `jvterm-render-api` defines a pull-based visual frame reading model designed for high concurrency safety, zero heap allocations on hot paths, and absolute isolation from internal terminal storage mutation.
+The `ketraterm-render-api` defines a pull-based visual frame reading model designed for high concurrency safety, zero heap allocations on hot paths, and absolute isolation from internal terminal storage mutation.
 
 ---
 
 ## 1. Frame Reader & Consumer Synchronization
 
-Render frame reading is orchestrated through the [TerminalRenderFrameReader](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-api/src/main/kotlin/io/github/jvterm/render/api/TerminalRenderFrameReader.kt) and [TerminalRenderFrameConsumer](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-render-api/src/main/kotlin/io/github/jvterm/render/api/TerminalRenderFrameConsumer.kt) contracts.
+Render frame reading is orchestrated through the [TerminalRenderFrameReader](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-render-api/src/main/kotlin/io/github/ketraterm/render/api/TerminalRenderFrameReader.kt) and [TerminalRenderFrameConsumer](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-render-api/src/main/kotlin/io/github/ketraterm/render/api/TerminalRenderFrameConsumer.kt) contracts.
 
 ```
        TerminalSession Thread                UI/Render Thread

@@ -1,6 +1,6 @@
 # Terminal Parser Agent Guide
 
-`jvterm-parser` turns a terminal host byte stream into semantic terminal
+`ketraterm-parser` turns a terminal host byte stream into semantic terminal
 commands. It is a parser and text segmenter, not a grid engine.
 
 ## Parser Boundary

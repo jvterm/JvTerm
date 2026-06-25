@@ -1,6 +1,6 @@
 # Session Concurrency & Locking Invariants
 
-The `jvterm-session` module acts as the synchronization pipeline coordinator that integrates the terminal core, host transport, and input encoding. It manages concurrency using a three-tier locking system:
+The `ketraterm-session` module acts as the synchronization pipeline coordinator that integrates the terminal core, host transport, and input encoding. It manages concurrency using a three-tier locking system:
 
 ---
 
@@ -19,11 +19,11 @@ The `jvterm-session` module acts as the synchronization pipeline coordinator tha
 
 ### A. `inboundLock`
 * **Purpose**: Serializes execution of parser byte ingestion.
-* **Scope**: Guards the [onBytes](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-session/src/main/kotlin/io/github/jvterm/session/TerminalSession.kt#L271) callback thread. It ensures that only one byte block from the transport is processed by the parser FSM at a time, preventing split-escape corruptions.
+* **Scope**: Guards the [onBytes](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-session/src/main/kotlin/io/github/ketraterm/session/TerminalSession.kt#L271) callback thread. It ensures that only one byte block from the transport is processed by the parser FSM at a time, preventing split-escape corruptions.
 
 ### B. `mutationLock`
 * **Purpose**: Serializes all terminal grid, pen, and mode state mutations.
-* **Scope**: Guards the execution of [HostCommandAdapter](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/jvterm-host/src/main/kotlin/io/github/jvterm/host/HostCommandAdapter.kt) commands, terminal resizes, theme palette changes, and cursor shape settings.
+* **Scope**: Guards the execution of [HostCommandAdapter](file:///c:/Users/gagik/IdeaProjects/terminal-buffer/ketraterm-host/src/main/kotlin/io/github/ketraterm/host/HostCommandAdapter.kt) commands, terminal resizes, theme palette changes, and cursor shape settings.
 * **Deadlock Protection**: Implementations of `TerminalRenderFrameReader.readRenderFrame` acquire the `mutationLock` to provide a stable, thread-safe snapshot to the render consumer. Because of this, consumers **must not** block or call mutating APIs during a frame read callback.
 
 ### C. `outboundWriteLock`
