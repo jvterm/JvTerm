@@ -73,8 +73,8 @@ These are not badges of compatibility for this project. They expand attack surfa
 - `TODO(parser)`: save/restore state parity between DEC and SCO cursor save forms, if compatibility requires it.
 
 ### OSC Protocols
-- `DONE(parser/host/session/pty/workspace/ui/policy)`: OSC 52 clipboard write requests are bounded, parsed, denied by default, size-checked, origin-aware, surfaced as content-free host audit events, forwarded as decoded text to product-host clipboard callbacks only when policy allows the write, and forwarded to standalone/IntelliJ confirmation dialogs when policy requires a prompt.
-- `TODO(host/ui/policy)`: OSC 52 allowlist management UI, non-clipboard selection mapping, and any read/query response path remain unimplemented until product hosts explicitly opt in.
+- `DONE(parser/host/session/pty/workspace/ui/policy)`: OSC 52 clipboard write requests are bounded, parsed, denied by default, size-checked, origin-aware, surfaced as content-free host audit events, forwarded as decoded text to product-host clipboard callbacks only when policy allows the write, and forwarded to compact standalone/IntelliJ confirmation dialogs when policy requires a prompt. Product prompts use terminal profile names, character counts for text writes, and clear-clipboard wording for empty writes instead of exposing raw OSC 52 selection tokens.
+- `TODO(host/ui/policy)`: OSC 52 allowlist management UI, non-clipboard selection mapping, and any read/query response path remain unimplemented until product hosts explicitly opt in. Standalone and IntelliJ settings intentionally hide the `allowlist` option until a product-owned allowlist can persist entries and set `TerminalClipboardPolicy.allowlisted`.
 - `TODO(parser)`: OSC 1337/iTerm2 extensions, if desired.
 - `TODO(parser)`: OSC query responses. Requires terminal-to-host output.
 - `TODO(parser)`: payload encoding policy for non-UTF-8 or invalid UTF-8 OSC data.
@@ -156,7 +156,7 @@ These are not badges of compatibility for this project. They expand attack surfa
 
 ## Security and Policy Gaps
 
-- `DONE(policy/host/ui)`: OSC 52 clipboard permission model covers local vs remote origin, deny/prompt/allowlist/allow write decisions, disabled read/query behavior, decoded payload limits, malformed payload rejection, content-free audit events, allowed write execution through product-host clipboard callbacks, and prompt-mode write confirmation in standalone plus IntelliJ hosts.
+- `DONE(policy/host/ui)`: OSC 52 clipboard permission model covers local vs remote origin, deny/prompt/allowlist/allow write decisions, disabled read/query behavior, decoded payload limits, malformed payload rejection, content-free audit events, allowed write execution through product-host clipboard callbacks, and prompt-mode write confirmation in standalone plus IntelliJ hosts. Standalone and IntelliJ expose only currently actionable write/read modes in settings while retaining low-level allowlist enforcement for future product allowlists.
 - `TODO(host/ui/policy)`: OSC 52 allowlist management UI, selection-specific clipboard targets beyond the host clipboard, and read/query responses remain intentionally absent.
 - `TODO(policy)`: richer hyperlink validation and display policy beyond host resource limits, host allow/deny gating, and Swing's explicit-activation handler.
 - `DONE(host/policy)`: host-owned metadata and response controls have explicit policy gates and per-feature host caps for titles, hyperlinks, OSC 7 current-working-directory reports, notifications, palette controls, window manipulation, and terminal response channels.
