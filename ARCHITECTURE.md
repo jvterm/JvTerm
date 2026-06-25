@@ -1,27 +1,27 @@
-# JvTerm Terminal Pipeline Architecture
+# KetraTerm Terminal Pipeline Architecture
 
-This document describes the design principles, unidirectional data flow, concurrency architecture, and data structures of **JvTerm Terminal**.
+This document describes the design principles, unidirectional data flow, concurrency architecture, and data structures of **KetraTerm**.
 
 ---
 
 ## High-Level Architecture & Unidirectional Flow
 
-JvTerm separates terminal operations into a strict, unidirectional data pipeline to ensure complete decoupling of SSH/PTY I/O, byte parsing, screen-state mutation, and visual painting.
+KetraTerm separates terminal operations into a strict, unidirectional data pipeline to ensure complete decoupling of SSH/PTY I/O, byte parsing, screen-state mutation, and visual painting.
 
 ```
   Inbound Path (Host to Screen State):
-  ┌─────────────┐  Raw Bytes  ┌─────────────────┐  Commands  ┌──────────────────────┐  Mutations  ┌───────────────┐
-  │ PTY / SSH   ├────────────►│ jvterm-parser   ├───────────►│ jvterm-host          ├────────────►│ jvterm-core   │
-  └─────────────┘             └─────────────────┘            └──────────────────────┘             └───────┬───────┘
+  ┌─────────────┐  Raw Bytes  ┌────────────────────┐  Commands  ┌───────────────────┐  Mutations  ┌───────────────┐
+  │ PTY / SSH   ├────────────►│ ketraterm-parser   ├───────────►│ ketraterm-host    ├────────────►│ ketraterm-core│
+  └─────────────┘             └────────────────────┘            └───────────────────┘             └───────┬───────┘
                                                                                                  Snapshot │ 
   Rendering Path (Triple-Buffered):                                                                       ▼
   ┌────────────────┐  Repaint   ┌───────────────────┐  Lease  ┌───────────────────────┐  copyLine  ┌───────────────┐
-  │ Swing Component│ ◄──────────┤ jvterm-ui-swing   ├────────►│ jvterm-render-cache   │◄───────────┤ Render API    │
+  │ Swing Component│ ◄──────────┤ ketraterm-ui-swing├────────►│ ketraterm-render-cache│◄───────────┤ Render API    │
   └────────────────┘            └───────────────────┘         └───────────────────────┘            └───────────────┘
   
   Outbound Path (User to Host stdin):
   ┌─────────────┐  Key/Paste  ┌─────────────────┐  ANSI Bytes┌──────────────────────┐  write()    ┌───────────────┐
-  │ User Event  ├────────────►│ jvterm-input    ├───────────►│ jvterm-session       ├────────────►│ PTY / SSH     │
+  │ User Event  ├────────────►│ ketraterm-input ├───────────►│ ketraterm-session    ├────────────►│ PTY / SSH     │
   └─────────────┘             └─────────────────┘            └──────────────────────┘             └───────────────┘
 ```
 
@@ -31,22 +31,22 @@ The pipeline coordination is managed by `TerminalSession` using a thread-safe, a
 
 ## Module Responsibility Matrix
 
-The JvTerm codebase is partitioned into highly specialized modules with strict boundaries:
+The KetraTerm codebase is partitioned into highly specialized modules with strict boundaries:
 
 | Module | Purpose & Core Responsibility | What It Owns | What It Does NOT Own |
 | :--- | :--- | :--- | :--- |
-| [**jvterm-protocol**](./jvterm-protocol) | Shared Vocabulary | C0/C1 constants, `AnsiMode`, `DecPrivateMode`, mouse modes, `TerminalHostOutput` | Has no execution logic or sub-dependencies. |
-| [**jvterm-parser**](./jvterm-parser) | Stream Parsing | UTF-8 streaming decoder, table-driven `AnsiStateMachine`, DEC charset remapping, UAX #29 segmentation | Has no grid physics, cursor calculations, or UI state. |
-| [**jvterm-core**](./jvterm-core) | Headless Grid Engine | Circular scrollback history, parallel array cells (`Line`), wide-character erasure, margins, resizing reflow | Has no byte stream parsing, input encoding, or UI code. |
-| [**jvterm-host**](./jvterm-host) | Translation Adapter | `HostCommandAdapter`, SGR Pen state, OSC 8 Hyperlink LRU registry, DECSTR/RIS resets | Has no byte parsing or state duplication. |
-| [**jvterm-input**](./jvterm-input) | Event Encoding | Key arrow/numpad maps, xterm `modifyOtherKeys`, SGR/legacy mouse coordinate mapping, bracketed paste | Has no screen mutation or output parsing logic. |
-| [**jvterm-render-api**](./jvterm-render-api) | Rendering Contract | Viewport frame models, cursor shapes, cell state flags (`TerminalRenderCellFlags`), packed color ARGB resolution | Has no UI frame painting or glyph metrics. |
-| [**jvterm-render-cache**](./jvterm-render-cache) | Frame Snapshotting | `TerminalRenderCache` double-buffering, `TerminalRenderPublisher` triple-buffering | Agnostic to UI paint platforms (AWT/Swing/Compose). |
-| [**jvterm-transport-api**](./jvterm-transport-api) | Duplex Channel Contract | `TerminalConnector` interface, connection callbacks, size change signaling | Has no thread policies or payload inspection. |
-| [**jvterm-session**](./jvterm-session) | Pipeline Sync & Event Loop | Synchronized `mutationLock` and `outboundWriteLock`, daemon `renderWorker` coalescing, fast UTF-8 encoder | Does not own transport background threads or paint loops. |
-| [**jvterm-pty**](./jvterm-pty) | Native Process Host | Cross-platform Pty4J management, daemon reader/watcher threads, system default shell detection | Has no input encoding or grid cell mutations. |
-| [**jvterm-ui-swing**](./jvterm-ui-swing) | Swing Component | `SwingTerminal` component, bifurcated text rendering, smart double-click path selection | Has no shell process awareness or protocol parsing. |
-| [**jvterm-testkit**](./jvterm-testkit) | Testing Fakes | In-memory `MockConnector`, outbound write capture, remote crash/exit simulators | Has no physical thread spawning or shell requirements. |
+| [**ketraterm-protocol**](./ketraterm-protocol) | Shared Vocabulary | C0/C1 constants, `AnsiMode`, `DecPrivateMode`, mouse modes, `TerminalHostOutput` | Has no execution logic or sub-dependencies. |
+| [**ketraterm-parser**](./ketraterm-parser) | Stream Parsing | UTF-8 streaming decoder, table-driven `AnsiStateMachine`, DEC charset remapping, UAX #29 segmentation | Has no grid physics, cursor calculations, or UI state. |
+| [**ketraterm-core**](./ketraterm-core) | Headless Grid Engine | Circular scrollback history, parallel array cells (`Line`), wide-character erasure, margins, resizing reflow | Has no byte stream parsing, input encoding, or UI code. |
+| [**ketraterm-host**](./ketraterm-host) | Translation Adapter | `HostCommandAdapter`, SGR Pen state, OSC 8 Hyperlink LRU registry, DECSTR/RIS resets | Has no byte parsing or state duplication. |
+| [**ketraterm-input**](./ketraterm-input) | Event Encoding | Key arrow/numpad maps, xterm `modifyOtherKeys`, SGR/legacy mouse coordinate mapping, bracketed paste | Has no screen mutation or output parsing logic. |
+| [**ketraterm-render-api**](./ketraterm-render-api) | Rendering Contract | Viewport frame models, cursor shapes, cell state flags (`TerminalRenderCellFlags`), packed color ARGB resolution | Has no UI frame painting or glyph metrics. |
+| [**ketraterm-render-cache**](./ketraterm-render-cache) | Frame Snapshotting | `TerminalRenderCache` double-buffering, `TerminalRenderPublisher` triple-buffering | Agnostic to UI paint platforms (AWT/Swing/Compose). |
+| [**ketraterm-transport-api**](./ketraterm-transport-api) | Duplex Channel Contract | `TerminalConnector` interface, connection callbacks, size change signaling | Has no thread policies or payload inspection. |
+| [**ketraterm-session**](./ketraterm-session) | Pipeline Sync & Event Loop | Synchronized `mutationLock` and `outboundWriteLock`, daemon `renderWorker` coalescing, fast UTF-8 encoder | Does not own transport background threads or paint loops. |
+| [**ketraterm-pty**](./ketraterm-pty) | Native Process Host | Cross-platform Pty4J management, daemon reader/watcher threads, system default shell detection | Has no input encoding or grid cell mutations. |
+| [**ketraterm-ui-swing**](./ketraterm-ui-swing) | Swing Component | `SwingTerminal` component, bifurcated text rendering, smart double-click path selection | Has no shell process awareness or protocol parsing. |
+| [**ketraterm-testkit**](./ketraterm-testkit) | Testing Fakes | In-memory `MockConnector`, outbound write capture, remote crash/exit simulators | Has no physical thread spawning or shell requirements. |
 
 ---
 
@@ -76,7 +76,7 @@ To avoid object-boxing during high-speed rendering ticks, custom, primitive-keye
 * `AwtColorCache`: Maps packed 32-bit ARGB integers to `java.awt.Color` instances.
 
 ### 3. High-Fidelity Resizing & Reflow
-During terminal resizes, JvTerm uses a 3-phase reflow strategy in `TerminalResizer`:
+During terminal resizes, KetraTerm uses a 3-phase reflow strategy in `TerminalResizer`:
 1. **Logical Row Rebuilding**: Re-assembles full logical lines by joining physical rows that carry the soft-wrap flag.
 2. **Re-wrapping**: Re-calculates wrap boundaries and folds character arrays according to new column dimensions.
 3. **Cluster Deep-Copying**: Moves survived cluster indices into a pristine `ClusterStore` arena to prevent references from leaking or fragmentation.
@@ -88,4 +88,4 @@ During terminal resizes, JvTerm uses a 3-phase reflow strategy in `TerminalResiz
 We treat terminal testing as a critical engineering discipline:
 1. **Assert Real Semantics**: Tests assert standard-aligned ANSI/DEC protocol states and real screen results, rather than current parser implementation quirks.
 2. **Deterministic Multi-threading**: The host and session test suites employ synchronized latches to stress-test high-volume updates, proving that resizes, writes, and renders are race-free.
-3. **In-Memory Fakes**: By leveraging `:jvterm-testkit`'s `MockConnector`, developers can run complete, bidirectional I/O host tests with exact byte assertions, completely independent of local OS PTY subsystems.
+3. **In-Memory Fakes**: By leveraging `:ketraterm-testkit`'s `MockConnector`, developers can run complete, bidirectional I/O host tests with exact byte assertions, completely independent of local OS PTY subsystems.

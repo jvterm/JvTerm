@@ -11,31 +11,31 @@ for the module you touch.
 
 The project is split into strict layers:
 
-- `jvterm-protocol`: shared protocol constants and small vocabulary types with
+- `ketraterm-protocol`: shared protocol constants and small vocabulary types with
   no dependency on parser, core, host, or input.
-- `jvterm-parser`: byte stream to semantic terminal commands.
-- `jvterm-core`: headless terminal state, grid physics, modes, attributes,
+- `ketraterm-parser`: byte stream to semantic terminal commands.
+- `ketraterm-core`: headless terminal state, grid physics, modes, attributes,
   scrollback, width policy, and storage.
-- `jvterm-host`: adapters that map parser semantic commands to core
+- `ketraterm-host`: adapters that map parser semantic commands to core
   APIs.
-- `jvterm-input`: host-bound input encoding for keyboard, paste, focus, and
+- `ketraterm-input`: host-bound input encoding for keyboard, paste, focus, and
   future mouse reports.
-- `jvterm-render-api`: dependency-free primitive render frame, cursor, cell,
+- `ketraterm-render-api`: dependency-free primitive render frame, cursor, cell,
   cluster, and attribute vocabulary.
-- `jvterm-render-cache`: renderer-side cache that copies primitive render
+- `ketraterm-render-cache`: renderer-side cache that copies primitive render
   frames for UI consumers.
-- `jvterm-transport-api`: dependency-free connector contract for byte-stream
+- `ketraterm-transport-api`: dependency-free connector contract for byte-stream
   transports.
-- `jvterm-session`: runtime synchronization point that connects transport,
+- `ketraterm-session`: runtime synchronization point that connects transport,
   parser, host, core response queues, and input encoding.
-- `jvterm-ui-swing`: reusable Swing terminal UI component, painting,
+- `ketraterm-ui-swing`: reusable Swing terminal UI component, painting,
   selection, input event handling, clipboard/font/settings abstractions, and
   viewport/scrollbar model.
-- `jvterm-ui-swing-demo`: standalone Swing demo host that wires the reusable
+- `ketraterm-ui-swing-demo`: standalone Swing demo host that wires the reusable
   UI component to a local PTY-backed session for manual testing.
-- `jvterm-testkit`: reusable public test fakes for connector/session tests.
-- `jvterm-pty`: local PTY process lifecycle exposed as transport connectors.
-- `jvterm-benchmarks`: JMH benchmarks for performance-sensitive terminal
+- `ketraterm-testkit`: reusable public test fakes for connector/session tests.
+- `ketraterm-pty`: local PTY process lifecycle exposed as transport connectors.
+- `ketraterm-benchmarks`: JMH benchmarks for performance-sensitive terminal
   paths.
 
 Keep these boundaries intact:
@@ -63,10 +63,10 @@ Keep these boundaries intact:
 - Swing UI displays and interacts. It must not import IntelliJ APIs, contain
   PTY-specific code, parse terminal output, or know whether bytes come from PTY,
   SSH, tests, or another transport.
-  It may use `jvterm-input` event vocabulary but must send encoded intent
+  It may use `ketraterm-input` event vocabulary but must send encoded intent
   through `TerminalSession` rather than writing host bytes directly.
 - Swing demo hosts. It may start PTY sessions and create windows, but reusable
-  rendering and input behavior still belong in `jvterm-ui-swing`.
+  rendering and input behavior still belong in `ketraterm-ui-swing`.
 - PTY hosts. It starts local pseudo-terminal processes and exposes them through
   `TerminalConnector`. It must not parse protocols, encode input itself, or
   mutate core internals.
@@ -153,16 +153,16 @@ A change is not done until:
 
 - Full test suite: `./gradlew test`
 - Format Kotlin and Gradle files: `./gradlew spotlessApply`
-- Parser tests: `./gradlew :jvterm-parser:test`
-- Core tests: `./gradlew :jvterm-core:test`
-- Integration tests: `./gradlew :jvterm-host:test`
-- Session tests: `./gradlew :jvterm-session:test`
-- Render cache tests: `./gradlew :jvterm-render-cache:test`
-- Swing UI tests: `./gradlew :jvterm-ui-swing:test`
-- Swing UI demo: `./gradlew :jvterm-ui-swing-demo:run`
-  - Custom shell: `./gradlew :jvterm-ui-swing-demo:run --args="cmd.exe"`
-- PTY tests: `./gradlew :jvterm-pty:test`
-- Benchmarks: `./gradlew :jvterm-benchmarks:jmh`
+- Parser tests: `./gradlew :ketraterm-parser:test`
+- Core tests: `./gradlew :ketraterm-core:test`
+- Integration tests: `./gradlew :ketraterm-host:test`
+- Session tests: `./gradlew :ketraterm-session:test`
+- Render cache tests: `./gradlew :ketraterm-render-cache:test`
+- Swing UI tests: `./gradlew :ketraterm-ui-swing:test`
+- Swing UI demo: `./gradlew :ketraterm-ui-swing-demo:run`
+  - Custom shell: `./gradlew :ketraterm-ui-swing-demo:run --args="cmd.exe"`
+- PTY tests: `./gradlew :ketraterm-pty:test`
+- Benchmarks: `./gradlew :ketraterm-benchmarks:jmh`
 
 In sandboxed sessions, Gradle may need approval because wrapper/cache writes can
 leave the workspace.
@@ -171,6 +171,6 @@ leave the workspace.
 
 - Feature directory: `docs/terminal-feature-map.md`
 - Feature backlog: `docs/terminal-feature-gap-map.md`
-- Core contract: `jvterm-core/docs/terminal-core-contract.md`
+- Core contract: `ketraterm-core/docs/terminal-core-contract.md`
 - Project skills index: `docs/agent-skills.md`
 - Repo-local Codex skills: `.agents/skills/*/SKILL.md`

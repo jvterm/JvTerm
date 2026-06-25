@@ -1,8 +1,8 @@
-# JvTerm Terminal
+# KetraTerm Terminal
 
-**JvTerm** (derived from **JVM** + **Terminal**) is a next-generation, high-performance, strictly modular terminal emulator library written in **Kotlin/JVM 21**.
+**KetraTerm**  is a next-generation, high-performance, strictly modular terminal emulator library written in **Kotlin/JVM 21**.
 
-Designed for embedding into IDEs, developer tools, and standalone desktop applications, JvTerm provides a clean, fast, and modern terminal architecture. It rejects the bloated legacy compatibility of the 1980s (like printer passthroughs or Tektronix vector graphics) to focus on contemporary shells and text-user interfaces (TUIs).
+Designed for embedding into IDEs, developer tools, and standalone desktop applications, KetraTerm provides a clean, fast, and modern terminal architecture. It rejects the bloated legacy compatibility of the 1980s (like printer passthroughs or Tektronix vector graphics) to focus on contemporary shells and text-user interfaces (TUIs).
 
 
 ---
@@ -19,7 +19,7 @@ Designed for embedding into IDEs, developer tools, and standalone desktop applic
 * **Pixel-Perfect Typography & Color Emojis**: Integrates UAX #29 grapheme cluster segmentation, East Asian width policies, custom fallback font chains, and prioritized OS color emojis (Apple, Segoe, Noto). Programmatically paints box-drawing and block characters to eliminate anti-aliased line gaps.
 * **Zero-Allocation Memory Profile**: Core grid storage is built on flat parallel primitive arrays (no object-per-cell overhead) and a circular arena allocator (`ClusterStore`), ensuring near-zero garbage collector pressure and pauses during active shell throughput.
 * **Independent Buffer & Margin Physics**: Employs vertical and horizontal scroll margins (`DECSLRM`/`DECSTBM`) with instant switching between primary and alt buffers (`?1049`) carrying independent margins and cursor state save slots.
-* **Native Desktop Notifications**: Fully supports native desktop notifications triggered directly via iTerm2-style `OSC 9` and urxvt-style `OSC 777` sequences, featuring a JVTerm-specific severity extension (`info`, `warning`, `error`, `none`), ConEmu subcommand conflict filtering, and self-cleaning tray icon management.
+* **Native Desktop Notifications**: Fully supports native desktop notifications triggered directly via iTerm2-style `OSC 9` and urxvt-style `OSC 777` sequences, featuring a KetraTerm-specific severity extension (`info`, `warning`, `error`, `none`), ConEmu subcommand conflict filtering, and self-cleaning tray icon management.
 
 > For a complete specification of all supported capabilities, see the [Terminal Feature Map](docs/terminal-feature-map.md). A detailed list of current backlog items and compatibility decisions is maintained in the [Terminal Feature Gap Map](docs/terminal-feature-gap-map.md)
 
@@ -31,11 +31,11 @@ Designed for embedding into IDEs, developer tools, and standalone desktop applic
 Integrating a local shell into a Swing application requires only a few lines of configuration:
 
 ```kotlin
-import io.github.jvterm.pty.TerminalSessions
-import io.github.jvterm.pty.PtyOptions
-import io.github.jvterm.ui.swing.api.SwingTerminal
-import io.github.jvterm.ui.swing.settings.SwingSettings
-import io.github.jvterm.ui.swing.settings.TerminalTheme
+import io.github.ketraterm.pty.TerminalSessions
+import io.github.ketraterm.pty.PtyOptions
+import io.github.ketraterm.ui.swing.api.SwingTerminal
+import io.github.ketraterm.ui.swing.settings.SwingSettings
+import io.github.ketraterm.ui.swing.settings.TerminalTheme
 import java.awt.BorderLayout
 import javax.swing.JFrame
 
@@ -65,7 +65,7 @@ fun spawnTerminalWindow() {
     terminalComponent.bind(session)
 
     // 5. Host it in a standard JFrame layout
-    val frame = JFrame("JvTerm Terminal")
+    val frame = JFrame("KetraTerm Terminal")
     frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
     frame.layout = BorderLayout()
     frame.add(terminalComponent, BorderLayout.CENTER)
@@ -78,20 +78,20 @@ fun spawnTerminalWindow() {
 
 ## Project Structure
 
-JvTerm is composed of 12 highly decoupled Gradle modules:
+KetraTerm is composed of 12 highly decoupled Gradle modules:
 
-* **`:jvterm-protocol`**: Zero-dependency ANSI/DEC constants and vocabulary enums.
-* **`:jvterm-parser`**: Streaming UTF-8 decoder and table-driven escape sequence FSM.
-* **`:jvterm-core`**: Headless text grid storage, circular scrollback buffers, and resizing reflow.
-* **`:jvterm-host`**: Semantic translation adapter connecting the parser to core state.
-* **`:jvterm-input`**: Keyboard/mouse event models and host-bound ANSI encoders.
-* **`:jvterm-render-api`**: Dependency-free visual frame contracts.
-* **`:jvterm-render-cache`**: Double/triple-buffered publication cache.
-* **`:jvterm-transport-api`**: Duplex I/O connector interfaces.
-* **`:jvterm-session`**: Thread synchronization, lock controls, and event loop.
-* **`:jvterm-pty`**: Local native process Pty4J launcher and stream pump.
-* **`:jvterm-ui-swing`**: Reusable desktop `JComponent` painter and mouse interaction adapters.
-* **`:jvterm-testkit`**: In-memory connector mocks and simulation tools.
+* **`:ketraterm-protocol`**: Zero-dependency ANSI/DEC constants and vocabulary enums.
+* **`:ketraterm-parser`**: Streaming UTF-8 decoder and table-driven escape sequence FSM.
+* **`:ketraterm-core`**: Headless text grid storage, circular scrollback buffers, and resizing reflow.
+* **`:ketraterm-host`**: Semantic translation adapter connecting the parser to core state.
+* **`:ketraterm-input`**: Keyboard/mouse event models and host-bound ANSI encoders.
+* **`:ketraterm-render-api`**: Dependency-free visual frame contracts.
+* **`:ketraterm-render-cache`**: Double/triple-buffered publication cache.
+* **`:ketraterm-transport-api`**: Duplex I/O connector interfaces.
+* **`:ketraterm-session`**: Thread synchronization, lock controls, and event loop.
+* **`:ketraterm-pty`**: Local native process Pty4J launcher and stream pump.
+* **`:ketraterm-ui-swing`**: Reusable desktop `JComponent` painter and mouse interaction adapters.
+* **`:ketraterm-testkit`**: In-memory connector mocks and simulation tools.
 
 > [TIP]
 > For a detailed walkthrough of the unidirectional pipeline flow, concurrency locks, in-memory cell storage, and caches, refer to our [Architecture Guide](ARCHITECTURE.md).
@@ -111,17 +111,17 @@ JvTerm is composed of 12 highly decoupled Gradle modules:
   ```
 * **Run Component Checks**:
   ```bash
-  ./gradlew :jvterm-parser:test
-  ./gradlew :jvterm-core:test
-  ./gradlew :jvterm-ui-swing:test
+  ./gradlew :ketraterm-parser:test
+  ./gradlew :ketraterm-core:test
+  ./gradlew :ketraterm-ui-swing:test
   ```
 * **Launch Local PTY Swing Demo**:
   ```bash
-  ./gradlew :jvterm-ui-swing-demo:run
+  ./gradlew :ketraterm-ui-swing-demo:run
   ```
 * **Launch with Custom Shell Command**:
   ```bash
-  ./gradlew :jvterm-ui-swing-demo:run --args="powershell.exe"
+  ./gradlew :ketraterm-ui-swing-demo:run --args="powershell.exe"
   ```
 
 ---

@@ -1,11 +1,11 @@
 ---
-name: jvterm-host-adapter
-description: Integration adapter guidance for mapping jvterm-parser TerminalCommandSink semantics to jvterm-core TerminalBuffer. Use when changing HostCommandAdapter, parser-to-core wiring, module dependencies, coordinate conversion, or explicit TODO gap handling.
+name: ketraterm-host-adapter
+description: Integration adapter guidance for mapping ketraterm-parser TerminalCommandSink semantics to ketraterm-core TerminalBuffer. Use when changing HostCommandAdapter, parser-to-core wiring, module dependencies, coordinate conversion, or explicit TODO gap handling.
 ---
 
 # Terminal Integration Adapter
 
-Use this skill when changing `jvterm-host` or parser-to-core wiring.
+Use this skill when changing `ketraterm-host` or parser-to-core wiring.
 
 ## Boundary
 

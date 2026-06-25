@@ -265,7 +265,7 @@ $extendedPictographicRanges = Read-NamedPropertyRanges $emojiPath "Extended_Pict
 
 $parserParts = [System.Collections.Generic.List[string]]::new()
 $parserParts.Add($copyright.TrimEnd()) | Out-Null
-$parserParts.Add("package io.github.jvterm.parser.unicode") | Out-Null
+$parserParts.Add("package io.github.ketraterm.parser.unicode") | Out-Null
 $parserParts.Add("") | Out-Null
 $parserParts.Add("/**") | Out-Null
 $parserParts.Add(" * Unicode $UnicodeVersion grapheme break and emoji property table generated from UAX #29 data.") | Out-Null
@@ -327,7 +327,7 @@ $parserParts.Add(@"
 }
 "@.TrimEnd()) | Out-Null
 
-$parserTarget = Join-Path $Root "jvterm-parser/src/main/kotlin/io/github/jvterm/parser/unicode/GeneratedGraphemeBreakTable.kt"
+$parserTarget = Join-Path $Root "ketraterm-parser/src/main/kotlin/io/github/ketraterm/parser/unicode/GeneratedGraphemeBreakTable.kt"
 Write-Utf8NoBom $parserTarget ([string]::Join([Environment]::NewLine, $parserParts) + [Environment]::NewLine)
 
 $wideRanges = [System.Collections.Generic.List[object]]::new()
@@ -368,7 +368,7 @@ $emojiVariationBaseSplit = Split-Ranges $emojiVariationBaseRanges $bitsetLimit
 
 $coreParts = [System.Collections.Generic.List[string]]::new()
 $coreParts.Add($copyright.TrimEnd()) | Out-Null
-$coreParts.Add("package io.github.jvterm.core.util") | Out-Null
+$coreParts.Add("package io.github.ketraterm.core.util") | Out-Null
 $coreParts.Add("") | Out-Null
 $coreParts.Add("/**") | Out-Null
 $coreParts.Add(" * Unicode $UnicodeVersion terminal width property table generated from UCD data.") | Out-Null
@@ -398,5 +398,5 @@ $coreParts.Add("") | Out-Null
 $coreParts.Add((Format-IntArray "EMOJI_VARIATION_BASE_ASTRAL_RANGES" $emojiVariationBaseSplit.High "    " "internal")) | Out-Null
 $coreParts.Add("}") | Out-Null
 
-$coreTarget = Join-Path $Root "jvterm-core/src/main/kotlin/io/github/jvterm/core/util/GeneratedUnicodeWidthTable.kt"
+$coreTarget = Join-Path $Root "ketraterm-core/src/main/kotlin/io/github/ketraterm/core/util/GeneratedUnicodeWidthTable.kt"
 Write-Utf8NoBom $coreTarget ([string]::Join([Environment]::NewLine, $coreParts) + [Environment]::NewLine)
