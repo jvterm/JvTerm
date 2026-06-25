@@ -17,6 +17,7 @@ package io.github.ketraterm.app.ui
 
 import io.github.ketraterm.app.config.KetraTermSettings
 import io.github.ketraterm.app.history.CommandHistoryStore
+import io.github.ketraterm.host.TerminalClipboardPromptEvent
 import io.github.ketraterm.host.TerminalClipboardWriteEvent
 import io.github.ketraterm.workspace.*
 import java.awt.*
@@ -695,6 +696,27 @@ internal class TabManager(
             }
         }
 
+        override fun terminalClipboardPrompt(
+            tab: TerminalWorkspaceTab,
+            event: TerminalClipboardPromptEvent,
+        ) {
+            if (!targetsHostClipboard(event.selection)) return
+            SwingUtilities.invokeLater {
+                val pane = panes.firstOrNull { it.tab == tab } ?: return@invokeLater
+                val answer =
+                    JOptionPane.showConfirmDialog(
+                        frame,
+                        clipboardPromptMessage(event),
+                        "Allow OSC 52 Clipboard Write?",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE,
+                    )
+                if (answer == JOptionPane.YES_OPTION) {
+                    pane.terminal.copyTextToClipboard(event.text)
+                }
+            }
+        }
+
         override fun resizeWindow(
             tab: TerminalWorkspaceTab,
             rows: Int,
@@ -796,6 +818,12 @@ internal class TabManager(
         private const val INITIAL_TAB_CAPACITY = 4
 
         private fun targetsHostClipboard(selection: String): Boolean = selection.isEmpty() || selection.indexOf('c') >= 0
+
+        private fun clipboardPromptMessage(event: TerminalClipboardPromptEvent): String =
+            "A terminal process requests permission to write ${event.audit.decodedBytes} bytes to the clipboard.\n" +
+                "Origin: ${event.audit.origin.name.lowercase()}\n" +
+                "Selection: ${event.selection.ifEmpty { "clipboard" }}\n\n" +
+                "Allow this clipboard write?"
     }
 }
 

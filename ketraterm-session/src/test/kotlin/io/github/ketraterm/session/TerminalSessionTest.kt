@@ -23,6 +23,7 @@ import io.github.ketraterm.host.TerminalClipboardAuditEvent
 import io.github.ketraterm.host.TerminalClipboardOrigin
 import io.github.ketraterm.host.TerminalClipboardPermission
 import io.github.ketraterm.host.TerminalClipboardPolicy
+import io.github.ketraterm.host.TerminalClipboardPromptEvent
 import io.github.ketraterm.host.TerminalClipboardWriteEvent
 import io.github.ketraterm.input.api.TerminalInputEncoder
 import io.github.ketraterm.input.event.TerminalFocusEvent
@@ -356,6 +357,35 @@ class TerminalSessionTest {
             { assertEquals(1, events.clipboardAudits.size) },
             { assertEquals("Hello", events.clipboardWrites.single().text) },
             { assertEquals(events.clipboardAudits.single(), events.clipboardWrites.single().audit) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 52 prompt callback is forwarded through session wrapper`() {
+        val connector = MockConnector()
+        val events = RecordingHostEvents()
+        val session =
+            createStartedSession(
+                connector = connector,
+                hostEvents = events,
+                hostPolicy =
+                    HostPolicy(
+                        clipboardPolicy =
+                            TerminalClipboardPolicy(
+                                origin = TerminalClipboardOrigin.LOCAL,
+                                localWritePermission = TerminalClipboardPermission.PROMPT,
+                            ),
+                    ),
+            )
+
+        connector.feedFromHost("\u001B]52;c;SGVsbG8=\u0007".ascii())
+
+        assertAll(
+            { assertEquals(1, events.clipboardAudits.size) },
+            { assertEquals("Hello", events.clipboardPrompts.single().text) },
+            { assertEquals(events.clipboardAudits.single(), events.clipboardPrompts.single().audit) },
+            { assertTrue(events.clipboardWrites.isEmpty()) },
         )
         session.close()
     }
@@ -1197,6 +1227,7 @@ class TerminalSessionTest {
     private class RecordingHostEvents : HostEventSink by HostEventSink.NONE {
         val clipboardAudits = mutableListOf<TerminalClipboardAuditEvent>()
         val clipboardWrites = mutableListOf<TerminalClipboardWriteEvent>()
+        val clipboardPrompts = mutableListOf<TerminalClipboardPromptEvent>()
 
         override fun terminalClipboardRequest(event: TerminalClipboardAuditEvent) {
             clipboardAudits += event
@@ -1204,6 +1235,10 @@ class TerminalSessionTest {
 
         override fun terminalClipboardWrite(event: TerminalClipboardWriteEvent) {
             clipboardWrites += event
+        }
+
+        override fun terminalClipboardPrompt(event: TerminalClipboardPromptEvent) {
+            clipboardPrompts += event
         }
     }
 

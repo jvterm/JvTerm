@@ -20,6 +20,7 @@ import io.github.ketraterm.host.TerminalClipboardAuditEvent
 import io.github.ketraterm.host.TerminalClipboardDecision
 import io.github.ketraterm.host.TerminalClipboardOperation
 import io.github.ketraterm.host.TerminalClipboardOrigin
+import io.github.ketraterm.host.TerminalClipboardPromptEvent
 import io.github.ketraterm.host.TerminalClipboardWriteEvent
 import io.github.ketraterm.protocol.NotificationLevel
 import io.github.ketraterm.protocol.ShellIntegrationEvent
@@ -79,6 +80,7 @@ class SessionHostEventBridgeTest {
         bridge.shellIntegrationMarker(ShellIntegrationEvent(ShellIntegrationMarker.COMMAND_FINISHED, exitCode = 3))
         bridge.showNotification("title", "body", NotificationLevel.INFO)
         bridge.terminalClipboardWrite(testClipboardWriteEvent("copied"))
+        bridge.terminalClipboardPrompt(testClipboardPromptEvent("prompted"))
 
         assertEquals(
             listOf(
@@ -97,6 +99,7 @@ class SessionHostEventBridgeTest {
                 "shellIntegrationMarker:COMMAND_FINISHED:3",
                 "showNotification:title:body:INFO",
                 "terminalClipboardWrite:c:copied",
+                "terminalClipboardPrompt:c:prompted",
             ),
             listener.events,
         )
@@ -160,6 +163,22 @@ class SessionHostEventBridgeTest {
                     decodedBytes = text.encodeToByteArray().size,
                     maxDecodedBytes = 1024,
                     decision = TerminalClipboardDecision.ALLOWED_BY_POLICY,
+                ),
+        )
+
+    private fun testClipboardPromptEvent(text: String): TerminalClipboardPromptEvent =
+        TerminalClipboardPromptEvent(
+            selection = "c",
+            text = text,
+            audit =
+                TerminalClipboardAuditEvent(
+                    operation = TerminalClipboardOperation.WRITE,
+                    selection = "c",
+                    origin = TerminalClipboardOrigin.LOCAL,
+                    encodedLength = 8,
+                    decodedBytes = text.encodeToByteArray().size,
+                    maxDecodedBytes = 1024,
+                    decision = TerminalClipboardDecision.PROMPT_REQUIRED,
                 ),
         )
 
@@ -251,6 +270,13 @@ class SessionHostEventBridgeTest {
             event: TerminalClipboardWriteEvent,
         ) {
             events += "terminalClipboardWrite:${event.selection}:${event.text}"
+        }
+
+        override fun terminalClipboardPrompt(
+            session: TerminalSession,
+            event: TerminalClipboardPromptEvent,
+        ) {
+            events += "terminalClipboardPrompt:${event.selection}:${event.text}"
         }
 
         override fun listenerFailed(

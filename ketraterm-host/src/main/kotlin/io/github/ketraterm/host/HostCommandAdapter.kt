@@ -773,20 +773,30 @@ class HostCommandAdapter(
     ) {
         val audit = evaluateClipboardRequest(selection, encodedData)
         hostEvents.terminalClipboardRequest(audit)
-        if (audit.operation != TerminalClipboardOperation.WRITE ||
-            audit.decision != TerminalClipboardDecision.ALLOWED_BY_POLICY
-        ) {
+        if (audit.operation != TerminalClipboardOperation.WRITE) {
             return
         }
 
         val decodedText = decodeClipboardText(encodedData) ?: return
-        hostEvents.terminalClipboardWrite(
-            TerminalClipboardWriteEvent(
-                selection = selection,
-                text = decodedText,
-                audit = audit,
-            ),
-        )
+        when (audit.decision) {
+            TerminalClipboardDecision.ALLOWED_BY_POLICY ->
+                hostEvents.terminalClipboardWrite(
+                    TerminalClipboardWriteEvent(
+                        selection = selection,
+                        text = decodedText,
+                        audit = audit,
+                    ),
+                )
+            TerminalClipboardDecision.PROMPT_REQUIRED ->
+                hostEvents.terminalClipboardPrompt(
+                    TerminalClipboardPromptEvent(
+                        selection = selection,
+                        text = decodedText,
+                        audit = audit,
+                    ),
+                )
+            else -> Unit
+        }
     }
 
     override fun setPaletteColor(

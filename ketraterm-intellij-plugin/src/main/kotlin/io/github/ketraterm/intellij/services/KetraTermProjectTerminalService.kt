@@ -20,8 +20,10 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.ui.content.Content
+import io.github.ketraterm.host.TerminalClipboardPromptEvent
 import io.github.ketraterm.host.TerminalClipboardWriteEvent
 import io.github.ketraterm.intellij.settings.KetraTermIntellijSettings
 import io.github.ketraterm.intellij.ui.KetraTermTerminalPane
@@ -340,6 +342,26 @@ class KetraTermProjectTerminalService(
             }
         }
 
+        override fun terminalClipboardPrompt(
+            tab: TerminalWorkspaceTab,
+            event: TerminalClipboardPromptEvent,
+        ) {
+            if (!IntellijOsc52ClipboardSelections.targetsIdeClipboard(event.selection)) return
+            invokeLaterIfAlive {
+                val pane = panesByTabId[tab.id] ?: return@invokeLaterIfAlive
+                val answer =
+                    Messages.showYesNoDialog(
+                        project,
+                        clipboardPromptMessage(event),
+                        "Allow OSC 52 Clipboard Write?",
+                        Messages.getWarningIcon(),
+                    )
+                if (answer == Messages.YES) {
+                    pane.terminal.copyTextToClipboard(event.text)
+                }
+            }
+        }
+
         override fun tabClosed(tabId: String) {
             invokeLaterIfAlive {
                 contentsByTabId.remove(tabId)
@@ -385,3 +407,9 @@ class KetraTermProjectTerminalService(
 internal object IntellijOsc52ClipboardSelections {
     fun targetsIdeClipboard(selection: String): Boolean = selection.isEmpty() || selection.indexOf('c') >= 0
 }
+
+private fun clipboardPromptMessage(event: TerminalClipboardPromptEvent): String =
+    "A terminal process requests permission to write ${event.audit.decodedBytes} bytes to the IDE clipboard.\n" +
+        "Origin: ${event.audit.origin.name.lowercase()}\n" +
+        "Selection: ${event.selection.ifEmpty { "clipboard" }}\n\n" +
+        "Allow this clipboard write?"

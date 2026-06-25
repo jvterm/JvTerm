@@ -1596,6 +1596,17 @@ class HostCommandAdapterTest {
                     .single()
                     .decision,
             )
+            assertEquals(
+                listOf(
+                    TerminalClipboardPromptEvent(
+                        selection = "c",
+                        text = "Hello",
+                        audit = f.events.clipboardAudits.single(),
+                    ),
+                ),
+                f.events.clipboardPrompts,
+            )
+            assertTrue(f.events.clipboardWrites.isEmpty())
         }
 
         @Test
@@ -1824,6 +1835,14 @@ class HostCommandAdapterTest {
                 { assertTrue(prompt.events.clipboardWrites.isEmpty()) },
                 {
                     assertEquals(
+                        "Hello",
+                        prompt.events.clipboardPrompts
+                            .single()
+                            .text,
+                    )
+                },
+                {
+                    assertEquals(
                         TerminalClipboardOperation.READ_QUERY,
                         read.events.clipboardAudits
                             .single()
@@ -1839,6 +1858,7 @@ class HostCommandAdapterTest {
                     )
                 },
                 { assertTrue(read.events.clipboardWrites.isEmpty()) },
+                { assertTrue(read.events.clipboardPrompts.isEmpty()) },
             )
         }
 
@@ -1991,6 +2011,7 @@ class HostCommandAdapterTest {
         val notifications = mutableListOf<Triple<String, String, NotificationLevel>>()
         val clipboardAudits = mutableListOf<TerminalClipboardAuditEvent>()
         val clipboardWrites = mutableListOf<TerminalClipboardWriteEvent>()
+        val clipboardPrompts = mutableListOf<TerminalClipboardPromptEvent>()
 
         override fun showNotification(
             title: String,
@@ -2006,6 +2027,10 @@ class HostCommandAdapterTest {
 
         override fun terminalClipboardWrite(event: TerminalClipboardWriteEvent) {
             clipboardWrites += event
+        }
+
+        override fun terminalClipboardPrompt(event: TerminalClipboardPromptEvent) {
+            clipboardPrompts += event
         }
     }
 }

@@ -21,8 +21,9 @@ package io.github.ketraterm.host
  * This policy describes what would be permitted by an embedding host. The host
  * adapter never writes to a platform clipboard directly; it audits every
  * request and emits decoded write payloads only when the configured policy
- * permits the operation. Prompting, allowlists, read responses, and platform
- * clipboard access remain product-host responsibilities.
+ * permits the operation or requires a product-host write prompt. Allowlists,
+ * read responses, and platform clipboard access remain product-host
+ * responsibilities.
  *
  * @property origin trust boundary of the terminal session that produced the
  * request.
@@ -181,6 +182,25 @@ data class TerminalClipboardAuditEvent(
  * @property audit content-free audit metadata for the same request.
  */
 data class TerminalClipboardWriteEvent(
+    val selection: String,
+    val text: String,
+    val audit: TerminalClipboardAuditEvent,
+)
+
+/**
+ * Host-facing decoded OSC 52 clipboard write prompt request.
+ *
+ * This event is emitted only after a write request has been parsed,
+ * size-checked, decoded as UTF-8 text, and classified as
+ * [TerminalClipboardDecision.PROMPT_REQUIRED]. It is separate from
+ * [TerminalClipboardAuditEvent] so content-free audit streams remain safe for
+ * logging and telemetry.
+ *
+ * @property selection OSC 52 selection designator exactly as parsed.
+ * @property text decoded clipboard text to write if the user approves.
+ * @property audit content-free audit metadata for the same request.
+ */
+data class TerminalClipboardPromptEvent(
     val selection: String,
     val text: String,
     val audit: TerminalClipboardAuditEvent,
