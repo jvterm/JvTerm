@@ -337,40 +337,64 @@ internal class TerminalBoxDrawingPainter {
         h: Double,
         fallbackEdges: Int,
     ) {
-        val strokeThickness = thickness(LIGHT, w, h)
+        val strokeThickness = quantizeStrokeWidth(thickness(LIGHT, w, h))
         if (w <= strokeThickness || h <= strokeThickness) {
             paintPackedEdges(g, x, y, w, h, fallbackEdges)
             return
         }
 
-        val cx = x + w / 2.0
-        val cy = y + h / 2.0
-        val rx = w / 2.0
-        val ry = h / 2.0
-
         val path = pathLocal.get().apply { reset() }
 
         when (codePoint) {
-            0x256D -> { // ╭ Top-Left
-                path.moveTo(cx, y + h)
-                path.curveTo(cx, (y + h) - ry * KAPPA, (x + w) - rx * KAPPA, cy, x + w, cy)
-            }
-            0x256E -> { // ╮ Top-Right
-                path.moveTo(cx, y + h)
-                path.curveTo(cx, (y + h) - ry * KAPPA, x + rx * KAPPA, cy, x, cy)
-            }
-            0x256F -> { // ╯ Bottom-Right
-                path.moveTo(cx, y)
-                path.curveTo(cx, y + ry * KAPPA, x + rx * KAPPA, cy, x, cy)
-            }
-            0x2570 -> { // ╰ Bottom-Left
-                path.moveTo(cx, y)
-                path.curveTo(cx, y + ry * KAPPA, (x + w) - rx * KAPPA, cy, x + w, cy)
-            }
+            0x256D -> appendRoundedQuarterAligned(
+                path = path,
+                x = x,
+                y = y,
+                w = w,
+                h = h,
+                verticalFromBottom = true,
+                horizontalToRight = true,
+                strokeThickness = strokeThickness,
+            ) // ╭
+            0x256E -> appendRoundedQuarterAligned(
+                path = path,
+                x = x,
+                y = y,
+                w = w,
+                h = h,
+                verticalFromBottom = true,
+                horizontalToRight = false,
+                strokeThickness = strokeThickness,
+            ) // ╮
+            0x256F -> appendRoundedQuarterAligned(
+                path = path,
+                x = x,
+                y = y,
+                w = w,
+                h = h,
+                verticalFromBottom = false,
+                horizontalToRight = false,
+                strokeThickness = strokeThickness,
+            ) // ╯
+            0x2570 -> appendRoundedQuarterAligned(
+                path = path,
+                x = x,
+                y = y,
+                w = w,
+                h = h,
+                verticalFromBottom = false,
+                horizontalToRight = true,
+                strokeThickness = strokeThickness,
+            ) // ╰
             else -> return
         }
 
-        withAntialiasing(g, strokeThickness.toFloat()) {
+        withAntialiasing(
+            g = g,
+            strokeWidth = strokeThickness.toFloat(),
+            cap = BasicStroke.CAP_BUTT,
+            join = BasicStroke.JOIN_ROUND,
+        ) {
             g.draw(path)
         }
     }
@@ -407,6 +431,8 @@ internal class TerminalBoxDrawingPainter {
     private inline fun withAntialiasing(
         g: Graphics2D,
         strokeWidth: Float,
+        cap: Int = BasicStroke.CAP_SQUARE,
+        join: Int = BasicStroke.JOIN_MITER,
         block: () -> Unit,
     ) {
         val oldAA = g.getRenderingHint(RenderingHints.KEY_ANTIALIASING)
@@ -415,7 +441,7 @@ internal class TerminalBoxDrawingPainter {
 
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE)
-        g.stroke = getStroke(strokeWidth)
+        g.stroke = getStroke(strokeWidth, cap, join)
 
         try {
             block()
@@ -528,6 +554,77 @@ internal class TerminalBoxDrawingPainter {
         fillRectBounds(g, xTrackB - ext, startB, xTrackB + ext, yBottom)
     }
 
+    /**
+     * Appends one rounded quarter whose centerline is snapped to the same raster lane
+     * used by fillRectBounds-based light box segments.
+     *
+     * This removes the subtle mismatch where straight box lines are pixel-rounded
+     * while rounded corners are drawn from the purely mathematical center.
+     */
+    private fun appendRoundedQuarterAligned(
+        path: Path2D.Double,
+        x: Double,
+        y: Double,
+        w: Double,
+        h: Double,
+        verticalFromBottom: Boolean,
+        horizontalToRight: Boolean,
+        strokeThickness: Double,
+    ) {
+        val cx = snappedStrokeCenter(origin = x, span = w, strokeThickness = strokeThickness)
+        val cy = snappedStrokeCenter(origin = y, span = h, strokeThickness = strokeThickness)
+
+        val startX = cx
+        val startY = if (verticalFromBottom) y + h else y
+
+        val endX = if (horizontalToRight) x + w else x
+        val endY = cy
+
+        val rx = kotlin.math.abs(endX - cx)
+        val ry = kotlin.math.abs(startY - cy)
+
+        val control1X = startX
+        val control1Y =
+            if (verticalFromBottom) {
+                startY - ry * KAPPA
+            } else {
+                startY + ry * KAPPA
+            }
+
+        val control2X =
+            if (horizontalToRight) {
+                endX - rx * KAPPA
+            } else {
+                endX + rx * KAPPA
+            }
+        val control2Y = endY
+
+        path.moveTo(startX, startY)
+        path.curveTo(control1X, control1Y, control2X, control2Y, endX, endY)
+    }
+
+    /**
+     * Quantizes stroke width exactly like the stroke cache, so geometry and stroke
+     * rasterization use the same effective width.
+     */
+    private fun quantizeStrokeWidth(thickness: Double): Double =
+        (thickness * 10.0).roundToInt() / 10.0
+
+    /**
+     * Returns the centerline that corresponds to the same pixel-rounded band that
+     * fillRectBounds would produce for a straight light line.
+     */
+    private fun snappedStrokeCenter(
+        origin: Double,
+        span: Double,
+        strokeThickness: Double,
+    ): Double {
+        val nominalCenter = origin + span / 2.0
+        val top = (nominalCenter - strokeThickness / 2.0).roundToInt()
+        val bottom = (nominalCenter + strokeThickness / 2.0).roundToInt()
+        return (top + bottom) / 2.0
+    }
+
     private companion object {
         private const val KAPPA = 0.552284749831
         private const val LIGHT_RATIO = 16.0
@@ -535,18 +632,21 @@ internal class TerminalBoxDrawingPainter {
         private const val HEAVY_RATIO = 4.0
         private const val DOUBLE_OFFSET_RATIO = 5.0
 
-        // Prevents allocation in hot path while ensuring thread safety.
         private val pathLocal = ThreadLocal.withInitial { Path2D.Double() }
 
-        // Caches quantized strokes to avoid rapid allocation during corner/diagonal rendering.
-        private val strokeCache = ConcurrentHashMap<Float, BasicStroke>()
+        private val strokeCache = ConcurrentHashMap<Int, BasicStroke>()
 
-        private fun getStroke(thickness: Float): BasicStroke {
+        private fun getStroke(
+            thickness: Float,
+            cap: Int,
+            join: Int,
+        ): BasicStroke {
             val quantized = (thickness * 10f).roundToInt() / 10f
-            return strokeCache.getOrPut(quantized) {
-                // CAP_SQUARE ensures anti-aliased path endpoints project thickness/2 into
-                // the neighboring cells, perfectly sealing the float-to-int boundaries.
-                BasicStroke(quantized, BasicStroke.CAP_SQUARE, BasicStroke.JOIN_MITER)
+            val widthKey = (quantized * 10f).roundToInt()
+            val key = (widthKey shl 8) or (cap shl 4) or join
+
+            return strokeCache.getOrPut(key) {
+                BasicStroke(quantized, cap, join)
             }
         }
     }
