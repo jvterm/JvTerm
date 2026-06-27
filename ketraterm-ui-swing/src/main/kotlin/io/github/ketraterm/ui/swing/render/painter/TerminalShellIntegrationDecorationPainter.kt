@@ -15,7 +15,6 @@
  */
 package io.github.ketraterm.ui.swing.render.painter
 
-import io.github.ketraterm.render.api.TerminalColorPalette
 import io.github.ketraterm.session.TerminalShellIntegrationCommandLifecycle
 import io.github.ketraterm.ui.swing.render.TerminalShellIntegrationViewportDecorations
 import io.github.ketraterm.ui.swing.render.cache.AwtColorCache
@@ -41,7 +40,6 @@ internal class TerminalShellIntegrationDecorationPainter(
         gutterWidth: Int,
         row: Int,
         hovered: Boolean,
-        palette: TerminalColorPalette,
     ) {
         if (decorations == null) return
         if (gutterWidth <= 0) return
@@ -61,15 +59,7 @@ internal class TerminalShellIntegrationDecorationPainter(
         val dotY = y + (metrics.cellHeight - diameter) / 2
         val failed = decorations.commandLifecycleAt(row) == TerminalShellIntegrationCommandLifecycle.FAILED
         val markerColor =
-            if (failed) {
-                settings.shellIntegrationFailedPromptDotColor
-            } else {
-                if (settings.shellIntegrationPromptDotColor == 0x8CFFFFFF.toInt()) {
-                    (palette.defaultForeground and 0x00FFFFFF) or 0x8C000000.toInt()
-                } else {
-                    settings.shellIntegrationPromptDotColor
-                }
-            }
+            if (failed) settings.shellIntegrationFailedPromptDotColor else settings.shellIntegrationPromptDotColor
         if (hovered) {
             val haloDiameter = minOf(gutterWidth, metrics.cellHeight)
             val haloX = centerX - haloDiameter / 2
