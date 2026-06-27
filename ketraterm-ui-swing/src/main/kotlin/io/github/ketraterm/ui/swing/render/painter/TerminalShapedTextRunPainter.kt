@@ -50,6 +50,7 @@ internal class TerminalShapedTextRunPainter(
     private var segmentCodepoints = IntArray(INITIAL_TEXT_RUN_CAPACITY)
     private var bidiRows = arrayOfNulls<Bidi>(0)
     private var rowGenerations = LongArray(0)
+    private var rowLineIds = LongArray(0)
     private var rowHasStrongRtl = BooleanArray(0)
     private var cachedColumns = 0
 
@@ -59,11 +60,13 @@ internal class TerminalShapedTextRunPainter(
     ): Boolean {
         ensureBidiRowCache(cache)
         val generation = cache.lineGenerations[row]
-        if (rowGenerations[row] == generation) return rowHasStrongRtl[row]
+        val lineId = cache.lineIds[row]
+        if (rowGenerations[row] == generation && rowLineIds[row] == lineId) return rowHasStrongRtl[row]
 
         val hasStrongRtl = rowContainsStrongRtl(cache, row)
         bidiRows[row] = null
         rowGenerations[row] = generation
+        rowLineIds[row] = lineId
         rowHasStrongRtl[row] = hasStrongRtl
         return hasStrongRtl
     }
@@ -226,8 +229,9 @@ internal class TerminalShapedTextRunPainter(
     ): Bidi {
         ensureBidiRowCache(cache)
         val generation = cache.lineGenerations[row]
+        val lineId = cache.lineIds[row]
         val cached = bidiRows[row]
-        if (cached != null && rowGenerations[row] == generation) return cached
+        if (cached != null && rowGenerations[row] == generation && rowLineIds[row] == lineId) return cached
 
         ensureRowCharCapacity(cache.columns)
         fillBidiRowChars(cache, row)
@@ -242,6 +246,7 @@ internal class TerminalShapedTextRunPainter(
             )
         bidiRows[row] = bidi
         rowGenerations[row] = generation
+        rowLineIds[row] = lineId
         return bidi
     }
 
@@ -551,6 +556,7 @@ internal class TerminalShapedTextRunPainter(
 
         bidiRows = arrayOfNulls(cache.rows)
         rowGenerations = LongArray(cache.rows) { INVALID_GENERATION }
+        rowLineIds = LongArray(cache.rows)
         rowHasStrongRtl = BooleanArray(cache.rows)
         cachedColumns = cache.columns
     }
