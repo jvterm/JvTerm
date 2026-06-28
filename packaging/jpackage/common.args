@@ -3,9 +3,9 @@ KetraTerm
 --vendor
 KetraTerm
 --copyright
-Copyright 2026 KetraTerm
+"Copyright 2026 KetraTerm"
 --description
-A professional, high-performance terminal emulator
+"A professional, high-performance terminal emulator"
 --main-jar
 ketraterm-app.jar
 --main-class
