@@ -26,7 +26,7 @@ dependencies {
 
     api(project(":ketraterm-render-api"))
     testImplementation(kotlin("test"))
-    testImplementation("org.junit.jupiter:junit-jupiter:6.1.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:6.1.1")
 }
 
 tasks.test {
