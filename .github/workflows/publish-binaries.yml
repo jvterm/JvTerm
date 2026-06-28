@@ -1,0 +1,346 @@
+name: Publish Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  RELEASE: "true"
+
+jobs:
+  build-no-runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'gradle'
+
+      - name: Build No-Runtime Archive
+        run: |
+          ./gradlew :ketraterm-app:distZip --no-daemon
+
+      - name: Get Version
+        id: get_version
+        shell: bash
+        run: |
+          PROJECT_VERSION=$(cat VERSION)
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
+          echo "project_version=$PROJECT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Rename and Prepare Archive
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp ketraterm-app/build/distributions/ketraterm-app-${{ steps.get_version.outputs.project_version }}.zip dist/KetraTerm-${{ steps.get_version.outputs.project_version }}-no-runtime.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: no-runtime-archive
+          path: dist/KetraTerm-${{ steps.get_version.outputs.project_version }}-no-runtime.zip
+
+  build-native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+            package_os: linux
+            jbr_key: linux-x64
+            icon_ext: png
+            artifact_suffix: tar.gz
+
+          - os: windows-latest
+            platform: windows-x64
+            package_os: windows
+            jbr_key: windows-x64
+            icon_ext: ico
+            artifact_suffix: zip
+
+          - os: macos-15-intel
+            platform: macos-x64
+            package_os: macos
+            jbr_key: macos-x64
+            icon_ext: icns
+            artifact_suffix: zip
+
+          - os: macos-15
+            platform: macos-aarch64
+            package_os: macos
+            jbr_key: macos-aarch64
+            icon_ext: icns
+            artifact_suffix: zip
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'gradle'
+
+      - name: Install Linux Packaging Tools
+        if: matrix.package_os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm fakeroot dpkg-dev
+
+      - name: Get Project Version
+        id: get_version
+        shell: bash
+        run: |
+          PROJECT_VERSION=$(cat VERSION)
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
+          echo "project_version=$PROJECT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Run Build and Prepare Input
+        run: |
+          ./gradlew :ketraterm-app:prepareJpackageInput --no-daemon
+
+      - name: Read JBR Configuration
+        id: jbr_config
+        shell: bash
+        run: |
+          # Parse properties file
+          get_property() {
+            grep "^$1=" gradle/jbr-checksums.properties | cut -d= -f2- | tr -d '\r'
+          }
+          JBR_FILENAME=$(get_property "jbr.${{ matrix.jbr_key }}.filename")
+          JBR_SHA512=$(get_property "jbr.${{ matrix.jbr_key }}.sha512")
+          JBR_BASE_URL=$(get_property "jbr.base-url")
+          JBR_URL="${JBR_BASE_URL}/${JBR_FILENAME}"
+
+          echo "jbr_filename=$JBR_FILENAME" >> $GITHUB_OUTPUT
+          echo "jbr_sha512=$JBR_SHA512" >> $GITHUB_OUTPUT
+          echo "jbr_url=$JBR_URL" >> $GITHUB_OUTPUT
+
+      - name: Download JBR
+        shell: bash
+        run: |
+          curl -L -o "${{ steps.jbr_config.outputs.jbr_filename }}" "${{ steps.jbr_config.outputs.jbr_url }}"
+
+      - name: Verify JBR Checksum
+        shell: bash
+        run: |
+          python -c "
+          import hashlib, sys
+          filename = '${{ steps.jbr_config.outputs.jbr_filename }}'
+          expected = '${{ steps.jbr_config.outputs.jbr_sha512 }}'
+          sha = hashlib.sha512()
+          with open(filename, 'rb') as f:
+              for chunk in iter(lambda: f.read(65536), b''):
+                  sha.update(chunk)
+          actual = sha.hexdigest()
+          if actual != expected:
+              print(f'Checksum mismatch! Expected {expected}, got {actual}')
+              sys.exit(1)
+          print('Checksum verified successfully!')
+          "
+
+      - name: Extract JBR
+        shell: bash
+        run: |
+          mkdir -p packaging/jbr-extract
+          tar -xzf "${{ steps.jbr_config.outputs.jbr_filename }}" -C packaging/jbr-extract
+
+      - name: Resolve and Verify JBR_HOME
+        id: jbr_home
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            JBR_HOME_PATH=$(find packaging/jbr-extract -name "Home" -type d | head -n 1)
+          else
+            JBR_HOME_PATH=$(find packaging/jbr-extract -name "bin" -type d -exec dirname {} \; | head -n 1)
+          fi
+          echo "Resolved JBR_HOME: $JBR_HOME_PATH"
+          
+          # Check java exists
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            if [ ! -f "$JBR_HOME_PATH/bin/java.exe" ]; then
+              echo "Error: java.exe not found in resolved JBR_HOME" >&2
+              exit 1
+            fi
+          else
+            if [ ! -f "$JBR_HOME_PATH/bin/java" ]; then
+              echo "Error: java not found in resolved JBR_HOME" >&2
+              exit 1
+            fi
+          fi
+          
+          # Verify identity
+          "$JBR_HOME_PATH/bin/java" -version
+          
+          echo "jbr_home=$JBR_HOME_PATH" >> $GITHUB_OUTPUT
+
+      - name: Compute Mapped Native Version
+        id: native_version
+        shell: bash
+        run: |
+          ./gradlew :ketraterm-app:writeNativeVersion --no-daemon
+          NATIVE_VERSION=$(cat ketraterm-app/build/native-version.txt)
+          echo "Computed Native Version: $NATIVE_VERSION"
+          echo "native_version=$NATIVE_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build Application Image
+        shell: bash
+        run: |
+          ICON_ARGS=""
+          if [ -f "packaging/icons/ketraterm.${{ matrix.icon_ext }}" ]; then
+            ICON_ARGS="--icon packaging/icons/ketraterm.${{ matrix.icon_ext }}"
+          fi
+          
+          MAC_ARGS=""
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            MAC_ARGS="--mac-package-identifier io.github.ketraterm"
+          fi
+
+          jpackage \
+            @packaging/jpackage/common.args \
+            $ICON_ARGS \
+            $MAC_ARGS \
+            --type app-image \
+            --input ketraterm-app/build/jpackage/input \
+            --runtime-image "${{ steps.jbr_home.outputs.jbr_home }}" \
+            --app-version "${{ steps.native_version.outputs.native_version }}" \
+            --dest packaging/app-image
+
+      - name: Create Portable Archive
+        shell: bash
+        run: |
+          mkdir -p dist
+          # On macOS jpackage app-image destination contains KetraTerm.app directly
+          # On Windows/Linux, it contains KetraTerm/
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            ditto -c -k --keepParent packaging/app-image/KetraTerm.app dist/KetraTerm-${{ steps.get_version.outputs.project_version }}-${{ matrix.platform }}-portable.zip
+          elif [ "${{ runner.os }}" = "Windows" ]; then
+            powershell -Command "Compress-Archive -Path packaging/app-image/KetraTerm -DestinationPath dist/KetraTerm-${{ steps.get_version.outputs.project_version }}-${{ matrix.platform }}-portable.zip -Force"
+          else
+            tar -czf dist/KetraTerm-${{ steps.get_version.outputs.project_version }}-${{ matrix.platform }}-portable.tar.gz -C packaging/app-image KetraTerm
+          fi
+
+      - name: Build Native Installer(s)
+        shell: bash
+        run: |
+          mkdir -p packaging/installer
+          
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            jpackage --type exe \
+              --app-image packaging/app-image/KetraTerm \
+              --app-version "${{ steps.native_version.outputs.native_version }}" \
+              --dest packaging/installer \
+              --win-shortcut \
+              --win-menu
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            jpackage --type dmg \
+              --app-image packaging/app-image/KetraTerm.app \
+              --app-version "${{ steps.native_version.outputs.native_version }}" \
+              --dest packaging/installer
+          else
+            # DEB
+            jpackage --type deb \
+              --app-image packaging/app-image/KetraTerm \
+              --app-version "${{ steps.native_version.outputs.native_version }}" \
+              --dest packaging/installer \
+              --linux-shortcut
+            # RPM
+            jpackage --type rpm \
+              --app-image packaging/app-image/KetraTerm \
+              --app-version "${{ steps.native_version.outputs.native_version }}" \
+              --dest packaging/installer \
+              --linux-shortcut
+          fi
+
+      - name: Rename and Collect Installers
+        shell: bash
+        run: |
+          mkdir -p dist
+          # Find generated installer files and rename them to canonical names
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            EXE_FILE=$(find packaging/installer -maxdepth 1 -name "*.exe" | head -n 1)
+            cp "$EXE_FILE" dist/KetraTerm-${{ steps.get_version.outputs.project_version }}-${{ matrix.platform }}.exe
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            DMG_FILE=$(find packaging/installer -maxdepth 1 -name "*.dmg" | head -n 1)
+            cp "$DMG_FILE" dist/KetraTerm-${{ steps.get_version.outputs.project_version }}-${{ matrix.platform }}.dmg
+          else
+            DEB_FILE=$(find packaging/installer -maxdepth 1 -name "*.deb" | head -n 1)
+            cp "$DEB_FILE" dist/KetraTerm-${{ steps.get_version.outputs.project_version }}-${{ matrix.platform }}.deb
+            
+            RPM_FILE=$(find packaging/installer -maxdepth 1 -name "*.rpm" | head -n 1)
+            cp "$RPM_FILE" dist/KetraTerm-${{ steps.get_version.outputs.project_version }}-${{ matrix.platform }}.rpm
+          fi
+
+      - name: Upload Platform Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.platform }}
+          path: dist/*
+
+  publish-github-release:
+    needs: [build-no-runtime, build-native]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download No-Runtime Archive
+        uses: actions/download-artifact@v4
+        with:
+          name: no-runtime-archive
+          path: release-artifacts
+
+      - name: Download Native Windows
+        uses: actions/download-artifact@v4
+        with:
+          name: native-windows-x64
+          path: release-artifacts
+
+      - name: Download Native Linux
+        uses: actions/download-artifact@v4
+        with:
+          name: native-linux-x64
+          path: release-artifacts
+
+      - name: Download Native macOS Intel
+        uses: actions/download-artifact@v4
+        with:
+          name: native-macos-x64
+          path: release-artifacts
+
+      - name: Download Native macOS Apple Silicon
+        uses: actions/download-artifact@v4
+        with:
+          name: native-macos-aarch64
+          path: release-artifacts
+
+      - name: Generate Checksums
+        shell: bash
+        run: |
+          cd release-artifacts
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          files: |
+            release-artifacts/*
+          draft: false
+          prerelease: contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
