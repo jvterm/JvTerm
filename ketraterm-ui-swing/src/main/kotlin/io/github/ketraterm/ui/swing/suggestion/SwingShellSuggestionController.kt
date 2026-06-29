@@ -23,8 +23,7 @@ internal class SwingShellSuggestionController(
 ) {
     private var suggestions: List<SwingShellSuggestion> = emptyList()
     private var selectedIndex: Int = NO_SELECTION
-    private var anchorColumn: Int = 0
-    private var anchorRow: Int = 0
+    private var request: SwingShellSuggestionRequest = SwingShellSuggestionRequest.EMPTY
 
     val popup: SwingShellSuggestionPopup =
         SwingShellSuggestionPopup(
@@ -41,19 +40,17 @@ internal class SwingShellSuggestionController(
         )
 
     fun show(
+        request: SwingShellSuggestionRequest,
         suggestions: List<SwingShellSuggestion>,
-        anchorColumn: Int,
-        anchorRow: Int,
         selectedIndex: Int,
     ): Boolean {
         if (!host.settings.shellSuggestionsEnabled || suggestions.isEmpty()) {
             hide()
             return false
         }
-        this.suggestions = suggestions
-        this.anchorColumn = anchorColumn.coerceAtLeast(0)
-        this.anchorRow = anchorRow.coerceAtLeast(0)
-        this.selectedIndex = selectedIndex.coerceIn(0, suggestions.lastIndex)
+        this.suggestions = retainVisibleSuggestions(suggestions)
+        this.request = request
+        this.selectedIndex = selectedIndex.coerceIn(0, this.suggestions.lastIndex)
         popup.update(this.suggestions, this.selectedIndex)
         popup.isVisible = true
         host.revalidate()
@@ -65,6 +62,7 @@ internal class SwingShellSuggestionController(
         if (!popup.isVisible && suggestions.isEmpty()) return false
         suggestions = emptyList()
         selectedIndex = NO_SELECTION
+        request = SwingShellSuggestionRequest.EMPTY
         popup.update(suggestions, selectedIndex)
         popup.isVisible = false
         host.revalidate()
@@ -104,8 +102,8 @@ internal class SwingShellSuggestionController(
                 visible = true,
                 count = suggestions.size,
                 selectedIndex = selectedIndex,
-                anchorColumn = anchorColumn,
-                anchorRow = anchorRow,
+                anchorColumn = request.anchorColumn,
+                anchorRow = request.anchorRow,
                 selectedSuggestion = suggestions[selectedIndex],
             )
         }
@@ -130,15 +128,32 @@ internal class SwingShellSuggestionController(
         if (selectedIndex !in suggestions.indices) return false
         val suggestion = suggestions[selectedIndex]
         val index = selectedIndex
+        val acceptedRequest = request
         hide()
-        host.suggestionHandler.onSuggestionAccepted(suggestion, index)
+        host.suggestionHandler.onSuggestionAccepted(
+            SwingShellSuggestionAcceptance(
+                suggestion = suggestion,
+                index = index,
+                request = acceptedRequest,
+            ),
+        )
         host.requestFocusInWindow()
         return true
     }
 
+    private fun retainVisibleSuggestions(suggestions: List<SwingShellSuggestion>): List<SwingShellSuggestion> =
+        if (suggestions.size <=
+            MAX_RETAINED_SUGGESTIONS
+        ) {
+            suggestions.toList()
+        } else {
+            suggestions.subList(0, MAX_RETAINED_SUGGESTIONS).toList()
+        }
+
     private companion object {
         private const val NO_SELECTION = -1
         private const val PAGE_STEP = 5
+        private const val MAX_RETAINED_SUGGESTIONS = 8
     }
 }
 

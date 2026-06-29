@@ -19,6 +19,7 @@ import io.github.ketraterm.ui.swing.api.TerminalUiDispatcher.Companion.SWING
 import io.github.ketraterm.ui.swing.settings.TerminalClipboardHandler
 import io.github.ketraterm.ui.swing.settings.TerminalHyperlinkHandler
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionHandler
+import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionProvider
 import javax.swing.SwingUtilities
 
 /**
@@ -62,6 +63,8 @@ fun interface TerminalUiDispatcher {
  * activation.
  * @property viewportListener host scrollbar adapter notified when the terminal
  * scrollback viewport changes.
+ * @property shellSuggestionProvider host provider queried for bounded
+ * command-line suggestion snapshots.
  * @property shellSuggestionHandler host callback invoked after the user accepts
  * a shell suggestion from the reusable popup.
  */
@@ -72,5 +75,6 @@ data class SwingHostServices
         val clipboardHandler: TerminalClipboardHandler = TerminalClipboardHandler.SYSTEM,
         val hyperlinkHandler: TerminalHyperlinkHandler = TerminalHyperlinkHandler.SYSTEM,
         val viewportListener: TerminalViewportListener = TerminalViewportListener.NONE,
+        val shellSuggestionProvider: SwingShellSuggestionProvider = SwingShellSuggestionProvider.NONE,
         val shellSuggestionHandler: SwingShellSuggestionHandler = SwingShellSuggestionHandler.NONE,
     )

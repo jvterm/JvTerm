@@ -18,6 +18,8 @@ package io.github.ketraterm.ui.swing.api
 import io.github.ketraterm.ui.swing.settings.SwingSettings
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestion
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionHandler
+import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionProvider
+import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.awt.Insets
@@ -29,15 +31,17 @@ class SwingTerminalShellSuggestionTest {
     fun `public suggestion popup handles keyboard selection and host acceptance`() {
         val accepted = ArrayList<SwingShellSuggestion>()
         val indexes = ArrayList<Int>()
+        val requests = ArrayList<SwingShellSuggestionRequest>()
         val component =
             SwingTerminal(
                 settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) },
                 hostServices =
                     SwingHostServices(
                         shellSuggestionHandler =
-                            SwingShellSuggestionHandler { suggestion, index ->
-                                accepted += suggestion
-                                indexes += index
+                            SwingShellSuggestionHandler { acceptance ->
+                                accepted += acceptance.suggestion
+                                indexes += acceptance.index
+                                requests += acceptance.request
                             },
                     ),
             )
@@ -55,6 +59,89 @@ class SwingTerminalShellSuggestionTest {
 
         assertEquals(listOf(suggestions[1]), accepted)
         assertEquals(listOf(1), indexes)
+        assertEquals(
+            listOf(
+                SwingShellSuggestionRequest(
+                    commandText = "",
+                    cursorOffset = 0,
+                    anchorColumn = 1,
+                    anchorRow = 1,
+                ),
+            ),
+            requests,
+        )
+    }
+
+    @Test
+    fun `provider backed suggestion request shows results and preserves acceptance context`() {
+        val providerRequests = ArrayList<SwingShellSuggestionRequest>()
+        val acceptedRequests = ArrayList<SwingShellSuggestionRequest>()
+        val component =
+            SwingTerminal(
+                settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) },
+                hostServices =
+                    SwingHostServices(
+                        shellSuggestionProvider =
+                            SwingShellSuggestionProvider { request ->
+                                providerRequests += request
+                                suggestions()
+                            },
+                        shellSuggestionHandler =
+                            SwingShellSuggestionHandler { acceptance ->
+                                acceptedRequests += acceptance.request
+                            },
+                    ),
+            )
+
+        SwingUtilities.invokeAndWait {
+            component.size = component.preferredGridSize(12, 4)
+            component.requestShellSuggestions(
+                commandText = "git s",
+                cursorOffset = 5,
+                anchorColumn = 5,
+                anchorRow = 2,
+            )
+
+            val state = component.currentShellSuggestionState()
+            assertTrue(state.visible)
+            assertEquals(2, state.count)
+            assertEquals(5, state.anchorColumn)
+            assertEquals(2, state.anchorRow)
+
+            component.keyListeners.forEach { listener -> listener.keyPressed(keyPressed(component, KeyEvent.VK_ENTER)) }
+        }
+
+        val expectedRequest =
+            SwingShellSuggestionRequest(
+                commandText = "git s",
+                cursorOffset = 5,
+                anchorColumn = 5,
+                anchorRow = 2,
+            )
+        assertEquals(listOf(expectedRequest), providerRequests)
+        assertEquals(listOf(expectedRequest), acceptedRequests)
+    }
+
+    @Test
+    fun `provider empty result hides current suggestion popup`() {
+        val component =
+            SwingTerminal(
+                settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) },
+                hostServices =
+                    SwingHostServices(
+                        shellSuggestionProvider = SwingShellSuggestionProvider { emptyList() },
+                    ),
+            )
+
+        SwingUtilities.invokeAndWait {
+            component.size = component.preferredGridSize(12, 4)
+            component.showShellSuggestions(suggestions(), anchorColumn = 0, anchorRow = 0)
+            assertTrue(component.currentShellSuggestionState().visible)
+
+            component.requestShellSuggestions(commandText = "missing", cursorOffset = 7, anchorColumn = 0, anchorRow = 0)
+
+            assertFalse(component.currentShellSuggestionState().visible)
+        }
     }
 
     @Test

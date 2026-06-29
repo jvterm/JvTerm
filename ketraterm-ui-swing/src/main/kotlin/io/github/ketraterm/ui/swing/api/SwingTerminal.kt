@@ -1036,10 +1036,62 @@ class SwingTerminal
             anchorRow: Int,
             selectedIndex: Int = 0,
         ) {
+            val request =
+                SwingShellSuggestionRequest(
+                    commandText = "",
+                    cursorOffset = 0,
+                    anchorColumn = anchorColumn.coerceAtLeast(0),
+                    anchorRow = anchorRow.coerceAtLeast(0),
+                )
             val snapshot = suggestions.toList()
             runOnEdt(
                 Runnable {
-                    shellSuggestionController.show(snapshot, anchorColumn, anchorRow, selectedIndex)
+                    shellSuggestionController.show(request, snapshot, selectedIndex)
+                    doLayout()
+                },
+            )
+        }
+
+        /**
+         * Requests shell suggestions from [SwingHostServices.shellSuggestionProvider]
+         * and shows the returned snapshot near a terminal-grid cell.
+         *
+         * Providers run on the Swing Event Dispatch Thread and should return a
+         * bounded, already-computed snapshot quickly. Empty provider results hide
+         * the current popup.
+         *
+         * @param commandText visible command-line text known to the host.
+         * @param cursorOffset UTF-16 cursor offset within [commandText].
+         * @param anchorColumn visible terminal-grid column used as the popup anchor.
+         * @param anchorRow visible terminal-grid row used as the popup anchor.
+         */
+        fun requestShellSuggestions(
+            commandText: String,
+            cursorOffset: Int,
+            anchorColumn: Int,
+            anchorRow: Int,
+        ) {
+            val request =
+                SwingShellSuggestionRequest(
+                    commandText = commandText,
+                    cursorOffset = cursorOffset,
+                    anchorColumn = anchorColumn,
+                    anchorRow = anchorRow,
+                )
+            runOnEdt(
+                Runnable {
+                    if (!settings.shellSuggestionsEnabled) {
+                        shellSuggestionController.hide()
+                        return@Runnable
+                    }
+                    val suggestions =
+                        runCatching {
+                            hostServices.shellSuggestionProvider.suggestions(request)
+                        }.getOrElse { exception ->
+                            System.err.println("Shell suggestion provider failed: ${exception.message}")
+                            emptyList()
+                        }
+                    shellSuggestionController.show(request, suggestions, selectedIndex = 0)
                     doLayout()
                 },
             )

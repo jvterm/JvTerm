@@ -29,8 +29,9 @@ class SwingShellSuggestionControllerTest {
         val host = RecordingSuggestionHost()
         val controller = SwingShellSuggestionController(host)
         val suggestions = suggestions(3)
+        val request = request(anchorColumn = 7, anchorRow = 2)
 
-        val shown = controller.show(suggestions, anchorColumn = 7, anchorRow = 2, selectedIndex = 99)
+        val shown = controller.show(request, suggestions, selectedIndex = 99)
         val state = controller.state()
 
         assertTrue(shown)
@@ -47,7 +48,7 @@ class SwingShellSuggestionControllerTest {
         val host = RecordingSuggestionHost(settings = SwingSettings(shellSuggestionsEnabled = false))
         val controller = SwingShellSuggestionController(host)
 
-        val shown = controller.show(suggestions(2), anchorColumn = 0, anchorRow = 0, selectedIndex = 0)
+        val shown = controller.show(request(), suggestions(2), selectedIndex = 0)
 
         assertFalse(shown)
         assertFalse(controller.state().visible)
@@ -58,7 +59,7 @@ class SwingShellSuggestionControllerTest {
     fun `navigation keys update selected suggestion and consume event`() {
         val host = RecordingSuggestionHost()
         val controller = SwingShellSuggestionController(host)
-        controller.show(suggestions(3), anchorColumn = 0, anchorRow = 0, selectedIndex = 0)
+        controller.show(request(), suggestions(3), selectedIndex = 0)
         val down = keyPressed(KeyEvent.VK_DOWN)
         val up = keyPressed(KeyEvent.VK_UP)
 
@@ -72,11 +73,23 @@ class SwingShellSuggestionControllerTest {
     }
 
     @Test
+    fun `show retains only visible suggestions so keyboard selection cannot move off popup`() {
+        val host = RecordingSuggestionHost()
+        val controller = SwingShellSuggestionController(host)
+
+        controller.show(request(), suggestions(20), selectedIndex = 19)
+
+        assertEquals(8, controller.state().count)
+        assertEquals(7, controller.state().selectedIndex)
+    }
+
+    @Test
     fun `enter accepts selected suggestion hides popup and notifies host`() {
         val host = RecordingSuggestionHost()
         val controller = SwingShellSuggestionController(host)
         val items = suggestions(2)
-        controller.show(items, anchorColumn = 0, anchorRow = 0, selectedIndex = 1)
+        val request = request(commandText = "git sw", cursorOffset = 6)
+        controller.show(request, items, selectedIndex = 1)
         val enter = keyPressed(KeyEvent.VK_ENTER)
 
         assertTrue(controller.handleKeyPressed(enter))
@@ -84,6 +97,7 @@ class SwingShellSuggestionControllerTest {
         assertFalse(controller.state().visible)
         assertEquals(listOf(1), host.acceptedIndexes)
         assertEquals(listOf(items[1]), host.acceptedSuggestions)
+        assertEquals(listOf(request), host.acceptedRequests)
         assertEquals(1, host.focusRequests)
         assertTrue(enter.isConsumed)
     }
@@ -92,7 +106,7 @@ class SwingShellSuggestionControllerTest {
     fun `escape hides popup without accepting`() {
         val host = RecordingSuggestionHost()
         val controller = SwingShellSuggestionController(host)
-        controller.show(suggestions(2), anchorColumn = 0, anchorRow = 0, selectedIndex = 0)
+        controller.show(request(), suggestions(2), selectedIndex = 0)
         val escape = keyPressed(KeyEvent.VK_ESCAPE)
 
         assertTrue(controller.handleKeyPressed(escape))
@@ -106,7 +120,7 @@ class SwingShellSuggestionControllerTest {
     fun `reload settings hides visible popup when setting is disabled`() {
         val host = RecordingSuggestionHost()
         val controller = SwingShellSuggestionController(host)
-        controller.show(suggestions(2), anchorColumn = 0, anchorRow = 0, selectedIndex = 0)
+        controller.show(request(), suggestions(2), selectedIndex = 0)
 
         host.settings = SwingSettings(shellSuggestionsEnabled = false)
         controller.reloadSettings()
@@ -124,6 +138,19 @@ class SwingShellSuggestionControllerTest {
             )
         }
 
+    private fun request(
+        commandText: String = "",
+        cursorOffset: Int = commandText.length,
+        anchorColumn: Int = 0,
+        anchorRow: Int = 0,
+    ): SwingShellSuggestionRequest =
+        SwingShellSuggestionRequest(
+            commandText = commandText,
+            cursorOffset = cursorOffset,
+            anchorColumn = anchorColumn,
+            anchorRow = anchorRow,
+        )
+
     private fun keyPressed(keyCode: Int): KeyEvent =
         KeyEvent(
             source,
@@ -139,14 +166,16 @@ class SwingShellSuggestionControllerTest {
     ) : SwingShellSuggestionHost {
         val acceptedSuggestions = ArrayList<SwingShellSuggestion>()
         val acceptedIndexes = ArrayList<Int>()
+        val acceptedRequests = ArrayList<SwingShellSuggestionRequest>()
         var focusRequests = 0
         var revalidations = 0
         var repaints = 0
 
         override val suggestionHandler: SwingShellSuggestionHandler =
-            SwingShellSuggestionHandler { suggestion, index ->
-                acceptedSuggestions += suggestion
-                acceptedIndexes += index
+            SwingShellSuggestionHandler { acceptance ->
+                acceptedSuggestions += acceptance.suggestion
+                acceptedIndexes += acceptance.index
+                acceptedRequests += acceptance.request
             }
 
         override fun revalidate() {
