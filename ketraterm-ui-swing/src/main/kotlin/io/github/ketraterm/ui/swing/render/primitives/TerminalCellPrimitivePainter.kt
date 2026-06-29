@@ -17,6 +17,7 @@ package io.github.ketraterm.ui.swing.render.primitives
 
 import io.github.ketraterm.ui.swing.settings.SwingMetrics
 import java.awt.Graphics2D
+import java.awt.geom.AffineTransform
 
 /**
  * Routes terminal cell-native glyphs to allocation-free primitive painters.
@@ -42,16 +43,40 @@ internal class TerminalCellPrimitivePainter {
         row: Int,
         metrics: SwingMetrics,
     ) {
-        val x = column * metrics.cellWidth
-        val y = row * metrics.cellHeight
-        when {
-            TerminalBoxDrawingGlyphs.canPaint(codePoint) -> {
-                boxDrawingPainter.paint(g, codePoint, x, y, metrics.cellWidth, metrics.cellHeight)
-            }
+        val transform = g.transform
+        val scaleX = transform.scaleX
+        val scaleY = transform.scaleY
+        val transX = transform.translateX
+        val transY = transform.translateY
 
-            TerminalBlockElementGlyphs.canPaint(codePoint) -> {
-                blockElementPainter.paint(g, codePoint, x, y, metrics.cellWidth, metrics.cellHeight)
+        val left = column * metrics.cellWidth
+        val top = row * metrics.cellHeight
+        val right = (column + 1) * metrics.cellWidth
+        val bottom = (row + 1) * metrics.cellHeight
+
+        val x1 = kotlin.math.round(left * scaleX + transX).toInt()
+        val y1 = kotlin.math.round(top * scaleY + transY).toInt()
+        val x2 = kotlin.math.round(right * scaleX + transX).toInt()
+        val y2 = kotlin.math.round(bottom * scaleY + transY).toInt()
+
+        val oldTransform = g.transform
+        g.transform = IDENTITY_TRANSFORM
+        try {
+            when {
+                TerminalBoxDrawingGlyphs.canPaint(codePoint) -> {
+                    boxDrawingPainter.paint(g, codePoint, x1, y1, x2 - x1, y2 - y1)
+                }
+
+                TerminalBlockElementGlyphs.canPaint(codePoint) -> {
+                    blockElementPainter.paint(g, codePoint, x1, y1, x2 - x1, y2 - y1)
+                }
             }
+        } finally {
+            g.transform = oldTransform
         }
+    }
+
+    private companion object {
+        private val IDENTITY_TRANSFORM = AffineTransform()
     }
 }
