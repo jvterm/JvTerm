@@ -15,11 +15,10 @@
  */
 package io.github.ketraterm.ui.swing.api
 
+import io.github.ketraterm.input.api.TerminalInputEncoder
+import io.github.ketraterm.input.event.*
 import io.github.ketraterm.ui.swing.settings.SwingSettings
-import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestion
-import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionHandler
-import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionProvider
-import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
+import io.github.ketraterm.ui.swing.suggestion.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.awt.Insets
@@ -173,6 +172,93 @@ class SwingTerminalShellSuggestionTest {
             assertEquals(1, state.selectedIndex)
             assertEquals(suggestions[1], state.selectedSuggestion)
         }
+    }
+
+    @Test
+    fun `default handler deletes standard ASCII prefix and pastes replacement`() {
+        val session = RecordingInputEncoder()
+        val handler = SwingShellSuggestionHandler.createDefault(session)
+
+        val request = SwingShellSuggestionRequest("git s", cursorOffset = 5, anchorColumn = 0, anchorRow = 0)
+        val suggestion = SwingShellSuggestion("git status")
+        val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
+
+        handler.onSuggestionAccepted(acceptance)
+
+        assertEquals(5, session.keys.size)
+        assertTrue(session.keys.all { it.key == TerminalKey.BACKSPACE })
+        assertEquals(1, session.pastes.size)
+        assertEquals("git status", session.pastes[0].text)
+    }
+
+    @Test
+    fun `default handler deletes emoji prefix using grapheme clusters count`() {
+        val session = RecordingInputEncoder()
+        val handler = SwingShellSuggestionHandler.createDefault(session)
+
+        // "a😂" is 3 UTF-16 code units (1 for 'a', 2 for '😂') but 2 grapheme clusters.
+        val request = SwingShellSuggestionRequest("a😂", cursorOffset = 3, anchorColumn = 0, anchorRow = 0)
+        val suggestion = SwingShellSuggestion("a😂 b")
+        val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
+
+        handler.onSuggestionAccepted(acceptance)
+
+        assertEquals(2, session.keys.size)
+        assertTrue(session.keys.all { it.key == TerminalKey.BACKSPACE })
+        assertEquals(1, session.pastes.size)
+        assertEquals("a😂 b", session.pastes[0].text)
+    }
+
+    @Test
+    fun `default handler deletes combining accents prefix using grapheme clusters count`() {
+        val session = RecordingInputEncoder()
+        val handler = SwingShellSuggestionHandler.createDefault(session)
+
+        // "é" is 'e' + combining acute accent (2 code points, 2 code units) but 1 grapheme cluster.
+        val request = SwingShellSuggestionRequest("é", cursorOffset = 2, anchorColumn = 0, anchorRow = 0)
+        val suggestion = SwingShellSuggestion("é test")
+        val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
+
+        handler.onSuggestionAccepted(acceptance)
+
+        assertEquals(1, session.keys.size)
+        assertTrue(session.keys.all { it.key == TerminalKey.BACKSPACE })
+        assertEquals(1, session.pastes.size)
+        assertEquals("é test", session.pastes[0].text)
+    }
+
+    @Test
+    fun `default handler respects custom deleteCount override`() {
+        val session = RecordingInputEncoder()
+        val handler = SwingShellSuggestionHandler.createDefault(session)
+
+        val request = SwingShellSuggestionRequest("git s", cursorOffset = 5, anchorColumn = 0, anchorRow = 0)
+        val suggestion = SwingShellSuggestion("status", deleteCount = 1) // only delete 's'
+        val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
+
+        handler.onSuggestionAccepted(acceptance)
+
+        assertEquals(1, session.keys.size)
+        assertEquals(TerminalKey.BACKSPACE, session.keys[0].key)
+        assertEquals(1, session.pastes.size)
+        assertEquals("status", session.pastes[0].text)
+    }
+
+    private class RecordingInputEncoder : TerminalInputEncoder {
+        val keys = ArrayList<TerminalKeyEvent>()
+        val pastes = ArrayList<TerminalPasteEvent>()
+
+        override fun encodeKey(event: TerminalKeyEvent) {
+            keys += event
+        }
+
+        override fun encodePaste(event: TerminalPasteEvent) {
+            pastes += event
+        }
+
+        override fun encodeFocus(event: TerminalFocusEvent) = Unit
+
+        override fun encodeMouse(event: TerminalMouseEvent) = Unit
     }
 
     private fun suggestions(): List<SwingShellSuggestion> =

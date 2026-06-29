@@ -15,6 +15,12 @@
  */
 package io.github.ketraterm.ui.swing.suggestion
 
+import io.github.ketraterm.input.api.TerminalInputEncoder
+import io.github.ketraterm.input.event.TerminalKey
+import io.github.ketraterm.input.event.TerminalKeyEvent
+import io.github.ketraterm.input.event.TerminalPasteEvent
+import java.text.BreakIterator
+
 /**
  * Host-provided shell suggestion shown by the reusable Swing terminal popup.
  *
@@ -28,6 +34,9 @@ package io.github.ketraterm.ui.swing.suggestion
  * @property detail secondary text shown below [displayText], such as flags,
  * path context, or a short description.
  * @property source compact source label, such as `history`, `path`, or `git`.
+ * @property deleteCount number of characters/grapheme clusters to delete before
+ * inserting the suggestion. `-1` triggers default prefix deletion based on
+ * cursor offset.
  */
 data class SwingShellSuggestion
     @JvmOverloads
@@ -36,6 +45,7 @@ data class SwingShellSuggestion
         val displayText: String = replacementText,
         val detail: String = "",
         val source: String = "",
+        val deleteCount: Int = -1,
     ) {
         init {
             require(replacementText.isNotEmpty()) { "replacementText must not be empty" }
@@ -172,5 +182,44 @@ fun interface SwingShellSuggestionHandler {
          */
         @JvmField
         val NONE: SwingShellSuggestionHandler = SwingShellSuggestionHandler { }
+
+        /**
+         * Creates a standard command-line replacement suggestion handler.
+         *
+         * The default handler is Unicode-aware: it computes the count of grapheme
+         * clusters to delete before pasting the accepted suggestion replacement.
+         *
+         * @param session active input encoder used to write backspaces and paste events.
+         * @return standard replacement suggestion handler.
+         */
+        @JvmStatic
+        fun createDefault(session: TerminalInputEncoder): SwingShellSuggestionHandler =
+            SwingShellSuggestionHandler { acceptance ->
+                val request = acceptance.request
+                val suggestion = acceptance.suggestion
+
+                val toDelete =
+                    if (suggestion.deleteCount >= 0) {
+                        suggestion.deleteCount
+                    } else {
+                        countGraphemeClusters(request.commandText.substring(0, request.cursorOffset))
+                    }
+
+                repeat(toDelete) {
+                    session.encodeKey(TerminalKeyEvent.key(TerminalKey.BACKSPACE))
+                }
+                session.encodePaste(TerminalPasteEvent(suggestion.replacementText))
+            }
+
+        private fun countGraphemeClusters(text: String): Int {
+            if (text.isEmpty()) return 0
+            val iterator = BreakIterator.getCharacterInstance()
+            iterator.setText(text)
+            var count = 0
+            while (iterator.next() != BreakIterator.DONE) {
+                count++
+            }
+            return count
+        }
     }
 }
