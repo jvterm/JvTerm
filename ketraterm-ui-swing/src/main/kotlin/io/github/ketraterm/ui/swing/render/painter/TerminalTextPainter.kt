@@ -219,75 +219,79 @@ internal class TerminalTextPainter(
         val attr = attrWords[index]
         if (isBlinkHidden(attr, textBlinkVisible)) return
 
-        val safeColumnSpan = maxOf(1, columnSpan)
-        val oldClip = g.clip
-        try {
-            g.clipRect(
-                column * metrics.cellWidth,
-                row * metrics.cellHeight,
-                metrics.cellWidth * safeColumnSpan,
-                metrics.cellHeight,
-            )
-            g.font = fontCache.font(terminalFontStyle(attr))
+        val codeWord = codeWords[index]
+        val isPrimitive = flags and TerminalRenderCellFlags.CLUSTER == 0 && cellPrimitives.canPaint(codeWord)
+        if (isPrimitive) {
             g.color = colorCache.color(foreground)
+            cellPrimitives.paint(g, codeWord, column, row, metrics)
+        } else {
+            val safeColumnSpan = maxOf(1, columnSpan)
+            val oldClip = g.clip
+            try {
+                g.clipRect(
+                    column * metrics.cellWidth,
+                    row * metrics.cellHeight,
+                    metrics.cellWidth * safeColumnSpan,
+                    metrics.cellHeight,
+                )
+                g.font = fontCache.font(terminalFontStyle(attr))
+                g.color = colorCache.color(foreground)
 
-            val baselineY = row * metrics.cellHeight + metrics.baseline
-            val codeWord = codeWords[index]
-            if (flags and TerminalRenderCellFlags.CLUSTER == 0 && cellPrimitives.canPaint(codeWord)) {
-                cellPrimitives.paint(g, codeWord, column, row, metrics)
-            } else if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
-                val clusterRef = clusterRefs[index]
-                if (clusterRef != 0L) {
-                    val offset = cache.clusterOffset(clusterRef)
-                    val length = cache.clusterLength(clusterRef)
-                    val paintedEmoji =
-                        platformEmojiPainter.paintCluster(
-                            g = g,
-                            codepoints = cache.clusterCodepoints,
-                            offset = offset,
-                            length = length,
-                            column = column,
-                            row = row,
-                            columnSpan = safeColumnSpan,
-                            metrics = metrics,
-                        )
-                    if (!paintedEmoji) {
-                        drawComplexCluster(
-                            g = g,
-                            codepoints = cache.clusterCodepoints,
-                            offset = offset,
-                            length = length,
-                            fontStyle = terminalFontStyle(attr),
-                            x = column * metrics.cellWidth,
-                            cellPixelWidth = metrics.cellWidth * safeColumnSpan,
-                            baselineY = baselineY,
-                            fontRenderContext = fontRenderContext,
-                        )
+                val baselineY = row * metrics.cellHeight + metrics.baseline
+                if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
+                    val clusterRef = clusterRefs[index]
+                    if (clusterRef != 0L) {
+                        val offset = cache.clusterOffset(clusterRef)
+                        val length = cache.clusterLength(clusterRef)
+                        val paintedEmoji =
+                            platformEmojiPainter.paintCluster(
+                                g = g,
+                                codepoints = cache.clusterCodepoints,
+                                offset = offset,
+                                length = length,
+                                column = column,
+                                row = row,
+                                columnSpan = safeColumnSpan,
+                                metrics = metrics,
+                            )
+                        if (!paintedEmoji) {
+                            drawComplexCluster(
+                                g = g,
+                                codepoints = cache.clusterCodepoints,
+                                offset = offset,
+                                length = length,
+                                fontStyle = terminalFontStyle(attr),
+                                x = column * metrics.cellWidth,
+                                cellPixelWidth = metrics.cellWidth * safeColumnSpan,
+                                baselineY = baselineY,
+                                fontRenderContext = fontRenderContext,
+                            )
+                        }
                     }
+                } else if (platformEmojiPainter.paintCodePoint(
+                        g = g,
+                        codePoint = codeWord,
+                        column = column,
+                        row = row,
+                        columnSpan = safeColumnSpan,
+                        metrics = metrics,
+                    )
+                ) {
+                    // Painted by the native platform text stack.
+                } else {
+                    drawComplexCodePoint(
+                        g = g,
+                        codePoint = codeWord,
+                        fontStyle = terminalFontStyle(attr),
+                        x = column * metrics.cellWidth,
+                        cellPixelWidth = metrics.cellWidth * safeColumnSpan,
+                        baselineY = baselineY,
+                        fontRenderContext = fontRenderContext,
+                    )
                 }
-            } else if (platformEmojiPainter.paintCodePoint(
-                    g = g,
-                    codePoint = codeWord,
-                    column = column,
-                    row = row,
-                    columnSpan = safeColumnSpan,
-                    metrics = metrics,
-                )
-            ) {
-                // Painted by the native platform text stack.
-            } else {
-                drawComplexCodePoint(
-                    g = g,
-                    codePoint = codeWord,
-                    fontStyle = terminalFontStyle(attr),
-                    x = column * metrics.cellWidth,
-                    cellPixelWidth = metrics.cellWidth * safeColumnSpan,
-                    baselineY = baselineY,
-                    fontRenderContext = fontRenderContext,
-                )
+            } finally {
+                g.clip = oldClip
             }
-        } finally {
-            g.clip = oldClip
         }
     }
 
@@ -454,74 +458,12 @@ internal class TerminalTextPainter(
             )
         val fontStyle = terminalFontStyle(attr)
         val endColumn = minOf(cache.columns, column + cellSpan(flags))
-        val oldClip = g.clip
+        val codeWord = codeWords[index]
+        val isPrimitive = flags and TerminalRenderCellFlags.CLUSTER == 0 && cellPrimitives.canPaint(codeWord)
 
-        g.font = fontCache.font(fontStyle)
-        g.color = colorCache.color(foreground)
-
-        try {
-            g.clipRect(
-                column * metrics.cellWidth,
-                row * metrics.cellHeight,
-                metrics.cellWidth * (endColumn - column),
-                metrics.cellHeight,
-            )
-
-            val codeWord = codeWords[index]
-            if (flags and TerminalRenderCellFlags.CLUSTER == 0 && cellPrimitives.canPaint(codeWord)) {
-                cellPrimitives.paint(g, codeWord, column, row, metrics)
-            } else if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
-                val clusterRef = clusterRefs[index]
-                if (clusterRef != 0L) {
-                    val offset = cache.clusterOffset(clusterRef)
-                    val length = cache.clusterLength(clusterRef)
-                    val paintedEmoji =
-                        platformEmojiPainter.paintCluster(
-                            g = g,
-                            codepoints = cache.clusterCodepoints,
-                            offset = offset,
-                            length = length,
-                            column = column,
-                            row = row,
-                            columnSpan = endColumn - column,
-                            metrics = metrics,
-                        )
-                    if (!paintedEmoji) {
-                        drawComplexCluster(
-                            g = g,
-                            codepoints = cache.clusterCodepoints,
-                            offset = offset,
-                            length = length,
-                            fontStyle = fontStyle,
-                            x = column * metrics.cellWidth,
-                            cellPixelWidth = metrics.cellWidth * (endColumn - column),
-                            baselineY = baselineY,
-                            fontRenderContext = fontRenderContext,
-                        )
-                    }
-                }
-            } else if (platformEmojiPainter.paintCodePoint(
-                    g = g,
-                    codePoint = codeWord,
-                    column = column,
-                    row = row,
-                    columnSpan = endColumn - column,
-                    metrics = metrics,
-                )
-            ) {
-                // Painted by the native platform text stack.
-            } else {
-                drawComplexCodePoint(
-                    g = g,
-                    codePoint = codeWord,
-                    fontStyle = fontStyle,
-                    x = column * metrics.cellWidth,
-                    cellPixelWidth = metrics.cellWidth * (endColumn - column),
-                    baselineY = baselineY,
-                    fontRenderContext = fontRenderContext,
-                )
-            }
-
+        if (isPrimitive) {
+            g.color = colorCache.color(foreground)
+            cellPrimitives.paint(g, codeWord, column, row, metrics)
             decorationPainter.paint(g, palette, attr, extraAttr, foreground, column, endColumn, row, metrics)
             paintHyperlinkDecoration(
                 g = g,
@@ -533,8 +475,84 @@ internal class TerminalTextPainter(
                 row = row,
                 metrics = metrics,
             )
-        } finally {
-            g.clip = oldClip
+        } else {
+            val oldClip = g.clip
+            g.font = fontCache.font(fontStyle)
+            g.color = colorCache.color(foreground)
+            try {
+                g.clipRect(
+                    column * metrics.cellWidth,
+                    row * metrics.cellHeight,
+                    metrics.cellWidth * (endColumn - column),
+                    metrics.cellHeight,
+                )
+
+                if (flags and TerminalRenderCellFlags.CLUSTER != 0) {
+                    val clusterRef = clusterRefs[index]
+                    if (clusterRef != 0L) {
+                        val offset = cache.clusterOffset(clusterRef)
+                        val length = cache.clusterLength(clusterRef)
+                        val paintedEmoji =
+                            platformEmojiPainter.paintCluster(
+                                g = g,
+                                codepoints = cache.clusterCodepoints,
+                                offset = offset,
+                                length = length,
+                                column = column,
+                                row = row,
+                                columnSpan = endColumn - column,
+                                metrics = metrics,
+                            )
+                        if (!paintedEmoji) {
+                            drawComplexCluster(
+                                g = g,
+                                codepoints = cache.clusterCodepoints,
+                                offset = offset,
+                                length = length,
+                                fontStyle = fontStyle,
+                                x = column * metrics.cellWidth,
+                                cellPixelWidth = metrics.cellWidth * (endColumn - column),
+                                baselineY = baselineY,
+                                fontRenderContext = fontRenderContext,
+                            )
+                        }
+                    }
+                } else if (platformEmojiPainter.paintCodePoint(
+                        g = g,
+                        codePoint = codeWord,
+                        column = column,
+                        row = row,
+                        columnSpan = endColumn - column,
+                        metrics = metrics,
+                    )
+                ) {
+                    // Painted by the native platform text stack.
+                } else {
+                    drawComplexCodePoint(
+                        g = g,
+                        codePoint = codeWord,
+                        fontStyle = fontStyle,
+                        x = column * metrics.cellWidth,
+                        cellPixelWidth = metrics.cellWidth * (endColumn - column),
+                        baselineY = baselineY,
+                        fontRenderContext = fontRenderContext,
+                    )
+                }
+
+                decorationPainter.paint(g, palette, attr, extraAttr, foreground, column, endColumn, row, metrics)
+                paintHyperlinkDecoration(
+                    g = g,
+                    hyperlinkId = hyperlinkId,
+                    hovered = hovered,
+                    color = foreground,
+                    startColumn = column,
+                    endColumn = endColumn,
+                    row = row,
+                    metrics = metrics,
+                )
+            } finally {
+                g.clip = oldClip
+            }
         }
         return endColumn
     }
