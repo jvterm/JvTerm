@@ -20,6 +20,7 @@ import io.github.ketraterm.app.completion.StandaloneCompletionRegistry
 import io.github.ketraterm.app.config.KetraTermSettings
 import io.github.ketraterm.app.history.CommandCompletionStatsStore
 import io.github.ketraterm.app.history.CommandPersistencePrivacyPolicy
+import io.github.ketraterm.completion.TerminalCommandSpecs
 import io.github.ketraterm.completion.TerminalCompletionSources
 import io.github.ketraterm.host.TerminalClipboardPromptEvent
 import io.github.ketraterm.host.TerminalClipboardWriteEvent
@@ -55,13 +56,18 @@ internal class TabManager(
     private val workspace = TerminalWorkspace(StandaloneWorkspaceListener())
     private val tabRoots = HashMap<String, SplitNode>()
     private val tabContainers = HashMap<String, JPanel>()
-    private val commandCompletionStatsSource = TerminalCompletionSources.commandStats()
+    private val completionSpecs = TerminalCommandSpecs.defaults()
+    private val commandCompletionStatsSource = TerminalCompletionSources.commandStats(commandSpecs = completionSpecs)
     private val completionFeedbackRecorder =
         StandaloneCompletionFeedbackRecorder(
             statsSource = commandCompletionStatsSource,
             persistSnapshot = { records -> commandCompletionStatsStore?.persist(records) },
         )
-    private val completionRegistry = StandaloneCompletionRegistry(persistentStatsSource = commandCompletionStatsSource)
+    private val completionRegistry =
+        StandaloneCompletionRegistry(
+            specs = completionSpecs,
+            persistentStatsSource = commandCompletionStatsSource,
+        )
     private var commandCompletionStatsStore: CommandCompletionStatsStore? = createCommandCompletionStatsStoreIfEnabled()
 
     val selectedPane: TerminalPane?

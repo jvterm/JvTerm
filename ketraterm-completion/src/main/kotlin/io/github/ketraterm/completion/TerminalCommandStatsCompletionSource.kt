@@ -105,11 +105,14 @@ data class TerminalCommandCompletionStats
  * learn source-specific UX quality instead of only exact command text and shape.
  *
  * @param capacity maximum distinct command/profile/directory rows retained.
+ * @param commandSpecs command specifications used to classify command-family
+ * shapes for privacy-preserving structural learning.
  */
 class TerminalCommandStatsCompletionSource
     @JvmOverloads
     constructor(
         private val capacity: Int = DEFAULT_CAPACITY,
+        commandSpecs: List<TerminalCommandSpec> = TerminalCommandSpecs.defaults(),
     ) : TerminalCompletionSource {
         init {
             require(capacity > 0) { "capacity must be > 0, was $capacity" }
@@ -118,6 +121,7 @@ class TerminalCommandStatsCompletionSource
         private val lock = Any()
         private val entries = ArrayList<TerminalCommandCompletionStats>(capacity)
         private val shapeEntries = ArrayList<TerminalCommandShapeStats>(capacity)
+        private val commandSpecs = commandSpecs.toList()
 
         /**
          * Replaces the current index with [records].
@@ -464,6 +468,11 @@ class TerminalCommandStatsCompletionSource
             return -1
         }
 
+        private fun shapeFor(commandLine: String): TerminalCommandLineShape? =
+            TerminalCommandLineClassifier
+                .classify(commandLine, commandSpecs)
+                ?.shape
+
         private companion object {
             private const val DEFAULT_CAPACITY = 2048
             private const val SOURCE_STATS = "stats"
@@ -497,14 +506,7 @@ class TerminalCommandStatsCompletionSource
                 compareByDescending<TerminalCompletionCandidate> { it.score }
                     .thenBy { it.displayText }
 
-            private val DEFAULT_COMMAND_SPECS = TerminalCommandSpecs.defaults()
-
             private fun isRecordableCommand(commandLine: String): Boolean = commandLine.isNotBlank() && !commandLine.hasLineBreak()
-
-            private fun shapeFor(commandLine: String): TerminalCommandLineShape? =
-                TerminalCommandLineClassifier
-                    .classify(commandLine, DEFAULT_COMMAND_SPECS)
-                    ?.shape
 
             private fun saturatedIncrement(value: Int): Int = if (value == Int.MAX_VALUE) value else value + 1
         }

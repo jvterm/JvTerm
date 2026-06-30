@@ -98,11 +98,20 @@ object TerminalCompletionSources {
      * suggestion feedback. The source itself performs no persistence or I/O.
      *
      * @param capacity maximum distinct command/profile/directory rows retained.
+     * @param commandSpecs command specifications used to classify
+     * privacy-preserving command-family shapes.
      * @return mutable command stats completion source.
      */
     @JvmStatic
     @JvmOverloads
-    fun commandStats(capacity: Int = 2048): TerminalCommandStatsCompletionSource = TerminalCommandStatsCompletionSource(capacity)
+    fun commandStats(
+        capacity: Int = 2048,
+        commandSpecs: List<TerminalCommandSpec> = TerminalCommandSpecs.defaults(),
+    ): TerminalCommandStatsCompletionSource =
+        TerminalCommandStatsCompletionSource(
+            capacity = capacity,
+            commandSpecs = commandSpecs,
+        )
 
     /**
      * Wraps [source] with learned command-shape score adjustment.

@@ -25,9 +25,6 @@ private fun String.containsLineBreak(): Boolean = indexOf('\n') >= 0 || indexOf(
  * `git switch <arg>` or `git log --stat` without storing branch names, paths,
  * URLs, tokens, or other sensitive argument text as aggregate metadata.
  *
- * TODO(completion-shape): Allow hosts to supply imported command specs to the
- * stats classifier so ranking can use richer corpora than the curated defaults.
- *
  * TODO(completion-ranking): Add command-family aggregate stats independent of
  * trailing arguments, for example `git checkout <arg>` and `npm run <arg>`,
  * without retaining private argument values.

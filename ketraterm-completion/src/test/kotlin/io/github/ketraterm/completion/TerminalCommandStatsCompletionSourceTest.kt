@@ -213,6 +213,86 @@ class TerminalCommandStatsCompletionSourceTest {
         assertEquals(listOf("git status"), source.snapshot().map { it.commandLine })
     }
 
+    @Test
+    fun `custom command specs classify nested command shapes`() {
+        val source =
+            TerminalCommandStatsCompletionSource(
+                commandSpecs =
+                    listOf(
+                        TerminalCommandSpec(
+                            name = "tool",
+                            subcommands =
+                                listOf(
+                                    TerminalCommandSpec(
+                                        name = "alpha",
+                                        subcommands = listOf(TerminalCommandSpec("beta", "run beta workflow")),
+                                    ),
+                                ),
+                        ),
+                    ),
+            )
+
+        source.recordCommandResult(
+            commandLine = "tool alpha beta private-branch",
+            successful = true,
+            profileId = null,
+            workingDirectoryUri = null,
+            usedAtEpochMillis = 1,
+        )
+
+        val shape = source.shapeSnapshot().single().shape
+        assertEquals("tool", shape.executable)
+        assertEquals(listOf("alpha", "beta"), shape.subcommands)
+        assertEquals(1, shape.positionalArgumentCount)
+        assertTrue("private-branch" !in shape.normalizedShapeKey)
+    }
+
+    @Test
+    fun `custom command specs canonicalize aliased subcommands`() {
+        val source =
+            TerminalCommandStatsCompletionSource(
+                commandSpecs =
+                    listOf(
+                        TerminalCommandSpec(
+                            name = "git",
+                            subcommands = listOf(TerminalCommandSpec("checkout", aliases = listOf("co"))),
+                        ),
+                    ),
+            )
+
+        source.recordCommandResult(
+            commandLine = "git co main",
+            successful = true,
+            profileId = null,
+            workingDirectoryUri = null,
+            usedAtEpochMillis = 1,
+        )
+
+        val shape = source.shapeSnapshot().single().shape
+        assertEquals(listOf("checkout"), shape.subcommands)
+        assertEquals(1, shape.positionalArgumentCount)
+        assertTrue("main" !in shape.normalizedShapeKey)
+    }
+
+    @Test
+    fun `empty command specs fall back to generic private shape classification`() {
+        val source = TerminalCommandStatsCompletionSource(commandSpecs = emptyList())
+
+        source.recordCommandResult(
+            commandLine = "docker compose up secret-project",
+            successful = true,
+            profileId = null,
+            workingDirectoryUri = null,
+            usedAtEpochMillis = 1,
+        )
+
+        val shape = source.shapeSnapshot().single().shape
+        assertEquals("docker", shape.executable)
+        assertEquals(listOf("compose"), shape.subcommands)
+        assertEquals(2, shape.positionalArgumentCount)
+        assertTrue("secret-project" !in shape.normalizedShapeKey)
+    }
+
     private fun request(
         commandLine: String,
         profileId: String? = null,
