@@ -1,0 +1,118 @@
+/*
+ * Copyright 2026 Gagik Sargsyan
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package io.github.ketraterm.app.completion
+
+import io.github.ketraterm.completion.TerminalCommandSpec
+import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class StandaloneCompletionRegistryTest {
+    @Test
+    fun `session MRU suggestions rank ahead of static spec suggestions`() {
+        val registry = registry()
+        val provider = registry.createProvider("session-1")
+        registry.recordSuccessfulCommand(
+            sessionId = "session-1",
+            commandLine = "git switch main",
+            profileId = "bash",
+            workingDirectoryUri = "file:///repo",
+        )
+
+        val suggestions = provider.suggestions(request("git s"))
+
+        assertEquals("git switch main", suggestions[0].replacementText)
+        assertEquals("mru", suggestions[0].source)
+        assertEquals(0, suggestions[0].replacementStartOffset)
+        assertEquals(5, suggestions[0].replacementEndOffset)
+        assertTrue(suggestions.any { it.replacementText == "status" && it.source == "spec" })
+    }
+
+    @Test
+    fun `session MRU commands are isolated per provider session`() {
+        val registry = registry(emptyList())
+        val first = registry.createProvider("session-1")
+        val second = registry.createProvider("session-2")
+
+        registry.recordSuccessfulCommand(
+            sessionId = "session-1",
+            commandLine = "git status",
+            profileId = "bash",
+            workingDirectoryUri = null,
+        )
+
+        assertEquals(listOf("git status"), first.suggestions(request("git")).map { it.replacementText })
+        assertTrue(second.suggestions(request("git")).isEmpty())
+    }
+
+    @Test
+    fun `removed session clears already created provider MRU source`() {
+        val registry = registry(emptyList())
+        val provider = registry.createProvider("session-1")
+        registry.recordSuccessfulCommand(
+            sessionId = "session-1",
+            commandLine = "git status",
+            profileId = "bash",
+            workingDirectoryUri = null,
+        )
+
+        registry.removeSession("session-1")
+
+        assertTrue(provider.suggestions(request("git")).isEmpty())
+    }
+
+    @Test
+    fun `unregistered session records are ignored`() {
+        val registry = registry(emptyList())
+
+        registry.recordSuccessfulCommand(
+            sessionId = "missing",
+            commandLine = "git status",
+            profileId = "bash",
+            workingDirectoryUri = null,
+        )
+
+        val provider = registry.createProvider("session-1")
+        assertTrue(provider.suggestions(request("git")).isEmpty())
+    }
+
+    private fun registry(specs: List<TerminalCommandSpec> = specs()): StandaloneCompletionRegistry =
+        StandaloneCompletionRegistry(
+            specs = specs,
+            sessionMruCapacity = 4,
+        )
+
+    private fun specs(): List<TerminalCommandSpec> =
+        listOf(
+            TerminalCommandSpec(
+                name = "git",
+                subcommands =
+                    listOf(
+                        TerminalCommandSpec("status", "show status"),
+                        TerminalCommandSpec("switch", "switch branches"),
+                    ),
+            ),
+        )
+
+    private fun request(commandText: String): SwingShellSuggestionRequest =
+        SwingShellSuggestionRequest(
+            commandText = commandText,
+            cursorOffset = commandText.length,
+            anchorColumn = commandText.length,
+            anchorRow = 0,
+        )
+}

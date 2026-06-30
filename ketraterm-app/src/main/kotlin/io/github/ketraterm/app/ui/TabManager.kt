@@ -15,13 +15,12 @@
  */
 package io.github.ketraterm.app.ui
 
-import io.github.ketraterm.app.completion.CompletionSuggestionProvider
+import io.github.ketraterm.app.completion.StandaloneCompletionRegistry
 import io.github.ketraterm.app.config.KetraTermSettings
 import io.github.ketraterm.app.history.CommandHistoryStore
-import io.github.ketraterm.completion.TerminalCommandSpecs
-import io.github.ketraterm.completion.TerminalCompletionEngines
 import io.github.ketraterm.host.TerminalClipboardPromptEvent
 import io.github.ketraterm.host.TerminalClipboardWriteEvent
+import io.github.ketraterm.session.TerminalShellIntegrationCommandLifecycle
 import io.github.ketraterm.workspace.*
 import java.awt.*
 import java.awt.event.InputEvent
@@ -53,10 +52,7 @@ internal class TabManager(
     private val workspace = TerminalWorkspace(StandaloneWorkspaceListener())
     private val tabRoots = HashMap<String, SplitNode>()
     private val tabContainers = HashMap<String, JPanel>()
-    private val completionSuggestionProvider =
-        CompletionSuggestionProvider(
-            engine = TerminalCompletionEngines.fromSpecs(TerminalCommandSpecs.defaults()),
-        )
+    private val completionRegistry = StandaloneCompletionRegistry()
     private var commandHistoryStore: CommandHistoryStore? = createCommandHistoryStoreIfEnabled()
 
     val selectedPane: TerminalPane?
@@ -208,7 +204,7 @@ internal class TabManager(
             TerminalPane.create(
                 tab = workspaceTab,
                 settings = settings,
-                suggestionProvider = completionSuggestionProvider,
+                suggestionProvider = completionRegistry.createProvider(workspaceTab.id),
             ) { p, x, y ->
                 showPaneContextMenu(p, p.terminal, x, y)
             }
@@ -241,6 +237,7 @@ internal class TabManager(
         for (pane in tabPanes) {
             panes.remove(pane)
             pane.close()
+            completionRegistry.removeSession(pane.tab.id)
             workspace.closeTab(pane.tab.id)
         }
         tabRoots.remove(id)
@@ -354,7 +351,7 @@ internal class TabManager(
             TerminalPane.create(
                 tab = workspaceTab,
                 settings = settings,
-                suggestionProvider = completionSuggestionProvider,
+                suggestionProvider = completionRegistry.createProvider(workspaceTab.id),
             ) { p, x, y ->
                 showPaneContextMenu(p, p.terminal, x, y)
             }
@@ -422,6 +419,7 @@ internal class TabManager(
 
         panes.remove(pane)
         pane.close()
+        completionRegistry.removeSession(pane.tab.id)
         workspace.closeTab(pane.tab.id)
 
         val newActive = getActivePane(tabId)
@@ -634,6 +632,16 @@ internal class TabManager(
             val state = tab.session.shellIntegrationState
             val metadata = state.commandMetadata(state.latestCommandRecordId()) ?: return
             commandHistoryStore?.record(tab.profile.id, metadata)
+            if (metadata.lifecycle == TerminalShellIntegrationCommandLifecycle.SUCCEEDED) {
+                metadata.commandText?.let { command ->
+                    completionRegistry.recordSuccessfulCommand(
+                        sessionId = tab.id,
+                        commandLine = command,
+                        profileId = tab.profile.id,
+                        workingDirectoryUri = metadata.workingDirectoryUri,
+                    )
+                }
+            }
         }
 
         override fun bell(tab: TerminalWorkspaceTab) {
