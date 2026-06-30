@@ -84,6 +84,24 @@ class TerminalCommandShapeStatsTest {
     }
 
     @Test
+    fun `source records spec aware nested command family shapes`() {
+        val source = TerminalCommandStatsCompletionSource()
+
+        source.recordCommandResult(
+            commandLine = "docker compose up",
+            successful = true,
+            profileId = "bash",
+            workingDirectoryUri = "file:///repo",
+            usedAtEpochMillis = 100,
+        )
+
+        val stats = source.shapeSnapshot().single()
+        assertEquals("docker", stats.shape.executable)
+        assertEquals(listOf("compose", "up"), stats.shape.subcommands)
+        assertEquals(0, stats.shape.positionalArgumentCount)
+    }
+
+    @Test
     fun `source records accepted and dismissed feedback into shape stats`() {
         val source = TerminalCommandStatsCompletionSource()
 

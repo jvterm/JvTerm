@@ -154,7 +154,15 @@ object TerminalCommandSpecs {
             description = "distributed version control",
             subcommands =
                 listOf(
-                    TerminalCommandSpec("status", "show working tree status"),
+                    TerminalCommandSpec(
+                        name = "status",
+                        description = "show working tree status",
+                        options =
+                            listOf(
+                                TerminalOptionSpec(listOf("--short", "-s"), "show status concisely"),
+                                TerminalOptionSpec(listOf("--branch", "-b"), "show branch information"),
+                            ),
+                    ),
                     TerminalCommandSpec("add", "add file contents to the index"),
                     TerminalCommandSpec("commit", "record changes to the repository"),
                     TerminalCommandSpec("checkout", "switch branches or restore files", aliases = listOf("co")),
@@ -254,7 +262,17 @@ object TerminalCommandSpecs {
                     TerminalCommandSpec("images", "list images"),
                     TerminalCommandSpec("pull", "pull an image"),
                     TerminalCommandSpec("push", "push an image"),
-                    TerminalCommandSpec("compose", "manage Compose applications"),
+                    TerminalCommandSpec(
+                        name = "compose",
+                        description = "manage Compose applications",
+                        subcommands =
+                            listOf(
+                                TerminalCommandSpec("up", "create and start containers"),
+                                TerminalCommandSpec("down", "stop and remove containers"),
+                                TerminalCommandSpec("ps", "list containers"),
+                                TerminalCommandSpec("logs", "view output from containers"),
+                            ),
+                    ),
                 ),
             options =
                 listOf(

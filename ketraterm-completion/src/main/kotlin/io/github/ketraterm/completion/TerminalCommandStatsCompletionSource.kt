@@ -100,6 +100,10 @@ data class TerminalCommandCompletionStats
  * suggestion feedback. The source never scans raw history, performs I/O, spawns
  * shells, or depends on UI frameworks. All public methods are thread-safe.
  *
+ * TODO(completion-feedback): Track accepted and rejected feedback with provider
+ * source, candidate kind, replacement range, and token position so ranking can
+ * learn source-specific UX quality instead of only exact command text and shape.
+ *
  * @param capacity maximum distinct command/profile/directory rows retained.
  */
 class TerminalCommandStatsCompletionSource
@@ -347,7 +351,7 @@ class TerminalCommandStatsCompletionSource
             workingDirectoryUri: String?,
             update: (TerminalCommandShapeStats) -> TerminalCommandShapeStats,
         ) {
-            val shape = TerminalCommandLineShape.fromCommandLine(commandLine) ?: return
+            val shape = shapeFor(commandLine) ?: return
             synchronized(lock) {
                 val existingIndex = shapeEntries.indexOfShapeKey(shape.normalizedShapeKey, profileId, workingDirectoryUri)
                 if (existingIndex >= 0) {
@@ -493,7 +497,14 @@ class TerminalCommandStatsCompletionSource
                 compareByDescending<TerminalCompletionCandidate> { it.score }
                     .thenBy { it.displayText }
 
+            private val DEFAULT_COMMAND_SPECS = TerminalCommandSpecs.defaults()
+
             private fun isRecordableCommand(commandLine: String): Boolean = commandLine.isNotBlank() && !commandLine.hasLineBreak()
+
+            private fun shapeFor(commandLine: String): TerminalCommandLineShape? =
+                TerminalCommandLineClassifier
+                    .classify(commandLine, DEFAULT_COMMAND_SPECS)
+                    ?.shape
 
             private fun saturatedIncrement(value: Int): Int = if (value == Int.MAX_VALUE) value else value + 1
         }
