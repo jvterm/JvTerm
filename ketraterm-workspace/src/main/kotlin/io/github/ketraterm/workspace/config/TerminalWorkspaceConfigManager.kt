@@ -24,6 +24,9 @@ import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.*
 
+private const val PERSISTENT_SUGGESTION_LEARNING_KEY = "persistent_suggestion_learning_enabled"
+private const val LEGACY_PERSISTENT_COMMAND_HISTORY_KEY = "persistent_command_history_enabled"
+
 /**
  * Manages loading and saving the [TerminalConfig] TOML file.
  *
@@ -126,9 +129,10 @@ class TerminalWorkspaceConfigManager(
                 behavior["desktop_notifications_enabled"]?.toBooleanStrictOrNull() ?: default.desktopNotificationsEnabled
             val shellSuggestionsEnabled =
                 behavior["shell_suggestions_enabled"]?.toBooleanStrictOrNull() ?: default.shellSuggestionsEnabled
-            val persistentCommandHistoryEnabled =
-                behavior["persistent_command_history_enabled"]?.toBooleanStrictOrNull()
-                    ?: default.persistentCommandHistoryEnabled
+            val persistentSuggestionLearningEnabled =
+                behavior[PERSISTENT_SUGGESTION_LEARNING_KEY]?.toBooleanStrictOrNull()
+                    ?: behavior[LEGACY_PERSISTENT_COMMAND_HISTORY_KEY]?.toBooleanStrictOrNull()
+                    ?: default.persistentSuggestionLearningEnabled
             val scrollbackLines =
                 parseIntSetting(
                     raw = window["scrollback_lines"],
@@ -196,7 +200,7 @@ class TerminalWorkspaceConfigManager(
                 shellRequestWindowManipulation = shellRequestWindowManipulation,
                 desktopNotificationsEnabled = desktopNotificationsEnabled,
                 shellSuggestionsEnabled = shellSuggestionsEnabled,
-                persistentCommandHistoryEnabled = persistentCommandHistoryEnabled,
+                persistentSuggestionLearningEnabled = persistentSuggestionLearningEnabled,
                 clipboardLocalWrite = clipboardLocalWrite,
                 clipboardRemoteWrite = clipboardRemoteWrite,
                 clipboardRead = clipboardRead,
@@ -297,7 +301,7 @@ class TerminalWorkspaceConfigManager(
         # Whether host-provided shell suggestions may appear in the terminal UI
         shell_suggestions_enabled = ${config.shellSuggestionsEnabled}
         # Persist compact suggestion-learning metadata (never raw terminal output) across application restarts
-        persistent_command_history_enabled = ${config.persistentCommandHistoryEnabled}
+        $PERSISTENT_SUGGESTION_LEARNING_KEY = ${config.persistentSuggestionLearningEnabled}
 
         [security]
         # OSC 52 clipboard write permission for local sessions (allow, prompt, allowlist, deny)

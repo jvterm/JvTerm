@@ -129,6 +129,7 @@ class TerminalConfigTest {
         assertFalse(config.shellRequestResizeWindow)
         assertFalse(config.shellRequestWindowManipulation)
         assertTrue(config.shellSuggestionsEnabled)
+        assertFalse(config.persistentSuggestionLearningEnabled)
         assertEquals(TerminalClipboardPermission.PROMPT, config.clipboardLocalWrite)
         assertEquals(TerminalClipboardPermission.DENY, config.clipboardRemoteWrite)
         assertEquals(TerminalClipboardPermission.DENY, config.clipboardRead)
@@ -164,6 +165,7 @@ class TerminalConfigTest {
                 shellRequestResizeWindow = true,
                 shellRequestWindowManipulation = true,
                 shellSuggestionsEnabled = false,
+                persistentSuggestionLearningEnabled = true,
                 desktopNotificationsEnabled = false,
                 clipboardLocalWrite = TerminalClipboardPermission.ALLOW,
                 clipboardRemoteWrite = TerminalClipboardPermission.ALLOWLIST,
@@ -177,6 +179,8 @@ class TerminalConfigTest {
         assertTrue(Files.exists(configFile))
         assertTrue(Files.readString(configFile).contains("""paste_sanitization = "normalize-line-endings""""))
         assertTrue(Files.readString(configFile).contains("""shell_suggestions_enabled = false"""))
+        assertTrue(Files.readString(configFile).contains("""persistent_suggestion_learning_enabled = true"""))
+        assertFalse(Files.readString(configFile).contains("""persistent_command_history_enabled"""))
         assertTrue(Files.readString(configFile).contains("""clipboard_local_write = "allow""""))
         assertTrue(Files.readString(configFile).contains("""clipboard_max_decoded_bytes = 500"""))
 
@@ -184,6 +188,58 @@ class TerminalConfigTest {
         assertEquals(customConfig, loaded)
 
         // Clean up
+        Files.deleteIfExists(configFile)
+        Files.deleteIfExists(tempDir)
+    }
+
+    @Test
+    fun `test TerminalWorkspaceConfigManager reads legacy persistent command history key`() {
+        val tempDir = Files.createTempDirectory("ketraterm-config-test-legacy-suggestion-learning")
+        val configFile = tempDir.resolve("config.toml")
+        val manager = TerminalWorkspaceConfigManager(configFile)
+
+        Files.writeString(
+            configFile,
+            """
+            [behavior]
+            persistent_command_history_enabled = true
+            """.trimIndent(),
+        )
+
+        assertTrue(manager.load().persistentSuggestionLearningEnabled)
+
+        Files.deleteIfExists(configFile)
+        Files.deleteIfExists(tempDir)
+    }
+
+    @Test
+    fun `test TerminalWorkspaceConfigManager prefers new suggestion learning key over legacy key`() {
+        val tempDir = Files.createTempDirectory("ketraterm-config-test-new-suggestion-learning")
+        val configFile = tempDir.resolve("config.toml")
+        val manager = TerminalWorkspaceConfigManager(configFile)
+
+        Files.writeString(
+            configFile,
+            """
+            [behavior]
+            persistent_command_history_enabled = true
+            persistent_suggestion_learning_enabled = false
+            """.trimIndent(),
+        )
+
+        assertFalse(manager.load().persistentSuggestionLearningEnabled)
+
+        Files.writeString(
+            configFile,
+            """
+            [behavior]
+            persistent_command_history_enabled = false
+            persistent_suggestion_learning_enabled = true
+            """.trimIndent(),
+        )
+
+        assertTrue(manager.load().persistentSuggestionLearningEnabled)
+
         Files.deleteIfExists(configFile)
         Files.deleteIfExists(tempDir)
     }

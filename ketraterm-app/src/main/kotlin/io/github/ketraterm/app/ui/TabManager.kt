@@ -889,7 +889,7 @@ internal class TabManager(
     }
 
     private fun reconcileCommandPersistenceStores() {
-        if (settings.persistentCommandHistoryEnabled) {
+        if (settings.persistentSuggestionLearningEnabled) {
             if (commandCompletionStatsStore == null) {
                 commandCompletionStatsStore =
                     CommandCompletionStatsStore(settings.commandCompletionStatsPath).also { store ->
@@ -905,7 +905,7 @@ internal class TabManager(
     }
 
     private fun createCommandCompletionStatsStoreIfEnabled(): CommandCompletionStatsStore? =
-        if (settings.persistentCommandHistoryEnabled) {
+        if (settings.persistentSuggestionLearningEnabled) {
             CommandCompletionStatsStore(settings.commandCompletionStatsPath).also { store ->
                 val loaded = store.loadSnapshot()
                 commandCompletionStatsSource.replaceAll(loaded.commandStats)

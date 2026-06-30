@@ -159,10 +159,10 @@ internal class KetraTermSettings(
             updateConfig(config.copy(desktopNotificationsEnabled = value))
         }
 
-    var persistentCommandHistoryEnabled: Boolean
-        get() = config.persistentCommandHistoryEnabled
+    var persistentSuggestionLearningEnabled: Boolean
+        get() = config.persistentSuggestionLearningEnabled
         set(value) {
-            updateConfig(config.copy(persistentCommandHistoryEnabled = value))
+            updateConfig(config.copy(persistentSuggestionLearningEnabled = value))
         }
 
     var shellSuggestionsEnabled: Boolean

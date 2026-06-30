@@ -191,8 +191,8 @@ internal class SettingsDialog(
         JCheckBox("Allow window manipulation from shell", settings.shellRequestWindowManipulation)
     private val shellSuggestionsCheckbox =
         JCheckBox("Show shell suggestions", settings.shellSuggestionsEnabled)
-    private val persistentCommandHistoryCheckbox =
-        JCheckBox("Persist suggestion learning", settings.persistentCommandHistoryEnabled)
+    private val persistentSuggestionLearningCheckbox =
+        JCheckBox("Persist suggestion learning", settings.persistentSuggestionLearningEnabled)
     private val cursorBlinkSpinner =
         createSpinner(settings.cursorBlinkMillis, TerminalConfig.CURSOR_BLINK_MIN, TerminalConfig.CURSOR_BLINK_MAX, 50, 70)
     private val cursorShapeCombo = createComboBox(arrayOf("block", "underline", "beam"), settings.cursorShape.lowercase(Locale.ROOT), 150)
@@ -288,7 +288,7 @@ internal class SettingsDialog(
         registerChangeListener(shellRequestResizeWindowCheckbox, updateApplyState)
         registerChangeListener(shellRequestWindowManipulationCheckbox, updateApplyState)
         registerChangeListener(shellSuggestionsCheckbox, updateApplyState)
-        registerChangeListener(persistentCommandHistoryCheckbox, updateApplyState)
+        registerChangeListener(persistentSuggestionLearningCheckbox, updateApplyState)
         registerChangeListener(cursorBlinkSpinner, updateApplyState)
         registerChangeListener(cursorShapeCombo, updateApplyState)
     }
@@ -420,7 +420,7 @@ internal class SettingsDialog(
         addCheckboxRow(
             historySection,
             0,
-            persistentCommandHistoryCheckbox,
+            persistentSuggestionLearningCheckbox,
             "Persist compact suggestion ranking metadata across app restarts. Terminal output is never stored.",
         )
         panel.add(historySection)
@@ -746,7 +746,7 @@ internal class SettingsDialog(
         shellRequestResizeWindowCheckbox.isSelected = TerminalConfig.DEFAULT_SHELL_REQUEST_RESIZE_WINDOW
         shellRequestWindowManipulationCheckbox.isSelected = TerminalConfig.DEFAULT_SHELL_REQUEST_WINDOW_MANIPULATION
         shellSuggestionsCheckbox.isSelected = TerminalConfig.DEFAULT_SHELL_SUGGESTIONS_ENABLED
-        persistentCommandHistoryCheckbox.isSelected = TerminalConfig.DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED
+        persistentSuggestionLearningCheckbox.isSelected = TerminalConfig.DEFAULT_PERSISTENT_SUGGESTION_LEARNING_ENABLED
         cursorBlinkSpinner.value = TerminalConfig.DEFAULT_CURSOR_BLINK_MILLIS
         cursorShapeCombo.selectedItem = TerminalConfig.DEFAULT_CURSOR_SHAPE
 
@@ -818,7 +818,7 @@ internal class SettingsDialog(
             shellRequestResizeWindow = shellRequestResizeWindowCheckbox.isSelected,
             shellRequestWindowManipulation = shellRequestWindowManipulationCheckbox.isSelected,
             shellSuggestionsEnabled = shellSuggestionsCheckbox.isSelected,
-            persistentCommandHistoryEnabled = persistentCommandHistoryCheckbox.isSelected,
+            persistentSuggestionLearningEnabled = persistentSuggestionLearningCheckbox.isSelected,
             clipboardLocalWrite =
                 TerminalClipboardPermission.valueOf(
                     (clipboardLocalWriteCombo.selectedItem as String).uppercase(Locale.ROOT),

@@ -73,7 +73,7 @@ private fun defaultFontFamily(): String {
  * @property desktopNotificationsEnabled whether desktop notifications are enabled.
  * @property shellSuggestionsEnabled whether host-provided shell suggestions may
  * be shown in the terminal UI.
- * @property persistentCommandHistoryEnabled whether supporting product hosts
+ * @property persistentSuggestionLearningEnabled whether supporting product hosts
  * persist compact command-completion learning metadata across application restarts.
  * @property clipboardLocalWrite OSC 52 write permission for local sessions.
  * @property clipboardRemoteWrite OSC 52 write permission for remote sessions.
@@ -104,9 +104,7 @@ data class TerminalConfig(
     val shellRequestWindowManipulation: Boolean = DEFAULT_SHELL_REQUEST_WINDOW_MANIPULATION,
     val desktopNotificationsEnabled: Boolean = DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED,
     val shellSuggestionsEnabled: Boolean = DEFAULT_SHELL_SUGGESTIONS_ENABLED,
-    // TODO(config-migration): Rename this persisted setting to suggestion-learning terminology
-    // after adding backwards-compatible TOML read/write migration for existing users.
-    val persistentCommandHistoryEnabled: Boolean = DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED,
+    val persistentSuggestionLearningEnabled: Boolean = DEFAULT_PERSISTENT_SUGGESTION_LEARNING_ENABLED,
     val clipboardLocalWrite: TerminalClipboardPermission = DEFAULT_CLIPBOARD_LOCAL_WRITE,
     val clipboardRemoteWrite: TerminalClipboardPermission = DEFAULT_CLIPBOARD_REMOTE_WRITE,
     val clipboardRead: TerminalClipboardPermission = DEFAULT_CLIPBOARD_READ,
@@ -173,7 +171,7 @@ data class TerminalConfig(
         const val DEFAULT_SHELL_REQUEST_WINDOW_MANIPULATION: Boolean = false
         const val DEFAULT_DESKTOP_NOTIFICATIONS_ENABLED: Boolean = true
         const val DEFAULT_SHELL_SUGGESTIONS_ENABLED: Boolean = true
-        const val DEFAULT_PERSISTENT_COMMAND_HISTORY_ENABLED: Boolean = false
+        const val DEFAULT_PERSISTENT_SUGGESTION_LEARNING_ENABLED: Boolean = false
 
         val DEFAULT_CLIPBOARD_LOCAL_WRITE: TerminalClipboardPermission = TerminalClipboardPermission.PROMPT
         val DEFAULT_CLIPBOARD_REMOTE_WRITE: TerminalClipboardPermission = TerminalClipboardPermission.DENY

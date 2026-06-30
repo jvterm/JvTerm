@@ -54,6 +54,7 @@ class SettingsModelTest {
         assertEquals(settings.shellRequestResizeWindow, state.shellRequestResizeWindow)
         assertEquals(settings.shellRequestWindowManipulation, state.shellRequestWindowManipulation)
         assertEquals(settings.shellSuggestionsEnabled, state.shellSuggestionsEnabled)
+        assertEquals(settings.persistentSuggestionLearningEnabled, state.persistentSuggestionLearningEnabled)
         assertFalse(model.hasChanges(state))
     }
 
@@ -83,6 +84,7 @@ class SettingsModelTest {
                 shellRequestResizeWindow = true,
                 shellRequestWindowManipulation = true,
                 shellSuggestionsEnabled = false,
+                persistentSuggestionLearningEnabled = true,
                 clipboardLocalWrite = TerminalClipboardPermission.ALLOW,
                 clipboardRemoteWrite = TerminalClipboardPermission.ALLOWLIST,
                 clipboardRead = TerminalClipboardPermission.PROMPT,
@@ -106,6 +108,7 @@ class SettingsModelTest {
         assertTrue(settings.shellRequestResizeWindow)
         assertTrue(settings.shellRequestWindowManipulation)
         assertFalse(settings.shellSuggestionsEnabled)
+        assertTrue(settings.persistentSuggestionLearningEnabled)
         assertEquals(TerminalClipboardPermission.ALLOW, settings.clipboardLocalWrite)
         assertEquals(TerminalClipboardPermission.ALLOWLIST, settings.clipboardRemoteWrite)
         assertEquals(TerminalClipboardPermission.PROMPT, settings.clipboardRead)
