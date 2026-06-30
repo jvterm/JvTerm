@@ -42,7 +42,16 @@ internal class StandaloneCompletionRegistry(
     }
 
     private val lock = Any()
-    private val specSource = TerminalCompletionSources.fromSpecs(specs)
+    private val specSource =
+        TerminalCompletionSources
+            .fromSpecs(specs)
+            .let { source ->
+                if (persistentStatsSource == null) {
+                    source
+                } else {
+                    TerminalCompletionSources.shapeAware(source) { persistentStatsSource.shapeSnapshot() }
+                }
+            }
     private val sessionMruSources = HashMap<String, TerminalSessionMruCompletionSource>()
 
     /**

@@ -103,6 +103,23 @@ object TerminalCompletionSources {
     @JvmStatic
     @JvmOverloads
     fun commandStats(capacity: Int = 2048): TerminalCommandStatsCompletionSource = TerminalCommandStatsCompletionSource(capacity)
+
+    /**
+     * Wraps [source] with learned command-shape score adjustment.
+     *
+     * @param source source whose candidates should be shape-ranked.
+     * @param shapeStatsProvider supplier for the latest shape stats snapshot.
+     * @return source that returns the same candidates with adjusted scores.
+     */
+    @JvmStatic
+    fun shapeAware(
+        source: TerminalCompletionSource,
+        shapeStatsProvider: () -> List<TerminalCommandShapeStats>,
+    ): TerminalCompletionSource =
+        ShapeAwareCompletionSource(
+            delegate = source,
+            shapeStatsProvider = shapeStatsProvider,
+        )
 }
 
 /**

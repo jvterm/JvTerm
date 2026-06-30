@@ -15,6 +15,8 @@
  */
 package io.github.ketraterm.app.completion
 
+import io.github.ketraterm.completion.TerminalCommandLineShape
+import io.github.ketraterm.completion.TerminalCommandShapeStats
 import io.github.ketraterm.completion.TerminalCommandSpec
 import io.github.ketraterm.completion.TerminalCommandStatsCompletionSource
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
@@ -97,6 +99,60 @@ class StandaloneCompletionRegistryTest {
 
         assertEquals(listOf("npm test"), first.suggestions(request("npm")).map { it.replacementText })
         assertEquals(listOf("npm test"), second.suggestions(request("npm")).map { it.replacementText })
+    }
+
+    @Test
+    fun `shape stats boost matching static spec suggestions`() {
+        val persistentStats = TerminalCommandStatsCompletionSource()
+        persistentStats.replaceShapeStats(
+            listOf(
+                shapeStats(
+                    commandLine = "git switch main",
+                    acceptedCount = 4,
+                    profileId = "bash",
+                    workingDirectoryUri = "file:///repo",
+                ),
+            ),
+        )
+        val provider =
+            registry(persistentStatsSource = persistentStats)
+                .createProvider(
+                    sessionId = "session-1",
+                    profileId = "bash",
+                    workingDirectoryUriProvider = { "file:///repo" },
+                )
+
+        val suggestions = provider.suggestions(request("git "))
+
+        assertEquals("switch", suggestions.first().replacementText)
+        assertEquals("spec", suggestions.first().source)
+    }
+
+    @Test
+    fun `shape stats demote repeatedly dismissed static spec suggestions`() {
+        val persistentStats = TerminalCommandStatsCompletionSource()
+        persistentStats.replaceShapeStats(
+            listOf(
+                shapeStats(
+                    commandLine = "git status",
+                    dismissedCount = 4,
+                    profileId = "bash",
+                    workingDirectoryUri = "file:///repo",
+                ),
+            ),
+        )
+        val provider =
+            registry(persistentStatsSource = persistentStats)
+                .createProvider(
+                    sessionId = "session-1",
+                    profileId = "bash",
+                    workingDirectoryUriProvider = { "file:///repo" },
+                )
+
+        val suggestions = provider.suggestions(request("git "))
+
+        assertEquals("switch", suggestions.first().replacementText)
+        assertEquals("spec", suggestions.first().source)
     }
 
     @Test
@@ -224,6 +280,22 @@ class StandaloneCompletionRegistryTest {
                         TerminalCommandSpec("switch", "switch branches"),
                     ),
             ),
+        )
+
+    private fun shapeStats(
+        commandLine: String,
+        profileId: String? = null,
+        workingDirectoryUri: String? = null,
+        acceptedCount: Int = 0,
+        dismissedCount: Int = 0,
+    ): TerminalCommandShapeStats =
+        TerminalCommandShapeStats(
+            shape = TerminalCommandLineShape.fromCommandLine(commandLine)!!,
+            profileId = profileId,
+            workingDirectoryUri = workingDirectoryUri,
+            acceptedCount = acceptedCount,
+            dismissedCount = dismissedCount,
+            lastUsedEpochMillis = 100,
         )
 
     private fun request(commandText: String): SwingShellSuggestionRequest =

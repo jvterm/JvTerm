@@ -39,8 +39,11 @@ class TerminalCommandShapeStatsTest {
         val shape = TerminalCommandLineShape.fromCommandLine("NODE_ENV=test npm run build -- --watch")!!
 
         assertEquals("npm", shape.executable)
-        assertEquals(listOf("run", "build"), shape.subcommands)
-        assertEquals(listOf("--watch"), shape.optionNames)
+        assertEquals(listOf("run"), shape.subcommands)
+        assertEquals(emptyList(), shape.optionNames)
+        assertEquals(2, shape.positionalArgumentCount)
+        assertFalse(shape.normalizedShapeKey.contains("build", ignoreCase = true))
+        assertFalse(shape.normalizedShapeKey.contains("watch", ignoreCase = true))
     }
 
     @Test

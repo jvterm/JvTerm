@@ -91,6 +91,7 @@ data class TerminalCommandLineShape
                 var optionValueCount = 0
                 var expectingOptionValue = false
                 var acceptingSubcommands = true
+                var optionsEnabled = true
 
                 while (tokenIndex < tokens.size) {
                     val token = tokens[tokenIndex].text
@@ -105,7 +106,8 @@ data class TerminalCommandLineShape
                         acceptingSubcommands = false
                     } else if (normalized == OPTION_TERMINATOR) {
                         acceptingSubcommands = false
-                    } else if (normalized.isOptionToken()) {
+                        optionsEnabled = false
+                    } else if (optionsEnabled && normalized.isOptionToken()) {
                         val optionName = normalized.substringBefore("=")
                         optionNames.add(optionName)
                         if (!normalized.contains("=") && optionName.optionUsuallyRequiresValue()) {
@@ -184,7 +186,7 @@ data class TerminalCommandLineShape
                 }
 
             private const val DEFAULT_LIST_CAPACITY = 4
-            private const val MAX_SUBCOMMAND_DEPTH = 2
+            private const val MAX_SUBCOMMAND_DEPTH = 1
             private const val OPTION_TERMINATOR = "--"
             private val BOOLEAN_LONG_OPTIONS =
                 setOf(
