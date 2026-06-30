@@ -79,6 +79,17 @@ object TerminalCompletionSources {
      */
     @JvmStatic
     fun fromSpecs(specs: List<TerminalCommandSpec>): TerminalCompletionSource = SpecCompletionSource(specs)
+
+    /**
+     * Creates a bounded in-memory source for commands observed in the current
+     * terminal session.
+     *
+     * @param capacity maximum number of distinct normalized commands retained.
+     * @return mutable session MRU completion source.
+     */
+    @JvmStatic
+    @JvmOverloads
+    fun sessionMru(capacity: Int = 128): TerminalSessionMruCompletionSource = TerminalSessionMruCompletionSource(capacity)
 }
 
 /**
