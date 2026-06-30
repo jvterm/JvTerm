@@ -41,7 +41,6 @@ internal class CommandHistoryStore(
         require(capacity > 0) { "capacity must be > 0, was $capacity" }
     }
 
-    private val lock = Any()
     private val entries = ArrayDeque<CommandHistoryEntry>(capacity)
     private val worker =
         Executors.newSingleThreadExecutor { task ->
@@ -69,13 +68,9 @@ internal class CommandHistoryStore(
                 finishedAtEpochMillis = finishedAt,
             )
         worker.execute {
-            val snapshot =
-                synchronized(lock) {
-                    while (entries.size >= capacity) entries.removeFirst()
-                    entries.addLast(entry)
-                    entries.toList()
-                }
-            persist(snapshot)
+            while (entries.size >= capacity) entries.removeFirst()
+            entries.addLast(entry)
+            persist()
         }
     }
 
@@ -86,20 +81,8 @@ internal class CommandHistoryStore(
 
     internal fun snapshot(): List<CommandHistoryEntry> {
         flush()
-        return latestSnapshot()
+        return entries.toList()
     }
-
-    /**
-     * Returns the latest in-memory history snapshot without waiting for queued
-     * persistence work.
-     *
-     * This is safe for EDT suggestion providers because it does not perform
-     * disk I/O or wait for the writer thread.
-     */
-    internal fun latestSnapshot(): List<CommandHistoryEntry> =
-        synchronized(lock) {
-            entries.toList()
-        }
 
     override fun close() {
         worker.shutdown()
@@ -114,27 +97,25 @@ internal class CommandHistoryStore(
             val lines = Files.readAllLines(path, StandardCharsets.UTF_8)
             if (lines.firstOrNull() != COMMAND_HISTORY_HEADER) return
             var index = 1
-            synchronized(lock) {
-                while (index < lines.size) {
-                    decode(lines[index])?.let { entry ->
-                        while (entries.size >= capacity) entries.removeFirst()
-                        entries.addLast(entry)
-                    }
-                    index++
+            while (index < lines.size) {
+                decode(lines[index])?.let { entry ->
+                    while (entries.size >= capacity) entries.removeFirst()
+                    entries.addLast(entry)
                 }
+                index++
             }
         }.onFailure { exception ->
             System.err.println("Failed to load command history from $path: ${exception.message}")
         }
     }
 
-    private fun persist(snapshot: List<CommandHistoryEntry>) {
+    private fun persist() {
         runCatching {
             path.parent?.let(Files::createDirectories)
             val temporary = path.resolveSibling("${path.fileName}.tmp")
             Files.newBufferedWriter(temporary, StandardCharsets.UTF_8).use { writer ->
                 writer.appendLine(COMMAND_HISTORY_HEADER)
-                for (entry in snapshot) writer.appendLine(encode(entry))
+                for (entry in entries) writer.appendLine(encode(entry))
             }
             try {
                 Files.move(

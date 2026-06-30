@@ -513,7 +513,7 @@ internal class SettingsDialog(
             keyboardSection,
             2,
             shellSuggestionsCheckbox,
-            "Show host-provided command, path, and history suggestions when a provider is active.",
+            "Show host-provided shell suggestions when a provider is active.",
         )
         panel.add(keyboardSection)
 

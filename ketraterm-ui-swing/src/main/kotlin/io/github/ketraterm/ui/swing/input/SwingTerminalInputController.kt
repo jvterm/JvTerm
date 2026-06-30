@@ -67,6 +67,7 @@ internal class SwingTerminalInputController(
             override fun focusLost(event: FocusEvent) {
                 host.setTerminalFocused(false)
                 host.repaintCursorState()
+                host.hideShellSuggestions()
             }
         }
 

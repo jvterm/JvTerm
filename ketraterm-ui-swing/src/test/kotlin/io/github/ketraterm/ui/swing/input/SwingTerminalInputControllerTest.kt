@@ -42,6 +42,7 @@ class SwingTerminalInputControllerTest {
             assertFalse(host.focused)
             assertEquals(listOf(false), host.cursorBlinkResets)
             assertEquals(2, host.cursorRepaints)
+            assertEquals(1, host.hideShellSuggestionsCount)
         }
     }
 
@@ -288,6 +289,12 @@ class SwingTerminalInputControllerTest {
         override fun pasteClipboardText(): Boolean {
             pasteCount++
             return pasteResult
+        }
+
+        var hideShellSuggestionsCount = 0
+
+        override fun hideShellSuggestions() {
+            hideShellSuggestionsCount++
         }
     }
 }

@@ -270,6 +270,10 @@ class SwingTerminal
                     override fun copySelectionToClipboard(): Boolean = this@SwingTerminal.copySelectionToClipboard()
 
                     override fun pasteClipboardText(): Boolean = this@SwingTerminal.pasteClipboardText()
+
+                    override fun hideShellSuggestions() {
+                        this@SwingTerminal.hideShellSuggestions()
+                    }
                 },
             )
         private val mouseController =

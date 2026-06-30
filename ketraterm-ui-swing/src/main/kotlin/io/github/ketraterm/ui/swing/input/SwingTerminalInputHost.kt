@@ -44,4 +44,9 @@ internal interface SwingTerminalInputHost {
     fun copySelectionToClipboard(): Boolean
 
     fun pasteClipboardText(): Boolean
+
+    /**
+     * Hides the shell suggestion popup.
+     */
+    fun hideShellSuggestions()
 }
