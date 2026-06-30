@@ -15,14 +15,19 @@
  */
 package io.github.ketraterm.ui.swing.api
 
+import io.github.ketraterm.core.TerminalBuffers
 import io.github.ketraterm.input.api.TerminalInputEncoder
 import io.github.ketraterm.input.event.*
+import io.github.ketraterm.session.TerminalSession
+import io.github.ketraterm.transport.TerminalConnector
+import io.github.ketraterm.transport.TerminalConnectorListener
 import io.github.ketraterm.ui.swing.settings.SwingSettings
 import io.github.ketraterm.ui.swing.suggestion.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.awt.Insets
 import java.awt.event.KeyEvent
+import java.nio.charset.StandardCharsets
 import javax.swing.SwingUtilities
 
 class SwingTerminalShellSuggestionTest {
@@ -141,6 +146,77 @@ class SwingTerminalShellSuggestionTest {
 
             assertFalse(component.currentShellSuggestionState().visible)
         }
+    }
+
+    @Test
+    fun `active shell suggestion request uses bound session command snapshot`() {
+        val connector = RecordingConnector()
+        val session = activeSuggestionSession(connector)
+        connector.feedFromHost("\u001B]133;A\u0007PS> \u001B]133;B\u0007git s".utf8())
+        val providerRequests = ArrayList<SwingShellSuggestionRequest>()
+        val component =
+            SwingTerminal(
+                settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) },
+                hostServices =
+                    SwingHostServices(
+                        shellSuggestionProvider =
+                            SwingShellSuggestionProvider { request ->
+                                providerRequests += request
+                                suggestions()
+                            },
+                    ),
+            )
+
+        SwingUtilities.invokeAndWait {
+            component.size = component.preferredGridSize(30, 4)
+            component.bind(session)
+            component.requestActiveShellSuggestions()
+
+            val state = component.currentShellSuggestionState()
+            assertTrue(state.visible)
+            assertEquals("git status", state.selectedSuggestion?.replacementText)
+        }
+
+        assertEquals(
+            listOf(
+                SwingShellSuggestionRequest(
+                    commandText = "git s",
+                    cursorOffset = 5,
+                    anchorColumn = "PS> git s".length,
+                    anchorRow = 0,
+                ),
+            ),
+            providerRequests,
+        )
+        session.close()
+    }
+
+    @Test
+    fun `active shell suggestion request hides popup when session has no active command snapshot`() {
+        val connector = RecordingConnector()
+        val session = activeSuggestionSession(connector)
+        connector.feedFromHost("\u001B]133;A\u0007PS> \u001B]133;B\u0007git s\u001B]133;C\u0007".utf8())
+        val component =
+            SwingTerminal(
+                settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) },
+                hostServices =
+                    SwingHostServices(
+                        shellSuggestionProvider = SwingShellSuggestionProvider { suggestions() },
+                    ),
+            )
+
+        SwingUtilities.invokeAndWait {
+            component.size = component.preferredGridSize(30, 4)
+            component.bind(session)
+            component.showShellSuggestions(suggestions(), anchorColumn = 0, anchorRow = 0)
+            assertTrue(component.currentShellSuggestionState().visible)
+
+            component.requestActiveShellSuggestions()
+
+            assertFalse(component.currentShellSuggestionState().visible)
+        }
+
+        session.close()
     }
 
     @Test
@@ -305,6 +381,38 @@ class SwingTerminalShellSuggestionTest {
         override fun encodeMouse(event: TerminalMouseEvent) = Unit
     }
 
+    private class RecordingConnector : TerminalConnector {
+        private var listener: TerminalConnectorListener? = null
+
+        override fun start(listener: TerminalConnectorListener) {
+            this.listener = listener
+        }
+
+        override fun write(
+            bytes: ByteArray,
+            offset: Int,
+            length: Int,
+        ) = Unit
+
+        override fun resize(
+            columns: Int,
+            rows: Int,
+        ) = Unit
+
+        override fun close() = Unit
+
+        fun feedFromHost(bytes: ByteArray) {
+            listener?.onBytes(bytes, 0, bytes.size)
+        }
+    }
+
+    private fun activeSuggestionSession(connector: RecordingConnector): TerminalSession {
+        val terminal = TerminalBuffers.create(width = 30, height = 4, maxHistory = 20)
+        val session = TerminalSession.create(terminal = terminal, connector = connector)
+        session.start(columns = 30, rows = 4)
+        return session
+    }
+
     private fun suggestions(): List<SwingShellSuggestion> =
         listOf(
             SwingShellSuggestion("git status", detail = "show working tree status", source = "history"),
@@ -323,4 +431,6 @@ class SwingTerminalShellSuggestionTest {
             keyCode,
             KeyEvent.CHAR_UNDEFINED,
         )
+
+    private fun String.utf8(): ByteArray = toByteArray(StandardCharsets.UTF_8)
 }

@@ -17,12 +17,7 @@ package io.github.ketraterm.session
 
 import io.github.ketraterm.core.api.TerminalBuffer
 import io.github.ketraterm.core.api.TerminalHostResponseReader
-import io.github.ketraterm.host.HostCommandAdapter
-import io.github.ketraterm.host.HostEventSink
-import io.github.ketraterm.host.HostPolicy
-import io.github.ketraterm.host.TerminalClipboardAuditEvent
-import io.github.ketraterm.host.TerminalClipboardPromptEvent
-import io.github.ketraterm.host.TerminalClipboardWriteEvent
+import io.github.ketraterm.host.*
 import io.github.ketraterm.input.TerminalInputEncoders
 import io.github.ketraterm.input.api.TerminalInputEncoder
 import io.github.ketraterm.input.event.TerminalFocusEvent
@@ -89,6 +84,7 @@ class TerminalSession(
 
     private val timeoutLock = Any()
     private var synchronizedTimeoutFuture: ScheduledFuture<*>? = null
+    private var activeShellCommandLineProvider: (() -> TerminalShellCommandLineSnapshot?)? = null
 
     internal val renderWorker: ScheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor { r ->
@@ -164,6 +160,24 @@ class TerminalSession(
      *   the shell reports one.
      */
     fun currentWorkingDirectoryUri(): String? = shellIntegrationState.currentWorkingDirectoryUri()
+
+    /**
+     * Returns the active shell command-line snapshot, when OSC 133 prompt
+     * markers provide a trustworthy visible range.
+     *
+     * The read is serialized with parser/core mutation and reconstructs text
+     * from the current render frame using the same prompt-end marker state used
+     * for completed command capture. `null` means the shell has not reported a
+     * prompt-end marker, the cursor is not at the visible command end, the
+     * command exceeds the bounded extraction limits, or no command is currently
+     * being edited.
+     *
+     * @return active command-line snapshot, or `null` when unavailable.
+     */
+    fun activeShellCommandLine(): TerminalShellCommandLineSnapshot? =
+        synchronized(mutationLock) {
+            activeShellCommandLineProvider?.invoke()
+        }
 
     /**
      * Starts the connector after resizing core and transport to [columns] x
@@ -662,20 +676,23 @@ class TerminalSession(
             // Create a publisher with initial dimensions
             val publisher = TerminalRenderPublisher(terminal.width, terminal.height)
 
-            return TerminalSession(
-                terminal = terminal,
-                publisher = publisher,
-                renderReader = renderReader,
-                responseReader = terminal,
-                connector = connector,
-                parser = parser,
-                inputEncoder = inputEncoder,
-                hyperlinkResolver = TerminalHyperlinkResolver(sink::hyperlinkUri),
-                outboundWriteLock = outboundWriteLock,
-                shellIntegrationState = shellIntegrationState,
-                hostCommandAdapter = sink,
-                inputPolicy = inputPolicy,
-            )
+            val session =
+                TerminalSession(
+                    terminal = terminal,
+                    publisher = publisher,
+                    renderReader = renderReader,
+                    responseReader = terminal,
+                    connector = connector,
+                    parser = parser,
+                    inputEncoder = inputEncoder,
+                    hyperlinkResolver = TerminalHyperlinkResolver(sink::hyperlinkUri),
+                    outboundWriteLock = outboundWriteLock,
+                    shellIntegrationState = shellIntegrationState,
+                    hostCommandAdapter = sink,
+                    inputPolicy = inputPolicy,
+                )
+            session.activeShellCommandLineProvider = recordingHostEvents::activeCommandLine
+            return session
         }
     }
 }
@@ -853,6 +870,63 @@ private class ShellIntegrationRecordingHostEventSink(
         }
 
         delegate.shellIntegrationMarker(event)
+    }
+
+    /**
+     * Returns the command line currently being edited after the latest prompt
+     * end marker.
+     *
+     * The caller must already hold the session mutation lock because this
+     * method reads the render frame directly through the raw render reader. It
+     * only returns a snapshot when the cursor is at the visible end of the
+     * command; middle-of-line editing is intentionally deferred until the
+     * session can expose the full logical shell-editor buffer.
+     *
+     * @return active command-line snapshot, or `null` when unavailable.
+     */
+    fun activeCommandLine(): TerminalShellCommandLineSnapshot? {
+        if (!promptStartedForCommandText || promptEndLineId == NO_LINE_ID) return null
+
+        var snapshot: TerminalShellCommandLineSnapshot? = null
+        var historySize = 0
+        var liveRows = 0
+        renderReader.readRenderFrame(scrollbackOffset = 0) { frame ->
+            historySize = frame.historySize
+            liveRows = frame.rows
+            snapshot = activeCommandLineFrom(frame)
+        }
+
+        if (snapshot == null && historySize > 0) {
+            val historyRows = minOf(historySize, MAX_SHELL_INTEGRATION_COMMAND_ROWS)
+            renderReader.readRenderFrame(
+                scrollbackOffset = historyRows,
+                viewportRows = liveRows + historyRows,
+            ) { frame ->
+                snapshot = activeCommandLineFrom(frame)
+            }
+        }
+
+        return snapshot
+    }
+
+    private fun activeCommandLineFrom(frame: TerminalRenderFrame): TerminalShellCommandLineSnapshot? {
+        val cursor = frame.cursor
+        if (cursor.row !in 0 until frame.rows) return null
+        if (!commandTextExtractor.isCursorAtVisibleLineEnd(frame, cursor.row, cursor.column)) return null
+        val commandText =
+            commandTextExtractor.extract(
+                frame = frame,
+                promptEndLineId = promptEndLineId,
+                promptEndColumn = promptEndColumn,
+                cursorRow = cursor.row,
+                cursorColumn = cursor.column,
+            ) ?: return null
+        return TerminalShellCommandLineSnapshot(
+            commandText = commandText,
+            cursorOffset = commandText.length,
+            cursorColumn = cursor.column,
+            cursorRow = cursor.row,
+        )
     }
 
     /**

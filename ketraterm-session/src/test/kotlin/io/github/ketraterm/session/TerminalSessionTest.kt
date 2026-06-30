@@ -17,14 +17,7 @@ package io.github.ketraterm.session
 
 import io.github.ketraterm.core.TerminalBuffers
 import io.github.ketraterm.core.api.TerminalBuffer
-import io.github.ketraterm.host.HostEventSink
-import io.github.ketraterm.host.HostPolicy
-import io.github.ketraterm.host.TerminalClipboardAuditEvent
-import io.github.ketraterm.host.TerminalClipboardOrigin
-import io.github.ketraterm.host.TerminalClipboardPermission
-import io.github.ketraterm.host.TerminalClipboardPolicy
-import io.github.ketraterm.host.TerminalClipboardPromptEvent
-import io.github.ketraterm.host.TerminalClipboardWriteEvent
+import io.github.ketraterm.host.*
 import io.github.ketraterm.input.api.TerminalInputEncoder
 import io.github.ketraterm.input.event.TerminalFocusEvent
 import io.github.ketraterm.input.event.TerminalKeyEvent
@@ -402,6 +395,77 @@ class TerminalSessionTest {
         assertAll(
             { assertTrue(recordId != TerminalShellIntegrationCommandRecord.NONE) },
             { assertEquals("git status", session.shellIntegrationState.commandText(recordId)) },
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 active command line captures visible text before command start`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007PS> \u001B]133;B\u0007git status".ascii())
+
+        assertEquals(
+            TerminalShellCommandLineSnapshot(
+                commandText = "git status",
+                cursorOffset = "git status".length,
+                cursorColumn = "PS> git status".length,
+                cursorRow = 0,
+            ),
+            session.activeShellCommandLine(),
+        )
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 active command line is unavailable after command start`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007PS> \u001B]133;B\u0007git status\u001B]133;C\u0007".ascii())
+
+        assertNull(session.activeShellCommandLine())
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 active command line is unavailable without prompt end`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007PS> git status".ascii())
+
+        assertNull(session.activeShellCommandLine())
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 active command line is unavailable when cursor is before visible command end`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 30, rows = 4)
+
+        connector.feedFromHost("\u001B]133;A\u0007PS> \u001B]133;B\u0007git status\u001B[2D".ascii())
+
+        assertNull(session.activeShellCommandLine())
+        session.close()
+    }
+
+    @Test
+    fun `OSC 133 active command line reads bounded scrollback when prompt moved above live rows`() {
+        val connector = MockConnector()
+        val session = createStartedSession(connector, columns = 20, rows = 2)
+
+        connector.feedFromHost("\u001B]133;A\u0007P> \u001B]133;B\u0007one\r\ntwo\r\nthree".ascii())
+
+        assertEquals(
+            TerminalShellCommandLineSnapshot(
+                commandText = "one\ntwo\nthree",
+                cursorOffset = "one\ntwo\nthree".length,
+                cursorColumn = "three".length,
+                cursorRow = 2,
+            ),
+            session.activeShellCommandLine(),
         )
         session.close()
     }

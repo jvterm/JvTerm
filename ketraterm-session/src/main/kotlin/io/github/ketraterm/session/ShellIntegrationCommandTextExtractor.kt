@@ -111,6 +111,30 @@ internal class ShellIntegrationCommandTextExtractor(
         return builder.toString()
     }
 
+    /**
+     * Returns whether [cursorColumn] is at the visible text end of [cursorRow].
+     *
+     * Active command-line suggestions currently require this guard because the
+     * terminal can reconstruct the prompt-to-cursor prefix from OSC 133 markers,
+     * but it does not yet own a full shell-editor buffer including suffix text
+     * to the right of the cursor.
+     *
+     * @param frame render frame containing the cursor row.
+     * @param cursorRow zero-based row containing the cursor.
+     * @param cursorColumn zero-based cursor column.
+     * @return `true` when no visible command text exists after the cursor.
+     */
+    fun isCursorAtVisibleLineEnd(
+        frame: TerminalRenderFrame,
+        cursorRow: Int,
+        cursorColumn: Int,
+    ): Boolean {
+        if (cursorRow !in 0 until frame.rows) return false
+        copyLine(frame, cursorRow)
+        if (!validClusterData) return false
+        return cursorColumn.coerceIn(0, frame.columns) >= lastTextColumnExclusive(frame.columns)
+    }
+
     private fun findLine(
         frame: TerminalRenderFrame,
         lineId: Long,

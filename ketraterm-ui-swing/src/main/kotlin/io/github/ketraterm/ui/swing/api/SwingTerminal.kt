@@ -1084,18 +1084,38 @@ class SwingTerminal
                 )
             runOnEdt(
                 Runnable {
-                    if (!settings.shellSuggestionsEnabled) {
+                    requestShellSuggestionsOnEdt(request)
+                    doLayout()
+                },
+            )
+        }
+
+        /**
+         * Requests suggestions for the command line currently reported by the
+         * bound [TerminalSession].
+         *
+         * This method uses OSC 133 shell-integration marker state captured by
+         * the session. It does not infer command text from key events or
+         * persistent command history. When no trustworthy active command line is
+         * available, the current suggestion popup is hidden.
+         */
+        fun requestActiveShellSuggestions() {
+            runOnEdt(
+                Runnable {
+                    val snapshot = session?.activeShellCommandLine()
+                    if (snapshot == null) {
                         shellSuggestionController.hide()
+                        doLayout()
                         return@Runnable
                     }
-                    val suggestions =
-                        runCatching {
-                            hostServices.shellSuggestionProvider.suggestions(request)
-                        }.getOrElse { exception ->
-                            System.err.println("Shell suggestion provider failed: ${exception.message}")
-                            emptyList()
-                        }
-                    shellSuggestionController.show(request, suggestions, selectedIndex = 0)
+                    val request =
+                        SwingShellSuggestionRequest(
+                            commandText = snapshot.commandText,
+                            cursorOffset = snapshot.cursorOffset,
+                            anchorColumn = snapshot.cursorColumn,
+                            anchorRow = snapshot.cursorRow,
+                        )
+                    requestShellSuggestionsOnEdt(request)
                     doLayout()
                 },
             )
@@ -1169,6 +1189,21 @@ class SwingTerminal
             if (text.isEmpty()) return false
             session?.encodePaste(TerminalPasteEvent(text))
             return true
+        }
+
+        private fun requestShellSuggestionsOnEdt(request: SwingShellSuggestionRequest) {
+            if (!settings.shellSuggestionsEnabled) {
+                shellSuggestionController.hide()
+                return
+            }
+            val suggestions =
+                runCatching {
+                    hostServices.shellSuggestionProvider.suggestions(request)
+                }.getOrElse { exception ->
+                    System.err.println("Shell suggestion provider failed: ${exception.message}")
+                    emptyList()
+                }
+            shellSuggestionController.show(request, suggestions, selectedIndex = 0)
         }
 
         private fun cellAt(
