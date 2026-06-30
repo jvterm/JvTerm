@@ -204,7 +204,12 @@ internal class TabManager(
             TerminalPane.create(
                 tab = workspaceTab,
                 settings = settings,
-                suggestionProvider = completionRegistry.createProvider(workspaceTab.id),
+                suggestionProvider =
+                    completionRegistry.createProvider(
+                        sessionId = workspaceTab.id,
+                        profileId = workspaceTab.profile.id,
+                        workingDirectoryUriProvider = { workspaceTab.currentWorkingDirectoryUri },
+                    ),
             ) { p, x, y ->
                 showPaneContextMenu(p, p.terminal, x, y)
             }
@@ -351,7 +356,12 @@ internal class TabManager(
             TerminalPane.create(
                 tab = workspaceTab,
                 settings = settings,
-                suggestionProvider = completionRegistry.createProvider(workspaceTab.id),
+                suggestionProvider =
+                    completionRegistry.createProvider(
+                        sessionId = workspaceTab.id,
+                        profileId = workspaceTab.profile.id,
+                        workingDirectoryUriProvider = { workspaceTab.currentWorkingDirectoryUri },
+                    ),
             ) { p, x, y ->
                 showPaneContextMenu(p, p.terminal, x, y)
             }

@@ -25,7 +25,12 @@ class StandaloneCompletionRegistryTest {
     @Test
     fun `session MRU suggestions rank ahead of static spec suggestions`() {
         val registry = registry()
-        val provider = registry.createProvider("session-1")
+        val provider =
+            registry.createProvider(
+                sessionId = "session-1",
+                profileId = "bash",
+                workingDirectoryUriProvider = { "file:///repo" },
+            )
         registry.recordSuccessfulCommand(
             sessionId = "session-1",
             commandLine = "git switch main",
@@ -40,6 +45,63 @@ class StandaloneCompletionRegistryTest {
         assertEquals(0, suggestions[0].replacementStartOffset)
         assertEquals(5, suggestions[0].replacementEndOffset)
         assertTrue(suggestions.any { it.replacementText == "status" && it.source == "spec" })
+    }
+
+    @Test
+    fun `provider context boosts matching session MRU commands`() {
+        val registry = registry(emptyList())
+        val provider =
+            registry.createProvider(
+                sessionId = "session-1",
+                profileId = "bash",
+                workingDirectoryUriProvider = { "file:///repo" },
+            )
+        registry.recordSuccessfulCommand(
+            sessionId = "session-1",
+            commandLine = "git switch main",
+            profileId = "bash",
+            workingDirectoryUri = "file:///repo",
+        )
+        registry.recordSuccessfulCommand(
+            sessionId = "session-1",
+            commandLine = "git status",
+            profileId = "pwsh",
+            workingDirectoryUri = "file:///other",
+        )
+
+        val suggestions = provider.suggestions(request("git s"))
+
+        assertEquals(listOf("git switch main", "git status"), suggestions.map { it.replacementText })
+    }
+
+    @Test
+    fun `provider reads latest working-directory context when suggesting`() {
+        val registry = registry(emptyList())
+        var workingDirectoryUri = "file:///repo"
+        val provider =
+            registry.createProvider(
+                sessionId = "session-1",
+                profileId = "bash",
+                workingDirectoryUriProvider = { workingDirectoryUri },
+            )
+        registry.recordSuccessfulCommand(
+            sessionId = "session-1",
+            commandLine = "git switch main",
+            profileId = "bash",
+            workingDirectoryUri = "file:///repo",
+        )
+        registry.recordSuccessfulCommand(
+            sessionId = "session-1",
+            commandLine = "git status",
+            profileId = "bash",
+            workingDirectoryUri = "file:///other",
+        )
+
+        workingDirectoryUri = "file:///other"
+
+        val suggestions = provider.suggestions(request("git s"))
+
+        assertEquals("git status", suggestions.first().replacementText)
     }
 
     @Test

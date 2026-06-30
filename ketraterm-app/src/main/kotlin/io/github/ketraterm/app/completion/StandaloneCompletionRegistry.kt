@@ -29,7 +29,11 @@ internal class StandaloneCompletionRegistry(
     private val specSource = TerminalCompletionSources.fromSpecs(specs)
     private val sessionMruSources = HashMap<String, TerminalSessionMruCompletionSource>()
 
-    fun createProvider(sessionId: String): CompletionSuggestionProvider {
+    fun createProvider(
+        sessionId: String,
+        profileId: String? = null,
+        workingDirectoryUriProvider: () -> String? = { null },
+    ): CompletionSuggestionProvider {
         require(sessionId.isNotBlank()) { "sessionId must not be blank" }
         val mruSource = TerminalCompletionSources.sessionMru(sessionMruCapacity)
         synchronized(lock) {
@@ -43,6 +47,12 @@ internal class StandaloneCompletionRegistry(
                         TerminalCompletionSourceEntry(specSource, priority = SPEC_PRIORITY),
                     ),
                 ),
+            contextProvider = {
+                CompletionSuggestionContext(
+                    profileId = profileId,
+                    workingDirectoryUri = workingDirectoryUriProvider(),
+                )
+            },
         )
     }
 

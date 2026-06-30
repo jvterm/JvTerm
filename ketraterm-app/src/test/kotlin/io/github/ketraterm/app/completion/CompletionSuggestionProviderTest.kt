@@ -15,9 +15,7 @@
  */
 package io.github.ketraterm.app.completion
 
-import io.github.ketraterm.completion.TerminalCommandSpec
-import io.github.ketraterm.completion.TerminalCompletionEngines
-import io.github.ketraterm.completion.TerminalOptionSpec
+import io.github.ketraterm.completion.*
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -59,6 +57,35 @@ class CompletionSuggestionProviderTest {
         assertEquals("show help", suggestion.detail)
         assertEquals(4, suggestion.replacementStartOffset)
         assertEquals(6, suggestion.replacementEndOffset)
+    }
+
+    @Test
+    fun `passes standalone context to completion engine`() {
+        val requests = ArrayList<TerminalCompletionRequest>()
+        val provider =
+            CompletionSuggestionProvider(
+                engine = { request ->
+                    requests += request
+                    listOf(
+                        TerminalCompletionCandidate(
+                            replacementText = "git status",
+                            replacementStartOffset = 0,
+                            replacementEndOffset = request.commandLine.length,
+                        ),
+                    )
+                },
+                contextProvider = {
+                    CompletionSuggestionContext(
+                        profileId = "bash",
+                        workingDirectoryUri = "file:///repo",
+                    )
+                },
+            )
+
+        provider.suggestions(request("git"))
+
+        assertEquals("bash", requests.single().profileId)
+        assertEquals("file:///repo", requests.single().workingDirectoryUri)
     }
 
     private fun provider(): CompletionSuggestionProvider =

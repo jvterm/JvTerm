@@ -27,15 +27,20 @@ import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
  * shell suggestion popup contract.
  *
  * @param engine pure completion engine used for suggestion computation.
+ * @param contextProvider supplies host-owned completion context for each request.
  */
 internal class CompletionSuggestionProvider(
     private val engine: TerminalCompletionEngine,
+    private val contextProvider: () -> CompletionSuggestionContext = { CompletionSuggestionContext.EMPTY },
 ) : SwingShellSuggestionProvider {
     override fun suggestions(request: SwingShellSuggestionRequest): List<SwingShellSuggestion> {
+        val context = contextProvider()
         val completionRequest =
             TerminalCompletionRequest(
                 commandLine = request.commandText,
                 cursorOffset = request.cursorOffset,
+                workingDirectoryUri = context.workingDirectoryUri,
+                profileId = context.profileId,
             )
         return engine.complete(completionRequest).map { it.toSwingSuggestion() }
     }
@@ -49,4 +54,13 @@ internal class CompletionSuggestionProvider(
             replacementStartOffset = replacementStartOffset,
             replacementEndOffset = replacementEndOffset,
         )
+}
+
+internal data class CompletionSuggestionContext(
+    val profileId: String? = null,
+    val workingDirectoryUri: String? = null,
+) {
+    companion object {
+        val EMPTY = CompletionSuggestionContext()
+    }
 }
