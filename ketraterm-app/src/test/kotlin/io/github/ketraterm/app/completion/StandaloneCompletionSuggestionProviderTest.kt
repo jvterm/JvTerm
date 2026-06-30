@@ -20,7 +20,7 @@ import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class CompletionSuggestionProviderTest {
+class StandaloneCompletionSuggestionProviderTest {
     @Test
     fun `adapts completion candidates to swing suggestions with replacement ranges`() {
         val provider = provider()
@@ -63,7 +63,7 @@ class CompletionSuggestionProviderTest {
     fun `passes standalone context to completion engine`() {
         val requests = ArrayList<TerminalCompletionRequest>()
         val provider =
-            CompletionSuggestionProvider(
+            StandaloneCompletionSuggestionProvider(
                 engine = { request ->
                     requests += request
                     listOf(
@@ -75,7 +75,7 @@ class CompletionSuggestionProviderTest {
                     )
                 },
                 contextProvider = {
-                    CompletionSuggestionContext(
+                    StandaloneCompletionSuggestionContext(
                         profileId = "bash",
                         workingDirectoryUri = "file:///repo",
                     )
@@ -88,8 +88,8 @@ class CompletionSuggestionProviderTest {
         assertEquals("file:///repo", requests.single().workingDirectoryUri)
     }
 
-    private fun provider(): CompletionSuggestionProvider =
-        CompletionSuggestionProvider(
+    private fun provider(): StandaloneCompletionSuggestionProvider =
+        StandaloneCompletionSuggestionProvider(
             TerminalCompletionEngines.fromSpecs(
                 listOf(
                     TerminalCommandSpec(

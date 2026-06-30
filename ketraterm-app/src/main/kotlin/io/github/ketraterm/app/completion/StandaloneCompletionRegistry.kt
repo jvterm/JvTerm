@@ -17,6 +17,19 @@ package io.github.ketraterm.app.completion
 
 import io.github.ketraterm.completion.*
 
+/**
+ * Standalone completion wiring for one application window.
+ *
+ * The registry owns host-specific source composition. It creates one
+ * [StandaloneCompletionSuggestionProvider] per terminal session, pairs that
+ * provider with a session-scoped MRU source, and merges the MRU source ahead of
+ * shared static specs. It deliberately lives in `ketraterm-app`; plugin
+ * integration should build its own host registry over the shared
+ * `ketraterm-completion` sources.
+ *
+ * @param specs static command specs shared by providers created from this registry.
+ * @param sessionMruCapacity maximum distinct commands retained per terminal session.
+ */
 internal class StandaloneCompletionRegistry(
     specs: List<TerminalCommandSpec> = TerminalCommandSpecs.defaults(),
     private val sessionMruCapacity: Int = DEFAULT_SESSION_MRU_CAPACITY,
@@ -29,17 +42,29 @@ internal class StandaloneCompletionRegistry(
     private val specSource = TerminalCompletionSources.fromSpecs(specs)
     private val sessionMruSources = HashMap<String, TerminalSessionMruCompletionSource>()
 
+    /**
+     * Creates a standalone Swing suggestion provider for one terminal session.
+     *
+     * The returned provider reads [workingDirectoryUriProvider] every time
+     * suggestions are requested so ranking can react to OSC 7 directory updates
+     * without rebuilding the provider.
+     *
+     * @param sessionId stable workspace tab/session id.
+     * @param profileId stable standalone profile id for this session.
+     * @param workingDirectoryUriProvider supplier for the latest current-working-directory URI.
+     * @return standalone Swing suggestion provider for the session.
+     */
     fun createProvider(
         sessionId: String,
         profileId: String? = null,
         workingDirectoryUriProvider: () -> String? = { null },
-    ): CompletionSuggestionProvider {
+    ): StandaloneCompletionSuggestionProvider {
         require(sessionId.isNotBlank()) { "sessionId must not be blank" }
         val mruSource = TerminalCompletionSources.sessionMru(sessionMruCapacity)
         synchronized(lock) {
             sessionMruSources[sessionId] = mruSource
         }
-        return CompletionSuggestionProvider(
+        return StandaloneCompletionSuggestionProvider(
             engine =
                 TerminalCompletionEngines.fromSources(
                     listOf(
@@ -48,7 +73,7 @@ internal class StandaloneCompletionRegistry(
                     ),
                 ),
             contextProvider = {
-                CompletionSuggestionContext(
+                StandaloneCompletionSuggestionContext(
                     profileId = profileId,
                     workingDirectoryUri = workingDirectoryUriProvider(),
                 )
@@ -56,6 +81,17 @@ internal class StandaloneCompletionRegistry(
         )
     }
 
+    /**
+     * Records one successful command for the owning session MRU source.
+     *
+     * Calls for missing sessions are ignored because command lifecycle events can
+     * race with tab close on shutdown.
+     *
+     * @param sessionId workspace tab/session id that produced the command.
+     * @param commandLine command text captured from shell integration metadata.
+     * @param profileId profile id active when the command ran.
+     * @param workingDirectoryUri current-working-directory URI captured at command start.
+     */
     fun recordSuccessfulCommand(
         sessionId: String,
         commandLine: String,
@@ -73,6 +109,11 @@ internal class StandaloneCompletionRegistry(
         )
     }
 
+    /**
+     * Removes completion state for a closed terminal session.
+     *
+     * @param sessionId workspace tab/session id to remove.
+     */
     fun removeSession(sessionId: String) {
         val source =
             synchronized(lock) {
