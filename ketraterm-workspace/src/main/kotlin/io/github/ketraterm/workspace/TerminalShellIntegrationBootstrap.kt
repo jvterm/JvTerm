@@ -638,6 +638,15 @@ internal object TerminalShellIntegrationBootstrap {
                 ;;
             history)
                 if [ -n "${'$'}KetraTerm_HISTORY_PATH" ]; then
+                    if [ "${'$'}2" = "--clear" ] || [ "${'$'}2" = "-c" ]; then
+                        if [ -f "${'$'}KetraTerm_HISTORY_PATH" ]; then
+                            rm -f "${'$'}KetraTerm_HISTORY_PATH"
+                            echo "History cleared."
+                        else
+                            echo "No history file to clear."
+                        fi
+                        exit 0
+                    fi
                     if [ -f "${'$'}KetraTerm_HISTORY_PATH" ]; then
                         tail -n +2 "${'$'}KetraTerm_HISTORY_PATH" | cut -f6 | while read -r cmd; do
                             if [ -n "${'$'}cmd" ]; then
@@ -646,7 +655,7 @@ internal object TerminalShellIntegrationBootstrap {
                                     2) cleaned="${'$'}{cleaned}==" ;;
                                     3) cleaned="${'$'}{cleaned}=" ;;
                                     *) ;;
-                                esac
+                                  esac
                                 echo "${'$'}cleaned" | base64 -d 2>/dev/null || echo "${'$'}cleaned" | openssl base64 -d -A 2>/dev/null || echo "${'$'}cmd"
                             fi
                         done
@@ -679,8 +688,24 @@ internal object TerminalShellIntegrationBootstrap {
                 echo "  nano \"${'$'}{KetraTerm_CONFIG_PATH}\"      - Edit the configuration file in nano"
                 echo "  cat \"${'$'}{KetraTerm_HISTORY_PATH}\"      - Display the raw tab-separated command database"
                 ;;
+            help|--help|-h|"")
+                echo "KetraTerm Companion CLI CLI Tool"
+                echo ""
+                echo "Usage:"
+                echo "  ketra <command> [options]"
+                echo ""
+                echo "Commands:"
+                echo "  version           Display active KetraTerm version"
+                echo "  config            Open config.toml in your default editor"
+                echo "  history           Print human-readable command history"
+                echo "  info              Print system diagnostic and path information"
+                echo "  help              Display this help instructions"
+                echo ""
+                echo "Options for history:"
+                echo "  --clear, -c       Delete your persistent command history file"
+                ;;
             *)
-                echo "Usage: ketra [version | config | history | info]"
+                echo "Usage: ketra [version | config | history | info | help]"
                 exit 1
                 ;;
         esac
@@ -693,8 +718,12 @@ internal object TerminalShellIntegrationBootstrap {
         if "%1"=="config" goto run_config
         if "%1"=="history" goto run_history
         if "%1"=="info" goto run_info
+        if "%1"=="help" goto run_help
+        if "%1"=="--help" goto run_help
+        if "%1"=="-h" goto run_help
+        if "%1"=="" goto run_help
 
-        echo Usage: ketra [version ^| config ^| history ^| info]
+        echo Usage: ketra [version ^| config ^| history ^| info ^| help]
         exit /b 1
 
         :run_version
@@ -718,11 +747,23 @@ internal object TerminalShellIntegrationBootstrap {
             echo KetraTerm_HISTORY_PATH is not set.
             exit /b 1
         )
+        if "%2"=="--clear" goto clear_history
+        if "%2"=="-c" goto clear_history
+
         if not exist "%KetraTerm_HISTORY_PATH%" (
             echo No history found at %KetraTerm_HISTORY_PATH%
             exit /b 1
         )
         powershell -NoProfile -Command "Get-Content '%KetraTerm_HISTORY_PATH%' | Select-Object -Skip 1 | ForEach-Object { ${'$'}fields = ${'$'}_.Split([char]9); if (${'$'}fields.Length -ge 6) { ${'$'}b = ${'$'}fields[5].Replace('-', '+').Replace('_', '/'); switch (${'$'}b.Length %% 4) { 2 { ${'$'}b += '==' } 3 { ${'$'}b += '=' } }; [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(${'$'}b)) } }"
+        goto end
+
+        :clear_history
+        if exist "%KetraTerm_HISTORY_PATH%" (
+            del /f /q "%KetraTerm_HISTORY_PATH%"
+            echo History cleared.
+        ) else (
+            echo No history file to clear.
+        )
         goto end
 
         :run_info
@@ -739,6 +780,27 @@ internal object TerminalShellIntegrationBootstrap {
         echo   KetraTerm_HISTORY_PATH  Path to persistent command history database file
         echo   KetraTerm_OS            Current OS and architecture details
         echo   KetraTerm_JVM           Java runtime version and vendor details
+        echo.
+        echo Useful Commands:
+        echo   notepad "%%KetraTerm_CONFIG_PATH%%"      - Edit configuration in Notepad
+        echo   type "%%KetraTerm_HISTORY_PATH%%"         - Display raw command history database
+        goto end
+
+        :run_help
+        echo KetraTerm Companion CLI CLI Tool
+        echo.
+        echo Usage:
+        echo   ketra ^<command^> [options]
+        echo.
+        echo Commands:
+        echo   version           Display active KetraTerm version
+        echo   config            Open config.toml in your default editor
+        echo   history           Print human-readable command history
+        echo   info              Print system diagnostic and path information
+        echo   help              Display this help instructions
+        echo.
+        echo Options for history:
+        echo   --clear, -c       Delete your persistent command history file
         goto end
 
         :end
