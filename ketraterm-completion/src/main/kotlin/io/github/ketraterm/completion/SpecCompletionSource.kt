@@ -41,7 +41,7 @@ internal class SpecCompletionSource(
     private fun completeCommands(context: TerminalCommandLineContext): List<TerminalCompletionCandidate> =
         specs
             .asSequence()
-            .filter { matchesPrefix(it.name, context.activePrefix) }
+            .filter { matchesCompletablePrefix(it.name, context.activePrefix) }
             .mapIndexed { orderIndex, spec ->
                 candidate(
                     replacementText = spec.name,
@@ -68,7 +68,7 @@ internal class SpecCompletionSource(
     ): List<TerminalCompletionCandidate> =
         command.subcommands
             .asSequence()
-            .filter { matchesPrefix(it.name, context.activePrefix) }
+            .filter { matchesCompletablePrefix(it.name, context.activePrefix) }
             .mapIndexed { orderIndex, spec ->
                 candidate(
                     replacementText = spec.name,
@@ -93,7 +93,7 @@ internal class SpecCompletionSource(
         var orderIndex = 0
         for (option in options) {
             for (name in option.names) {
-                if (matchesPrefix(name, context.activePrefix)) {
+                if (matchesCompletablePrefix(name, context.activePrefix)) {
                     candidates +=
                         candidate(
                             replacementText = name,
@@ -178,10 +178,10 @@ internal class SpecCompletionSource(
                 spec.name == token || spec.aliases.any { it == token }
             }
 
-        private fun matchesPrefix(
+        private fun matchesCompletablePrefix(
             value: String,
             prefix: String,
-        ): Boolean = prefix.isEmpty() || value.startsWith(prefix, ignoreCase = true)
+        ): Boolean = prefix.isEmpty() || (value.startsWith(prefix, ignoreCase = true) && !value.equals(prefix, ignoreCase = true))
 
         private fun score(
             value: String,

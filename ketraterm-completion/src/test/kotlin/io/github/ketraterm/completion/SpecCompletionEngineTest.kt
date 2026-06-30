@@ -40,6 +40,13 @@ class SpecCompletionEngineTest {
     }
 
     @Test
+    fun `exact command token does not return no-op command suggestion`() {
+        val candidates = engine().complete(request("git"))
+
+        assertTrue(candidates.isEmpty())
+    }
+
+    @Test
     fun `subcommand prefix resolves command path`() {
         val candidates = engine().complete(request("git c"))
 
@@ -59,11 +66,25 @@ class SpecCompletionEngineTest {
     }
 
     @Test
+    fun `exact subcommand token does not return no-op subcommand suggestion`() {
+        val candidates = engine().complete(request("git status"))
+
+        assertTrue(candidates.isEmpty())
+    }
+
+    @Test
     fun `option prefix returns command options`() {
         val candidates = engine().complete(request("git --"))
 
         assertEquals(listOf("--help", "--version"), candidates.map { it.replacementText })
         assertTrue(candidates.all { it.kind == TerminalCompletionCandidateKind.OPTION })
+    }
+
+    @Test
+    fun `exact option token does not return no-op option suggestion`() {
+        val candidates = engine().complete(request("git --help"))
+
+        assertTrue(candidates.isEmpty())
     }
 
     @Test
