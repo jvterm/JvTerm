@@ -70,15 +70,7 @@ class ShapeAwareCompletionSource(
         request: TerminalCompletionRequest,
         candidate: TerminalCompletionCandidate,
     ): TerminalCommandLineShape? {
-        if (candidate.replacementStartOffset > request.commandLine.length) return null
-        if (candidate.replacementEndOffset > request.commandLine.length) return null
-        if (candidate.replacementStartOffset > candidate.replacementEndOffset) return null
-        val completed =
-            request.commandLine.replaceRange(
-                candidate.replacementStartOffset,
-                candidate.replacementEndOffset,
-                candidate.replacementText,
-            )
+        val completed = request.commandLineAfterCandidate(candidate) ?: return null
         return TerminalCommandLineClassifier
             .classify(completed, commandSpecs)
             ?.shape

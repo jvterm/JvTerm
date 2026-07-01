@@ -51,12 +51,16 @@ internal class StandaloneCompletionSuggestionProvider(
     override fun suggestions(request: SwingShellSuggestionRequest): List<SwingShellSuggestion> {
         val context = contextProvider()
         val completionRequest =
-            TerminalCompletionRequest(
-                commandLine = request.commandText,
-                cursorOffset = request.cursorOffset,
-                workingDirectoryUri = context.workingDirectoryUri,
-                profileId = context.profileId,
-            )
+            try {
+                TerminalCompletionRequest(
+                    commandLine = request.commandText,
+                    cursorOffset = request.cursorOffset,
+                    workingDirectoryUri = context.workingDirectoryUri,
+                    profileId = context.profileId,
+                )
+            } catch (_: IllegalArgumentException) {
+                return emptyList()
+            }
         return engine.complete(completionRequest).map { it.toSwingSuggestion() }
     }
 

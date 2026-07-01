@@ -47,6 +47,30 @@ internal fun isRecordableTerminalCompletionCommand(commandLine: String): Boolean
 
 internal fun String.hasTerminalCompletionLineBreak(): Boolean = indexOf('\n') >= 0 || indexOf('\r') >= 0
 
+/**
+ * Returns whether [offset] is a valid UTF-16 scalar boundary in this string.
+ */
+internal fun String.isTerminalCompletionUtf16Boundary(offset: Int): Boolean {
+    if (offset !in 0..length) return false
+    val afterHighSurrogate = offset > 0 && Character.isHighSurrogate(this[offset - 1])
+    val beforeLowSurrogate = offset < length && Character.isLowSurrogate(this[offset])
+    return !afterHighSurrogate && !beforeLowSurrogate
+}
+
+/**
+ * Projects [candidate] onto this request command line when its replacement
+ * range is contained in the command line and does not split a surrogate pair.
+ */
+internal fun TerminalCompletionRequest.commandLineAfterCandidate(candidate: TerminalCompletionCandidate): String? {
+    val startOffset = candidate.replacementStartOffset
+    val endOffset = candidate.replacementEndOffset
+    if (startOffset > commandLine.length) return null
+    if (endOffset > commandLine.length) return null
+    if (!commandLine.isTerminalCompletionUtf16Boundary(startOffset)) return null
+    if (!commandLine.isTerminalCompletionUtf16Boundary(endOffset)) return null
+    return commandLine.replaceRange(startOffset, endOffset, candidate.replacementText)
+}
+
 internal fun saturatedCompletionCounterIncrement(value: Int): Int = if (value == Int.MAX_VALUE) value else value + 1
 
 internal fun <T> MutableList<T>.removeLeastRelevantBy(order: Comparator<T>) {

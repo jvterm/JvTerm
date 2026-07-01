@@ -19,7 +19,8 @@ package io.github.ketraterm.completion
  * Immutable command-line context used to request completion candidates.
  *
  * @property commandLine full command-line text known to the host.
- * @property cursorOffset UTF-16 cursor offset within [commandLine].
+ * @property cursorOffset UTF-16 cursor offset within [commandLine]. The offset
+ * must be a scalar boundary and must not split a surrogate pair.
  * @property workingDirectoryUri optional current working directory URI.
  * @property profileId optional host profile id, such as `pwsh`, `bash`, or `zsh`.
  * @property maxCandidates maximum number of candidates to return.
@@ -36,6 +37,9 @@ data class TerminalCompletionRequest
         init {
             require(cursorOffset in 0..commandLine.length) {
                 "cursorOffset must be in 0..${commandLine.length}, was $cursorOffset"
+            }
+            require(commandLine.isTerminalCompletionUtf16Boundary(cursorOffset)) {
+                "cursorOffset must not split a UTF-16 surrogate pair, was $cursorOffset"
             }
             require(maxCandidates > 0) { "maxCandidates must be > 0, was $maxCandidates" }
         }

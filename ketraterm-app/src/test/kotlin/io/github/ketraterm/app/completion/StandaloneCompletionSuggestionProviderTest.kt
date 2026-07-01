@@ -19,6 +19,7 @@ import io.github.ketraterm.completion.*
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class StandaloneCompletionSuggestionProviderTest {
     @Test
@@ -86,6 +87,15 @@ class StandaloneCompletionSuggestionProviderTest {
 
         assertEquals("bash", requests.single().profileId)
         assertEquals("file:///repo", requests.single().workingDirectoryUri)
+    }
+
+    @Test
+    fun `malformed cursor request returns no suggestions`() {
+        val provider = provider()
+
+        val suggestions = provider.suggestions(request("a\uD83D\uDE02", cursorOffset = 2))
+
+        assertTrue(suggestions.isEmpty())
     }
 
     private fun provider(): StandaloneCompletionSuggestionProvider =

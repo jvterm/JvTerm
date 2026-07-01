@@ -249,6 +249,44 @@ class ShapeAwareCompletionSourceTest {
         assertTrue(source.complete(request("git s")).isEmpty())
     }
 
+    @Test
+    fun `candidate range outside request is ignored without throwing`() {
+        val source =
+            ShapeAwareCompletionSource(
+                delegate =
+                    fixedSource(
+                        candidate("status", score = 320, replacementStartOffset = 4, replacementEndOffset = 99),
+                        candidate("switch", score = 300),
+                    ),
+                shapeStatsProvider = {
+                    listOf(shapeStats(commandLine = "git status", acceptedCount = 10))
+                },
+            )
+
+        val candidates = source.complete(request("git s"))
+
+        assertEquals(listOf("status", "switch"), candidates.map { it.replacementText })
+    }
+
+    @Test
+    fun `candidate range that splits surrogate pair is ignored without throwing`() {
+        val source =
+            ShapeAwareCompletionSource(
+                delegate =
+                    fixedSource(
+                        candidate("status", score = 320, replacementStartOffset = 1, replacementEndOffset = 2),
+                        candidate("switch", score = 300, replacementStartOffset = 3, replacementEndOffset = 3),
+                    ),
+                shapeStatsProvider = {
+                    listOf(shapeStats(commandLine = "status", acceptedCount = 10))
+                },
+            )
+
+        val candidates = source.complete(request("a\uD83D\uDE02"))
+
+        assertEquals(listOf("status", "switch"), candidates.map { it.replacementText })
+    }
+
     private fun fixedSource(vararg candidates: TerminalCompletionCandidate): TerminalCompletionSource =
         TerminalCompletionSource { candidates.toList() }
 
