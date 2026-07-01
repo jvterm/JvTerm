@@ -15,9 +15,7 @@
  */
 package io.github.ketraterm.app.completion
 
-import io.github.ketraterm.completion.TerminalCommandCompletionStats
-import io.github.ketraterm.completion.TerminalCommandCompletionStatsSnapshot
-import io.github.ketraterm.completion.TerminalCommandStatsCompletionSource
+import io.github.ketraterm.completion.*
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestion
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionFeedback
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionFeedbackKind
@@ -72,6 +70,22 @@ class StandaloneCompletionFeedbackRecorderTest {
                 .shapeStats
                 .single()
                 .shape.executable,
+        )
+        assertEquals(
+            listOf(
+                TerminalCompletionFeedbackStats(
+                    source = "spec",
+                    candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
+                    tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
+                    replacementStartOffset = 0,
+                    replacementEndOffset = 5,
+                    profileId = "bash",
+                    workingDirectoryUri = "file:///repo",
+                    acceptedCount = 1,
+                    lastUsedEpochMillis = 1_000L,
+                ),
+            ),
+            persisted.single().feedbackStats,
         )
     }
 
@@ -202,12 +216,16 @@ class StandaloneCompletionFeedbackRecorderTest {
         replacementText: String,
         replacementStartOffset: Int,
         replacementEndOffset: Int,
+        source: String = "spec",
+        suggestionKind: TerminalCompletionCandidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
     ): SwingShellSuggestionFeedback =
         SwingShellSuggestionFeedback(
             kind = kind,
             suggestion =
                 SwingShellSuggestion(
                     replacementText = replacementText,
+                    source = source,
+                    kind = suggestionKind.name,
                     replacementStartOffset = replacementStartOffset,
                     replacementEndOffset = replacementEndOffset,
                 ),
@@ -221,8 +239,8 @@ class StandaloneCompletionFeedbackRecorderTest {
                 ),
         )
 
-    private fun completionRequest(commandLine: String): io.github.ketraterm.completion.TerminalCompletionRequest =
-        io.github.ketraterm.completion.TerminalCompletionRequest(
+    private fun completionRequest(commandLine: String): TerminalCompletionRequest =
+        TerminalCompletionRequest(
             commandLine = commandLine,
             cursorOffset = commandLine.length,
             profileId = "bash",

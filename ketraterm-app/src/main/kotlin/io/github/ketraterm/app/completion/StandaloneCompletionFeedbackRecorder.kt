@@ -16,9 +16,7 @@
 package io.github.ketraterm.app.completion
 
 import io.github.ketraterm.app.history.CommandPersistencePrivacyPolicy
-import io.github.ketraterm.completion.TerminalCommandCompletionStatsSnapshot
-import io.github.ketraterm.completion.TerminalCommandStatsCompletionSource
-import io.github.ketraterm.completion.TerminalCompletionFeedbackKind
+import io.github.ketraterm.completion.*
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionFeedback
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionFeedbackHandler
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionFeedbackKind
@@ -86,11 +84,40 @@ internal class StandaloneCompletionFeedbackRecorder(
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
             feedbackAtEpochMillis = clockEpochMillis(),
+            context = feedback.context(),
         )
         persistSnapshot(statsSource.snapshotAll())
     }
 
     private companion object {
+        private fun SwingShellSuggestionFeedback.context(): TerminalCompletionFeedbackContext? {
+            val source = suggestion.source.takeIf(String::isNotBlank) ?: return null
+            val candidateKind =
+                runCatching {
+                    TerminalCompletionCandidateKind.valueOf(suggestion.kind)
+                }.getOrElse {
+                    TerminalCompletionCandidateKind.ARGUMENT
+                }
+            return TerminalCompletionFeedbackContext(
+                source = source,
+                candidateKind = candidateKind,
+                tokenPosition = candidateKind.tokenPosition(),
+                replacementStartOffset = suggestion.replacementStartOffset,
+                replacementEndOffset = suggestion.replacementEndOffset,
+            )
+        }
+
+        private fun TerminalCompletionCandidateKind.tokenPosition(): TerminalCompletionTokenPosition =
+            when (this) {
+                TerminalCompletionCandidateKind.COMMAND -> TerminalCompletionTokenPosition.COMMAND
+                TerminalCompletionCandidateKind.SUBCOMMAND -> TerminalCompletionTokenPosition.SUBCOMMAND
+                TerminalCompletionCandidateKind.OPTION -> TerminalCompletionTokenPosition.OPTION
+                TerminalCompletionCandidateKind.ARGUMENT,
+                TerminalCompletionCandidateKind.PATH,
+                -> TerminalCompletionTokenPosition.ARGUMENT
+                TerminalCompletionCandidateKind.HISTORY -> TerminalCompletionTokenPosition.UNKNOWN
+            }
+
         private fun commandLineAfterSuggestion(feedback: SwingShellSuggestionFeedback): String? {
             val request = feedback.request
             val suggestion = feedback.suggestion

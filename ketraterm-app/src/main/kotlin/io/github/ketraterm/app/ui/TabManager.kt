@@ -902,6 +902,9 @@ internal class TabManager(
                         val loaded = store.loadSnapshot()
                         commandCompletionStatsSource.replaceAll(loaded.commandStats + commandCompletionStatsSource.snapshot())
                         commandCompletionStatsSource.replaceShapeStats(loaded.shapeStats + commandCompletionStatsSource.shapeSnapshot())
+                        commandCompletionStatsSource.replaceFeedbackStats(
+                            loaded.feedbackStats + commandCompletionStatsSource.feedbackSnapshot(),
+                        )
                     }
             }
         } else {
@@ -916,6 +919,7 @@ internal class TabManager(
                 val loaded = store.loadSnapshot()
                 commandCompletionStatsSource.replaceAll(loaded.commandStats)
                 commandCompletionStatsSource.replaceShapeStats(loaded.shapeStats)
+                commandCompletionStatsSource.replaceFeedbackStats(loaded.feedbackStats)
             }
         } else {
             null

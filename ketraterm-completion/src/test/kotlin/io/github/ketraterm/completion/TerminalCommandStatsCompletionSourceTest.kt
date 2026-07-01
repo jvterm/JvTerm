@@ -293,6 +293,77 @@ class TerminalCommandStatsCompletionSourceTest {
         assertTrue("secret-project" !in shape.normalizedShapeKey)
     }
 
+    @Test
+    fun `records source-specific feedback context without command text`() {
+        val source = TerminalCommandStatsCompletionSource()
+
+        source.recordSuggestionFeedback(
+            commandLine = "git status",
+            feedback = TerminalCompletionFeedbackKind.ACCEPTED,
+            profileId = "bash",
+            workingDirectoryUri = "file:///repo",
+            feedbackAtEpochMillis = 100,
+            context =
+                TerminalCompletionFeedbackContext(
+                    source = "spec",
+                    candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
+                    tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
+                    replacementStartOffset = 4,
+                    replacementEndOffset = 10,
+                ),
+        )
+        source.recordSuggestionFeedback(
+            commandLine = "git status",
+            feedback = TerminalCompletionFeedbackKind.DISMISSED,
+            profileId = "bash",
+            workingDirectoryUri = "file:///repo",
+            feedbackAtEpochMillis = 200,
+            context =
+                TerminalCompletionFeedbackContext(
+                    source = "spec",
+                    candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
+                    tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
+                    replacementStartOffset = 4,
+                    replacementEndOffset = 10,
+                ),
+        )
+
+        assertEquals(
+            listOf(
+                TerminalCompletionFeedbackStats(
+                    source = "spec",
+                    candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
+                    tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
+                    replacementStartOffset = 4,
+                    replacementEndOffset = 10,
+                    profileId = "bash",
+                    workingDirectoryUri = "file:///repo",
+                    acceptedCount = 1,
+                    dismissedCount = 1,
+                    lastUsedEpochMillis = 200,
+                ),
+            ),
+            source.feedbackSnapshot(),
+        )
+        assertTrue(source.feedbackSnapshot().single().source != "git status")
+    }
+
+    @Test
+    fun `replace feedback stats keeps newest duplicate context`() {
+        val source = TerminalCommandStatsCompletionSource()
+
+        source.replaceFeedbackStats(
+            listOf(
+                feedbackStats(lastUsedEpochMillis = 10, acceptedCount = 1),
+                feedbackStats(lastUsedEpochMillis = 20, dismissedCount = 1),
+                feedbackStats(source = "stats", lastUsedEpochMillis = 5, acceptedCount = 1),
+            ),
+        )
+
+        assertEquals(listOf(20L, 5L), source.feedbackSnapshot().map { it.lastUsedEpochMillis })
+        assertEquals(listOf("spec", "stats"), source.feedbackSnapshot().map { it.source })
+    }
+
     private fun request(
         commandLine: String,
         profileId: String? = null,
@@ -321,6 +392,25 @@ class TerminalCommandStatsCompletionSourceTest {
             failureCount = 0,
             acceptedCount = 0,
             dismissedCount = 0,
+            lastUsedEpochMillis = lastUsedEpochMillis,
+        )
+
+    private fun feedbackStats(
+        source: String = "spec",
+        lastUsedEpochMillis: Long,
+        acceptedCount: Int = 0,
+        dismissedCount: Int = 0,
+    ): TerminalCompletionFeedbackStats =
+        TerminalCompletionFeedbackStats(
+            source = source,
+            candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
+            tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
+            replacementStartOffset = 4,
+            replacementEndOffset = 10,
+            profileId = "bash",
+            workingDirectoryUri = "file:///repo",
+            acceptedCount = acceptedCount,
+            dismissedCount = dismissedCount,
             lastUsedEpochMillis = lastUsedEpochMillis,
         )
 }

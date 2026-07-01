@@ -256,8 +256,11 @@ data class TerminalCommandShapeStats
  * @property commandStats exact command-line rows used for concrete suggestions.
  * @property shapeStats privacy-preserving command-shape rows used for ranking
  * analytics and future shape-aware suggestion ranking.
+ * @property feedbackStats source-specific feedback rows used for future
+ * provider-aware ranking.
  */
 data class TerminalCommandCompletionStatsSnapshot(
-    val commandStats: List<TerminalCommandCompletionStats>,
-    val shapeStats: List<TerminalCommandShapeStats>,
+    val commandStats: List<TerminalCommandCompletionStats> = emptyList(),
+    val shapeStats: List<TerminalCommandShapeStats> = emptyList(),
+    val feedbackStats: List<TerminalCompletionFeedbackStats> = emptyList(),
 )

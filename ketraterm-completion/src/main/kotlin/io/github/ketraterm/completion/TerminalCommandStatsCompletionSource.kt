@@ -33,6 +33,121 @@ enum class TerminalCompletionFeedbackKind {
 }
 
 /**
+ * Position of a completion candidate within the command line that produced it.
+ */
+enum class TerminalCompletionTokenPosition {
+    /**
+     * Candidate replaces or completes the executable token.
+     */
+    COMMAND,
+
+    /**
+     * Candidate replaces or completes a command-specific subcommand token.
+     */
+    SUBCOMMAND,
+
+    /**
+     * Candidate replaces or completes an option or flag token.
+     */
+    OPTION,
+
+    /**
+     * Candidate replaces or completes a positional argument or option value.
+     */
+    ARGUMENT,
+
+    /**
+     * Candidate position could not be classified safely.
+     */
+    UNKNOWN,
+}
+
+/**
+ * Source-specific context attached to suggestion feedback.
+ *
+ * This model deliberately stores provider and replacement metadata, not raw
+ * private argument values. Hosts should create it from the candidate that was
+ * actually displayed to the user so ranking can later distinguish feedback for
+ * history, static specs, path completion, and IDE context providers.
+ *
+ * @property source compact provider/source label from the candidate.
+ * @property candidateKind semantic kind of candidate that received feedback.
+ * @property tokenPosition classified command-line position of the candidate.
+ * @property replacementStartOffset inclusive UTF-16 replacement start offset.
+ * @property replacementEndOffset exclusive UTF-16 replacement end offset.
+ */
+data class TerminalCompletionFeedbackContext
+    @JvmOverloads
+    constructor(
+        val source: String,
+        val candidateKind: TerminalCompletionCandidateKind,
+        val tokenPosition: TerminalCompletionTokenPosition = TerminalCompletionTokenPosition.UNKNOWN,
+        val replacementStartOffset: Int = -1,
+        val replacementEndOffset: Int = -1,
+    ) {
+        init {
+            require(source.isNotBlank()) { "source must not be blank" }
+            require(
+                (replacementStartOffset == -1 && replacementEndOffset == -1) ||
+                    (replacementStartOffset >= 0 && replacementEndOffset >= replacementStartOffset),
+            ) {
+                "replacement range must be unset or satisfy 0 <= start <= end, was " +
+                    "$replacementStartOffset..$replacementEndOffset"
+            }
+        }
+    }
+
+/**
+ * Aggregated source-specific feedback counters.
+ *
+ * Rows are keyed by provider source, candidate kind, token position, replacement
+ * range, profile, and working directory. They do not contain command text or
+ * raw argument values.
+ *
+ * @property source compact provider/source label from the displayed candidate.
+ * @property candidateKind semantic kind of candidate that received feedback.
+ * @property tokenPosition classified command-line position of the candidate.
+ * @property replacementStartOffset inclusive UTF-16 replacement start offset,
+ * or `-1` when unknown.
+ * @property replacementEndOffset exclusive UTF-16 replacement end offset, or
+ * `-1` when unknown.
+ * @property profileId optional host profile id associated with this row.
+ * @property workingDirectoryUri optional working directory URI associated with
+ * this row.
+ * @property acceptedCount number of accepted suggestions for this context.
+ * @property dismissedCount number of explicitly dismissed suggestions for this context.
+ * @property lastUsedEpochMillis host timestamp for the newest represented event.
+ */
+data class TerminalCompletionFeedbackStats
+    @JvmOverloads
+    constructor(
+        val source: String,
+        val candidateKind: TerminalCompletionCandidateKind,
+        val tokenPosition: TerminalCompletionTokenPosition = TerminalCompletionTokenPosition.UNKNOWN,
+        val replacementStartOffset: Int = -1,
+        val replacementEndOffset: Int = -1,
+        val profileId: String? = null,
+        val workingDirectoryUri: String? = null,
+        val acceptedCount: Int = 0,
+        val dismissedCount: Int = 0,
+        val lastUsedEpochMillis: Long = 0L,
+    ) {
+        init {
+            require(source.isNotBlank()) { "source must not be blank" }
+            require(
+                (replacementStartOffset == -1 && replacementEndOffset == -1) ||
+                    (replacementStartOffset >= 0 && replacementEndOffset >= replacementStartOffset),
+            ) {
+                "replacement range must be unset or satisfy 0 <= start <= end, was " +
+                    "$replacementStartOffset..$replacementEndOffset"
+            }
+            require(acceptedCount >= 0) { "acceptedCount must be >= 0, was $acceptedCount" }
+            require(dismissedCount >= 0) { "dismissedCount must be >= 0, was $dismissedCount" }
+            require(lastUsedEpochMillis >= 0L) { "lastUsedEpochMillis must be >= 0, was $lastUsedEpochMillis" }
+        }
+    }
+
+/**
  * Aggregated command statistics used by indexed history completion.
  *
  * The model stores compact counters instead of raw repeated history rows.
@@ -100,9 +215,9 @@ data class TerminalCommandCompletionStats
  * suggestion feedback. The source never scans raw history, performs I/O, spawns
  * shells, or depends on UI frameworks. All public methods are thread-safe.
  *
- * TODO(completion-feedback): Track accepted and rejected feedback with provider
- * source, candidate kind, replacement range, and token position so ranking can
- * learn source-specific UX quality instead of only exact command text and shape.
+ * TODO(completion-ranking): Apply persisted [TerminalCompletionFeedbackStats]
+ * to source-specific ranking once static, path, and IDE providers all supply
+ * comparable feedback contexts.
  *
  * @param capacity maximum distinct command/profile/directory rows retained.
  * @param commandSpecs command specifications used to classify command-family
@@ -121,6 +236,7 @@ class TerminalCommandStatsCompletionSource
         private val lock = Any()
         private val entries = ArrayList<TerminalCommandCompletionStats>(capacity)
         private val shapeEntries = ArrayList<TerminalCommandShapeStats>(capacity)
+        private val feedbackEntries = ArrayList<TerminalCompletionFeedbackStats>(capacity)
         private val commandSpecs = commandSpecs.toList()
 
         /**
@@ -179,6 +295,33 @@ class TerminalCommandStatsCompletionSource
         }
 
         /**
+         * Replaces the current source-specific feedback index with [records].
+         *
+         * Duplicate rows are compacted by keeping the newest timestamp. At most
+         * [capacity] rows are retained.
+         *
+         * @param records compact feedback rows loaded by a host.
+         */
+        fun replaceFeedbackStats(records: List<TerminalCompletionFeedbackStats>) {
+            val compacted = ArrayList<TerminalCompletionFeedbackStats>(minOf(records.size, capacity))
+            for (record in records) {
+                val index = compacted.indexOfFeedbackKey(record)
+                if (index >= 0) {
+                    if (record.lastUsedEpochMillis >= compacted[index].lastUsedEpochMillis) {
+                        compacted[index] = record
+                    }
+                } else {
+                    compacted += record
+                }
+            }
+            compacted.sortWith(FEEDBACK_RECORD_ORDER)
+            synchronized(lock) {
+                feedbackEntries.clear()
+                feedbackEntries.addAll(compacted.take(capacity))
+            }
+        }
+
+        /**
          * Returns a stable snapshot for host persistence.
          *
          * @return retained rows sorted by ranking relevance.
@@ -199,6 +342,16 @@ class TerminalCommandStatsCompletionSource
             }
 
         /**
+         * Returns a stable source-specific feedback snapshot.
+         *
+         * @return retained feedback rows sorted by ranking relevance.
+         */
+        fun feedbackSnapshot(): List<TerminalCompletionFeedbackStats> =
+            synchronized(lock) {
+                feedbackEntries.toList()
+            }
+
+        /**
          * Returns exact command and structural shape stats in one snapshot.
          *
          * @return immutable stats snapshot for host persistence.
@@ -208,6 +361,7 @@ class TerminalCommandStatsCompletionSource
                 TerminalCommandCompletionStatsSnapshot(
                     commandStats = entries.toList(),
                     shapeStats = shapeEntries.toList(),
+                    feedbackStats = feedbackEntries.toList(),
                 )
             }
 
@@ -258,13 +412,16 @@ class TerminalCommandStatsCompletionSource
          * @param profileId optional host profile id.
          * @param workingDirectoryUri optional working-directory URI.
          * @param feedbackAtEpochMillis host timestamp for the feedback event.
+         * @param context optional source-specific context for the displayed candidate.
          */
+        @JvmOverloads
         fun recordSuggestionFeedback(
             commandLine: String,
             feedback: TerminalCompletionFeedbackKind,
             profileId: String?,
             workingDirectoryUri: String?,
             feedbackAtEpochMillis: Long,
+            context: TerminalCompletionFeedbackContext? = null,
         ) {
             if (!isRecordableCommand(commandLine) || feedbackAtEpochMillis < 0L) return
             mutate(commandLine, profileId, workingDirectoryUri) { previous, canonical ->
@@ -301,6 +458,25 @@ class TerminalCommandStatsCompletionSource
                         },
                     lastUsedEpochMillis = maxOf(previous.lastUsedEpochMillis, feedbackAtEpochMillis),
                 )
+            }
+            if (context != null) {
+                mutateFeedback(context, profileId, workingDirectoryUri) { previous ->
+                    previous.copy(
+                        acceptedCount =
+                            if (feedback == TerminalCompletionFeedbackKind.ACCEPTED) {
+                                saturatedIncrement(previous.acceptedCount)
+                            } else {
+                                previous.acceptedCount
+                            },
+                        dismissedCount =
+                            if (feedback == TerminalCompletionFeedbackKind.DISMISSED) {
+                                saturatedIncrement(previous.dismissedCount)
+                            } else {
+                                previous.dismissedCount
+                            },
+                        lastUsedEpochMillis = maxOf(previous.lastUsedEpochMillis, feedbackAtEpochMillis),
+                    )
+                }
             }
         }
 
@@ -374,6 +550,34 @@ class TerminalCommandStatsCompletionSource
             }
         }
 
+        private inline fun mutateFeedback(
+            context: TerminalCompletionFeedbackContext,
+            profileId: String?,
+            workingDirectoryUri: String?,
+            update: (TerminalCompletionFeedbackStats) -> TerminalCompletionFeedbackStats,
+        ) {
+            synchronized(lock) {
+                val existingIndex = feedbackEntries.indexOfFeedbackKey(context, profileId, workingDirectoryUri)
+                if (existingIndex >= 0) {
+                    feedbackEntries[existingIndex] = update(feedbackEntries[existingIndex])
+                } else {
+                    if (feedbackEntries.size == capacity) removeLeastRelevantFeedbackLocked()
+                    val initial =
+                        TerminalCompletionFeedbackStats(
+                            source = context.source,
+                            candidateKind = context.candidateKind,
+                            tokenPosition = context.tokenPosition,
+                            replacementStartOffset = context.replacementStartOffset,
+                            replacementEndOffset = context.replacementEndOffset,
+                            profileId = profileId,
+                            workingDirectoryUri = workingDirectoryUri,
+                        )
+                    feedbackEntries += update(initial)
+                }
+                feedbackEntries.sortWith(FEEDBACK_RECORD_ORDER)
+            }
+        }
+
         private fun TerminalCommandCompletionStats.toCandidate(request: TerminalCompletionRequest): TerminalCompletionCandidate =
             TerminalCompletionCandidate(
                 replacementText = commandLine,
@@ -424,6 +628,19 @@ class TerminalCommandStatsCompletionSource
             shapeEntries.removeAt(removeIndex)
         }
 
+        private fun removeLeastRelevantFeedbackLocked() {
+            if (feedbackEntries.isEmpty()) return
+            var removeIndex = 0
+            var index = 1
+            while (index < feedbackEntries.size) {
+                if (FEEDBACK_RECORD_ORDER.compare(feedbackEntries[index], feedbackEntries[removeIndex]) > 0) {
+                    removeIndex = index
+                }
+                index++
+            }
+            feedbackEntries.removeAt(removeIndex)
+        }
+
         private fun ArrayList<TerminalCommandCompletionStats>.indexOfKey(record: TerminalCommandCompletionStats): Int =
             indexOfKey(record.normalizedCommandLine, record.profileId, record.workingDirectoryUri)
 
@@ -468,6 +685,59 @@ class TerminalCommandStatsCompletionSource
             return -1
         }
 
+        private fun ArrayList<TerminalCompletionFeedbackStats>.indexOfFeedbackKey(record: TerminalCompletionFeedbackStats): Int =
+            indexOfFeedbackKey(
+                source = record.source,
+                candidateKind = record.candidateKind,
+                tokenPosition = record.tokenPosition,
+                replacementStartOffset = record.replacementStartOffset,
+                replacementEndOffset = record.replacementEndOffset,
+                profileId = record.profileId,
+                workingDirectoryUri = record.workingDirectoryUri,
+            )
+
+        private fun List<TerminalCompletionFeedbackStats>.indexOfFeedbackKey(
+            context: TerminalCompletionFeedbackContext,
+            profileId: String?,
+            workingDirectoryUri: String?,
+        ): Int =
+            indexOfFeedbackKey(
+                source = context.source,
+                candidateKind = context.candidateKind,
+                tokenPosition = context.tokenPosition,
+                replacementStartOffset = context.replacementStartOffset,
+                replacementEndOffset = context.replacementEndOffset,
+                profileId = profileId,
+                workingDirectoryUri = workingDirectoryUri,
+            )
+
+        private fun List<TerminalCompletionFeedbackStats>.indexOfFeedbackKey(
+            source: String,
+            candidateKind: TerminalCompletionCandidateKind,
+            tokenPosition: TerminalCompletionTokenPosition,
+            replacementStartOffset: Int,
+            replacementEndOffset: Int,
+            profileId: String?,
+            workingDirectoryUri: String?,
+        ): Int {
+            var index = 0
+            while (index < size) {
+                val entry = this[index]
+                if (entry.source == source &&
+                    entry.candidateKind == candidateKind &&
+                    entry.tokenPosition == tokenPosition &&
+                    entry.replacementStartOffset == replacementStartOffset &&
+                    entry.replacementEndOffset == replacementEndOffset &&
+                    entry.profileId == profileId &&
+                    entry.workingDirectoryUri == workingDirectoryUri
+                ) {
+                    return index
+                }
+                index++
+            }
+            return -1
+        }
+
         private fun shapeFor(commandLine: String): TerminalCommandLineShape? =
             TerminalCommandLineClassifier
                 .classify(commandLine, commandSpecs)
@@ -501,6 +771,14 @@ class TerminalCommandStatsCompletionSource
                     .thenByDescending { it.successCount }
                     .thenBy { it.dismissedCount }
                     .thenBy { it.shape.normalizedShapeKey }
+
+            private val FEEDBACK_RECORD_ORDER =
+                compareByDescending<TerminalCompletionFeedbackStats> { it.lastUsedEpochMillis }
+                    .thenByDescending { it.acceptedCount }
+                    .thenBy { it.dismissedCount }
+                    .thenBy { it.source }
+                    .thenBy { it.candidateKind.name }
+                    .thenBy { it.tokenPosition.name }
 
             private val CANDIDATE_ORDER =
                 compareByDescending<TerminalCompletionCandidate> { it.score }

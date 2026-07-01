@@ -15,10 +15,7 @@
  */
 package io.github.ketraterm.app.history
 
-import io.github.ketraterm.completion.TerminalCommandCompletionStats
-import io.github.ketraterm.completion.TerminalCommandCompletionStatsSnapshot
-import io.github.ketraterm.completion.TerminalCommandLineShape
-import io.github.ketraterm.completion.TerminalCommandShapeStats
+import io.github.ketraterm.completion.*
 import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
@@ -62,7 +59,7 @@ internal class CommandCompletionStatsStore(
      *
      * Version 1 files are exact-command only and are upgraded in memory by
      * returning an empty shape list. Version 2 files contain typed exact command
-     * and shape rows.
+     * and shape rows. Version 3 also contains source-specific feedback rows.
      *
      * @return decoded completion stats snapshot.
      */
@@ -73,6 +70,7 @@ internal class CommandCompletionStatsStore(
             when (lines.firstOrNull()) {
                 COMMAND_COMPLETION_STATS_HEADER_V1 -> loadVersionOne(lines)
                 COMMAND_COMPLETION_STATS_HEADER_V2 -> loadVersionTwo(lines)
+                COMMAND_COMPLETION_STATS_HEADER_V3 -> loadVersionThree(lines)
                 else -> TerminalCommandCompletionStatsSnapshot(emptyList(), emptyList())
             }
         }.onFailure { exception ->
@@ -126,6 +124,29 @@ internal class CommandCompletionStatsStore(
         return sanitizeSnapshot(TerminalCommandCompletionStatsSnapshot(commandStats = commandRecords, shapeStats = shapeRecords))
     }
 
+    private fun loadVersionThree(lines: List<String>): TerminalCommandCompletionStatsSnapshot {
+        val commandRecords = ArrayList<TerminalCommandCompletionStats>(lines.size - 1)
+        val shapeRecords = ArrayList<TerminalCommandShapeStats>(lines.size - 1)
+        val feedbackRecords = ArrayList<TerminalCompletionFeedbackStats>(lines.size - 1)
+        var index = 1
+        while (index < lines.size) {
+            val fields = lines[index].split('\t')
+            when (fields.firstOrNull()) {
+                ROW_COMMAND -> decodeCommandV2(fields)?.let(commandRecords::add)
+                ROW_SHAPE -> decodeShapeV2(fields)?.let(shapeRecords::add)
+                ROW_FEEDBACK -> decodeFeedbackV3(fields)?.let(feedbackRecords::add)
+            }
+            index++
+        }
+        return sanitizeSnapshot(
+            TerminalCommandCompletionStatsSnapshot(
+                commandStats = commandRecords,
+                shapeStats = shapeRecords,
+                feedbackStats = feedbackRecords,
+            ),
+        )
+    }
+
     /**
      * Waits until all writes queued before this call have completed.
      *
@@ -147,9 +168,10 @@ internal class CommandCompletionStatsStore(
             path.parent?.let(Files::createDirectories)
             val temporary = path.resolveSibling("${path.fileName}.tmp")
             Files.newBufferedWriter(temporary, StandardCharsets.UTF_8).use { writer ->
-                writer.appendLine(COMMAND_COMPLETION_STATS_HEADER_V2)
+                writer.appendLine(COMMAND_COMPLETION_STATS_HEADER_V3)
                 for (record in snapshot.commandStats) writer.appendLine(encodeCommandV2(record))
                 for (record in snapshot.shapeStats) writer.appendLine(encodeShapeV2(record))
+                for (record in snapshot.feedbackStats) writer.appendLine(encodeFeedbackV3(record))
             }
             try {
                 Files.move(
@@ -170,6 +192,7 @@ internal class CommandCompletionStatsStore(
         TerminalCommandCompletionStatsSnapshot(
             commandStats = snapshot.commandStats.filter(CommandPersistencePrivacyPolicy::allowsCommandStats),
             shapeStats = snapshot.shapeStats.filter(CommandPersistencePrivacyPolicy::allowsShapeStats),
+            feedbackStats = snapshot.feedbackStats,
         )
 
     private fun encodeCommandV2(record: TerminalCommandCompletionStats): String =
@@ -201,6 +224,21 @@ internal class CommandCompletionStatsStore(
             record.useCount.toString(),
             record.successCount.toString(),
             record.failureCount.toString(),
+            record.acceptedCount.toString(),
+            record.dismissedCount.toString(),
+            record.lastUsedEpochMillis.toString(),
+        ).joinToString("\t")
+
+    private fun encodeFeedbackV3(record: TerminalCompletionFeedbackStats): String =
+        listOf(
+            ROW_FEEDBACK,
+            encodeText(record.source),
+            record.candidateKind.name,
+            record.tokenPosition.name,
+            record.replacementStartOffset.toString(),
+            record.replacementEndOffset.toString(),
+            encodeText(record.profileId.orEmpty()),
+            encodeText(record.workingDirectoryUri.orEmpty()),
             record.acceptedCount.toString(),
             record.dismissedCount.toString(),
             record.lastUsedEpochMillis.toString(),
@@ -261,6 +299,24 @@ internal class CommandCompletionStatsStore(
         }.getOrNull()
     }
 
+    private fun decodeFeedbackV3(fields: List<String>): TerminalCompletionFeedbackStats? {
+        if (fields.size != FEEDBACK_STATS_FIELD_COUNT_V3) return null
+        return runCatching {
+            TerminalCompletionFeedbackStats(
+                source = decodeText(fields[1]),
+                candidateKind = TerminalCompletionCandidateKind.valueOf(fields[2]),
+                tokenPosition = TerminalCompletionTokenPosition.valueOf(fields[3]),
+                replacementStartOffset = fields[4].toInt(),
+                replacementEndOffset = fields[5].toInt(),
+                profileId = decodeText(fields[6]).takeIf(String::isNotEmpty),
+                workingDirectoryUri = decodeText(fields[7]).takeIf(String::isNotEmpty),
+                acceptedCount = fields[8].toInt(),
+                dismissedCount = fields[9].toInt(),
+                lastUsedEpochMillis = fields[10].toLong(),
+            )
+        }.getOrNull()
+    }
+
     private fun encodeText(value: String): String = commandCompletionStatsEncoder.encodeToString(value.toByteArray(StandardCharsets.UTF_8))
 
     private fun decodeText(value: String): String = String(commandCompletionStatsDecoder.decode(value), StandardCharsets.UTF_8)
@@ -277,11 +333,14 @@ internal class CommandCompletionStatsStore(
     private companion object {
         private const val COMMAND_COMPLETION_STATS_HEADER_V1 = "KetraTerm_COMMAND_COMPLETION_STATS\t1"
         private const val COMMAND_COMPLETION_STATS_HEADER_V2 = "KetraTerm_COMMAND_COMPLETION_STATS\t2"
+        private const val COMMAND_COMPLETION_STATS_HEADER_V3 = "KetraTerm_COMMAND_COMPLETION_STATS\t3"
         private const val COMMAND_COMPLETION_STATS_FIELD_COUNT_V1 = 10
         private const val COMMAND_COMPLETION_STATS_FIELD_COUNT_V2 = 11
         private const val SHAPE_STATS_FIELD_COUNT_V2 = 15
+        private const val FEEDBACK_STATS_FIELD_COUNT_V3 = 11
         private const val ROW_COMMAND = "C"
         private const val ROW_SHAPE = "S"
+        private const val ROW_FEEDBACK = "F"
         private const val COMMAND_COMPLETION_STATS_CLOSE_TIMEOUT_SECONDS = 5L
         private val commandCompletionStatsEncoder = Base64.getUrlEncoder().withoutPadding()
         private val commandCompletionStatsDecoder = Base64.getUrlDecoder()

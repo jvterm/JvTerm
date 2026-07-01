@@ -15,10 +15,7 @@
  */
 package io.github.ketraterm.app.history
 
-import io.github.ketraterm.completion.TerminalCommandCompletionStats
-import io.github.ketraterm.completion.TerminalCommandCompletionStatsSnapshot
-import io.github.ketraterm.completion.TerminalCommandLineShape
-import io.github.ketraterm.completion.TerminalCommandShapeStats
+import io.github.ketraterm.completion.*
 import org.junit.jupiter.api.io.TempDir
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -90,6 +87,36 @@ class CommandCompletionStatsStoreTest {
     }
 
     @Test
+    fun `persists source-specific feedback stats as version three rows`(
+        @TempDir directory: Path,
+    ) {
+        val path = directory.resolve("completion-stats.tsv")
+        val feedbackRecord =
+            TerminalCompletionFeedbackStats(
+                source = "spec",
+                candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
+                tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
+                replacementStartOffset = 4,
+                replacementEndOffset = 10,
+                profileId = "bash",
+                workingDirectoryUri = "file:///repo",
+                acceptedCount = 2,
+                dismissedCount = 1,
+                lastUsedEpochMillis = 900,
+            )
+
+        CommandCompletionStatsStore(path).use { store ->
+            store.persist(TerminalCommandCompletionStatsSnapshot(feedbackStats = listOf(feedbackRecord)))
+            store.flush()
+        }
+
+        CommandCompletionStatsStore(path).use { reloaded ->
+            assertEquals(TerminalCommandCompletionStatsSnapshot(feedbackStats = listOf(feedbackRecord)), reloaded.loadSnapshot())
+        }
+        assertEquals(true, Files.readString(path).startsWith("KetraTerm_COMMAND_COMPLETION_STATS\t3"))
+    }
+
+    @Test
     fun `filters sensitive exact command stats before persisting or loading`(
         @TempDir directory: Path,
     ) {
@@ -151,7 +178,7 @@ class CommandCompletionStatsStoreTest {
         )
 
         CommandCompletionStatsStore(path).use { reloaded ->
-            assertEquals(TerminalCommandCompletionStatsSnapshot(listOf(record), emptyList()), reloaded.loadSnapshot())
+            assertEquals(TerminalCommandCompletionStatsSnapshot(commandStats = listOf(record)), reloaded.loadSnapshot())
         }
     }
 

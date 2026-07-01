@@ -34,6 +34,7 @@ import java.text.BreakIterator
  * @property detail secondary text shown below [displayText], such as flags,
  * path context, or a short description.
  * @property source compact source label, such as `history`, `path`, or `git`.
+ * @property kind compact semantic candidate kind label supplied by the host.
  * @property deleteCount number of characters/grapheme clusters to delete before
  * inserting the suggestion when no explicit replacement range is set. `-1`
  * triggers default prefix deletion based on cursor offset.
@@ -49,6 +50,7 @@ data class SwingShellSuggestion
         val displayText: String = replacementText,
         val detail: String = "",
         val source: String = "",
+        val kind: String = "",
         val deleteCount: Int = -1,
         val replacementStartOffset: Int = -1,
         val replacementEndOffset: Int = -1,

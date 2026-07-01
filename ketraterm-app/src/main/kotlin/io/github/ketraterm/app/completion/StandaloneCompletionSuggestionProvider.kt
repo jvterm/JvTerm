@@ -66,6 +66,7 @@ internal class StandaloneCompletionSuggestionProvider(
             displayText = displayText,
             detail = detail,
             source = source,
+            kind = kind.name,
             replacementStartOffset = replacementStartOffset,
             replacementEndOffset = replacementEndOffset,
         )
