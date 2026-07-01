@@ -58,8 +58,11 @@ committed through atomic replacement when the filesystem supports it.
 ## Security And Secret Filtering
 
 Persistent suggestion learning is disabled by default. It can be enabled with
-`persistent_suggestion_learning_enabled = true` under `[behavior]` in
-`config.toml`. KetraTerm does not store a raw command-history file.
+`suggestion_learning_persistence_enabled = true` under `[behavior]` in
+`config.toml`. KetraTerm does not store a raw command-history file. Older
+configs using `persistent_suggestion_learning_enabled` or
+`persistent_command_history_enabled` are accepted as load-only compatibility
+fallbacks, but new saves write only `suggestion_learning_persistence_enabled`.
 
 Before any exact command or shape row is recorded or persisted, the standalone
 host applies `CommandPersistencePrivacyPolicy`:
