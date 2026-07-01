@@ -15,8 +15,6 @@
  */
 package io.github.ketraterm.completion
 
-private fun String.containsLineBreak(): Boolean = indexOf('\n') >= 0 || indexOf('\r') >= 0
-
 /**
  * Privacy-preserving structural shape of one command line.
  *
@@ -80,61 +78,7 @@ data class TerminalCommandLineShape
              * @return structural shape, or `null` when no executable is present.
              */
             @JvmStatic
-            fun fromCommandLine(commandLine: String): TerminalCommandLineShape? {
-                if (commandLine.isBlank() || commandLine.containsLineBreak()) return null
-                val tokens = TerminalCommandLineTokenizer.parse(commandLine, commandLine.length).tokens
-                var tokenIndex = skipEnvironmentAssignments(tokens)
-                if (tokenIndex >= tokens.size) return null
-                val executable = normalizeToken(tokens[tokenIndex].text)
-                if (executable.isBlank()) return null
-                tokenIndex++
-
-                val subcommands = ArrayList<String>(DEFAULT_LIST_CAPACITY)
-                val optionNames = ArrayList<String>(DEFAULT_LIST_CAPACITY)
-                var positionalArgumentCount = 0
-                var optionValueCount = 0
-                var expectingOptionValue = false
-                var acceptingSubcommands = true
-                var optionsEnabled = true
-
-                while (tokenIndex < tokens.size) {
-                    val token = tokens[tokenIndex].text
-                    val normalized = normalizeToken(token)
-                    if (normalized.isBlank()) {
-                        tokenIndex++
-                        continue
-                    }
-                    if (expectingOptionValue) {
-                        optionValueCount++
-                        expectingOptionValue = false
-                        acceptingSubcommands = false
-                    } else if (normalized == OPTION_TERMINATOR) {
-                        acceptingSubcommands = false
-                        optionsEnabled = false
-                    } else if (optionsEnabled && normalized.isOptionToken()) {
-                        val optionName = normalized.substringBefore("=")
-                        optionNames.add(optionName)
-                        if (!normalized.contains("=") && optionName.optionUsuallyRequiresValue()) {
-                            expectingOptionValue = true
-                        }
-                        acceptingSubcommands = false
-                    } else if (acceptingSubcommands && subcommands.size < MAX_SUBCOMMAND_DEPTH) {
-                        subcommands.add(normalized)
-                    } else {
-                        acceptingSubcommands = false
-                        positionalArgumentCount++
-                    }
-                    tokenIndex++
-                }
-
-                return TerminalCommandLineShape(
-                    executable = executable,
-                    subcommands = subcommands,
-                    optionNames = optionNames.sorted(),
-                    positionalArgumentCount = positionalArgumentCount,
-                    optionValueCount = optionValueCount,
-                )
-            }
+            fun fromCommandLine(commandLine: String): TerminalCommandLineShape? = GenericCommandLineShapeClassifier.classify(commandLine)
 
             /**
              * Builds the stable lowercase key for one command-line shape.
@@ -155,61 +99,16 @@ data class TerminalCommandLineShape
                 optionValueCount: Int,
             ): String =
                 buildString {
-                    append(normalizeToken(executable))
+                    append(normalizeTerminalCommandToken(executable))
                     append('|')
-                    append(subcommands.joinToString("/") { normalizeToken(it) })
+                    append(subcommands.joinToString("/") { normalizeTerminalCommandToken(it) })
                     append('|')
-                    append(optionNames.map(::normalizeToken).sorted().joinToString(","))
+                    append(optionNames.map(::normalizeTerminalCommandToken).sorted().joinToString(","))
                     append("|p=")
                     append(positionalArgumentCount)
                     append("|ov=")
                     append(optionValueCount)
                 }
-
-            private fun skipEnvironmentAssignments(tokens: List<TerminalCommandLineToken>): Int {
-                var index = 0
-                while (index < tokens.size && tokens[index].text.isEnvironmentAssignment()) index++
-                return index
-            }
-
-            private fun normalizeToken(token: String): String = token.trim().lowercase()
-
-            private fun String.isEnvironmentAssignment(): Boolean {
-                val equalsIndex = indexOf('=')
-                if (equalsIndex <= 0) return false
-                val name = substring(0, equalsIndex)
-                return name.all { it == '_' || it.isLetterOrDigit() } && !name.first().isDigit()
-            }
-
-            private fun String.isOptionToken(): Boolean = length > 1 && startsWith("-") && this != "-"
-
-            private fun String.optionUsuallyRequiresValue(): Boolean =
-                when (this) {
-                    "-c", "-d", "-f", "-m", "-o", "-p", "-u" -> true
-                    else -> startsWith("--") && !BOOLEAN_LONG_OPTIONS.contains(this)
-                }
-
-            private const val DEFAULT_LIST_CAPACITY = 4
-            private const val MAX_SUBCOMMAND_DEPTH = 1
-            private const val OPTION_TERMINATOR = "--"
-            private val BOOLEAN_LONG_OPTIONS =
-                setOf(
-                    "--all",
-                    "--amend",
-                    "--debug",
-                    "--dry-run",
-                    "--force",
-                    "--global",
-                    "--help",
-                    "--info",
-                    "--json",
-                    "--offline",
-                    "--quiet",
-                    "--stat",
-                    "--verbose",
-                    "--version",
-                    "--watch",
-                )
         }
     }
 
