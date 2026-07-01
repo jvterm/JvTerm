@@ -184,6 +184,41 @@ class CommandCompletionStatsStoreTest {
         }
     }
 
+    @Test
+    fun `close flushes latest persisted snapshot`(
+        @TempDir directory: Path,
+    ) {
+        val path = directory.resolve("completion-stats.tsv")
+        val record = stats(commandLine = "git status", normalizedCommandLine = "git status")
+
+        CommandCompletionStatsStore(path).use { store ->
+            store.persist(listOf(record))
+        }
+
+        CommandCompletionStatsStore(path).use { reloaded ->
+            assertEquals(listOf(record), reloaded.load())
+        }
+    }
+
+    @Test
+    fun `persist after close is ignored`(
+        @TempDir directory: Path,
+    ) {
+        val path = directory.resolve("completion-stats.tsv")
+        val first = stats(commandLine = "git status", normalizedCommandLine = "git status")
+        val afterClose = stats(commandLine = "npm test", normalizedCommandLine = "npm test")
+        val store = CommandCompletionStatsStore(path)
+        store.persist(listOf(first))
+        store.close()
+
+        store.persist(listOf(afterClose))
+        store.flush()
+
+        CommandCompletionStatsStore(path).use { reloaded ->
+            assertEquals(listOf(first), reloaded.load())
+        }
+    }
+
     private fun stats(
         commandLine: String,
         normalizedCommandLine: String,

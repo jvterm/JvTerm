@@ -22,8 +22,6 @@ import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
 /**
  * Versioned persistence for compact command-completion statistics.
@@ -39,10 +37,7 @@ import java.util.concurrent.TimeUnit
 internal class CommandCompletionStatsStore(
     private val path: Path,
 ) : AutoCloseable {
-    private val worker =
-        Executors.newSingleThreadExecutor { task ->
-            Thread(task, "ketraterm-command-completion-stats").apply { isDaemon = true }
-        }
+    private val writeQueue = CommandCompletionStatsWriteQueue(::writeSnapshot)
 
     /**
      * Loads all valid exact command stats rows from disk.
@@ -86,9 +81,7 @@ internal class CommandCompletionStatsStore(
      */
     fun persist(snapshot: TerminalCommandCompletionStatsSnapshot) {
         val stableSnapshot = sanitizeSnapshot(snapshot)
-        worker.execute {
-            persistSnapshot(stableSnapshot)
-        }
+        writeQueue.enqueue(stableSnapshot)
     }
 
     /**
@@ -97,17 +90,12 @@ internal class CommandCompletionStatsStore(
      * Tests and shutdown use this to make persistence deterministic.
      */
     fun flush() {
-        worker.submit {}.get()
+        writeQueue.flush()
     }
 
-    override fun close() {
-        worker.shutdown()
-        if (!worker.awaitTermination(COMMAND_COMPLETION_STATS_CLOSE_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-            worker.shutdownNow()
-        }
-    }
+    override fun close() = writeQueue.close()
 
-    private fun persistSnapshot(snapshot: TerminalCommandCompletionStatsSnapshot) {
+    private fun writeSnapshot(snapshot: TerminalCommandCompletionStatsSnapshot) {
         runCatching {
             path.parent?.let(Files::createDirectories)
             val temporary = path.resolveSibling("${path.fileName}.tmp")
@@ -137,8 +125,4 @@ internal class CommandCompletionStatsStore(
             shapeStats = snapshot.shapeStats.filter(CommandPersistencePrivacyPolicy::allowsShapeStats),
             feedbackStats = snapshot.feedbackStats,
         )
-
-    private companion object {
-        private const val COMMAND_COMPLETION_STATS_CLOSE_TIMEOUT_SECONDS = 5L
-    }
 }
