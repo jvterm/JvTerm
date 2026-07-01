@@ -79,7 +79,7 @@ For a detailed backlog of gaps and intentional non-goals, see the [Terminal Feat
 
 ## 5. Text & Unicode Engine
 
-- **Unicode 17.0.0 Compliance**: Implements UAX #29 boundary segmentation for multi-scalar grapheme clusters and emoji presentation states.
+- **Unicode 17.0.0 Data Tables**: Uses generated Unicode 17.0.0 grapheme break, emoji property, and terminal width tables for UAX #29-style multi-scalar grapheme segmentation and emoji presentation states.
 - **Combining Marks**: Full support for zero-width extenders, including Thai and Lao combining characters.
 - **East Asian Width**: Dynamic width calculations supporting wide, narrow, and East Asian Ambiguous width modes.
 - **Live Grapheme Rendering**: Progressive rendering of printable prefixes without cursor movement for combining marks or ZWJ extensions.
