@@ -23,32 +23,19 @@ package io.github.ketraterm.completion
  * so multi-index snapshots can stay coherent.
  */
 internal class CommandCompletionStatsIndex(
-    private val capacity: Int,
+    capacity: Int,
 ) {
-    init {
-        require(capacity > 0) { "capacity must be > 0, was $capacity" }
-    }
+    private val rows =
+        BoundedStatsRowIndex(
+            capacity = capacity,
+            order = TERMINAL_COMMAND_COMPLETION_STATS_ORDER,
+            keySelector = TerminalCommandCompletionStats::key,
+            shouldReplace = ::isAtLeastAsRecent,
+        )
 
-    private val entries = ArrayList<TerminalCommandCompletionStats>(capacity)
+    fun replaceAll(records: List<TerminalCommandCompletionStats>) = rows.replaceAll(records)
 
-    fun replaceAll(records: List<TerminalCommandCompletionStats>) {
-        val compacted = ArrayList<TerminalCommandCompletionStats>(minOf(records.size, capacity))
-        for (record in records) {
-            val index = compacted.indexOfKey(record)
-            if (index >= 0) {
-                if (record.lastUsedEpochMillis >= compacted[index].lastUsedEpochMillis) {
-                    compacted[index] = record
-                }
-            } else {
-                compacted += record
-            }
-        }
-        compacted.sortWith(TERMINAL_COMMAND_COMPLETION_STATS_ORDER)
-        entries.clear()
-        entries.addAll(compacted.take(capacity))
-    }
-
-    fun snapshot(): List<TerminalCommandCompletionStats> = entries.toList()
+    fun snapshot(): List<TerminalCommandCompletionStats> = rows.snapshot()
 
     fun recordCommandResult(
         commandLine: String,
@@ -97,7 +84,7 @@ internal class CommandCompletionStatsIndex(
         }
     }
 
-    private inline fun mutate(
+    private fun mutate(
         commandLine: String,
         profileId: String?,
         workingDirectoryUri: String?,
@@ -105,43 +92,18 @@ internal class CommandCompletionStatsIndex(
     ) {
         val canonical = commandLine.trim()
         val normalized = TerminalCommandCompletionStats.normalizeCommandLine(canonical)
-        val existingIndex = entries.indexOfKey(normalized, profileId, workingDirectoryUri)
-        if (existingIndex >= 0) {
-            entries[existingIndex] = update(entries[existingIndex], canonical)
-        } else {
-            if (entries.size == capacity) entries.removeLeastRelevantBy(TERMINAL_COMMAND_COMPLETION_STATS_ORDER)
-            val initial =
+        rows.mutate(
+            key = CommandCompletionStatsKey(normalized, profileId, workingDirectoryUri),
+            initialRow = {
                 TerminalCommandCompletionStats(
                     commandLine = canonical,
                     normalizedCommandLine = normalized,
                     profileId = profileId,
                     workingDirectoryUri = workingDirectoryUri,
                 )
-            entries += update(initial, canonical)
-        }
-        entries.sortWith(TERMINAL_COMMAND_COMPLETION_STATS_ORDER)
-    }
-
-    private fun ArrayList<TerminalCommandCompletionStats>.indexOfKey(record: TerminalCommandCompletionStats): Int =
-        indexOfKey(record.normalizedCommandLine, record.profileId, record.workingDirectoryUri)
-
-    private fun List<TerminalCommandCompletionStats>.indexOfKey(
-        normalizedCommandLine: String,
-        profileId: String?,
-        workingDirectoryUri: String?,
-    ): Int {
-        var index = 0
-        while (index < size) {
-            val entry = this[index]
-            if (entry.normalizedCommandLine == normalizedCommandLine &&
-                entry.profileId == profileId &&
-                entry.workingDirectoryUri == workingDirectoryUri
-            ) {
-                return index
-            }
-            index++
-        }
-        return -1
+            },
+            update = { update(it, canonical) },
+        )
     }
 }
 
@@ -152,34 +114,21 @@ internal class CommandCompletionStatsIndex(
  * become part of shape keys or rows.
  */
 internal class CommandShapeStatsIndex(
-    private val capacity: Int,
+    capacity: Int,
     commandSpecs: List<TerminalCommandSpec>,
 ) {
-    init {
-        require(capacity > 0) { "capacity must be > 0, was $capacity" }
-    }
-
-    private val entries = ArrayList<TerminalCommandShapeStats>(capacity)
+    private val rows =
+        BoundedStatsRowIndex(
+            capacity = capacity,
+            order = TERMINAL_COMMAND_SHAPE_STATS_ORDER,
+            keySelector = TerminalCommandShapeStats::key,
+            shouldReplace = ::isAtLeastAsRecent,
+        )
     private val commandSpecs = commandSpecs.toList()
 
-    fun replaceAll(records: List<TerminalCommandShapeStats>) {
-        val compacted = ArrayList<TerminalCommandShapeStats>(minOf(records.size, capacity))
-        for (record in records) {
-            val index = compacted.indexOfShapeKey(record)
-            if (index >= 0) {
-                if (record.lastUsedEpochMillis >= compacted[index].lastUsedEpochMillis) {
-                    compacted[index] = record
-                }
-            } else {
-                compacted += record
-            }
-        }
-        compacted.sortWith(TERMINAL_COMMAND_SHAPE_STATS_ORDER)
-        entries.clear()
-        entries.addAll(compacted.take(capacity))
-    }
+    fun replaceAll(records: List<TerminalCommandShapeStats>) = rows.replaceAll(records)
 
-    fun snapshot(): List<TerminalCommandShapeStats> = entries.toList()
+    fun snapshot(): List<TerminalCommandShapeStats> = rows.snapshot()
 
     fun recordCommandResult(
         commandLine: String,
@@ -226,49 +175,24 @@ internal class CommandShapeStatsIndex(
         }
     }
 
-    private inline fun mutate(
+    private fun mutate(
         commandLine: String,
         profileId: String?,
         workingDirectoryUri: String?,
         update: (TerminalCommandShapeStats) -> TerminalCommandShapeStats,
     ) {
         val shape = shapeFor(commandLine) ?: return
-        val existingIndex = entries.indexOfShapeKey(shape.normalizedShapeKey, profileId, workingDirectoryUri)
-        if (existingIndex >= 0) {
-            entries[existingIndex] = update(entries[existingIndex])
-        } else {
-            if (entries.size == capacity) entries.removeLeastRelevantBy(TERMINAL_COMMAND_SHAPE_STATS_ORDER)
-            val initial =
+        rows.mutate(
+            key = CommandShapeStatsKey(shape.normalizedShapeKey, profileId, workingDirectoryUri),
+            initialRow = {
                 TerminalCommandShapeStats(
                     shape = shape,
                     profileId = profileId,
                     workingDirectoryUri = workingDirectoryUri,
                 )
-            entries += update(initial)
-        }
-        entries.sortWith(TERMINAL_COMMAND_SHAPE_STATS_ORDER)
-    }
-
-    private fun ArrayList<TerminalCommandShapeStats>.indexOfShapeKey(record: TerminalCommandShapeStats): Int =
-        indexOfShapeKey(record.shape.normalizedShapeKey, record.profileId, record.workingDirectoryUri)
-
-    private fun List<TerminalCommandShapeStats>.indexOfShapeKey(
-        normalizedShapeKey: String,
-        profileId: String?,
-        workingDirectoryUri: String?,
-    ): Int {
-        var index = 0
-        while (index < size) {
-            val entry = this[index]
-            if (entry.shape.normalizedShapeKey == normalizedShapeKey &&
-                entry.profileId == profileId &&
-                entry.workingDirectoryUri == workingDirectoryUri
-            ) {
-                return index
-            }
-            index++
-        }
-        return -1
+            },
+            update = update,
+        )
     }
 
     private fun shapeFor(commandLine: String): TerminalCommandLineShape? =
@@ -284,32 +208,19 @@ internal class CommandShapeStatsIndex(
  * path, spec, IDE, and history providers can learn independently.
  */
 internal class CompletionFeedbackStatsIndex(
-    private val capacity: Int,
+    capacity: Int,
 ) {
-    init {
-        require(capacity > 0) { "capacity must be > 0, was $capacity" }
-    }
+    private val rows =
+        BoundedStatsRowIndex(
+            capacity = capacity,
+            order = TERMINAL_COMPLETION_FEEDBACK_STATS_ORDER,
+            keySelector = TerminalCompletionFeedbackStats::key,
+            shouldReplace = ::isAtLeastAsRecent,
+        )
 
-    private val entries = ArrayList<TerminalCompletionFeedbackStats>(capacity)
+    fun replaceAll(records: List<TerminalCompletionFeedbackStats>) = rows.replaceAll(records)
 
-    fun replaceAll(records: List<TerminalCompletionFeedbackStats>) {
-        val compacted = ArrayList<TerminalCompletionFeedbackStats>(minOf(records.size, capacity))
-        for (record in records) {
-            val index = compacted.indexOfFeedbackKey(record)
-            if (index >= 0) {
-                if (record.lastUsedEpochMillis >= compacted[index].lastUsedEpochMillis) {
-                    compacted[index] = record
-                }
-            } else {
-                compacted += record
-            }
-        }
-        compacted.sortWith(TERMINAL_COMPLETION_FEEDBACK_STATS_ORDER)
-        entries.clear()
-        entries.addAll(compacted.take(capacity))
-    }
-
-    fun snapshot(): List<TerminalCompletionFeedbackStats> = entries.toList()
+    fun snapshot(): List<TerminalCompletionFeedbackStats> = rows.snapshot()
 
     fun recordSuggestionFeedback(
         context: TerminalCompletionFeedbackContext,
@@ -328,20 +239,15 @@ internal class CompletionFeedbackStatsIndex(
         }
     }
 
-    private inline fun mutate(
+    private fun mutate(
         context: TerminalCompletionFeedbackContext,
         profileId: String?,
         workingDirectoryUri: String?,
         update: (TerminalCompletionFeedbackStats) -> TerminalCompletionFeedbackStats,
     ) {
-        val existingIndex = entries.indexOfFeedbackKey(context, profileId, workingDirectoryUri)
-        if (existingIndex >= 0) {
-            entries[existingIndex] = update(entries[existingIndex])
-        } else {
-            if (entries.size == capacity) {
-                entries.removeLeastRelevantBy(TERMINAL_COMPLETION_FEEDBACK_STATS_ORDER)
-            }
-            val initial =
+        rows.mutate(
+            key = context.key(profileId, workingDirectoryUri),
+            initialRow = {
                 TerminalCompletionFeedbackStats(
                     source = context.source,
                     candidateKind = context.candidateKind,
@@ -351,64 +257,87 @@ internal class CompletionFeedbackStatsIndex(
                     profileId = profileId,
                     workingDirectoryUri = workingDirectoryUri,
                 )
-            entries += update(initial)
-        }
-        entries.sortWith(TERMINAL_COMPLETION_FEEDBACK_STATS_ORDER)
-    }
-
-    private fun ArrayList<TerminalCompletionFeedbackStats>.indexOfFeedbackKey(record: TerminalCompletionFeedbackStats): Int =
-        indexOfFeedbackKey(
-            source = record.source,
-            candidateKind = record.candidateKind,
-            tokenPosition = record.tokenPosition,
-            replacementStartOffset = record.replacementStartOffset,
-            replacementEndOffset = record.replacementEndOffset,
-            profileId = record.profileId,
-            workingDirectoryUri = record.workingDirectoryUri,
+            },
+            update = update,
         )
-
-    private fun List<TerminalCompletionFeedbackStats>.indexOfFeedbackKey(
-        context: TerminalCompletionFeedbackContext,
-        profileId: String?,
-        workingDirectoryUri: String?,
-    ): Int =
-        indexOfFeedbackKey(
-            source = context.source,
-            candidateKind = context.candidateKind,
-            tokenPosition = context.tokenPosition,
-            replacementStartOffset = context.replacementStartOffset,
-            replacementEndOffset = context.replacementEndOffset,
-            profileId = profileId,
-            workingDirectoryUri = workingDirectoryUri,
-        )
-
-    private fun List<TerminalCompletionFeedbackStats>.indexOfFeedbackKey(
-        source: String,
-        candidateKind: TerminalCompletionCandidateKind,
-        tokenPosition: TerminalCompletionTokenPosition,
-        replacementStartOffset: Int,
-        replacementEndOffset: Int,
-        profileId: String?,
-        workingDirectoryUri: String?,
-    ): Int {
-        var index = 0
-        while (index < size) {
-            val entry = this[index]
-            if (entry.source == source &&
-                entry.candidateKind == candidateKind &&
-                entry.tokenPosition == tokenPosition &&
-                entry.replacementStartOffset == replacementStartOffset &&
-                entry.replacementEndOffset == replacementEndOffset &&
-                entry.profileId == profileId &&
-                entry.workingDirectoryUri == workingDirectoryUri
-            ) {
-                return index
-            }
-            index++
-        }
-        return -1
     }
 }
+
+private data class CommandCompletionStatsKey(
+    val normalizedCommandLine: String,
+    val profileId: String?,
+    val workingDirectoryUri: String?,
+)
+
+private data class CommandShapeStatsKey(
+    val normalizedShapeKey: String,
+    val profileId: String?,
+    val workingDirectoryUri: String?,
+)
+
+private data class CompletionFeedbackStatsKey(
+    val source: String,
+    val candidateKind: TerminalCompletionCandidateKind,
+    val tokenPosition: TerminalCompletionTokenPosition,
+    val replacementStartOffset: Int,
+    val replacementEndOffset: Int,
+    val profileId: String?,
+    val workingDirectoryUri: String?,
+)
+
+private fun TerminalCommandCompletionStats.key(): CommandCompletionStatsKey =
+    CommandCompletionStatsKey(
+        normalizedCommandLine = normalizedCommandLine,
+        profileId = profileId,
+        workingDirectoryUri = workingDirectoryUri,
+    )
+
+private fun TerminalCommandShapeStats.key(): CommandShapeStatsKey =
+    CommandShapeStatsKey(
+        normalizedShapeKey = shape.normalizedShapeKey,
+        profileId = profileId,
+        workingDirectoryUri = workingDirectoryUri,
+    )
+
+private fun TerminalCompletionFeedbackStats.key(): CompletionFeedbackStatsKey =
+    CompletionFeedbackStatsKey(
+        source = source,
+        candidateKind = candidateKind,
+        tokenPosition = tokenPosition,
+        replacementStartOffset = replacementStartOffset,
+        replacementEndOffset = replacementEndOffset,
+        profileId = profileId,
+        workingDirectoryUri = workingDirectoryUri,
+    )
+
+private fun TerminalCompletionFeedbackContext.key(
+    profileId: String?,
+    workingDirectoryUri: String?,
+): CompletionFeedbackStatsKey =
+    CompletionFeedbackStatsKey(
+        source = source,
+        candidateKind = candidateKind,
+        tokenPosition = tokenPosition,
+        replacementStartOffset = replacementStartOffset,
+        replacementEndOffset = replacementEndOffset,
+        profileId = profileId,
+        workingDirectoryUri = workingDirectoryUri,
+    )
+
+private fun isAtLeastAsRecent(
+    current: TerminalCommandCompletionStats,
+    candidate: TerminalCommandCompletionStats,
+): Boolean = candidate.lastUsedEpochMillis >= current.lastUsedEpochMillis
+
+private fun isAtLeastAsRecent(
+    current: TerminalCommandShapeStats,
+    candidate: TerminalCommandShapeStats,
+): Boolean = candidate.lastUsedEpochMillis >= current.lastUsedEpochMillis
+
+private fun isAtLeastAsRecent(
+    current: TerminalCompletionFeedbackStats,
+    candidate: TerminalCompletionFeedbackStats,
+): Boolean = candidate.lastUsedEpochMillis >= current.lastUsedEpochMillis
 
 private fun isRecordableStatsEvent(
     commandLine: String,
