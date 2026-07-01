@@ -417,18 +417,21 @@ class TerminalCommandStatsCompletionSource
         private fun TerminalCommandCompletionStats.hasPositiveSuggestionSignal(): Boolean = successCount > 0 || acceptedCount > 0
 
         private fun TerminalCommandCompletionStats.score(request: TerminalCompletionRequest): Int {
-            var score = STATS_BASE_SCORE
-            score += minOf(useCount, MAX_COUNTER_SCORE_UNITS) * USE_COUNT_SCORE
-            score += minOf(successCount, MAX_COUNTER_SCORE_UNITS) * SUCCESS_COUNT_SCORE
-            score -= minOf(failureCount, MAX_COUNTER_SCORE_UNITS) * FAILURE_COUNT_PENALTY
-            score += minOf(acceptedCount, MAX_COUNTER_SCORE_UNITS) * ACCEPTED_COUNT_SCORE
-            score -= minOf(dismissedCount, MAX_COUNTER_SCORE_UNITS) * DISMISSED_COUNT_PENALTY
-            score += minOf(lastUsedEpochMillis / RECENCY_SCORE_BUCKET_MILLIS, MAX_RECENCY_SCORE).toInt()
-            if (profileId != null && profileId == request.profileId) score += PROFILE_MATCH_SCORE
-            if (workingDirectoryUri != null && workingDirectoryUri == request.workingDirectoryUri) {
-                score += WORKING_DIRECTORY_MATCH_SCORE
-            }
-            return score
+            val counterScore =
+                STATS_BASE_SCORE.toLong() +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, useCount, USE_COUNT_SCORE) +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, successCount, SUCCESS_COUNT_SCORE) +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, failureCount, -FAILURE_COUNT_PENALTY) +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, acceptedCount, ACCEPTED_COUNT_SCORE) +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, dismissedCount, -DISMISSED_COUNT_PENALTY) +
+                    minOf(lastUsedEpochMillis / RECENCY_SCORE_BUCKET_MILLIS, MAX_RECENCY_SCORE)
+            return TerminalCompletionScoreAdjustment.score(
+                policy = SCORE_POLICY,
+                request = request,
+                profileId = profileId,
+                workingDirectoryUri = workingDirectoryUri,
+                counterScore = counterScore,
+            )
         }
 
         private fun ArrayList<TerminalCommandCompletionStats>.indexOfKey(record: TerminalCommandCompletionStats): Int =
@@ -547,5 +550,13 @@ class TerminalCommandStatsCompletionSource
             private const val WORKING_DIRECTORY_MATCH_SCORE = 80
             private const val RECENCY_SCORE_BUCKET_MILLIS = 60_000L
             private const val MAX_RECENCY_SCORE = 200L
+            private val SCORE_POLICY =
+                TerminalCompletionScoreAdjustment.Policy(
+                    maxCounterScoreUnits = MAX_COUNTER_SCORE_UNITS,
+                    minScoreAdjustment = Int.MIN_VALUE,
+                    maxScoreAdjustment = Int.MAX_VALUE,
+                    profileMatchBoost = PROFILE_MATCH_SCORE,
+                    workingDirectoryMatchBoost = WORKING_DIRECTORY_MATCH_SCORE,
+                )
         }
     }

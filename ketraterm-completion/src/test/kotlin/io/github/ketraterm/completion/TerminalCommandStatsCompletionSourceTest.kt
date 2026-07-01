@@ -100,6 +100,37 @@ class TerminalCommandStatsCompletionSourceTest {
         val candidates = source.complete(request("git s"))
 
         assertEquals(listOf("git switch main", "git status"), candidates.map { it.replacementText })
+        assertTrue(candidates[0].score > candidates[1].score)
+    }
+
+    @Test
+    fun `exact command ranking caps learned counter contribution`() {
+        val source = TerminalCommandStatsCompletionSource()
+        source.replaceAll(
+            listOf(
+                TerminalCommandCompletionStats(
+                    commandLine = "git alpha",
+                    normalizedCommandLine = "git alpha",
+                    useCount = 50,
+                    successCount = 50,
+                    acceptedCount = 50,
+                    lastUsedEpochMillis = 60_000,
+                ),
+                TerminalCommandCompletionStats(
+                    commandLine = "git beta",
+                    normalizedCommandLine = "git beta",
+                    useCount = 500,
+                    successCount = 500,
+                    acceptedCount = 500,
+                    lastUsedEpochMillis = 60_000,
+                ),
+            ),
+        )
+
+        val candidates = source.complete(request("git "))
+
+        assertEquals(listOf("git alpha", "git beta"), candidates.map { it.replacementText })
+        assertEquals(candidates[0].score, candidates[1].score)
     }
 
     @Test
@@ -123,6 +154,7 @@ class TerminalCommandStatsCompletionSourceTest {
         val candidates = source.complete(request("npm ", profileId = "pwsh", workingDirectoryUri = "file:///repo-b"))
 
         assertEquals(listOf("npm update", "npm test"), candidates.map { it.replacementText })
+        assertTrue(candidates[0].score > candidates[1].score)
     }
 
     @Test
