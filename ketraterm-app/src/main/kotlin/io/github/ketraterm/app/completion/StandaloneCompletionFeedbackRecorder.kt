@@ -17,9 +17,7 @@ package io.github.ketraterm.app.completion
 
 import io.github.ketraterm.app.history.CommandPersistencePrivacyPolicy
 import io.github.ketraterm.completion.*
-import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionFeedback
-import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionFeedbackHandler
-import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionFeedbackKind
+import io.github.ketraterm.ui.swing.suggestion.*
 
 /**
  * Standalone adapter from Swing popup feedback to shared completion statistics.
@@ -112,12 +110,10 @@ internal class StandaloneCompletionFeedbackRecorder(
             val suggestion = feedback.suggestion
             val start: Int
             val end: Int
-            if (suggestion.replacementStartOffset >= 0 || suggestion.replacementEndOffset >= 0) {
-                start = suggestion.replacementStartOffset
-                end = suggestion.replacementEndOffset
-                if (start !in 0..request.commandText.length) return null
-                if (end !in start..request.commandText.length) return null
-                if (!request.commandText.isUtf16Boundary(start) || !request.commandText.isUtf16Boundary(end)) return null
+            if (suggestion.hasExplicitReplacementRange()) {
+                val range = suggestion.explicitReplacementRangeFor(request) ?: return null
+                start = range.startOffset
+                end = range.endOffset
             } else {
                 val deleteCount =
                     if (suggestion.deleteCount >= 0) {
@@ -132,13 +128,6 @@ internal class StandaloneCompletionFeedbackRecorder(
                 .replaceRange(start, end, suggestion.replacementText)
                 .trim()
                 .takeIf(String::isNotEmpty)
-        }
-
-        private fun String.isUtf16Boundary(offset: Int): Boolean {
-            if (offset !in 0..length) return false
-            val afterHighSurrogate = offset > 0 && Character.isHighSurrogate(this[offset - 1])
-            val beforeLowSurrogate = offset < length && Character.isLowSurrogate(this[offset])
-            return !afterHighSurrogate && !beforeLowSurrogate
         }
     }
 }

@@ -70,6 +70,58 @@ data class SwingShellSuggestion
     }
 
 /**
+ * Validated UTF-16 replacement range for a shell suggestion.
+ *
+ * The range uses an exclusive end offset to match [String.replaceRange] and
+ * the command-line offsets carried by [SwingShellSuggestion].
+ *
+ * @property startOffset inclusive UTF-16 start offset in the request command text.
+ * @property endOffset exclusive UTF-16 end offset in the request command text.
+ */
+data class SwingShellSuggestionReplacementRange(
+    val startOffset: Int,
+    val endOffset: Int,
+) {
+    init {
+        require(startOffset >= 0) { "startOffset must be >= 0, was $startOffset" }
+        require(endOffset >= startOffset) { "endOffset must be >= startOffset, was $endOffset < $startOffset" }
+    }
+}
+
+/**
+ * Returns whether this suggestion carries an explicit replacement range.
+ *
+ * @return `true` when either replacement endpoint is set.
+ */
+fun SwingShellSuggestion.hasExplicitReplacementRange(): Boolean = replacementStartOffset >= 0 || replacementEndOffset >= 0
+
+/**
+ * Validates and returns this suggestion's explicit replacement range.
+ *
+ * A valid explicit range is fully contained in [request.commandText], contains
+ * [SwingShellSuggestionRequest.cursorOffset], and never splits a UTF-16
+ * surrogate pair at the start, cursor, or end boundary.
+ *
+ * @param request command-line request that produced this suggestion.
+ * @return validated replacement range, or `null` when no explicit range exists
+ * or the explicit range is invalid for [request].
+ */
+fun SwingShellSuggestion.explicitReplacementRangeFor(request: SwingShellSuggestionRequest): SwingShellSuggestionReplacementRange? {
+    if (!hasExplicitReplacementRange()) return null
+    if (replacementStartOffset < 0) return null
+    if (replacementStartOffset > request.cursorOffset) return null
+    if (request.cursorOffset > replacementEndOffset) return null
+    if (replacementEndOffset > request.commandText.length) return null
+    if (!request.commandText.isUtf16Boundary(replacementStartOffset)) return null
+    if (!request.commandText.isUtf16Boundary(request.cursorOffset)) return null
+    if (!request.commandText.isUtf16Boundary(replacementEndOffset)) return null
+    return SwingShellSuggestionReplacementRange(
+        startOffset = replacementStartOffset,
+        endOffset = replacementEndOffset,
+    )
+}
+
+/**
  * Snapshot of the currently visible shell suggestion popup state.
  *
  * @property visible whether the popup is currently visible.
@@ -265,13 +317,13 @@ fun interface SwingShellSuggestionHandler {
                 val request = acceptance.request
                 val suggestion = acceptance.suggestion
 
-                if (suggestion.hasReplacementRange()) {
-                    if (!suggestion.hasValidReplacementRangeFor(request)) {
-                        return@SwingShellSuggestionHandler
-                    }
+                if (suggestion.hasExplicitReplacementRange()) {
+                    val replacementRange =
+                        suggestion.explicitReplacementRangeFor(request)
+                            ?: return@SwingShellSuggestionHandler
                     val deleteAfterCursor =
                         countGraphemeClusters(
-                            request.commandText.substring(request.cursorOffset, suggestion.replacementEndOffset),
+                            request.commandText.substring(request.cursorOffset, replacementRange.endOffset),
                         )
                     repeat(deleteAfterCursor) {
                         session.encodeKey(TerminalKeyEvent.key(TerminalKey.DELETE))
@@ -279,7 +331,7 @@ fun interface SwingShellSuggestionHandler {
 
                     val deleteBeforeCursor =
                         countGraphemeClusters(
-                            request.commandText.substring(suggestion.replacementStartOffset, request.cursorOffset),
+                            request.commandText.substring(replacementRange.startOffset, request.cursorOffset),
                         )
                     repeat(deleteBeforeCursor) {
                         session.encodeKey(TerminalKeyEvent.key(TerminalKey.BACKSPACE))
@@ -299,24 +351,6 @@ fun interface SwingShellSuggestionHandler {
                 session.encodePaste(TerminalPasteEvent(suggestion.replacementText))
             }
 
-        private fun SwingShellSuggestion.hasReplacementRange(): Boolean = replacementStartOffset >= 0 || replacementEndOffset >= 0
-
-        private fun SwingShellSuggestion.hasValidReplacementRangeFor(request: SwingShellSuggestionRequest): Boolean =
-            replacementStartOffset >= 0 &&
-                replacementStartOffset <= request.cursorOffset &&
-                request.cursorOffset <= replacementEndOffset &&
-                replacementEndOffset <= request.commandText.length &&
-                request.commandText.isUtf16Boundary(replacementStartOffset) &&
-                request.commandText.isUtf16Boundary(request.cursorOffset) &&
-                request.commandText.isUtf16Boundary(replacementEndOffset)
-
-        private fun String.isUtf16Boundary(offset: Int): Boolean {
-            if (offset !in 0..length) return false
-            val afterHighSurrogate = offset > 0 && Character.isHighSurrogate(this[offset - 1])
-            val beforeLowSurrogate = offset < length && Character.isLowSurrogate(this[offset])
-            return !afterHighSurrogate && !beforeLowSurrogate
-        }
-
         private fun countGraphemeClusters(text: String): Int {
             if (text.isEmpty()) return 0
             val iterator = BreakIterator.getCharacterInstance()
@@ -328,4 +362,11 @@ fun interface SwingShellSuggestionHandler {
             return count
         }
     }
+}
+
+private fun String.isUtf16Boundary(offset: Int): Boolean {
+    if (offset !in 0..length) return false
+    val afterHighSurrogate = offset > 0 && Character.isHighSurrogate(this[offset - 1])
+    val beforeLowSurrogate = offset < length && Character.isLowSurrogate(this[offset])
+    return !afterHighSurrogate && !beforeLowSurrogate
 }
