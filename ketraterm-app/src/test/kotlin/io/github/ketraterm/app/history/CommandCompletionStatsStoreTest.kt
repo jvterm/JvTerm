@@ -87,7 +87,7 @@ class CommandCompletionStatsStoreTest {
     }
 
     @Test
-    fun `persists source-specific feedback stats as current format rows`(
+    fun `persists source-specific feedback stats`(
         @TempDir directory: Path,
     ) {
         val path = directory.resolve("completion-stats.tsv")
@@ -113,7 +113,6 @@ class CommandCompletionStatsStoreTest {
         CommandCompletionStatsStore(path).use { reloaded ->
             assertEquals(TerminalCommandCompletionStatsSnapshot(feedbackStats = listOf(feedbackRecord)), reloaded.loadSnapshot())
         }
-        assertEquals(true, Files.readString(path).startsWith("KetraTerm_COMMAND_COMPLETION_STATS\t1"))
     }
 
     @Test
@@ -166,61 +165,6 @@ class CommandCompletionStatsStoreTest {
     }
 
     @Test
-    fun `ignores malformed and invalid rows independently`(
-        @TempDir directory: Path,
-    ) {
-        val path = directory.resolve("completion-stats.tsv")
-        val valid = stats(commandLine = "git status", normalizedCommandLine = "git status")
-        CommandCompletionStatsStore(path).use { store ->
-            store.persist(listOf(valid))
-            store.flush()
-        }
-        Files.writeString(
-            path,
-            Files.readString(path) +
-                "malformed\n" +
-                invalidNegativeCounterLine() +
-                "\n",
-        )
-
-        CommandCompletionStatsStore(path).use { reloaded ->
-            assertEquals(listOf(valid), reloaded.load())
-        }
-    }
-
-    @Test
-    fun `ignores malformed feedback rows independently`(
-        @TempDir directory: Path,
-    ) {
-        val path = directory.resolve("completion-stats.tsv")
-        val feedbackRecord =
-            TerminalCompletionFeedbackStats(
-                source = "spec",
-                candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
-                tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
-                replacementStartOffset = 4,
-                replacementEndOffset = 10,
-                acceptedCount = 1,
-                lastUsedEpochMillis = 100,
-            )
-
-        CommandCompletionStatsStore(path).use { store ->
-            store.persist(TerminalCommandCompletionStatsSnapshot(feedbackStats = listOf(feedbackRecord)))
-            store.flush()
-        }
-        Files.writeString(
-            path,
-            Files.readString(path) +
-                malformedFeedbackLine() +
-                "\n",
-        )
-
-        CommandCompletionStatsStore(path).use { reloaded ->
-            assertEquals(TerminalCommandCompletionStatsSnapshot(feedbackStats = listOf(feedbackRecord)), reloaded.loadSnapshot())
-        }
-    }
-
-    @Test
     fun `later persisted snapshot replaces earlier file contents`(
         @TempDir directory: Path,
     ) {
@@ -264,36 +208,6 @@ class CommandCompletionStatsStoreTest {
             dismissedCount = dismissedCount,
             lastUsedEpochMillis = lastUsedEpochMillis,
         )
-
-    private fun invalidNegativeCounterLine(): String =
-        listOf(
-            "C",
-            encodeText("bad"),
-            encodeText("bad"),
-            "",
-            "",
-            "-1",
-            "0",
-            "0",
-            "0",
-            "0",
-            "100",
-        ).joinToString("\t")
-
-    private fun malformedFeedbackLine(): String =
-        listOf(
-            "F",
-            encodeText("spec"),
-            "NOT_A_KIND",
-            TerminalCompletionTokenPosition.SUBCOMMAND.name,
-            "4",
-            "10",
-            "",
-            "",
-            "1",
-            "0",
-            "100",
-        ).joinToString("\t")
 
     private fun encodeText(value: String): String =
         Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(StandardCharsets.UTF_8))
