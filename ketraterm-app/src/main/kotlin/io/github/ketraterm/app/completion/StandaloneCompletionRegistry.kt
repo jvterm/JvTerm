@@ -49,7 +49,11 @@ internal class StandaloneCompletionRegistry(
                 if (persistentStatsSource == null) {
                     source
                 } else {
-                    TerminalCompletionSources.shapeAware(source) { persistentStatsSource.shapeSnapshot() }
+                    TerminalCompletionSources.shapeAware(
+                        source = source,
+                        shapeStatsProvider = { persistentStatsSource.shapeSnapshot() },
+                        commandSpecs = specs,
+                    )
                 }
             }
     private val sessionMruSources = HashMap<String, TerminalSessionMruCompletionSource>()

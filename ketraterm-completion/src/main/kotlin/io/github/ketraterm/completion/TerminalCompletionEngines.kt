@@ -118,16 +118,21 @@ object TerminalCompletionSources {
      *
      * @param source source whose candidates should be shape-ranked.
      * @param shapeStatsProvider supplier for the latest shape stats snapshot.
+     * @param commandSpecs command specifications used to classify projected
+     * candidates into command-family shapes.
      * @return source that returns the same candidates with adjusted scores.
      */
     @JvmStatic
+    @JvmOverloads
     fun shapeAware(
         source: TerminalCompletionSource,
         shapeStatsProvider: () -> List<TerminalCommandShapeStats>,
+        commandSpecs: List<TerminalCommandSpec> = TerminalCommandSpecs.defaults(),
     ): TerminalCompletionSource =
         ShapeAwareCompletionSource(
             delegate = source,
             shapeStatsProvider = shapeStatsProvider,
+            commandSpecs = commandSpecs,
         )
 }
 

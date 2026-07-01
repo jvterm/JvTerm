@@ -28,11 +28,16 @@ package io.github.ketraterm.completion
  *
  * @param delegate source whose candidates should be shape-ranked.
  * @param shapeStatsProvider supplier for the latest shape stats snapshot.
+ * @param commandSpecs command specifications used to classify projected
+ * candidates into the same command families used by stats recording.
  */
 class ShapeAwareCompletionSource(
     private val delegate: TerminalCompletionSource,
     private val shapeStatsProvider: () -> List<TerminalCommandShapeStats>,
+    commandSpecs: List<TerminalCommandSpec> = TerminalCommandSpecs.defaults(),
 ) : TerminalCompletionSource {
+    private val commandSpecs = commandSpecs.toList()
+
     /**
      * Returns delegated candidates with learned shape score adjustments.
      *
@@ -74,7 +79,9 @@ class ShapeAwareCompletionSource(
                 candidate.replacementEndOffset,
                 candidate.replacementText,
             )
-        return TerminalCommandLineShape.fromCommandLine(completed)
+        return TerminalCommandLineClassifier
+            .classify(completed, commandSpecs)
+            ?.shape
     }
 
     private fun List<TerminalCommandShapeStats>.adjustmentFor(

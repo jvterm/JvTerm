@@ -136,6 +136,105 @@ class ShapeAwareCompletionSourceTest {
     }
 
     @Test
+    fun `spec aware ranking canonicalizes learned aliases`() {
+        val specs =
+            listOf(
+                TerminalCommandSpec(
+                    name = "git",
+                    subcommands =
+                        listOf(
+                            TerminalCommandSpec("checkout", aliases = listOf("co")),
+                            TerminalCommandSpec("commit"),
+                        ),
+                ),
+            )
+        val source =
+            ShapeAwareCompletionSource(
+                delegate =
+                    fixedSource(
+                        candidate("commit", score = 320),
+                        candidate("checkout", score = 300),
+                    ),
+                shapeStatsProvider = {
+                    listOf(
+                        specShapeStats(
+                            commandLine = "git co private-branch",
+                            specs = specs,
+                            acceptedCount = 4,
+                        ),
+                    )
+                },
+                commandSpecs = specs,
+            )
+
+        val candidates = source.complete(request("git c"))
+
+        assertEquals(listOf("checkout", "commit"), candidates.map { it.replacementText })
+    }
+
+    @Test
+    fun `spec aware ranking boosts nested command family independent of private argument`() {
+        val specs =
+            listOf(
+                TerminalCommandSpec(
+                    name = "docker",
+                    subcommands =
+                        listOf(
+                            TerminalCommandSpec(
+                                name = "compose",
+                                subcommands =
+                                    listOf(
+                                        TerminalCommandSpec("up"),
+                                        TerminalCommandSpec("ps"),
+                                    ),
+                            ),
+                        ),
+                ),
+            )
+        val source =
+            ShapeAwareCompletionSource(
+                delegate =
+                    fixedSource(
+                        candidate("ps", score = 320, replacementStartOffset = 15, replacementEndOffset = 15),
+                        candidate("up", score = 300, replacementStartOffset = 15, replacementEndOffset = 15),
+                    ),
+                shapeStatsProvider = {
+                    listOf(
+                        specShapeStats(
+                            commandLine = "docker compose up private-service",
+                            specs = specs,
+                            successCount = 6,
+                            acceptedCount = 2,
+                        ),
+                    )
+                },
+                commandSpecs = specs,
+            )
+
+        val candidates = source.complete(request("docker compose "))
+
+        assertEquals(listOf("up", "ps"), candidates.map { it.replacementText })
+        assertTrue(candidates[0].score > candidates[1].score)
+    }
+
+    @Test
+    fun `shape ranking keeps private arguments out of family keys`() {
+        val specs =
+            listOf(
+                TerminalCommandSpec(
+                    name = "npm",
+                    subcommands = listOf(TerminalCommandSpec("run")),
+                ),
+            )
+
+        val stats = specShapeStats(commandLine = "npm run secret-script", specs = specs, successCount = 1)
+
+        assertTrue("secret-script" !in stats.shape.normalizedShapeKey)
+        assertEquals(listOf("run"), stats.shape.subcommands)
+        assertEquals(1, stats.shape.positionalArgumentCount)
+    }
+
+    @Test
     fun `shape stats do not create candidates`() {
         val source =
             ShapeAwareCompletionSource(
@@ -156,11 +255,13 @@ class ShapeAwareCompletionSourceTest {
     private fun candidate(
         replacementText: String,
         score: Int,
+        replacementStartOffset: Int = 4,
+        replacementEndOffset: Int = 5,
     ): TerminalCompletionCandidate =
         TerminalCompletionCandidate(
             replacementText = replacementText,
-            replacementStartOffset = 4,
-            replacementEndOffset = 5,
+            replacementStartOffset = replacementStartOffset,
+            replacementEndOffset = replacementEndOffset,
             displayText = replacementText,
             source = "test",
             kind = TerminalCompletionCandidateKind.SUBCOMMAND,
@@ -179,6 +280,29 @@ class ShapeAwareCompletionSourceTest {
     ): TerminalCommandShapeStats =
         TerminalCommandShapeStats(
             shape = TerminalCommandLineShape.fromCommandLine(commandLine)!!,
+            profileId = profileId,
+            workingDirectoryUri = workingDirectoryUri,
+            useCount = useCount,
+            successCount = successCount,
+            failureCount = failureCount,
+            acceptedCount = acceptedCount,
+            dismissedCount = dismissedCount,
+            lastUsedEpochMillis = 100,
+        )
+
+    private fun specShapeStats(
+        commandLine: String,
+        specs: List<TerminalCommandSpec>,
+        profileId: String? = null,
+        workingDirectoryUri: String? = null,
+        useCount: Int = 0,
+        successCount: Int = 0,
+        failureCount: Int = 0,
+        acceptedCount: Int = 0,
+        dismissedCount: Int = 0,
+    ): TerminalCommandShapeStats =
+        TerminalCommandShapeStats(
+            shape = TerminalCommandLineClassifier.classify(commandLine, specs)!!.shape,
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
             useCount = useCount,
