@@ -79,21 +79,18 @@ class ShapeAwareCompletionSource(
     private fun List<TerminalCommandShapeStats>.adjustmentFor(
         shape: TerminalCommandLineShape,
         request: TerminalCompletionRequest,
-    ): Int {
-        var best: Int? = null
-        var bestSpecificity = -1
-        for (stats in this) {
-            if (!stats.shape.matchesCandidateShape(shape)) continue
-            val specificity = stats.contextSpecificity(request)
-            if (specificity < 0) continue
-            val adjustment = stats.scoreAdjustment(request)
-            if (specificity > bestSpecificity || (specificity == bestSpecificity && (best == null || adjustment > best))) {
-                best = adjustment
-                bestSpecificity = specificity
-            }
-        }
-        return best ?: 0
-    }
+    ): Int =
+        TerminalCompletionScoreAdjustment.bestMatchingAdjustment(
+            records = this,
+            specificity = {
+                if (it.shape.matchesCandidateShape(shape)) {
+                    it.contextSpecificity(request)
+                } else {
+                    -1
+                }
+            },
+            adjustment = { it.scoreAdjustment(request) },
+        )
 
     private fun TerminalCommandShapeStats.contextSpecificity(request: TerminalCompletionRequest): Int {
         var specificity = 0
@@ -127,19 +124,19 @@ class ShapeAwareCompletionSource(
         return true
     }
 
-    private fun TerminalCommandShapeStats.scoreAdjustment(request: TerminalCompletionRequest): Int {
-        var score = 0
-        score += minOf(useCount, MAX_COUNTER_SCORE_UNITS) * USE_COUNT_BOOST
-        score += minOf(successCount, MAX_COUNTER_SCORE_UNITS) * SUCCESS_COUNT_BOOST
-        score += minOf(acceptedCount, MAX_COUNTER_SCORE_UNITS) * ACCEPTED_COUNT_BOOST
-        score -= minOf(failureCount, MAX_COUNTER_SCORE_UNITS) * FAILURE_COUNT_PENALTY
-        score -= minOf(dismissedCount, MAX_COUNTER_SCORE_UNITS) * DISMISSED_COUNT_PENALTY
-        if (profileId != null && profileId == request.profileId) score += PROFILE_MATCH_BOOST
-        if (workingDirectoryUri != null && workingDirectoryUri == request.workingDirectoryUri) {
-            score += WORKING_DIRECTORY_MATCH_BOOST
-        }
-        return score.coerceIn(MIN_SCORE_ADJUSTMENT, MAX_SCORE_ADJUSTMENT)
-    }
+    private fun TerminalCommandShapeStats.scoreAdjustment(request: TerminalCompletionRequest): Int =
+        TerminalCompletionScoreAdjustment.score(
+            policy = SCORE_POLICY,
+            request = request,
+            profileId = profileId,
+            workingDirectoryUri = workingDirectoryUri,
+            counterScore =
+                TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, useCount, USE_COUNT_BOOST) +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, successCount, SUCCESS_COUNT_BOOST) +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, acceptedCount, ACCEPTED_COUNT_BOOST) +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, failureCount, -FAILURE_COUNT_PENALTY) +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, dismissedCount, -DISMISSED_COUNT_PENALTY),
+        )
 
     private companion object {
         private const val USE_COUNT_BOOST = 3
@@ -154,5 +151,13 @@ class ShapeAwareCompletionSource(
         private const val MAX_COUNTER_SCORE_UNITS = 25
         private const val MIN_SCORE_ADJUSTMENT = -180
         private const val MAX_SCORE_ADJUSTMENT = 180
+        private val SCORE_POLICY =
+            TerminalCompletionScoreAdjustment.Policy(
+                maxCounterScoreUnits = MAX_COUNTER_SCORE_UNITS,
+                minScoreAdjustment = MIN_SCORE_ADJUSTMENT,
+                maxScoreAdjustment = MAX_SCORE_ADJUSTMENT,
+                profileMatchBoost = PROFILE_MATCH_BOOST,
+                workingDirectoryMatchBoost = WORKING_DIRECTORY_MATCH_BOOST,
+            )
     }
 }

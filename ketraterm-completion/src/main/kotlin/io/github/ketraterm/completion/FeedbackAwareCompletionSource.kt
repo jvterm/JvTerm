@@ -56,19 +56,12 @@ class FeedbackAwareCompletionSource(
         candidate: TerminalCompletionCandidate,
         request: TerminalCompletionRequest,
     ): Int {
-        var best: Int? = null
-        var bestSpecificity = -1
         val tokenPosition = TerminalCompletionTokenPosition.fromCandidateKind(candidate.kind)
-        for (stats in this) {
-            val specificity = stats.specificityFor(candidate, tokenPosition, request)
-            if (specificity < 0) continue
-            val adjustment = stats.scoreAdjustment(request)
-            if (specificity > bestSpecificity || (specificity == bestSpecificity && (best == null || adjustment > best))) {
-                best = adjustment
-                bestSpecificity = specificity
-            }
-        }
-        return best ?: 0
+        return TerminalCompletionScoreAdjustment.bestMatchingAdjustment(
+            records = this,
+            specificity = { it.specificityFor(candidate, tokenPosition, request) },
+            adjustment = { it.scoreAdjustment(request) },
+        )
     }
 
     private fun TerminalCompletionFeedbackStats.specificityFor(
@@ -96,16 +89,16 @@ class FeedbackAwareCompletionSource(
         return specificity
     }
 
-    private fun TerminalCompletionFeedbackStats.scoreAdjustment(request: TerminalCompletionRequest): Int {
-        var score = 0
-        score += minOf(acceptedCount, MAX_COUNTER_SCORE_UNITS) * ACCEPTED_COUNT_BOOST
-        score -= minOf(dismissedCount, MAX_COUNTER_SCORE_UNITS) * DISMISSED_COUNT_PENALTY
-        if (profileId != null && profileId == request.profileId) score += PROFILE_MATCH_BOOST
-        if (workingDirectoryUri != null && workingDirectoryUri == request.workingDirectoryUri) {
-            score += WORKING_DIRECTORY_MATCH_BOOST
-        }
-        return score.coerceIn(MIN_SCORE_ADJUSTMENT, MAX_SCORE_ADJUSTMENT)
-    }
+    private fun TerminalCompletionFeedbackStats.scoreAdjustment(request: TerminalCompletionRequest): Int =
+        TerminalCompletionScoreAdjustment.score(
+            policy = SCORE_POLICY,
+            request = request,
+            profileId = profileId,
+            workingDirectoryUri = workingDirectoryUri,
+            counterScore =
+                TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, acceptedCount, ACCEPTED_COUNT_BOOST) +
+                    TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, dismissedCount, -DISMISSED_COUNT_PENALTY),
+        )
 
     private fun TerminalCompletionFeedbackStats.hasReplacementRange(): Boolean = replacementStartOffset >= 0 || replacementEndOffset >= 0
 
@@ -121,5 +114,13 @@ class FeedbackAwareCompletionSource(
         private const val MAX_COUNTER_SCORE_UNITS = 12
         private const val MIN_SCORE_ADJUSTMENT = -160
         private const val MAX_SCORE_ADJUSTMENT = 160
+        private val SCORE_POLICY =
+            TerminalCompletionScoreAdjustment.Policy(
+                maxCounterScoreUnits = MAX_COUNTER_SCORE_UNITS,
+                minScoreAdjustment = MIN_SCORE_ADJUSTMENT,
+                maxScoreAdjustment = MAX_SCORE_ADJUSTMENT,
+                profileMatchBoost = PROFILE_MATCH_BOOST,
+                workingDirectoryMatchBoost = WORKING_DIRECTORY_MATCH_BOOST,
+            )
     }
 }
