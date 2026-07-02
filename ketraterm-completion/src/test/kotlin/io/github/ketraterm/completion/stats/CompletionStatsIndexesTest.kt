@@ -215,8 +215,6 @@ class CompletionStatsIndexesTest {
             source = source,
             candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
             tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
-            replacementStartOffset = 4,
-            replacementEndOffset = 10,
         )
 
     private fun feedbackStats(
@@ -229,8 +227,6 @@ class CompletionStatsIndexesTest {
             source = source,
             candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
             tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
-            replacementStartOffset = 4,
-            replacementEndOffset = 10,
             acceptedCount = acceptedCount,
             dismissedCount = dismissedCount,
             lastUsedEpochMillis = lastUsedEpochMillis,

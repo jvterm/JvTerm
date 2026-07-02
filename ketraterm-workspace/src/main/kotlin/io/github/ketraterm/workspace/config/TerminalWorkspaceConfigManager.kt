@@ -25,8 +25,6 @@ import java.nio.file.StandardCopyOption
 import java.util.*
 
 private const val SUGGESTION_LEARNING_PERSISTENCE_KEY = "suggestion_learning_persistence_enabled"
-private const val LEGACY_PERSISTENT_SUGGESTION_LEARNING_KEY = "persistent_suggestion_learning_enabled"
-private const val LEGACY_PERSISTENT_COMMAND_HISTORY_KEY = "persistent_command_history_enabled"
 
 /**
  * Manages loading and saving the [TerminalConfig] TOML file.
@@ -131,7 +129,7 @@ class TerminalWorkspaceConfigManager(
             val shellSuggestionsEnabled =
                 behavior["shell_suggestions_enabled"]?.toBooleanStrictOrNull() ?: default.shellSuggestionsEnabled
             val persistentSuggestionLearningEnabled =
-                parseSuggestionLearningPersistence(behavior)
+                behavior[SUGGESTION_LEARNING_PERSISTENCE_KEY]?.toBooleanStrictOrNull()
                     ?: default.persistentSuggestionLearningEnabled
             val scrollbackLines =
                 parseIntSetting(
@@ -366,17 +364,6 @@ class TerminalWorkspaceConfigManager(
             "normalize-line-endings" -> PasteSanitizationPolicy.NORMALIZE_LINE_ENDINGS
             else -> defaultValue
         }
-
-    private fun parseSuggestionLearningPersistence(behavior: Map<String, String>): Boolean? {
-        behavior[SUGGESTION_LEARNING_PERSISTENCE_KEY]?.toBooleanStrictOrNull()?.let {
-            return it
-        }
-        // TODO(config-migration): Remove these load-only fallbacks after the next stable config migration window.
-        behavior[LEGACY_PERSISTENT_SUGGESTION_LEARNING_KEY]?.toBooleanStrictOrNull()?.let {
-            return it
-        }
-        return behavior[LEGACY_PERSISTENT_COMMAND_HISTORY_KEY]?.toBooleanStrictOrNull()
-    }
 
     private fun pasteSanitizationId(policy: PasteSanitizationPolicy): String =
         when (policy) {

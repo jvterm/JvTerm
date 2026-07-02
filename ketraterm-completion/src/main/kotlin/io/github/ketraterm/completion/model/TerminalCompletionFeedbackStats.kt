@@ -91,7 +91,7 @@ enum class TerminalCompletionTokenPosition {
 /**
  * Source-specific context attached to suggestion feedback.
  *
- * This model deliberately stores provider and replacement metadata, not raw
+ * This model deliberately stores provider and candidate metadata, not raw
  * private argument values. Hosts should create it from the candidate that was
  * actually displayed to the user so ranking can later distinguish feedback for
  * history, static specs, path completion, and IDE context providers.
@@ -99,8 +99,6 @@ enum class TerminalCompletionTokenPosition {
  * @property source compact provider/source label from the candidate.
  * @property candidateKind semantic kind of candidate that received feedback.
  * @property tokenPosition classified command-line position of the candidate.
- * @property replacementStartOffset inclusive UTF-16 replacement start offset.
- * @property replacementEndOffset exclusive UTF-16 replacement end offset.
  */
 data class TerminalCompletionFeedbackContext
     @JvmOverloads
@@ -108,29 +106,22 @@ data class TerminalCompletionFeedbackContext
         val source: String,
         val candidateKind: TerminalCompletionCandidateKind,
         val tokenPosition: TerminalCompletionTokenPosition = TerminalCompletionTokenPosition.UNKNOWN,
-        val replacementStartOffset: Int = -1,
-        val replacementEndOffset: Int = -1,
     ) {
         init {
             require(source.isNotBlank()) { "source must not be blank" }
-            requireValidReplacementRange(replacementStartOffset, replacementEndOffset)
         }
     }
 
 /**
  * Aggregated source-specific feedback counters.
  *
- * Rows are keyed by provider source, candidate kind, token position, replacement
- * range, profile, and working directory. They do not contain command text or
- * raw argument values.
+ * Rows are keyed by provider source, candidate kind, token position, host
+ * profile, and working directory. They do not contain command text, raw
+ * argument values, or request-specific replacement ranges.
  *
  * @property source compact provider/source label from the displayed candidate.
  * @property candidateKind semantic kind of candidate that received feedback.
  * @property tokenPosition classified command-line position of the candidate.
- * @property replacementStartOffset inclusive UTF-16 replacement start offset,
- * or `-1` when unknown.
- * @property replacementEndOffset exclusive UTF-16 replacement end offset, or
- * `-1` when unknown.
  * @property profileId optional host profile id associated with this row.
  * @property workingDirectoryUri optional working directory URI associated with
  * this row.
@@ -144,8 +135,6 @@ data class TerminalCompletionFeedbackStats
         val source: String,
         val candidateKind: TerminalCompletionCandidateKind,
         val tokenPosition: TerminalCompletionTokenPosition = TerminalCompletionTokenPosition.UNKNOWN,
-        val replacementStartOffset: Int = -1,
-        val replacementEndOffset: Int = -1,
         val profileId: String? = null,
         val workingDirectoryUri: String? = null,
         val acceptedCount: Int = 0,
@@ -154,22 +143,8 @@ data class TerminalCompletionFeedbackStats
     ) {
         init {
             require(source.isNotBlank()) { "source must not be blank" }
-            requireValidReplacementRange(replacementStartOffset, replacementEndOffset)
             require(acceptedCount >= 0) { "acceptedCount must be >= 0, was $acceptedCount" }
             require(dismissedCount >= 0) { "dismissedCount must be >= 0, was $dismissedCount" }
             require(lastUsedEpochMillis >= 0L) { "lastUsedEpochMillis must be >= 0, was $lastUsedEpochMillis" }
         }
     }
-
-private fun requireValidReplacementRange(
-    replacementStartOffset: Int,
-    replacementEndOffset: Int,
-) {
-    require(
-        (replacementStartOffset == -1 && replacementEndOffset == -1) ||
-            (replacementStartOffset >= 0 && replacementEndOffset >= replacementStartOffset),
-    ) {
-        "replacement range must be unset or satisfy 0 <= start <= end, was " +
-            "$replacementStartOffset..$replacementEndOffset"
-    }
-}

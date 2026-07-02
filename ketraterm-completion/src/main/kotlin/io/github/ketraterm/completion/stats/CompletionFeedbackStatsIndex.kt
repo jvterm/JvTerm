@@ -74,8 +74,6 @@ internal class CompletionFeedbackStatsIndex(
                     source = context.source,
                     candidateKind = context.candidateKind,
                     tokenPosition = context.tokenPosition,
-                    replacementStartOffset = context.replacementStartOffset,
-                    replacementEndOffset = context.replacementEndOffset,
                     profileId = profileId,
                     workingDirectoryUri = workingDirectoryUri,
                 )
@@ -88,8 +86,6 @@ internal class CompletionFeedbackStatsIndex(
         val source: String,
         val candidateKind: TerminalCompletionCandidateKind,
         val tokenPosition: TerminalCompletionTokenPosition,
-        val replacementStartOffset: Int,
-        val replacementEndOffset: Int,
         val profileId: String?,
         val workingDirectoryUri: String?,
     )
@@ -99,8 +95,6 @@ internal class CompletionFeedbackStatsIndex(
             source = source,
             candidateKind = candidateKind,
             tokenPosition = tokenPosition,
-            replacementStartOffset = replacementStartOffset,
-            replacementEndOffset = replacementEndOffset,
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
         )
@@ -113,8 +107,6 @@ internal class CompletionFeedbackStatsIndex(
             source = source,
             candidateKind = candidateKind,
             tokenPosition = tokenPosition,
-            replacementStartOffset = replacementStartOffset,
-            replacementEndOffset = replacementEndOffset,
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
         )

@@ -129,6 +129,29 @@ internal class TerminalCompletionArchitectureTest {
     }
 
     @Test
+    fun `public api member functions expose only reviewed contracts`() {
+        val violations =
+            kotlinFiles(completionMainRoot.resolve("api")).flatMap { file ->
+                val allowedFunctions = PUBLIC_API_MEMBER_FUNCTIONS[file.relativeToCompletionRoot()] ?: emptySet()
+                file
+                    .readSourceLines()
+                    .mapIndexedNotNull { index, line ->
+                        val functionName = PUBLIC_MEMBER_FUNCTION.find(line)?.groupValues?.get(1)
+                        if (functionName != null && functionName !in allowedFunctions) {
+                            "${file.relativeToRepository()}:${index + 1}: $line"
+                        } else {
+                            null
+                        }
+                    }
+            }
+
+        assertTrue(
+            actual = violations.isEmpty(),
+            message = violations.joinToString(prefix = "Unreviewed public api member functions:\n", separator = "\n"),
+        )
+    }
+
+    @Test
     fun `external modules import only completion api or model packages`() {
         val violations =
             EXTERNAL_MODULES.flatMap { moduleName ->
@@ -260,6 +283,24 @@ internal class TerminalCompletionArchitectureTest {
                 "model/TerminalCommandCompletionStatsSnapshotCodec.kt" to setOf("decode", "encode"),
                 "model/TerminalCommandSpecs.kt" to setOf("defaults", "docker", "git", "gradle", "npm"),
                 "model/TerminalCompletionFeedbackStats.kt" to setOf("fromCandidateKind"),
+            )
+        private val PUBLIC_API_MEMBER_FUNCTIONS =
+            mapOf(
+                "api/TerminalCommandStatsCompletionSource.kt" to
+                    setOf(
+                        "replaceSnapshot",
+                        "snapshot",
+                        "shapeSnapshot",
+                        "feedbackSnapshot",
+                        "snapshotAll",
+                        "recordCommandResult",
+                        "recordSuggestionFeedback",
+                    ),
+                "api/TerminalCompletionEngine.kt" to setOf("complete"),
+                "api/TerminalCompletionEngines.kt" to setOf("fromSources"),
+                "api/TerminalCompletionSource.kt" to setOf("complete"),
+                "api/TerminalCompletionSources.kt" to setOf("commandStats", "feedbackAware", "fromSpecs", "sessionMru"),
+                "api/TerminalSessionMruCompletionSource.kt" to setOf("recordSuccessfulCommand", "clear"),
             )
 
         private val PUBLIC_TOP_LEVEL_DECLARATION =

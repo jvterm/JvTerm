@@ -50,8 +50,6 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
                 source = "spec",
                 candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
                 tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
-                replacementStartOffset = 4,
-                replacementEndOffset = 10,
                 profileId = "bash",
                 workingDirectoryUri = "file:///repo",
                 acceptedCount = 2,
@@ -67,7 +65,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
 
         val lines = TerminalCommandCompletionStatsSnapshotCodec.encode(snapshot)
 
-        assertEquals("KetraTerm_COMMAND_COMPLETION_STATS\t1", lines.first())
+        assertEquals("KetraTerm_COMMAND_COMPLETION_STATS\t2", lines.first())
         assertFalse(lines.joinToString("\n").contains(commandRecord.commandLine))
         assertEquals(snapshot, TerminalCommandCompletionStatsSnapshotCodec.decode(lines))
     }
@@ -84,7 +82,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
         val valid = commandStats("git status")
         val lines =
             listOf(
-                "KetraTerm_COMMAND_COMPLETION_STATS\t1",
+                "KetraTerm_COMMAND_COMPLETION_STATS\t2",
                 "X\tignored",
                 "malformed",
                 commandRow(valid),
@@ -113,7 +111,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
                 "0",
                 "100",
             ).joinToString("\t")
-        val lines = listOf("KetraTerm_COMMAND_COMPLETION_STATS\t1", invalidBase64, commandRow(valid))
+        val lines = listOf("KetraTerm_COMMAND_COMPLETION_STATS\t2", invalidBase64, commandRow(valid))
 
         assertEquals(
             TerminalCommandCompletionStatsSnapshot(commandStats = listOf(valid)),
@@ -133,7 +131,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
             )
         val lines =
             listOf(
-                "KetraTerm_COMMAND_COMPLETION_STATS\t1",
+                "KetraTerm_COMMAND_COMPLETION_STATS\t2",
                 invalidNegativeCounterCommandRow(),
                 malformedFeedbackRow(),
             ) +
@@ -184,7 +182,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
 
         val decoded =
             TerminalCommandCompletionStatsSnapshotCodec.decode(
-                listOf("KetraTerm_COMMAND_COMPLETION_STATS\t1", commandRowWithStaleKey, shapeRowWithStaleKey),
+                listOf("KetraTerm_COMMAND_COMPLETION_STATS\t2", commandRowWithStaleKey, shapeRowWithStaleKey),
             )
 
         assertEquals("git status", decoded.commandStats.single().normalizedCommandLine)
@@ -269,8 +267,6 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
             encodeText("spec"),
             "NOT_A_KIND",
             TerminalCompletionTokenPosition.SUBCOMMAND.name,
-            "-1",
-            "-1",
             "",
             "",
             "1",

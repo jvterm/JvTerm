@@ -136,8 +136,6 @@ class FeedbackAwareCompletionSourceTest {
                             source = "path",
                             candidateKind = TerminalCompletionCandidateKind.PATH,
                             acceptedCount = 10,
-                            replacementStartOffset = -1,
-                            replacementEndOffset = -1,
                         ),
                         feedbackStats(
                             source = "path",
@@ -156,7 +154,7 @@ class FeedbackAwareCompletionSourceTest {
     }
 
     @Test
-    fun `replacement range mismatch does not adjust candidate`() {
+    fun `feedback applies across replacement ranges for the same provider kind and token position`() {
         val source =
             FeedbackAwareCompletionSource(
                 delegate =
@@ -177,8 +175,6 @@ class FeedbackAwareCompletionSourceTest {
                             source = "path",
                             candidateKind = TerminalCompletionCandidateKind.PATH,
                             acceptedCount = 10,
-                            replacementStartOffset = 4,
-                            replacementEndOffset = 5,
                         ),
                     )
                 },
@@ -186,7 +182,8 @@ class FeedbackAwareCompletionSourceTest {
 
         val candidates = source.complete(request("git sw"))
 
-        assertEquals(listOf("status", "src/main"), candidates.map { it.replacementText })
+        assertEquals(listOf("src/main", "status"), candidates.map { it.replacementText })
+        assertTrue(candidates[0].score > candidates[1].score)
     }
 
     @Test
@@ -230,15 +227,11 @@ class FeedbackAwareCompletionSourceTest {
         workingDirectoryUri: String? = null,
         acceptedCount: Int = 0,
         dismissedCount: Int = 0,
-        replacementStartOffset: Int = 4,
-        replacementEndOffset: Int = 5,
     ): TerminalCompletionFeedbackStats =
         TerminalCompletionFeedbackStats(
             source = source,
             candidateKind = candidateKind,
             tokenPosition = TerminalCompletionTokenPosition.fromCandidateKind(candidateKind),
-            replacementStartOffset = replacementStartOffset,
-            replacementEndOffset = replacementEndOffset,
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
             acceptedCount = acceptedCount,

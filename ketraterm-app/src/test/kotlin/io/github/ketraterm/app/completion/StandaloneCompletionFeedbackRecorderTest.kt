@@ -82,8 +82,6 @@ class StandaloneCompletionFeedbackRecorderTest {
                     source = "spec",
                     candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
                     tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
-                    replacementStartOffset = 0,
-                    replacementEndOffset = 5,
                     profileId = "bash",
                     workingDirectoryUri = "file:///repo",
                     acceptedCount = 1,

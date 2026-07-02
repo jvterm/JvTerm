@@ -129,25 +129,33 @@ class TerminalCommandShapeStatsTest {
     }
 
     @Test
-    fun `replace shape stats deduplicates by shape profile and directory`() {
+    fun `replace snapshot deduplicates by shape profile and directory`() {
         val source = TerminalCompletionSources.commandStats()
         val shape = GenericCommandLineShapeClassifier.classify("git status")!!
 
-        source.replaceShapeStats(
-            listOf(
-                TerminalCommandShapeStats(
-                    shape = shape,
-                    profileId = "bash",
-                    workingDirectoryUri = "file:///repo",
-                    lastUsedEpochMillis = 10,
-                ),
-                TerminalCommandShapeStats(
-                    shape = shape,
-                    profileId = "bash",
-                    workingDirectoryUri = "file:///repo",
-                    lastUsedEpochMillis = 20,
-                ),
-                TerminalCommandShapeStats(shape = shape, profileId = "pwsh", workingDirectoryUri = "file:///repo", lastUsedEpochMillis = 5),
+        source.replaceSnapshot(
+            TerminalCommandCompletionStatsSnapshot(
+                shapeStats =
+                    listOf(
+                        TerminalCommandShapeStats(
+                            shape = shape,
+                            profileId = "bash",
+                            workingDirectoryUri = "file:///repo",
+                            lastUsedEpochMillis = 10,
+                        ),
+                        TerminalCommandShapeStats(
+                            shape = shape,
+                            profileId = "bash",
+                            workingDirectoryUri = "file:///repo",
+                            lastUsedEpochMillis = 20,
+                        ),
+                        TerminalCommandShapeStats(
+                            shape = shape,
+                            profileId = "pwsh",
+                            workingDirectoryUri = "file:///repo",
+                            lastUsedEpochMillis = 5,
+                        ),
+                    ),
             ),
         )
 

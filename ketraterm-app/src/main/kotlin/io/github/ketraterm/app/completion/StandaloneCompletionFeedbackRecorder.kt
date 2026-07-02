@@ -108,8 +108,6 @@ internal class StandaloneCompletionFeedbackRecorder(
                 source = source,
                 candidateKind = candidateKind,
                 tokenPosition = TerminalCompletionTokenPosition.fromCandidateKind(candidateKind),
-                replacementStartOffset = suggestion.replacementStartOffset,
-                replacementEndOffset = suggestion.replacementEndOffset,
             )
         }
 

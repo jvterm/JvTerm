@@ -31,7 +31,7 @@ or construct:
 
 Model constructors expose durable host-owned fields only. Derived matching keys,
 such as normalized command text and normalized command-shape keys, are computed
-by completion internals and compatibility codecs instead of being caller-owned
+by completion internals and snapshot codecs instead of being caller-owned
 constructor state.
 
 Types used only to tokenize, classify, rank, merge, or index suggestions belong

@@ -27,37 +27,16 @@ import io.github.ketraterm.completion.model.*
  */
 interface TerminalCommandStatsCompletionSource : TerminalCompletionSource {
     /**
-     * Replaces exact command statistics with [records].
+     * Replaces all retained statistics with [snapshot].
      *
-     * Implementations compact duplicate command/profile/directory keys and
-     * retain only their bounded capacity. Hosts should pass already
-     * privacy-filtered rows when loading from disk.
+     * Implementations compact duplicate keys independently for exact command,
+     * command-shape, and source-specific feedback rows, then retain only their
+     * bounded capacity. Hosts should pass already privacy-filtered snapshots
+     * when loading from disk.
      *
-     * @param records compact exact command stats rows loaded by a host.
+     * @param snapshot compact completion stats snapshot loaded by a host.
      */
-    fun replaceAll(records: List<TerminalCommandCompletionStats>)
-
-    /**
-     * Replaces command-shape statistics with [records].
-     *
-     * Shape rows preserve command-family usage without raw positional
-     * arguments. Implementations compact duplicate shape/profile/directory keys
-     * and retain only their bounded capacity.
-     *
-     * @param records privacy-preserving command-family stats rows loaded by a host.
-     */
-    fun replaceShapeStats(records: List<TerminalCommandShapeStats>)
-
-    /**
-     * Replaces source-specific feedback statistics with [records].
-     *
-     * Feedback rows model popup UX signals per source, candidate kind, token
-     * position, replacement range, profile, and directory. Implementations
-     * compact duplicate keys and retain only their bounded capacity.
-     *
-     * @param records popup feedback stats rows loaded by a host.
-     */
-    fun replaceFeedbackStats(records: List<TerminalCompletionFeedbackStats>)
+    fun replaceSnapshot(snapshot: TerminalCommandCompletionStatsSnapshot)
 
     /**
      * Returns exact command stats sorted by ranking relevance.

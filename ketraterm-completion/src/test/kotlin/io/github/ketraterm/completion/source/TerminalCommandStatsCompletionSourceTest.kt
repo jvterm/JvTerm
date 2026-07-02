@@ -109,22 +109,25 @@ class TerminalCommandStatsCompletionSourceTest {
     @Test
     fun `exact command ranking caps learned counter contribution`() {
         val source = TerminalCompletionSources.commandStats()
-        source.replaceAll(
-            listOf(
-                TerminalCommandCompletionStats(
-                    commandLine = "git alpha",
-                    useCount = 50,
-                    successCount = 50,
-                    acceptedCount = 50,
-                    lastUsedEpochMillis = 60_000,
-                ),
-                TerminalCommandCompletionStats(
-                    commandLine = "git beta",
-                    useCount = 500,
-                    successCount = 500,
-                    acceptedCount = 500,
-                    lastUsedEpochMillis = 60_000,
-                ),
+        source.replaceSnapshot(
+            TerminalCommandCompletionStatsSnapshot(
+                commandStats =
+                    listOf(
+                        TerminalCommandCompletionStats(
+                            commandLine = "git alpha",
+                            useCount = 50,
+                            successCount = 50,
+                            acceptedCount = 50,
+                            lastUsedEpochMillis = 60_000,
+                        ),
+                        TerminalCommandCompletionStats(
+                            commandLine = "git beta",
+                            useCount = 500,
+                            successCount = 500,
+                            acceptedCount = 500,
+                            lastUsedEpochMillis = 60_000,
+                        ),
+                    ),
             ),
         )
 
@@ -217,14 +220,17 @@ class TerminalCommandStatsCompletionSourceTest {
     }
 
     @Test
-    fun `replace all deduplicates by normalized command profile and directory`() {
+    fun `replace snapshot deduplicates by normalized command profile and directory`() {
         val source = TerminalCompletionSources.commandStats()
 
-        source.replaceAll(
-            listOf(
-                stats("Git Status", profileId = "bash", workingDirectoryUri = "file:///repo", lastUsedEpochMillis = 10),
-                stats("git status", profileId = "bash", workingDirectoryUri = "file:///repo", lastUsedEpochMillis = 20),
-                stats("git status", profileId = "pwsh", workingDirectoryUri = "file:///repo", lastUsedEpochMillis = 5),
+        source.replaceSnapshot(
+            TerminalCommandCompletionStatsSnapshot(
+                commandStats =
+                    listOf(
+                        stats("Git Status", profileId = "bash", workingDirectoryUri = "file:///repo", lastUsedEpochMillis = 10),
+                        stats("git status", profileId = "bash", workingDirectoryUri = "file:///repo", lastUsedEpochMillis = 20),
+                        stats("git status", profileId = "pwsh", workingDirectoryUri = "file:///repo", lastUsedEpochMillis = 5),
+                    ),
             ),
         )
 
@@ -341,8 +347,6 @@ class TerminalCommandStatsCompletionSourceTest {
                     source = "spec",
                     candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
                     tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
-                    replacementStartOffset = 4,
-                    replacementEndOffset = 10,
                 ),
         )
         source.recordSuggestionFeedback(
@@ -356,8 +360,6 @@ class TerminalCommandStatsCompletionSourceTest {
                     source = "spec",
                     candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
                     tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
-                    replacementStartOffset = 4,
-                    replacementEndOffset = 10,
                 ),
         )
 
@@ -367,8 +369,6 @@ class TerminalCommandStatsCompletionSourceTest {
                     source = "spec",
                     candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
                     tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
-                    replacementStartOffset = 4,
-                    replacementEndOffset = 10,
                     profileId = "bash",
                     workingDirectoryUri = "file:///repo",
                     acceptedCount = 1,
@@ -382,14 +382,17 @@ class TerminalCommandStatsCompletionSourceTest {
     }
 
     @Test
-    fun `replace feedback stats keeps newest duplicate context`() {
+    fun `replace snapshot keeps newest duplicate feedback context`() {
         val source = TerminalCompletionSources.commandStats()
 
-        source.replaceFeedbackStats(
-            listOf(
-                feedbackStats(lastUsedEpochMillis = 10, acceptedCount = 1),
-                feedbackStats(lastUsedEpochMillis = 20, dismissedCount = 1),
-                feedbackStats(source = "stats", lastUsedEpochMillis = 5, acceptedCount = 1),
+        source.replaceSnapshot(
+            TerminalCommandCompletionStatsSnapshot(
+                feedbackStats =
+                    listOf(
+                        feedbackStats(lastUsedEpochMillis = 10, acceptedCount = 1),
+                        feedbackStats(lastUsedEpochMillis = 20, dismissedCount = 1),
+                        feedbackStats(source = "stats", lastUsedEpochMillis = 5, acceptedCount = 1),
+                    ),
             ),
         )
 
@@ -400,15 +403,18 @@ class TerminalCommandStatsCompletionSourceTest {
     @Test
     fun `recorded counters saturate at integer maximum`() {
         val source = TerminalCompletionSources.commandStats()
-        source.replaceAll(
-            listOf(
-                TerminalCommandCompletionStats(
-                    commandLine = "git status",
-                    useCount = Int.MAX_VALUE,
-                    successCount = Int.MAX_VALUE,
-                    acceptedCount = Int.MAX_VALUE,
-                    lastUsedEpochMillis = 10,
-                ),
+        source.replaceSnapshot(
+            TerminalCommandCompletionStatsSnapshot(
+                commandStats =
+                    listOf(
+                        TerminalCommandCompletionStats(
+                            commandLine = "git status",
+                            useCount = Int.MAX_VALUE,
+                            successCount = Int.MAX_VALUE,
+                            acceptedCount = Int.MAX_VALUE,
+                            lastUsedEpochMillis = 10,
+                        ),
+                    ),
             ),
         )
 
@@ -473,8 +479,6 @@ class TerminalCommandStatsCompletionSourceTest {
             source = source,
             candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
             tokenPosition = TerminalCompletionTokenPosition.SUBCOMMAND,
-            replacementStartOffset = 4,
-            replacementEndOffset = 10,
             profileId = "bash",
             workingDirectoryUri = "file:///repo",
             acceptedCount = acceptedCount,

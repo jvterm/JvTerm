@@ -21,6 +21,7 @@ import io.github.ketraterm.app.config.KetraTermSettings
 import io.github.ketraterm.app.history.CommandCompletionStatsStore
 import io.github.ketraterm.app.history.CommandPersistencePrivacyPolicy
 import io.github.ketraterm.completion.api.TerminalCompletionSources
+import io.github.ketraterm.completion.model.TerminalCommandCompletionStatsSnapshot
 import io.github.ketraterm.completion.model.TerminalCommandSpecs
 import io.github.ketraterm.host.TerminalClipboardPromptEvent
 import io.github.ketraterm.host.TerminalClipboardWriteEvent
@@ -61,7 +62,7 @@ internal class TabManager(
     private val completionFeedbackRecorder =
         StandaloneCompletionFeedbackRecorder(
             statsSource = commandCompletionStatsSource,
-            persistSnapshot = { records -> commandCompletionStatsStore?.persist(records) },
+            persistSnapshot = { snapshot -> commandCompletionStatsStore?.persist(snapshot) },
         )
     private val completionRegistry =
         StandaloneCompletionRegistry(
@@ -900,10 +901,11 @@ internal class TabManager(
                 commandCompletionStatsStore =
                     CommandCompletionStatsStore(settings.commandCompletionStatsPath).also { store ->
                         val loaded = store.loadSnapshot()
-                        commandCompletionStatsSource.replaceAll(loaded.commandStats + commandCompletionStatsSource.snapshot())
-                        commandCompletionStatsSource.replaceShapeStats(loaded.shapeStats + commandCompletionStatsSource.shapeSnapshot())
-                        commandCompletionStatsSource.replaceFeedbackStats(
-                            loaded.feedbackStats + commandCompletionStatsSource.feedbackSnapshot(),
+                        commandCompletionStatsSource.replaceSnapshot(
+                            mergeCompletionStatsSnapshots(
+                                loaded,
+                                commandCompletionStatsSource.snapshotAll(),
+                            ),
                         )
                     }
             }
@@ -916,14 +918,21 @@ internal class TabManager(
     private fun createCommandCompletionStatsStoreIfEnabled(): CommandCompletionStatsStore? =
         if (settings.persistentSuggestionLearningEnabled) {
             CommandCompletionStatsStore(settings.commandCompletionStatsPath).also { store ->
-                val loaded = store.loadSnapshot()
-                commandCompletionStatsSource.replaceAll(loaded.commandStats)
-                commandCompletionStatsSource.replaceShapeStats(loaded.shapeStats)
-                commandCompletionStatsSource.replaceFeedbackStats(loaded.feedbackStats)
+                commandCompletionStatsSource.replaceSnapshot(store.loadSnapshot())
             }
         } else {
             null
         }
+
+    private fun mergeCompletionStatsSnapshots(
+        first: TerminalCommandCompletionStatsSnapshot,
+        second: TerminalCommandCompletionStatsSnapshot,
+    ): TerminalCommandCompletionStatsSnapshot =
+        TerminalCommandCompletionStatsSnapshot(
+            commandStats = first.commandStats + second.commandStats,
+            shapeStats = first.shapeStats + second.shapeStats,
+            feedbackStats = first.feedbackStats + second.feedbackStats,
+        )
 
     private companion object {
         private const val INITIAL_TAB_CAPACITY = 4

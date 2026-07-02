@@ -118,8 +118,6 @@ object TerminalCommandCompletionStatsSnapshotCodec {
             encodeText(record.source),
             record.candidateKind.name,
             record.tokenPosition.name,
-            record.replacementStartOffset.toString(),
-            record.replacementEndOffset.toString(),
             encodeText(record.profileId.orEmpty()),
             encodeText(record.workingDirectoryUri.orEmpty()),
             record.acceptedCount.toString(),
@@ -175,13 +173,11 @@ object TerminalCommandCompletionStatsSnapshotCodec {
                 source = decodeText(fields[1]),
                 candidateKind = TerminalCompletionCandidateKind.valueOf(fields[2]),
                 tokenPosition = TerminalCompletionTokenPosition.valueOf(fields[3]),
-                replacementStartOffset = fields[4].toInt(),
-                replacementEndOffset = fields[5].toInt(),
-                profileId = decodeText(fields[6]).takeIf(String::isNotEmpty),
-                workingDirectoryUri = decodeText(fields[7]).takeIf(String::isNotEmpty),
-                acceptedCount = fields[8].toInt(),
-                dismissedCount = fields[9].toInt(),
-                lastUsedEpochMillis = fields[10].toLong(),
+                profileId = decodeText(fields[4]).takeIf(String::isNotEmpty),
+                workingDirectoryUri = decodeText(fields[5]).takeIf(String::isNotEmpty),
+                acceptedCount = fields[6].toInt(),
+                dismissedCount = fields[7].toInt(),
+                lastUsedEpochMillis = fields[8].toLong(),
             )
         }.getOrNull()
     }
@@ -199,10 +195,10 @@ object TerminalCommandCompletionStatsSnapshotCodec {
             value.split(',').map(::decodeText)
         }
 
-    private const val COMMAND_COMPLETION_STATS_HEADER = "KetraTerm_COMMAND_COMPLETION_STATS\t1"
+    private const val COMMAND_COMPLETION_STATS_HEADER = "KetraTerm_COMMAND_COMPLETION_STATS\t2"
     private const val COMMAND_STATS_FIELD_COUNT = 11
     private const val SHAPE_STATS_FIELD_COUNT = 15
-    private const val FEEDBACK_STATS_FIELD_COUNT = 11
+    private const val FEEDBACK_STATS_FIELD_COUNT = 9
     private const val ROW_COMMAND = "C"
     private const val ROW_SHAPE = "S"
     private const val ROW_FEEDBACK = "F"

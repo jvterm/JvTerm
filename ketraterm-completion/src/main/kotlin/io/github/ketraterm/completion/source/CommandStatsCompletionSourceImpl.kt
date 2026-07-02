@@ -50,45 +50,18 @@ internal class CommandStatsCompletionSourceImpl(
     private val feedbackStats = CompletionFeedbackStatsIndex(capacity)
 
     /**
-     * Replaces the current index with [records].
+     * Replaces every stats family from one host-loaded snapshot.
      *
-     * When multiple records share the same normalized command, profile, and
-     * working directory key, the newest record by [TerminalCommandCompletionStats.lastUsedEpochMillis]
-     * wins. At most [capacity] rows are retained.
+     * Each underlying index owns its duplicate compaction, malformed-row
+     * filtering, relevance ordering, and capacity enforcement.
      *
-     * @param records compact command-stat rows loaded by a host.
+     * @param snapshot compact stats snapshot loaded by a host.
      */
-    override fun replaceAll(records: List<TerminalCommandCompletionStats>) {
+    override fun replaceSnapshot(snapshot: TerminalCommandCompletionStatsSnapshot) {
         synchronized(lock) {
-            commandStats.replaceAll(records)
-        }
-    }
-
-    /**
-     * Replaces the current command-shape index with [records].
-     *
-     * Duplicate shape/profile/directory rows are compacted by keeping the
-     * newest timestamp. At most [capacity] rows are retained.
-     *
-     * @param records compact shape-stat rows loaded by a host.
-     */
-    override fun replaceShapeStats(records: List<TerminalCommandShapeStats>) {
-        synchronized(lock) {
-            shapeStats.replaceAll(records)
-        }
-    }
-
-    /**
-     * Replaces the current source-specific feedback index with [records].
-     *
-     * Duplicate rows are compacted by keeping the newest timestamp. At most
-     * [capacity] rows are retained.
-     *
-     * @param records compact feedback rows loaded by a host.
-     */
-    override fun replaceFeedbackStats(records: List<TerminalCompletionFeedbackStats>) {
-        synchronized(lock) {
-            feedbackStats.replaceAll(records)
+            commandStats.replaceAll(snapshot.commandStats)
+            shapeStats.replaceAll(snapshot.shapeStats)
+            feedbackStats.replaceAll(snapshot.feedbackStats)
         }
     }
 

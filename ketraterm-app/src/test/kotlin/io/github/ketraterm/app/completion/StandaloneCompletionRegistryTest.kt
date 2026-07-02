@@ -17,6 +17,7 @@ package io.github.ketraterm.app.completion
 
 import io.github.ketraterm.completion.api.TerminalCommandStatsCompletionSource
 import io.github.ketraterm.completion.api.TerminalCompletionSources
+import io.github.ketraterm.completion.model.TerminalCommandCompletionStatsSnapshot
 import io.github.ketraterm.completion.model.TerminalCommandLineShape
 import io.github.ketraterm.completion.model.TerminalCommandShapeStats
 import io.github.ketraterm.completion.model.TerminalCommandSpec
@@ -105,14 +106,17 @@ class StandaloneCompletionRegistryTest {
     @Test
     fun `shape stats boost matching static spec suggestions`() {
         val persistentStats = TerminalCompletionSources.commandStats()
-        persistentStats.replaceShapeStats(
-            listOf(
-                shapeStats(
-                    commandLine = "git switch main",
-                    acceptedCount = 4,
-                    profileId = "bash",
-                    workingDirectoryUri = "file:///repo",
-                ),
+        persistentStats.replaceSnapshot(
+            TerminalCommandCompletionStatsSnapshot(
+                shapeStats =
+                    listOf(
+                        shapeStats(
+                            commandLine = "git switch main",
+                            acceptedCount = 4,
+                            profileId = "bash",
+                            workingDirectoryUri = "file:///repo",
+                        ),
+                    ),
             ),
         )
         val provider =
@@ -132,14 +136,17 @@ class StandaloneCompletionRegistryTest {
     @Test
     fun `shape stats demote repeatedly dismissed static spec suggestions`() {
         val persistentStats = TerminalCompletionSources.commandStats()
-        persistentStats.replaceShapeStats(
-            listOf(
-                shapeStats(
-                    commandLine = "git status",
-                    dismissedCount = 4,
-                    profileId = "bash",
-                    workingDirectoryUri = "file:///repo",
-                ),
+        persistentStats.replaceSnapshot(
+            TerminalCommandCompletionStatsSnapshot(
+                shapeStats =
+                    listOf(
+                        shapeStats(
+                            commandLine = "git status",
+                            dismissedCount = 4,
+                            profileId = "bash",
+                            workingDirectoryUri = "file:///repo",
+                        ),
+                    ),
             ),
         )
         val provider =

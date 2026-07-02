@@ -15,7 +15,6 @@
  */
 package io.github.ketraterm.app.history
 
-import io.github.ketraterm.completion.model.TerminalCommandCompletionStats
 import io.github.ketraterm.completion.model.TerminalCommandCompletionStatsSnapshot
 import io.github.ketraterm.completion.model.TerminalCommandCompletionStatsSnapshotCodec
 import java.nio.charset.StandardCharsets
@@ -41,16 +40,6 @@ internal class CommandCompletionStatsStore(
     private val writeQueue = CommandCompletionStatsWriteQueue(::writeSnapshot)
 
     /**
-     * Loads all valid exact command stats rows from disk.
-     *
-     * Malformed rows are ignored independently so one damaged line does not
-     * discard the complete index.
-     *
-     * @return decoded exact command-completion stats in persisted order.
-     */
-    fun load(): List<TerminalCommandCompletionStats> = loadSnapshot().commandStats
-
-    /**
      * Loads exact command, structural shape, and source-specific feedback stats
      * from disk.
      *
@@ -67,18 +56,9 @@ internal class CommandCompletionStatsStore(
     }
 
     /**
-     * Queues a full snapshot replacement for exact command stats only.
-     *
-     * @param records compact exact command rows produced by the shared completion index.
-     */
-    fun persist(records: List<TerminalCommandCompletionStats>) {
-        persist(TerminalCommandCompletionStatsSnapshot(commandStats = records))
-    }
-
-    /**
      * Queues a full snapshot replacement.
      *
-     * @param snapshot compact exact and shape stats produced by the shared completion index.
+     * @param snapshot compact stats produced by the shared completion index.
      */
     fun persist(snapshot: TerminalCommandCompletionStatsSnapshot) {
         val stableSnapshot = CommandCompletionStatsSanitizer.sanitize(snapshot)

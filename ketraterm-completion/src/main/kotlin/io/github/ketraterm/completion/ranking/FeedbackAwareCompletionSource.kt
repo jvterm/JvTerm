@@ -28,7 +28,7 @@ import io.github.ketraterm.completion.model.TerminalCompletionTokenPosition
  * The decorator does not create candidates. It only applies bounded boosts or
  * penalties to candidates returned by [delegate] when persisted
  * [TerminalCompletionFeedbackStats] match the candidate source, kind, token
- * position, replacement range, profile, and working directory.
+ * position, profile, and working directory.
  *
  * @param delegate source whose candidates should be feedback-ranked.
  * @param feedbackStatsProvider supplier for the latest source-specific
@@ -80,11 +80,6 @@ internal class FeedbackAwareCompletionSource(
         if (candidateKind != candidate.kind) return -1
         if (this.tokenPosition != tokenPosition) return -1
         var specificity = SOURCE_KIND_POSITION_SPECIFICITY
-        if (hasReplacementRange()) {
-            if (replacementStartOffset != candidate.replacementStartOffset) return -1
-            if (replacementEndOffset != candidate.replacementEndOffset) return -1
-            specificity += REPLACEMENT_RANGE_SPECIFICITY
-        }
         if (profileId != null) {
             if (profileId != request.profileId) return -1
             specificity += PROFILE_SPECIFICITY
@@ -107,15 +102,12 @@ internal class FeedbackAwareCompletionSource(
                     TerminalCompletionScoreAdjustment.counterContribution(SCORE_POLICY, dismissedCount, -DISMISSED_COUNT_PENALTY),
         )
 
-    private fun TerminalCompletionFeedbackStats.hasReplacementRange(): Boolean = replacementStartOffset >= 0 || replacementEndOffset >= 0
-
     private companion object {
         private const val ACCEPTED_COUNT_BOOST = 16
         private const val DISMISSED_COUNT_PENALTY = 22
         private const val PROFILE_MATCH_BOOST = 8
         private const val WORKING_DIRECTORY_MATCH_BOOST = 12
         private const val SOURCE_KIND_POSITION_SPECIFICITY = 1
-        private const val REPLACEMENT_RANGE_SPECIFICITY = 1
         private const val PROFILE_SPECIFICITY = 2
         private const val WORKING_DIRECTORY_SPECIFICITY = 3
         private const val MAX_COUNTER_SCORE_UNITS = 12

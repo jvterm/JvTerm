@@ -50,27 +50,11 @@ class TerminalCompletionFeedbackStatsTest {
     }
 
     @Test
-    fun `feedback context rejects blank source and malformed ranges`() {
+    fun `feedback context rejects blank source`() {
         assertFailsWith<IllegalArgumentException> {
             TerminalCompletionFeedbackContext(
                 source = " ",
                 candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
-            )
-        }
-        assertFailsWith<IllegalArgumentException> {
-            TerminalCompletionFeedbackContext(
-                source = "spec",
-                candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
-                replacementStartOffset = -1,
-                replacementEndOffset = 4,
-            )
-        }
-        assertFailsWith<IllegalArgumentException> {
-            TerminalCompletionFeedbackContext(
-                source = "spec",
-                candidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
-                replacementStartOffset = 5,
-                replacementEndOffset = 4,
             )
         }
     }
