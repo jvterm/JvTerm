@@ -16,6 +16,7 @@
 package io.github.ketraterm.app.ui
 
 import io.github.ketraterm.app.config.KetraTermSettings
+import io.github.ketraterm.completion.model.TerminalCommandCompletionStatsSnapshotCodec
 import io.github.ketraterm.host.*
 import io.github.ketraterm.workspace.TerminalProfileRegistry
 import io.github.ketraterm.workspace.config.TerminalWorkspaceConfigManager
@@ -56,6 +57,14 @@ class SettingsModelTest {
         assertEquals(settings.shellSuggestionsEnabled, state.shellSuggestionsEnabled)
         assertEquals(settings.persistentSuggestionLearningEnabled, state.persistentSuggestionLearningEnabled)
         assertFalse(model.hasChanges(state))
+    }
+
+    @Test
+    fun `command completion stats path uses codec-owned file name`() {
+        assertEquals(
+            tempFile.resolveSibling(TerminalCommandCompletionStatsSnapshotCodec.currentFileName()),
+            settings.commandCompletionStatsPath,
+        )
     }
 
     @Test

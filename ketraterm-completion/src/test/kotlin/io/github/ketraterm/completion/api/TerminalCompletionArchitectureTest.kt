@@ -280,7 +280,7 @@ internal class TerminalCompletionArchitectureTest {
             )
         private val PUBLIC_MODEL_MEMBER_FUNCTIONS =
             mapOf(
-                "model/TerminalCommandCompletionStatsSnapshotCodec.kt" to setOf("decode", "encode"),
+                "model/TerminalCommandCompletionStatsSnapshotCodec.kt" to setOf("currentFileName", "decode", "encode"),
                 "model/TerminalCommandSpecs.kt" to setOf("defaults", "docker", "git", "gradle", "npm"),
                 "model/TerminalCompletionFeedbackStats.kt" to setOf("fromCandidateKind"),
             )

@@ -18,6 +18,9 @@ package io.github.ketraterm.completion.model
 import io.github.ketraterm.completion.api.TerminalCompletionCandidateKind
 import io.github.ketraterm.completion.commandline.GenericCommandLineShapeClassifier
 import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -25,6 +28,17 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class TerminalCommandCompletionStatsSnapshotCodecTest {
+    @Test
+    fun `current file name header and docs share the same format version`() {
+        val encodedHeader = TerminalCommandCompletionStatsSnapshotCodec.encode(TerminalCommandCompletionStatsSnapshot()).first()
+        val storageDoc = Files.readString(repositoryRoot.resolve("docs/persistent-terminal-storage.md"))
+
+        assertEquals("command-completion-stats-v1.tsv", TerminalCommandCompletionStatsSnapshotCodec.currentFileName())
+        assertEquals("KetraTerm_COMMAND_COMPLETION_STATS\t1", encodedHeader)
+        assertTrue(storageDoc.contains("`${TerminalCommandCompletionStatsSnapshotCodec.currentFileName()}`"))
+        assertTrue(storageDoc.contains(encodedHeader))
+    }
+
     @Test
     fun `round trips command shape and feedback stats with unicode text`() {
         val commandRecord =
@@ -260,4 +274,14 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
 
     private fun encodeText(value: String): String =
         Base64.getUrlEncoder().withoutPadding().encodeToString(value.toByteArray(StandardCharsets.UTF_8))
+
+    private companion object {
+        private val workingDirectory: Path = Paths.get("").toAbsolutePath()
+        private val repositoryRoot: Path =
+            if (Files.isRegularFile(workingDirectory.resolve("docs/persistent-terminal-storage.md"))) {
+                workingDirectory
+            } else {
+                workingDirectory.parent
+            }
+    }
 }

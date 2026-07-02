@@ -16,6 +16,7 @@
 package io.github.ketraterm.completion.model
 
 import io.github.ketraterm.completion.api.TerminalCompletionCandidateKind
+import io.github.ketraterm.completion.model.TerminalCommandCompletionStatsSnapshotCodec.decode
 import java.nio.charset.StandardCharsets
 import java.util.*
 
@@ -29,6 +30,18 @@ import java.util.*
  * cannot discard the rest of a persisted snapshot.
  */
 object TerminalCommandCompletionStatsSnapshotCodec {
+    /**
+     * Returns the canonical file name for snapshots encoded by this codec.
+     *
+     * Hosts own directory selection and I/O policy, but the codec owns the
+     * versioned file-format identity so persisted-file naming cannot drift away
+     * from the header accepted by [decode].
+     *
+     * @return versioned command-completion stats file name.
+     */
+    @JvmStatic
+    fun currentFileName(): String = COMMAND_COMPLETION_STATS_FILE_NAME
+
     /**
      * Encodes [snapshot] as versioned tab-separated lines.
      *
@@ -193,7 +206,9 @@ object TerminalCommandCompletionStatsSnapshotCodec {
             value.split(',').map(::decodeText)
         }
 
-    private const val COMMAND_COMPLETION_STATS_HEADER = "KetraTerm_COMMAND_COMPLETION_STATS\t1"
+    private const val FORMAT_VERSION = 1
+    private const val COMMAND_COMPLETION_STATS_FILE_NAME = "command-completion-stats-v$FORMAT_VERSION.tsv"
+    private const val COMMAND_COMPLETION_STATS_HEADER = "KetraTerm_COMMAND_COMPLETION_STATS\t$FORMAT_VERSION"
     private const val COMMAND_STATS_FIELD_COUNT = 10
     private const val SHAPE_STATS_FIELD_COUNT = 14
     private const val FEEDBACK_STATS_FIELD_COUNT = 9
