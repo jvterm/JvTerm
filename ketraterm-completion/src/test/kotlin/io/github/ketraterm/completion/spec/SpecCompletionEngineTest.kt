@@ -107,6 +107,31 @@ class SpecCompletionEngineTest {
     }
 
     @Test
+    fun `leading environment assignments preserve command completion`() {
+        val candidates = engine().complete(request("NODE_ENV=test gr"))
+
+        assertEquals(listOf("gradle"), candidates.map { it.replacementText })
+        assertEquals(14, candidates.single().replacementStartOffset)
+        assertEquals(16, candidates.single().replacementEndOffset)
+    }
+
+    @Test
+    fun `leading environment assignments preserve command body completion`() {
+        val candidates = engine().complete(request("NODE_ENV=test git c"))
+
+        assertEquals(listOf("commit", "checkout"), candidates.map { it.replacementText })
+        assertEquals(18, candidates[0].replacementStartOffset)
+        assertEquals(19, candidates[0].replacementEndOffset)
+    }
+
+    @Test
+    fun `command and option path resolution is case-insensitive`() {
+        val candidates = engine().complete(request("GIT -c repo st"))
+
+        assertEquals(listOf("status"), candidates.map { it.replacementText })
+    }
+
+    @Test
     fun `quoted active token is unquoted for matching and replaced as one shell token`() {
         val candidates = engine().complete(request("git \"ch"))
 

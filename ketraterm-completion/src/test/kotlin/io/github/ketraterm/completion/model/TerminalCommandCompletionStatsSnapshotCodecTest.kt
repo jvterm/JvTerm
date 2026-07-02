@@ -65,14 +65,14 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
 
         val lines = TerminalCommandCompletionStatsSnapshotCodec.encode(snapshot)
 
-        assertEquals("KetraTerm_COMMAND_COMPLETION_STATS\t2", lines.first())
+        assertEquals("KetraTerm_COMMAND_COMPLETION_STATS\t1", lines.first())
         assertFalse(lines.joinToString("\n").contains(commandRecord.commandLine))
         assertEquals(snapshot, TerminalCommandCompletionStatsSnapshotCodec.decode(lines))
     }
 
     @Test
     fun `unknown header returns empty snapshot`() {
-        val lines = listOf("KetraTerm_COMMAND_COMPLETION_STATS\t999", commandRow(commandStats("git status", "git status")))
+        val lines = listOf("KetraTerm_COMMAND_COMPLETION_STATS\t999", commandRow(commandStats("git status")))
 
         assertEquals(TerminalCommandCompletionStatsSnapshot(), TerminalCommandCompletionStatsSnapshotCodec.decode(lines))
     }
@@ -82,7 +82,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
         val valid = commandStats("git status")
         val lines =
             listOf(
-                "KetraTerm_COMMAND_COMPLETION_STATS\t2",
+                "KetraTerm_COMMAND_COMPLETION_STATS\t1",
                 "X\tignored",
                 "malformed",
                 commandRow(valid),
@@ -101,7 +101,6 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
             listOf(
                 "C",
                 "$$$",
-                encodeText("bad"),
                 "",
                 "",
                 "1",
@@ -111,7 +110,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
                 "0",
                 "100",
             ).joinToString("\t")
-        val lines = listOf("KetraTerm_COMMAND_COMPLETION_STATS\t2", invalidBase64, commandRow(valid))
+        val lines = listOf("KetraTerm_COMMAND_COMPLETION_STATS\t1", invalidBase64, commandRow(valid))
 
         assertEquals(
             TerminalCommandCompletionStatsSnapshot(commandStats = listOf(valid)),
@@ -131,7 +130,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
             )
         val lines =
             listOf(
-                "KetraTerm_COMMAND_COMPLETION_STATS\t2",
+                "KetraTerm_COMMAND_COMPLETION_STATS\t1",
                 invalidNegativeCounterCommandRow(),
                 malformedFeedbackRow(),
             ) +
@@ -146,51 +145,38 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
     }
 
     @Test
-    fun `decode recomputes derived command and shape keys from public fields`() {
-        val commandRowWithStaleKey =
-            listOf(
-                "C",
-                encodeText("Git Status"),
-                encodeText("stale normalized key"),
-                "",
-                "",
-                "1",
-                "1",
-                "0",
-                "0",
-                "0",
-                "100",
-            ).joinToString("\t")
-        val shapeRowWithStaleKey =
-            listOf(
-                "S",
-                encodeText("git"),
-                encodeText("log"),
-                encodeText("--stat"),
-                "1",
-                "0",
-                encodeText("stale|shape|key"),
-                "",
-                "",
-                "1",
-                "1",
-                "0",
-                "0",
-                "0",
-                "100",
-            ).joinToString("\t")
-
-        val decoded =
-            TerminalCommandCompletionStatsSnapshotCodec.decode(
-                listOf("KetraTerm_COMMAND_COMPLETION_STATS\t2", commandRowWithStaleKey, shapeRowWithStaleKey),
+    fun `encoded rows omit derived command and shape keys`() {
+        val commandRecord = commandStats("Git Status")
+        val shapeRecord =
+            TerminalCommandShapeStats(
+                shape =
+                    TerminalCommandLineShape(
+                        executable = "git",
+                        subcommands = listOf("log"),
+                        optionNames = listOf("--stat"),
+                        positionalArgumentCount = 1,
+                    ),
+                lastUsedEpochMillis = 100,
             )
 
-        assertEquals("git status", decoded.commandStats.single().normalizedCommandLine)
+        val lines =
+            TerminalCommandCompletionStatsSnapshotCodec.encode(
+                TerminalCommandCompletionStatsSnapshot(
+                    commandStats = listOf(commandRecord),
+                    shapeStats = listOf(shapeRecord),
+                ),
+            )
+
+        assertEquals(10, lines[1].split('\t').size)
+        assertEquals(14, lines[2].split('\t').size)
+        assertFalse(lines[1].contains(encodeText(commandRecord.normalizedCommandLine)))
+        assertFalse(lines[2].contains(encodeText(shapeRecord.shape.normalizedShapeKey)))
         assertEquals(
-            "git|log|--stat|p=1|ov=0",
-            decoded.shapeStats
-                .single()
-                .shape.normalizedShapeKey,
+            TerminalCommandCompletionStatsSnapshot(
+                commandStats = listOf(commandRecord),
+                shapeStats = listOf(shapeRecord),
+            ),
+            TerminalCommandCompletionStatsSnapshotCodec.decode(lines),
         )
     }
 
@@ -235,7 +221,6 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
         listOf(
             "C",
             encodeText(record.commandLine),
-            encodeText(record.normalizedCommandLine),
             encodeText(record.profileId.orEmpty()),
             encodeText(record.workingDirectoryUri.orEmpty()),
             record.useCount.toString(),
@@ -249,7 +234,6 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
     private fun invalidNegativeCounterCommandRow(): String =
         listOf(
             "C",
-            encodeText("bad"),
             encodeText("bad"),
             "",
             "",

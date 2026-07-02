@@ -21,9 +21,12 @@ import io.github.ketraterm.completion.api.TerminalCompletionRequest
 import io.github.ketraterm.completion.api.TerminalCompletionSource
 import io.github.ketraterm.completion.commandline.TerminalCommandLineContext
 import io.github.ketraterm.completion.commandline.TerminalCommandLineTokenizer
+import io.github.ketraterm.completion.commandline.firstCommandTokenIndex
+import io.github.ketraterm.completion.commandline.normalizeTerminalCommandToken
 import io.github.ketraterm.completion.internal.TERMINAL_COMPLETION_CANDIDATE_ORDER
 import io.github.ketraterm.completion.model.TerminalCommandSpec
 import io.github.ketraterm.completion.model.TerminalOptionSpec
+import io.github.ketraterm.completion.spec.CommandSpecResolver.findSpec
 
 internal class SpecCompletionSource(
     specs: List<TerminalCommandSpec>,
@@ -37,11 +40,12 @@ internal class SpecCompletionSource(
     override fun complete(request: TerminalCompletionRequest): List<TerminalCompletionCandidate> {
         if (specs.isEmpty()) return emptyList()
         val context = TerminalCommandLineTokenizer.parse(request.commandLine, request.cursorOffset)
+        val commandTokenIndex = context.tokens.firstCommandTokenIndex()
         val candidates =
-            if (context.activeTokenIndex == 0) {
+            if (context.activeTokenIndex <= commandTokenIndex) {
                 completeCommands(context)
             } else {
-                completeCommandBody(context)
+                completeCommandBody(context, commandTokenIndex)
             }
         return candidates
             .sortedWith(TERMINAL_COMPLETION_CANDIDATE_ORDER)
@@ -63,8 +67,11 @@ internal class SpecCompletionSource(
                 )
             }.toList()
 
-    private fun completeCommandBody(context: TerminalCommandLineContext): List<TerminalCompletionCandidate> {
-        val resolved = resolvePath(context) ?: return emptyList()
+    private fun completeCommandBody(
+        context: TerminalCommandLineContext,
+        commandTokenIndex: Int,
+    ): List<TerminalCompletionCandidate> {
+        val resolved = resolvePath(context, commandTokenIndex) ?: return emptyList()
         return if (context.activePrefix.startsWith("-")) {
             completeOptions(resolved, context)
         } else {
@@ -120,24 +127,31 @@ internal class SpecCompletionSource(
         return candidates
     }
 
-    private fun resolvePath(context: TerminalCommandLineContext): ResolvedCommandPath? {
+    private fun resolvePath(
+        context: TerminalCommandLineContext,
+        commandTokenIndex: Int,
+    ): ResolvedCommandPath? {
         val tokens = context.tokens
-        if (tokens.isEmpty()) return null
-        val root = findSpec(specs, tokens[0].text) ?: return null
+        if (commandTokenIndex >= tokens.size) return null
+        val root = findSpec(specs, normalizeTerminalCommandToken(tokens[commandTokenIndex].text)) ?: return null
         val commands = ArrayList<TerminalCommandSpec>()
         commands += root
         var current = root
-        var index = 1
+        var index = commandTokenIndex + 1
         while (index < context.activeTokenIndex) {
             val token = tokens[index].text
             if (token.startsWith("-")) {
-                val option = current.options.firstOrNull { it.names.contains(token) }
+                val normalizedOption = normalizeTerminalCommandToken(token)
+                val option =
+                    current.options.firstOrNull { option ->
+                        option.names.any { normalizeTerminalCommandToken(it) == normalizedOption }
+                    }
                 if (option?.requiresValue == true) index++
                 index++
                 continue
             }
 
-            val next = findSpec(current.subcommands, token) ?: break
+            val next = findSpec(current.subcommands, normalizeTerminalCommandToken(token)) ?: break
             current = next
             commands += current
             index++
@@ -175,14 +189,6 @@ internal class SpecCompletionSource(
         private const val COMMAND_BASE_SCORE = 300
         private const val SUBCOMMAND_BASE_SCORE = 250
         private const val OPTION_BASE_SCORE = 220
-
-        private fun findSpec(
-            specs: List<TerminalCommandSpec>,
-            token: String,
-        ): TerminalCommandSpec? =
-            specs.firstOrNull { spec ->
-                spec.name == token || spec.aliases.any { it == token }
-            }
 
         private fun matchesCompletablePrefix(
             value: String,

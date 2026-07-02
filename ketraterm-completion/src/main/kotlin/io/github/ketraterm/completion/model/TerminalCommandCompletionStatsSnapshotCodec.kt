@@ -82,7 +82,6 @@ object TerminalCommandCompletionStatsSnapshotCodec {
         listOf(
             ROW_COMMAND,
             encodeText(record.commandLine),
-            encodeText(record.normalizedCommandLine),
             encodeText(record.profileId.orEmpty()),
             encodeText(record.workingDirectoryUri.orEmpty()),
             record.useCount.toString(),
@@ -101,7 +100,6 @@ object TerminalCommandCompletionStatsSnapshotCodec {
             encodeTextList(record.shape.optionNames),
             record.shape.positionalArgumentCount.toString(),
             record.shape.optionValueCount.toString(),
-            encodeText(record.shape.normalizedShapeKey),
             encodeText(record.profileId.orEmpty()),
             encodeText(record.workingDirectoryUri.orEmpty()),
             record.useCount.toString(),
@@ -130,14 +128,14 @@ object TerminalCommandCompletionStatsSnapshotCodec {
         return runCatching {
             TerminalCommandCompletionStats(
                 commandLine = decodeText(fields[1]),
-                profileId = decodeText(fields[3]).takeIf(String::isNotEmpty),
-                workingDirectoryUri = decodeText(fields[4]).takeIf(String::isNotEmpty),
-                useCount = fields[5].toInt(),
-                successCount = fields[6].toInt(),
-                failureCount = fields[7].toInt(),
-                acceptedCount = fields[8].toInt(),
-                dismissedCount = fields[9].toInt(),
-                lastUsedEpochMillis = fields[10].toLong(),
+                profileId = decodeText(fields[2]).takeIf(String::isNotEmpty),
+                workingDirectoryUri = decodeText(fields[3]).takeIf(String::isNotEmpty),
+                useCount = fields[4].toInt(),
+                successCount = fields[5].toInt(),
+                failureCount = fields[6].toInt(),
+                acceptedCount = fields[7].toInt(),
+                dismissedCount = fields[8].toInt(),
+                lastUsedEpochMillis = fields[9].toLong(),
             )
         }.getOrNull()
     }
@@ -154,14 +152,14 @@ object TerminalCommandCompletionStatsSnapshotCodec {
                         positionalArgumentCount = fields[4].toInt(),
                         optionValueCount = fields[5].toInt(),
                     ),
-                profileId = decodeText(fields[7]).takeIf(String::isNotEmpty),
-                workingDirectoryUri = decodeText(fields[8]).takeIf(String::isNotEmpty),
-                useCount = fields[9].toInt(),
-                successCount = fields[10].toInt(),
-                failureCount = fields[11].toInt(),
-                acceptedCount = fields[12].toInt(),
-                dismissedCount = fields[13].toInt(),
-                lastUsedEpochMillis = fields[14].toLong(),
+                profileId = decodeText(fields[6]).takeIf(String::isNotEmpty),
+                workingDirectoryUri = decodeText(fields[7]).takeIf(String::isNotEmpty),
+                useCount = fields[8].toInt(),
+                successCount = fields[9].toInt(),
+                failureCount = fields[10].toInt(),
+                acceptedCount = fields[11].toInt(),
+                dismissedCount = fields[12].toInt(),
+                lastUsedEpochMillis = fields[13].toLong(),
             )
         }.getOrNull()
     }
@@ -195,9 +193,9 @@ object TerminalCommandCompletionStatsSnapshotCodec {
             value.split(',').map(::decodeText)
         }
 
-    private const val COMMAND_COMPLETION_STATS_HEADER = "KetraTerm_COMMAND_COMPLETION_STATS\t2"
-    private const val COMMAND_STATS_FIELD_COUNT = 11
-    private const val SHAPE_STATS_FIELD_COUNT = 15
+    private const val COMMAND_COMPLETION_STATS_HEADER = "KetraTerm_COMMAND_COMPLETION_STATS\t1"
+    private const val COMMAND_STATS_FIELD_COUNT = 10
+    private const val SHAPE_STATS_FIELD_COUNT = 14
     private const val FEEDBACK_STATS_FIELD_COUNT = 9
     private const val ROW_COMMAND = "C"
     private const val ROW_SHAPE = "S"

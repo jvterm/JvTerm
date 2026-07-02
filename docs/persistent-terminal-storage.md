@@ -46,14 +46,17 @@ completion engine:
 
 ```tsv
 KetraTerm_COMMAND_COMPLETION_STATS	1
-C	<commandBase64>	<normalizedBase64>	<profileBase64>	<cwdBase64>	<useCount>	<successCount>	<failureCount>	<acceptedCount>	<dismissedCount>	<lastUsedEpochMillis>
-S	<executableBase64>	<subcommandsBase64List>	<optionNamesBase64List>	<positionalArgumentCount>	<optionValueCount>	<shapeKeyBase64>	<profileBase64>	<cwdBase64>	<useCount>	<successCount>	<failureCount>	<acceptedCount>	<dismissedCount>	<lastUsedEpochMillis>
-F	<sourceBase64>	<candidateKind>	<tokenPosition>	<replacementStartOffset>	<replacementEndOffset>	<profileBase64>	<cwdBase64>	<acceptedCount>	<dismissedCount>	<lastUsedEpochMillis>
+C	<commandBase64>	<profileBase64>	<cwdBase64>	<useCount>	<successCount>	<failureCount>	<acceptedCount>	<dismissedCount>	<lastUsedEpochMillis>
+S	<executableBase64>	<subcommandsBase64List>	<optionNamesBase64List>	<positionalArgumentCount>	<optionValueCount>	<profileBase64>	<cwdBase64>	<useCount>	<successCount>	<failureCount>	<acceptedCount>	<dismissedCount>	<lastUsedEpochMillis>
+F	<sourceBase64>	<candidateKind>	<tokenPosition>	<profileBase64>	<cwdBase64>	<acceptedCount>	<dismissedCount>	<lastUsedEpochMillis>
 ```
 
 Text fields are Base64URL-encoded without padding so tabs and Unicode text do
 not corrupt the TSV layout. Writes are offloaded to a single daemon worker and
-committed through atomic replacement when the filesystem supports it.
+committed through atomic replacement when the filesystem supports it. Derived
+matching keys, such as normalized command text and normalized command-shape
+keys, are recomputed by the completion models and are not stored as separate
+fields.
 
 ## Security And Secret Filtering
 

@@ -27,10 +27,6 @@ import io.github.ketraterm.completion.commandline.normalizeTerminalCommandToken
  * The normalized shape key is derived from these public structural fields so
  * callers cannot persist a contradictory key containing private argument text.
  *
- * TODO(completion-ranking): Add command-family aggregate stats independent of
- * trailing arguments, for example `git checkout <arg>` and `npm run <arg>`,
- * without retaining private argument values.
- *
  * @property executable normalized executable token, such as `git` or `npm`.
  * @property subcommands normalized non-option tokens immediately after
  * [executable], before the first option or positional argument classified as a
