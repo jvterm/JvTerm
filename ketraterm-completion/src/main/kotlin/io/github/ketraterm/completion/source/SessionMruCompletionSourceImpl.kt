@@ -38,9 +38,7 @@ import io.github.ketraterm.completion.model.TerminalCommandCompletionStats
  *
  * @param capacity maximum number of distinct normalized commands retained.
  */
-internal class SessionMruCompletionSourceImpl
-    @JvmOverloads
-    constructor(
+internal class SessionMruCompletionSourceImpl(
         private val capacity: Int = DEFAULT_CAPACITY,
     ) : TerminalSessionMruCompletionSource {
         init {

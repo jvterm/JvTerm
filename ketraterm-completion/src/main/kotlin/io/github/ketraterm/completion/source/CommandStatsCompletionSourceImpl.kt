@@ -36,9 +36,7 @@ import io.github.ketraterm.completion.stats.CompletionFeedbackStatsIndex
  * @param commandSpecs command specifications used to classify command-family
  * shapes for privacy-preserving structural learning.
  */
-internal class CommandStatsCompletionSourceImpl
-    @JvmOverloads
-    constructor(
+internal class CommandStatsCompletionSourceImpl(
         capacity: Int = DEFAULT_CAPACITY,
         commandSpecs: List<TerminalCommandSpec> = TerminalCommandSpecs.defaults(),
     ) : TerminalCommandStatsCompletionSource {

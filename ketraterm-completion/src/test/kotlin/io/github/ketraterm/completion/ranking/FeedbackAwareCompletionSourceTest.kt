@@ -193,7 +193,7 @@ class FeedbackAwareCompletionSourceTest {
     fun `feedback stats do not create candidates`() {
         val source =
             FeedbackAwareCompletionSource(
-                delegate = TerminalCompletionSource.NONE,
+                delegate = TerminalCompletionSource { emptyList() },
                 feedbackStatsProvider = {
                     listOf(feedbackStats(source = "spec", acceptedCount = 10))
                 },

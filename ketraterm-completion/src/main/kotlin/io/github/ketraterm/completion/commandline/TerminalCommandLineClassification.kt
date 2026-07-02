@@ -47,9 +47,7 @@ internal enum class TerminalCommandArgumentKind {
  * @property optionName normalized option name for [TerminalCommandArgumentKind.OPTION_VALUE],
  * or `null` for positional argument kinds.
  */
-internal data class TerminalCommandArgumentShape
-    @JvmOverloads
-    constructor(
+internal data class TerminalCommandArgumentShape(
         val kind: TerminalCommandArgumentKind,
         val optionName: String? = null,
     ) {

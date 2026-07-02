@@ -31,14 +31,6 @@ fun interface TerminalCompletionSource {
      * @return ordered candidates from this source.
      */
     fun complete(request: TerminalCompletionRequest): List<TerminalCompletionCandidate>
-
-    companion object {
-        /**
-         * Source that returns no candidates.
-         */
-        @JvmField
-        val NONE: TerminalCompletionSource = TerminalCompletionSource { emptyList() }
-    }
 }
 
 /**

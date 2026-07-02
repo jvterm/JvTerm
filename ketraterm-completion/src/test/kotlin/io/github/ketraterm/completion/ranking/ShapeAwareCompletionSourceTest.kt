@@ -246,7 +246,7 @@ class ShapeAwareCompletionSourceTest {
     fun `shape stats do not create candidates`() {
         val source =
             ShapeAwareCompletionSource(
-                delegate = TerminalCompletionSource.NONE,
+                delegate = TerminalCompletionSource { emptyList() },
                 shapeStatsProvider = {
                     listOf(
                         shapeStats(commandLine = "git status", successCount = 10),
