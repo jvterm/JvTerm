@@ -13,7 +13,10 @@ External modules should import only:
 - `io.github.ketraterm.completion.model`
 
 The `api` package exposes host-facing engines, source factories, request and
-candidate contracts, and mutable learning-source interfaces.
+candidate contracts, and mutable learning-source interfaces. Factory methods
+are intentionally narrow: hosts may create spec, session-MRU, stats, and
+feedback-aware sources, then merge prioritized sources into an engine. Ranking
+decorators that are specific to one source type remain implementation details.
 
 The `model` package contains durable public data models that hosts may persist
 or construct:
@@ -54,3 +57,7 @@ read files, scan raw shell history, spawn shells, or talk to UI frameworks.
 The standalone app and IntelliJ plugin should compose completion sources through
 `TerminalCompletionSources` and `TerminalCompletionEngines`, then adapt returned
 candidates to their own UI presentation.
+
+The public API should not grow by convenience. New public functions must be
+durable host contracts, used by standalone/plugin integration, or explicitly
+documented persistence/model contracts.

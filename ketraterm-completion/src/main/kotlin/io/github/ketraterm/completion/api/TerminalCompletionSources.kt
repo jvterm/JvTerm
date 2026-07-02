@@ -32,11 +32,33 @@ object TerminalCompletionSources {
     /**
      * Creates a deterministic source backed by static command specs.
      *
+     * When [shapeStatsProvider] is present, spec candidates are adjusted by
+     * privacy-preserving command-shape learning before they are returned. Hosts
+     * should not compose that ranking decorator directly; command-shape learning
+     * is part of the static-spec source behavior.
+     *
      * @param specs top-level command specs.
+     * @param shapeStatsProvider optional supplier for the latest command-shape
+     * stats snapshot used to rank static candidates.
      * @return completion source that evaluates [specs] without shell I/O.
      */
     @JvmStatic
-    fun fromSpecs(specs: List<TerminalCommandSpec>): TerminalCompletionSource = SpecCompletionSource(specs)
+    @JvmOverloads
+    fun fromSpecs(
+        specs: List<TerminalCommandSpec>,
+        shapeStatsProvider: (() -> List<TerminalCommandShapeStats>)? = null,
+    ): TerminalCompletionSource {
+        val source = SpecCompletionSource(specs)
+        return if (shapeStatsProvider == null) {
+            source
+        } else {
+            ShapeAwareCompletionSource(
+                delegate = source,
+                shapeStatsProvider = shapeStatsProvider,
+                commandSpecs = specs,
+            )
+        }
+    }
 
     /**
      * Creates a bounded in-memory source for commands observed in the current
@@ -68,28 +90,6 @@ object TerminalCompletionSources {
     ): TerminalCommandStatsCompletionSource =
         CommandStatsCompletionSourceImpl(
             capacity = capacity,
-            commandSpecs = commandSpecs,
-        )
-
-    /**
-     * Wraps [source] with learned command-shape score adjustment.
-     *
-     * @param source source whose candidates should be shape-ranked.
-     * @param shapeStatsProvider supplier for the latest shape stats snapshot.
-     * @param commandSpecs command specifications used to classify projected
-     * candidates into command-family shapes.
-     * @return source that returns the same candidates with adjusted scores.
-     */
-    @JvmStatic
-    @JvmOverloads
-    fun shapeAware(
-        source: TerminalCompletionSource,
-        shapeStatsProvider: () -> List<TerminalCommandShapeStats>,
-        commandSpecs: List<TerminalCommandSpec> = TerminalCommandSpecs.defaults(),
-    ): TerminalCompletionSource =
-        ShapeAwareCompletionSource(
-            delegate = source,
-            shapeStatsProvider = shapeStatsProvider,
             commandSpecs = commandSpecs,
         )
 

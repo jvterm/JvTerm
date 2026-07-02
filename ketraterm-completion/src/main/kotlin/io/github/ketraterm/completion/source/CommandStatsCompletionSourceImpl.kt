@@ -37,191 +37,191 @@ import io.github.ketraterm.completion.stats.CompletionFeedbackStatsIndex
  * shapes for privacy-preserving structural learning.
  */
 internal class CommandStatsCompletionSourceImpl(
-        capacity: Int = DEFAULT_CAPACITY,
-        commandSpecs: List<TerminalCommandSpec> = TerminalCommandSpecs.defaults(),
-    ) : TerminalCommandStatsCompletionSource {
-        init {
-            require(capacity > 0) { "capacity must be > 0, was $capacity" }
-        }
+    capacity: Int = DEFAULT_CAPACITY,
+    commandSpecs: List<TerminalCommandSpec> = TerminalCommandSpecs.defaults(),
+) : TerminalCommandStatsCompletionSource {
+    init {
+        require(capacity > 0) { "capacity must be > 0, was $capacity" }
+    }
 
-        private val lock = Any()
-        private val commandStats = CommandCompletionStatsIndex(capacity)
-        private val shapeStats = CommandShapeStatsIndex(capacity, commandSpecs)
-        private val feedbackStats = CompletionFeedbackStatsIndex(capacity)
+    private val lock = Any()
+    private val commandStats = CommandCompletionStatsIndex(capacity)
+    private val shapeStats = CommandShapeStatsIndex(capacity, commandSpecs)
+    private val feedbackStats = CompletionFeedbackStatsIndex(capacity)
 
-        /**
-         * Replaces the current index with [records].
-         *
-         * When multiple records share the same normalized command, profile, and
-         * working directory key, the newest record by [TerminalCommandCompletionStats.lastUsedEpochMillis]
-         * wins. At most [capacity] rows are retained.
-         *
-         * @param records compact command-stat rows loaded by a host.
-         */
-        override fun replaceAll(records: List<TerminalCommandCompletionStats>) {
-            synchronized(lock) {
-                commandStats.replaceAll(records)
-            }
-        }
-
-        /**
-         * Replaces the current command-shape index with [records].
-         *
-         * Duplicate shape/profile/directory rows are compacted by keeping the
-         * newest timestamp. At most [capacity] rows are retained.
-         *
-         * @param records compact shape-stat rows loaded by a host.
-         */
-        override fun replaceShapeStats(records: List<TerminalCommandShapeStats>) {
-            synchronized(lock) {
-                shapeStats.replaceAll(records)
-            }
-        }
-
-        /**
-         * Replaces the current source-specific feedback index with [records].
-         *
-         * Duplicate rows are compacted by keeping the newest timestamp. At most
-         * [capacity] rows are retained.
-         *
-         * @param records compact feedback rows loaded by a host.
-         */
-        override fun replaceFeedbackStats(records: List<TerminalCompletionFeedbackStats>) {
-            synchronized(lock) {
-                feedbackStats.replaceAll(records)
-            }
-        }
-
-        /**
-         * Returns a stable snapshot for host persistence.
-         *
-         * @return retained rows sorted by ranking relevance.
-         */
-        override fun snapshot(): List<TerminalCommandCompletionStats> =
-            synchronized(lock) {
-                commandStats.snapshot()
-            }
-
-        /**
-         * Returns a stable privacy-preserving command-shape snapshot.
-         *
-         * @return retained shape rows sorted by ranking relevance.
-         */
-        override fun shapeSnapshot(): List<TerminalCommandShapeStats> =
-            synchronized(lock) {
-                shapeStats.snapshot()
-            }
-
-        /**
-         * Returns a stable source-specific feedback snapshot.
-         *
-         * @return retained feedback rows sorted by ranking relevance.
-         */
-        override fun feedbackSnapshot(): List<TerminalCompletionFeedbackStats> =
-            synchronized(lock) {
-                feedbackStats.snapshot()
-            }
-
-        /**
-         * Returns exact command and structural shape stats in one snapshot.
-         *
-         * @return immutable stats snapshot for host persistence.
-         */
-        override fun snapshotAll(): TerminalCommandCompletionStatsSnapshot =
-            synchronized(lock) {
-                TerminalCommandCompletionStatsSnapshot(
-                    commandStats = commandStats.snapshot(),
-                    shapeStats = shapeStats.snapshot(),
-                    feedbackStats = feedbackStats.snapshot(),
-                )
-            }
-
-        /**
-         * Records a completed command execution.
-         *
-         * Blank or multi-line commands are ignored because they are poor
-         * single-line completion candidates.
-         *
-         * @param commandLine command text executed by the shell.
-         * @param successful whether the command exited successfully.
-         * @param profileId optional host profile id.
-         * @param workingDirectoryUri optional working-directory URI.
-         * @param usedAtEpochMillis host timestamp for the execution event.
-         */
-        override fun recordCommandResult(
-            commandLine: String,
-            successful: Boolean,
-            profileId: String?,
-            workingDirectoryUri: String?,
-            usedAtEpochMillis: Long,
-        ) {
-            synchronized(lock) {
-                commandStats.recordCommandResult(
-                    commandLine = commandLine,
-                    successful = successful,
-                    profileId = profileId,
-                    workingDirectoryUri = workingDirectoryUri,
-                    usedAtEpochMillis = usedAtEpochMillis,
-                )
-                shapeStats.recordCommandResult(
-                    commandLine = commandLine,
-                    successful = successful,
-                    profileId = profileId,
-                    workingDirectoryUri = workingDirectoryUri,
-                    usedAtEpochMillis = usedAtEpochMillis,
-                )
-            }
-        }
-
-        /**
-         * Records explicit user feedback for a suggested command.
-         *
-         * @param commandLine command text represented by the suggestion.
-         * @param feedback accepted or dismissed feedback kind.
-         * @param profileId optional host profile id.
-         * @param workingDirectoryUri optional working-directory URI.
-         * @param feedbackAtEpochMillis host timestamp for the feedback event.
-         * @param context optional source-specific context for the displayed candidate.
-         */
-        override fun recordSuggestionFeedback(
-            commandLine: String,
-            feedback: TerminalCompletionFeedbackKind,
-            profileId: String?,
-            workingDirectoryUri: String?,
-            feedbackAtEpochMillis: Long,
-            context: TerminalCompletionFeedbackContext?,
-        ) {
-            synchronized(lock) {
-                commandStats.recordSuggestionFeedback(
-                    commandLine = commandLine,
-                    feedback = feedback,
-                    profileId = profileId,
-                    workingDirectoryUri = workingDirectoryUri,
-                    feedbackAtEpochMillis = feedbackAtEpochMillis,
-                )
-                shapeStats.recordSuggestionFeedback(
-                    commandLine = commandLine,
-                    feedback = feedback,
-                    profileId = profileId,
-                    workingDirectoryUri = workingDirectoryUri,
-                    feedbackAtEpochMillis = feedbackAtEpochMillis,
-                )
-                if (isRecordableTerminalCompletionCommand(commandLine) && context != null) {
-                    feedbackStats.recordSuggestionFeedback(
-                        context = context,
-                        feedback = feedback,
-                        profileId = profileId,
-                        workingDirectoryUri = workingDirectoryUri,
-                        feedbackAtEpochMillis = feedbackAtEpochMillis,
-                    )
-                }
-            }
-        }
-
-        override fun complete(request: TerminalCompletionRequest): List<TerminalCompletionCandidate> =
-            ExactCommandStatsCandidateBuilder.complete(request, snapshot())
-
-        private companion object {
-            private const val DEFAULT_CAPACITY = 2048
+    /**
+     * Replaces the current index with [records].
+     *
+     * When multiple records share the same normalized command, profile, and
+     * working directory key, the newest record by [TerminalCommandCompletionStats.lastUsedEpochMillis]
+     * wins. At most [capacity] rows are retained.
+     *
+     * @param records compact command-stat rows loaded by a host.
+     */
+    override fun replaceAll(records: List<TerminalCommandCompletionStats>) {
+        synchronized(lock) {
+            commandStats.replaceAll(records)
         }
     }
+
+    /**
+     * Replaces the current command-shape index with [records].
+     *
+     * Duplicate shape/profile/directory rows are compacted by keeping the
+     * newest timestamp. At most [capacity] rows are retained.
+     *
+     * @param records compact shape-stat rows loaded by a host.
+     */
+    override fun replaceShapeStats(records: List<TerminalCommandShapeStats>) {
+        synchronized(lock) {
+            shapeStats.replaceAll(records)
+        }
+    }
+
+    /**
+     * Replaces the current source-specific feedback index with [records].
+     *
+     * Duplicate rows are compacted by keeping the newest timestamp. At most
+     * [capacity] rows are retained.
+     *
+     * @param records compact feedback rows loaded by a host.
+     */
+    override fun replaceFeedbackStats(records: List<TerminalCompletionFeedbackStats>) {
+        synchronized(lock) {
+            feedbackStats.replaceAll(records)
+        }
+    }
+
+    /**
+     * Returns a stable snapshot for host persistence.
+     *
+     * @return retained rows sorted by ranking relevance.
+     */
+    override fun snapshot(): List<TerminalCommandCompletionStats> =
+        synchronized(lock) {
+            commandStats.snapshot()
+        }
+
+    /**
+     * Returns a stable privacy-preserving command-shape snapshot.
+     *
+     * @return retained shape rows sorted by ranking relevance.
+     */
+    override fun shapeSnapshot(): List<TerminalCommandShapeStats> =
+        synchronized(lock) {
+            shapeStats.snapshot()
+        }
+
+    /**
+     * Returns a stable source-specific feedback snapshot.
+     *
+     * @return retained feedback rows sorted by ranking relevance.
+     */
+    override fun feedbackSnapshot(): List<TerminalCompletionFeedbackStats> =
+        synchronized(lock) {
+            feedbackStats.snapshot()
+        }
+
+    /**
+     * Returns exact command and structural shape stats in one snapshot.
+     *
+     * @return immutable stats snapshot for host persistence.
+     */
+    override fun snapshotAll(): TerminalCommandCompletionStatsSnapshot =
+        synchronized(lock) {
+            TerminalCommandCompletionStatsSnapshot(
+                commandStats = commandStats.snapshot(),
+                shapeStats = shapeStats.snapshot(),
+                feedbackStats = feedbackStats.snapshot(),
+            )
+        }
+
+    /**
+     * Records a completed command execution.
+     *
+     * Blank or multi-line commands are ignored because they are poor
+     * single-line completion candidates.
+     *
+     * @param commandLine command text executed by the shell.
+     * @param successful whether the command exited successfully.
+     * @param profileId optional host profile id.
+     * @param workingDirectoryUri optional working-directory URI.
+     * @param usedAtEpochMillis host timestamp for the execution event.
+     */
+    override fun recordCommandResult(
+        commandLine: String,
+        successful: Boolean,
+        profileId: String?,
+        workingDirectoryUri: String?,
+        usedAtEpochMillis: Long,
+    ) {
+        synchronized(lock) {
+            commandStats.recordCommandResult(
+                commandLine = commandLine,
+                successful = successful,
+                profileId = profileId,
+                workingDirectoryUri = workingDirectoryUri,
+                usedAtEpochMillis = usedAtEpochMillis,
+            )
+            shapeStats.recordCommandResult(
+                commandLine = commandLine,
+                successful = successful,
+                profileId = profileId,
+                workingDirectoryUri = workingDirectoryUri,
+                usedAtEpochMillis = usedAtEpochMillis,
+            )
+        }
+    }
+
+    /**
+     * Records explicit user feedback for a suggested command.
+     *
+     * @param commandLine command text represented by the suggestion.
+     * @param feedback accepted or dismissed feedback kind.
+     * @param profileId optional host profile id.
+     * @param workingDirectoryUri optional working-directory URI.
+     * @param feedbackAtEpochMillis host timestamp for the feedback event.
+     * @param context optional source-specific context for the displayed candidate.
+     */
+    override fun recordSuggestionFeedback(
+        commandLine: String,
+        feedback: TerminalCompletionFeedbackKind,
+        profileId: String?,
+        workingDirectoryUri: String?,
+        feedbackAtEpochMillis: Long,
+        context: TerminalCompletionFeedbackContext?,
+    ) {
+        synchronized(lock) {
+            commandStats.recordSuggestionFeedback(
+                commandLine = commandLine,
+                feedback = feedback,
+                profileId = profileId,
+                workingDirectoryUri = workingDirectoryUri,
+                feedbackAtEpochMillis = feedbackAtEpochMillis,
+            )
+            shapeStats.recordSuggestionFeedback(
+                commandLine = commandLine,
+                feedback = feedback,
+                profileId = profileId,
+                workingDirectoryUri = workingDirectoryUri,
+                feedbackAtEpochMillis = feedbackAtEpochMillis,
+            )
+            if (isRecordableTerminalCompletionCommand(commandLine) && context != null) {
+                feedbackStats.recordSuggestionFeedback(
+                    context = context,
+                    feedback = feedback,
+                    profileId = profileId,
+                    workingDirectoryUri = workingDirectoryUri,
+                    feedbackAtEpochMillis = feedbackAtEpochMillis,
+                )
+            }
+        }
+    }
+
+    override fun complete(request: TerminalCompletionRequest): List<TerminalCompletionCandidate> =
+        ExactCommandStatsCandidateBuilder.complete(request, snapshot())
+
+    private companion object {
+        private const val DEFAULT_CAPACITY = 2048
+    }
+}

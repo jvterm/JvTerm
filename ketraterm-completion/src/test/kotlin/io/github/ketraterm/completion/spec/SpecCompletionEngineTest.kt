@@ -15,10 +15,7 @@
  */
 package io.github.ketraterm.completion.spec
 
-import io.github.ketraterm.completion.api.TerminalCompletionCandidateKind
-import io.github.ketraterm.completion.api.TerminalCompletionEngine
-import io.github.ketraterm.completion.api.TerminalCompletionEngines
-import io.github.ketraterm.completion.api.TerminalCompletionRequest
+import io.github.ketraterm.completion.api.*
 import io.github.ketraterm.completion.model.TerminalCommandSpec
 import io.github.ketraterm.completion.model.TerminalOptionSpec
 import kotlin.test.Test
@@ -131,31 +128,33 @@ class SpecCompletionEngineTest {
     }
 
     private fun engine(): TerminalCompletionEngine =
-        TerminalCompletionEngines.fromSpecs(
-            listOf(
-                TerminalCommandSpec(
-                    name = "git",
-                    description = "version control",
-                    subcommands =
-                        listOf(
-                            TerminalCommandSpec("status", "show status"),
-                            TerminalCommandSpec("commit", "record changes"),
-                            TerminalCommandSpec("checkout", "switch branches"),
-                        ),
-                    options =
-                        listOf(
-                            TerminalOptionSpec(listOf("--help", "-h"), "show help"),
-                            TerminalOptionSpec(listOf("--version"), "show version"),
-                        ),
-                ),
-                TerminalCommandSpec(
-                    name = "gradle",
-                    aliases = listOf("gradlew", "./gradlew"),
-                    subcommands =
-                        listOf(
-                            TerminalCommandSpec("test", "run tests"),
-                            TerminalCommandSpec("tasks", "list tasks"),
-                        ),
+        TerminalCompletionEngines.fromSources(
+            TerminalCompletionSources.fromSpecs(
+                listOf(
+                    TerminalCommandSpec(
+                        name = "git",
+                        description = "version control",
+                        subcommands =
+                            listOf(
+                                TerminalCommandSpec("status", "show status"),
+                                TerminalCommandSpec("commit", "record changes"),
+                                TerminalCommandSpec("checkout", "switch branches"),
+                            ),
+                        options =
+                            listOf(
+                                TerminalOptionSpec(listOf("--help", "-h"), "show help"),
+                                TerminalOptionSpec(listOf("--version"), "show version"),
+                            ),
+                    ),
+                    TerminalCommandSpec(
+                        name = "gradle",
+                        aliases = listOf("gradlew", "./gradlew"),
+                        subcommands =
+                            listOf(
+                                TerminalCommandSpec("test", "run tests"),
+                                TerminalCommandSpec("tasks", "list tasks"),
+                            ),
+                    ),
                 ),
             ),
         )

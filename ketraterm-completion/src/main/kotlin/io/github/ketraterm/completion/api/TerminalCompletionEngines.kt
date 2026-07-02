@@ -16,29 +16,11 @@
 package io.github.ketraterm.completion.api
 
 import io.github.ketraterm.completion.engine.MergedCompletionEngine
-import io.github.ketraterm.completion.model.TerminalCommandSpec
 
 /**
  * Factories for production completion engines.
  */
 object TerminalCompletionEngines {
-    /**
-     * Creates a deterministic in-process engine backed by command specs.
-     *
-     * @param specs top-level command specs.
-     * @return completion engine that evaluates [specs] without shell I/O.
-     */
-    @JvmStatic
-    fun fromSpecs(specs: List<TerminalCommandSpec>): TerminalCompletionEngine =
-        fromSources(
-            listOf(
-                TerminalCompletionSourceEntry(
-                    source = TerminalCompletionSources.fromSpecs(specs),
-                    priority = SPEC_SOURCE_PRIORITY,
-                ),
-            ),
-        )
-
     /**
      * Creates a deterministic merged engine from prioritized completion sources.
      *
@@ -66,6 +48,4 @@ object TerminalCompletionEngines {
     @JvmStatic
     fun fromSources(vararg sources: TerminalCompletionSource): TerminalCompletionEngine =
         fromSources(sources.map { TerminalCompletionSourceEntry(it) })
-
-    private const val SPEC_SOURCE_PRIORITY = 0
 }

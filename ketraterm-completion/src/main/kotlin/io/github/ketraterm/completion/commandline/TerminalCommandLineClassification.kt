@@ -48,16 +48,16 @@ internal enum class TerminalCommandArgumentKind {
  * or `null` for positional argument kinds.
  */
 internal data class TerminalCommandArgumentShape(
-        val kind: TerminalCommandArgumentKind,
-        val optionName: String? = null,
-    ) {
-        init {
-            require(optionName == null || optionName.isNotBlank()) { "optionName must be null or non-blank" }
-            require(kind == TerminalCommandArgumentKind.OPTION_VALUE || optionName == null) {
-                "optionName is only valid for OPTION_VALUE arguments"
-            }
+    val kind: TerminalCommandArgumentKind,
+    val optionName: String? = null,
+) {
+    init {
+        require(optionName == null || optionName.isNotBlank()) { "optionName must be null or non-blank" }
+        require(kind == TerminalCommandArgumentKind.OPTION_VALUE || optionName == null) {
+            "optionName is only valid for OPTION_VALUE arguments"
         }
     }
+}
 
 /**
  * Result of classifying a command line against command specifications.

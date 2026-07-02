@@ -59,6 +59,53 @@ internal class TerminalCompletionArchitectureTest {
     }
 
     @Test
+    fun `public api package contains only host-facing contracts`() {
+        val violations =
+            kotlinFiles(completionMainRoot.resolve("api")).flatMap { file ->
+                file
+                    .readSourceLines()
+                    .mapIndexedNotNull { index, line ->
+                        when {
+                            line.startsWith("internal ") -> "${file.relativeToRepository()}:${index + 1}: $line"
+                            PUBLIC_TOP_LEVEL_DECLARATION.matches(line) && line.declaredName() !in PUBLIC_API_DECLARATIONS ->
+                                "${file.relativeToRepository()}:${index + 1}: $line"
+                            else -> null
+                        }
+                    }
+            }
+
+        assertTrue(
+            actual = violations.isEmpty(),
+            message = violations.joinToString(prefix = "Only host-facing contracts belong in api:\n", separator = "\n"),
+        )
+    }
+
+    @Test
+    fun `public source and engine factories expose only reviewed functions`() {
+        val violations =
+            listOf(
+                completionMainRoot.resolve("api/TerminalCompletionSources.kt") to PUBLIC_COMPLETION_SOURCE_FACTORIES,
+                completionMainRoot.resolve("api/TerminalCompletionEngines.kt") to PUBLIC_COMPLETION_ENGINE_FACTORIES,
+            ).flatMap { (file, allowedFunctions) ->
+                file
+                    .readSourceLines()
+                    .mapIndexedNotNull { index, line ->
+                        val functionName = PUBLIC_MEMBER_FUNCTION.find(line)?.groupValues?.get(1)
+                        if (functionName != null && functionName !in allowedFunctions) {
+                            "${file.relativeToRepository()}:${index + 1}: $line"
+                        } else {
+                            null
+                        }
+                    }
+            }
+
+        assertTrue(
+            actual = violations.isEmpty(),
+            message = violations.joinToString(prefix = "Unreviewed completion factory functions:\n", separator = "\n"),
+        )
+    }
+
+    @Test
     fun `external modules import only completion api or model packages`() {
         val violations =
             EXTERNAL_MODULES.flatMap { moduleName ->
@@ -137,6 +184,7 @@ internal class TerminalCompletionArchitectureTest {
         private val EXTERNAL_MODULES =
             listOf(
                 "ketraterm-app",
+                "ketraterm-intellij-plugin",
                 "ketraterm-ui-swing",
                 "ketraterm-workspace",
             )
@@ -155,9 +203,34 @@ internal class TerminalCompletionArchitectureTest {
                 "TerminalCompletionTokenPosition",
                 "TerminalOptionSpec",
             )
+        private val PUBLIC_API_DECLARATIONS =
+            setOf(
+                "TerminalCommandStatsCompletionSource",
+                "TerminalCompletionCandidate",
+                "TerminalCompletionCandidateKind",
+                "TerminalCompletionEngine",
+                "TerminalCompletionEngines",
+                "TerminalCompletionRequest",
+                "TerminalCompletionSource",
+                "TerminalCompletionSourceEntry",
+                "TerminalCompletionSources",
+                "TerminalSessionMruCompletionSource",
+            )
+        private val PUBLIC_COMPLETION_SOURCE_FACTORIES =
+            setOf(
+                "commandStats",
+                "feedbackAware",
+                "fromSpecs",
+                "sessionMru",
+            )
+        private val PUBLIC_COMPLETION_ENGINE_FACTORIES =
+            setOf(
+                "fromSources",
+            )
 
         private val PUBLIC_TOP_LEVEL_DECLARATION =
-            Regex("""^(class|data class|enum class|fun|fun interface|interface|object|sealed interface)\s+([A-Za-z0-9_]+).*""")
+            Regex("""^(data class|enum class|fun interface|sealed interface|class|fun|interface|object)\s+([A-Za-z0-9_]+).*""")
+        private val PUBLIC_MEMBER_FUNCTION = Regex("""^\s{4}fun\s+([A-Za-z0-9_]+)\(.*""")
         private val IMPLEMENTATION_IMPORT =
             Regex("""import io\.github\.ketraterm\.completion\.(commandline|engine|internal|ranking|source|spec|stats)(\.|$).*""")
     }

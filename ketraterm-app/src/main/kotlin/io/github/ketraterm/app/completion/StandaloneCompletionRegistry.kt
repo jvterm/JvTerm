@@ -44,20 +44,13 @@ internal class StandaloneCompletionRegistry(
     }
 
     private val lock = Any()
+    private val shapeStatsProvider = persistentStatsSource?.let { source -> { source.shapeSnapshot() } }
     private val specSource =
         TerminalCompletionSources
-            .fromSpecs(specs)
-            .let { source ->
-                if (persistentStatsSource == null) {
-                    source
-                } else {
-                    TerminalCompletionSources.shapeAware(
-                        source = source,
-                        shapeStatsProvider = { persistentStatsSource.shapeSnapshot() },
-                        commandSpecs = specs,
-                    )
-                }
-            }.let(::feedbackAware)
+            .fromSpecs(
+                specs = specs,
+                shapeStatsProvider = shapeStatsProvider,
+            ).let(::feedbackAware)
     private val sessionMruSources = HashMap<String, TerminalSessionMruCompletionSource>()
 
     /**

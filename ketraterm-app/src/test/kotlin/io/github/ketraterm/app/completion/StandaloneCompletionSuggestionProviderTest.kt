@@ -18,6 +18,7 @@ package io.github.ketraterm.app.completion
 import io.github.ketraterm.completion.api.TerminalCompletionCandidate
 import io.github.ketraterm.completion.api.TerminalCompletionEngines
 import io.github.ketraterm.completion.api.TerminalCompletionRequest
+import io.github.ketraterm.completion.api.TerminalCompletionSources
 import io.github.ketraterm.completion.model.TerminalCommandSpec
 import io.github.ketraterm.completion.model.TerminalOptionSpec
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
@@ -104,19 +105,21 @@ class StandaloneCompletionSuggestionProviderTest {
 
     private fun provider(): StandaloneCompletionSuggestionProvider =
         StandaloneCompletionSuggestionProvider(
-            TerminalCompletionEngines.fromSpecs(
-                listOf(
-                    TerminalCommandSpec(
-                        name = "git",
-                        subcommands =
-                            listOf(
-                                TerminalCommandSpec("commit", "record changes"),
-                                TerminalCommandSpec("checkout", "switch branches"),
-                            ),
-                        options =
-                            listOf(
-                                TerminalOptionSpec(listOf("--help"), "show help"),
-                            ),
+            TerminalCompletionEngines.fromSources(
+                TerminalCompletionSources.fromSpecs(
+                    listOf(
+                        TerminalCommandSpec(
+                            name = "git",
+                            subcommands =
+                                listOf(
+                                    TerminalCommandSpec("commit", "record changes"),
+                                    TerminalCommandSpec("checkout", "switch branches"),
+                                ),
+                            options =
+                                listOf(
+                                    TerminalOptionSpec(listOf("--help"), "show help"),
+                                ),
+                        ),
                     ),
                 ),
             ),
