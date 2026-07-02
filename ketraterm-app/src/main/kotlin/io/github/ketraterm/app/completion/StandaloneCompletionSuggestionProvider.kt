@@ -67,12 +67,12 @@ internal class StandaloneCompletionSuggestionProvider(
     private fun TerminalCompletionCandidate.toSwingSuggestion(): SwingShellSuggestion =
         SwingShellSuggestion(
             replacementText = replacementText,
-            displayText = displayText,
-            detail = detail,
-            source = source,
-            kind = kind.name,
             replacementStartOffset = replacementStartOffset,
             replacementEndOffset = replacementEndOffset,
+            source = source,
+            kind = kind.name,
+            displayText = displayText,
+            detail = detail,
         )
 }
 

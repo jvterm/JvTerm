@@ -1020,34 +1020,26 @@ class SwingTerminal
         fun currentSearchState(): TerminalSearchState = searchController.state()
 
         /**
-         * Shows host-provided shell suggestions near a terminal-grid cell.
+         * Shows host-provided shell suggestions for a known command-line request.
          *
          * The reusable Swing terminal only presents the suggestions. Accepted
          * suggestions are delivered to [SwingHostServices.shellSuggestionHandler]
-         * so the host/provider can apply command-line replacement semantics.
+         * with the same [request] so host adapters can apply and learn from the
+         * exact command-line replacement range that produced each suggestion.
          *
          * If [SwingSettings.shellSuggestionsEnabled] is `false` or [suggestions]
          * is empty, the current popup is hidden.
          *
+         * @param request command-line context that produced [suggestions].
          * @param suggestions suggestions to display.
-         * @param anchorColumn visible terminal-grid column used as the popup anchor.
-         * @param anchorRow visible terminal-grid row used as the popup anchor.
          * @param selectedIndex initially selected suggestion index.
          */
         @JvmOverloads
         fun showShellSuggestions(
+            request: SwingShellSuggestionRequest,
             suggestions: List<SwingShellSuggestion>,
-            anchorColumn: Int,
-            anchorRow: Int,
             selectedIndex: Int = 0,
         ) {
-            val request =
-                SwingShellSuggestionRequest(
-                    commandText = "",
-                    cursorOffset = 0,
-                    anchorColumn = anchorColumn.coerceAtLeast(0),
-                    anchorRow = anchorRow.coerceAtLeast(0),
-                )
             val snapshot = suggestions.toList()
             runOnEdt(
                 Runnable {

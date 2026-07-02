@@ -24,9 +24,9 @@ import java.text.BreakIterator
 /**
  * Host-provided shell suggestion shown by the reusable Swing terminal popup.
  *
- * The Swing layer only presents and selects suggestions. It does not decide how
- * accepted text should replace the command line because shell editing semantics
- * belong to the host/provider that produced the suggestion.
+ * The Swing layer only presents and selects suggestions. The host/provider
+ * owns choosing the replacement text, range, source, and semantic kind; Swing
+ * validates that contract before applying the default command-line edit.
  *
  * @property replacementText text the provider intends to insert or use for
  * command-line replacement after acceptance.
@@ -35,66 +35,44 @@ import java.text.BreakIterator
  * path context, or a short description.
  * @property source compact source label, such as `history`, `path`, or `git`.
  * @property kind compact semantic candidate kind label supplied by the host.
- * @property deleteCount number of characters/grapheme clusters to delete before
- * inserting the suggestion when no explicit replacement range is set. `-1`
- * triggers default prefix deletion based on cursor offset.
  * @property replacementStartOffset inclusive UTF-16 start offset in the request
- * command text for range-aware replacement, or `-1` when unset.
+ * command text.
  * @property replacementEndOffset exclusive UTF-16 end offset in the request
- * command text for range-aware replacement, or `-1` when unset.
+ * command text.
  */
 data class SwingShellSuggestion
     @JvmOverloads
     constructor(
         val replacementText: String,
+        val replacementStartOffset: Int,
+        val replacementEndOffset: Int,
+        val source: String,
+        val kind: String,
         val displayText: String = replacementText,
         val detail: String = "",
-        val source: String = "",
-        val kind: String = "",
-        val deleteCount: Int = -1,
-        val replacementStartOffset: Int = -1,
-        val replacementEndOffset: Int = -1,
     ) {
         init {
             require(replacementText.isNotEmpty()) { "replacementText must not be empty" }
             require(displayText.isNotEmpty()) { "displayText must not be empty" }
-            require(deleteCount >= -1) { "deleteCount must be >= -1, was $deleteCount" }
-            require(
-                (replacementStartOffset == -1 && replacementEndOffset == -1) ||
-                    (replacementStartOffset >= 0 && replacementEndOffset >= replacementStartOffset),
-            ) {
-                "replacement range must be unset or satisfy 0 <= start <= end, was " +
-                    "$replacementStartOffset..$replacementEndOffset"
+            require(source.isNotBlank()) { "source must not be blank" }
+            require(kind.isNotBlank()) { "kind must not be blank" }
+            require(replacementStartOffset >= 0) {
+                "replacementStartOffset must be >= 0, was $replacementStartOffset"
+            }
+            require(replacementEndOffset >= replacementStartOffset) {
+                "replacementEndOffset must be >= replacementStartOffset, was " +
+                    "$replacementEndOffset < $replacementStartOffset"
             }
         }
     }
 
 /**
- * Validated UTF-16 replacement range for a shell suggestion.
- *
- * The range uses an exclusive end offset to match [String.replaceRange] and
- * the command-line offsets carried by [SwingShellSuggestion].
- *
- * @property startOffset inclusive UTF-16 start offset in the request command text.
- * @property endOffset exclusive UTF-16 end offset in the request command text.
- */
-data class SwingShellSuggestionReplacementRange(
-    val startOffset: Int,
-    val endOffset: Int,
-) {
-    init {
-        require(startOffset >= 0) { "startOffset must be >= 0, was $startOffset" }
-        require(endOffset >= startOffset) { "endOffset must be >= startOffset, was $endOffset < $startOffset" }
-    }
-}
-
-/**
  * Validated command-line replacement plan for one shell suggestion.
  *
- * The plan is derived from the suggestion, request cursor, explicit replacement
- * range, and default-delete policy. Hosts can use [commandTextAfterReplacement]
- * for learning/feedback while the default Swing acceptance handler uses the
- * delete counts to emit terminal editing keys before pasting [replacementText].
+ * The plan is derived from the suggestion's replacement range and the request
+ * cursor. Hosts can use [commandTextAfterReplacement] for learning/feedback
+ * while the default Swing acceptance handler uses the delete counts to emit
+ * terminal editing keys before pasting [replacementText].
  *
  * @property startOffset inclusive UTF-16 start offset replaced in the request
  * command text.
@@ -127,81 +105,27 @@ data class SwingShellSuggestionReplacement(
 }
 
 /**
- * Returns whether this suggestion carries an explicit replacement range.
- *
- * @return `true` when either replacement endpoint is set.
- */
-fun SwingShellSuggestion.hasExplicitReplacementRange(): Boolean = replacementStartOffset >= 0 || replacementEndOffset >= 0
-
-/**
- * Validates and returns this suggestion's explicit replacement range.
- *
- * A valid explicit range is fully contained in [request.commandText], contains
- * [SwingShellSuggestionRequest.cursorOffset], and never splits a UTF-16
- * surrogate pair at the start, cursor, or end boundary.
- *
- * @param request command-line request that produced this suggestion.
- * @return validated replacement range, or `null` when no explicit range exists
- * or the explicit range is invalid for [request].
- */
-fun SwingShellSuggestion.explicitReplacementRangeFor(request: SwingShellSuggestionRequest): SwingShellSuggestionReplacementRange? {
-    if (!hasExplicitReplacementRange()) return null
-    if (replacementStartOffset < 0) return null
-    if (replacementStartOffset > request.cursorOffset) return null
-    if (request.cursorOffset > replacementEndOffset) return null
-    if (replacementEndOffset > request.commandText.length) return null
-    if (!request.commandText.isUtf16Boundary(replacementStartOffset)) return null
-    if (!request.commandText.isUtf16Boundary(request.cursorOffset)) return null
-    if (!request.commandText.isUtf16Boundary(replacementEndOffset)) return null
-    return SwingShellSuggestionReplacementRange(
-        startOffset = replacementStartOffset,
-        endOffset = replacementEndOffset,
-    )
-}
-
-/**
  * Returns the validated replacement plan for this suggestion and request.
  *
- * Explicit replacement ranges are validated against the command text and
- * request cursor. Suggestions without an explicit range replace either the
- * whole prefix before the cursor or [SwingShellSuggestion.deleteCount]
- * grapheme clusters before the cursor. Malformed UTF-16 cursor/range offsets
- * return `null` instead of producing partial surrogate pairs.
+ * Replacement ranges are validated against the command text and request cursor.
+ * Malformed UTF-16 cursor/range offsets return `null` instead of producing
+ * partial surrogate pairs.
  *
  * @param request command-line request that produced this suggestion.
  * @return validated replacement plan, or `null` when the request/range is invalid.
  */
 fun SwingShellSuggestion.replacementFor(request: SwingShellSuggestionRequest): SwingShellSuggestionReplacement? {
     if (!request.commandText.isUtf16Boundary(request.cursorOffset)) return null
-    val startOffset: Int
-    val endOffset: Int
-    val deleteBeforeCursorCount: Int
-    val deleteAfterCursorCount: Int
-    if (hasExplicitReplacementRange()) {
-        val range = explicitReplacementRangeFor(request) ?: return null
-        startOffset = range.startOffset
-        endOffset = range.endOffset
-        deleteBeforeCursorCount = countGraphemeClusters(request.commandText.substring(startOffset, request.cursorOffset))
-        deleteAfterCursorCount = countGraphemeClusters(request.commandText.substring(request.cursorOffset, endOffset))
-    } else {
-        endOffset = request.cursorOffset
-        val availableBeforeCursor = countGraphemeClusters(request.commandText.substring(0, request.cursorOffset))
-        deleteBeforeCursorCount =
-            if (deleteCount >= 0) {
-                minOf(deleteCount, availableBeforeCursor)
-            } else {
-                availableBeforeCursor
-            }
-        deleteAfterCursorCount = 0
-        startOffset =
-            request.commandText.startOffsetBeforeGraphemeClusters(
-                endOffset = request.cursorOffset,
-                graphemeClusterCount = deleteBeforeCursorCount,
-            ) ?: return null
-    }
+    if (replacementStartOffset > request.cursorOffset) return null
+    if (request.cursorOffset > replacementEndOffset) return null
+    if (replacementEndOffset > request.commandText.length) return null
+    if (!request.commandText.isUtf16Boundary(replacementStartOffset)) return null
+    if (!request.commandText.isUtf16Boundary(replacementEndOffset)) return null
+    val deleteBeforeCursorCount = countGraphemeClusters(request.commandText.substring(replacementStartOffset, request.cursorOffset))
+    val deleteAfterCursorCount = countGraphemeClusters(request.commandText.substring(request.cursorOffset, replacementEndOffset))
     return SwingShellSuggestionReplacement(
-        startOffset = startOffset,
-        endOffset = endOffset,
+        startOffset = replacementStartOffset,
+        endOffset = replacementEndOffset,
         replacementText = replacementText,
         deleteBeforeCursorCount = deleteBeforeCursorCount,
         deleteAfterCursorCount = deleteAfterCursorCount,
@@ -286,11 +210,9 @@ data class SwingShellSuggestionRequest(
 
     companion object {
         /**
-         * Empty request used by direct popup callers that already computed the
-         * suggestion list outside the provider pipeline.
+         * Empty request used only while the popup is hidden.
          */
-        @JvmField
-        val EMPTY: SwingShellSuggestionRequest =
+        internal val EMPTY: SwingShellSuggestionRequest =
             SwingShellSuggestionRequest(
                 commandText = "",
                 cursorOffset = 0,
@@ -442,23 +364,6 @@ private fun countGraphemeClusters(text: String): Int {
         count++
     }
     return count
-}
-
-private fun String.startOffsetBeforeGraphemeClusters(
-    endOffset: Int,
-    graphemeClusterCount: Int,
-): Int? {
-    if (!isUtf16Boundary(endOffset)) return null
-    if (graphemeClusterCount <= 0) return endOffset
-    val iterator = BreakIterator.getCharacterInstance()
-    iterator.setText(substring(0, endOffset))
-    var offset = endOffset
-    repeat(graphemeClusterCount) {
-        val previous = iterator.preceding(offset)
-        if (previous == BreakIterator.DONE) return 0
-        offset = previous
-    }
-    return offset
 }
 
 private fun String.isUtf16Boundary(offset: Int): Boolean {

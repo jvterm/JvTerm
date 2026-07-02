@@ -49,11 +49,12 @@ class SwingTerminalShellSuggestionTest {
                             },
                     ),
             )
-        val suggestions = suggestions()
+        val request = request(anchorColumn = 1, anchorRow = 1)
+        val suggestions = suggestions(request.commandText)
 
         SwingUtilities.invokeAndWait {
             component.size = component.preferredGridSize(12, 4)
-            component.showShellSuggestions(suggestions, anchorColumn = 1, anchorRow = 1)
+            component.showShellSuggestions(request, suggestions)
 
             component.keyListeners.forEach { listener -> listener.keyPressed(keyPressed(component, KeyEvent.VK_DOWN)) }
             component.keyListeners.forEach { listener -> listener.keyPressed(keyPressed(component, KeyEvent.VK_ENTER)) }
@@ -63,17 +64,7 @@ class SwingTerminalShellSuggestionTest {
 
         assertEquals(listOf(suggestions[1]), accepted)
         assertEquals(listOf(1), indexes)
-        assertEquals(
-            listOf(
-                SwingShellSuggestionRequest(
-                    commandText = "",
-                    cursorOffset = 0,
-                    anchorColumn = 1,
-                    anchorRow = 1,
-                ),
-            ),
-            requests,
-        )
+        assertEquals(listOf(request), requests)
     }
 
     @Test
@@ -88,7 +79,7 @@ class SwingTerminalShellSuggestionTest {
                         shellSuggestionProvider =
                             SwingShellSuggestionProvider { request ->
                                 providerRequests += request
-                                suggestions()
+                                suggestions(request.commandText)
                             },
                         shellSuggestionHandler =
                             SwingShellSuggestionHandler { acceptance ->
@@ -139,7 +130,7 @@ class SwingTerminalShellSuggestionTest {
 
         SwingUtilities.invokeAndWait {
             component.size = component.preferredGridSize(12, 4)
-            component.showShellSuggestions(suggestions(), anchorColumn = 0, anchorRow = 0)
+            component.showShellSuggestions(request(), suggestions())
             assertTrue(component.currentShellSuggestionState().visible)
 
             component.requestShellSuggestions(commandText = "missing", cursorOffset = 7, anchorColumn = 0, anchorRow = 0)
@@ -162,7 +153,7 @@ class SwingTerminalShellSuggestionTest {
                         shellSuggestionProvider =
                             SwingShellSuggestionProvider { request ->
                                 providerRequests += request
-                                suggestions()
+                                suggestions(request.commandText)
                             },
                     ),
             )
@@ -201,14 +192,14 @@ class SwingTerminalShellSuggestionTest {
                 settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) },
                 hostServices =
                     SwingHostServices(
-                        shellSuggestionProvider = SwingShellSuggestionProvider { suggestions() },
+                        shellSuggestionProvider = SwingShellSuggestionProvider { request -> suggestions(request.commandText) },
                     ),
             )
 
         SwingUtilities.invokeAndWait {
             component.size = component.preferredGridSize(30, 4)
             component.bind(session)
-            component.showShellSuggestions(suggestions(), anchorColumn = 0, anchorRow = 0)
+            component.showShellSuggestions(request(), suggestions())
             assertTrue(component.currentShellSuggestionState().visible)
 
             component.requestActiveShellSuggestions()
@@ -227,7 +218,7 @@ class SwingTerminalShellSuggestionTest {
             )
 
         SwingUtilities.invokeAndWait {
-            component.showShellSuggestions(suggestions(), anchorColumn = 0, anchorRow = 0)
+            component.showShellSuggestions(request(), suggestions())
 
             assertFalse(component.currentShellSuggestionState().visible)
         }
@@ -236,11 +227,12 @@ class SwingTerminalShellSuggestionTest {
     @Test
     fun `shown shell suggestion state exposes selected item`() {
         val component = SwingTerminal(settingsProvider = { SwingSettings(padding = Insets(0, 0, 0, 0)) })
-        val suggestions = suggestions()
+        val request = request(anchorColumn = 2, anchorRow = 1)
+        val suggestions = suggestions(request.commandText)
 
         SwingUtilities.invokeAndWait {
             component.size = component.preferredGridSize(12, 4)
-            component.showShellSuggestions(suggestions, anchorColumn = 2, anchorRow = 1, selectedIndex = 1)
+            component.showShellSuggestions(request, suggestions, selectedIndex = 1)
 
             val state = component.currentShellSuggestionState()
             assertTrue(state.visible)
@@ -255,8 +247,12 @@ class SwingTerminalShellSuggestionTest {
         val session = RecordingInputEncoder()
         val handler = SwingShellSuggestionHandler.createDefault(session)
 
-        val request = SwingShellSuggestionRequest("git s", cursorOffset = 5, anchorColumn = 0, anchorRow = 0)
-        val suggestion = SwingShellSuggestion("git status")
+        val request = request(commandText = "git s")
+        val suggestion =
+            suggestion(
+                replacementText = "git status",
+                commandText = request.commandText,
+            )
         val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
 
         handler.onSuggestionAccepted(acceptance)
@@ -271,10 +267,14 @@ class SwingTerminalShellSuggestionTest {
     fun `default handler deletes emoji prefix using grapheme clusters count`() {
         val session = RecordingInputEncoder()
         val handler = SwingShellSuggestionHandler.createDefault(session)
+        val commandText = "a\uD83D\uDE02"
 
-        // "a😂" is 3 UTF-16 code units (1 for 'a', 2 for '😂') but 2 grapheme clusters.
-        val request = SwingShellSuggestionRequest("a😂", cursorOffset = 3, anchorColumn = 0, anchorRow = 0)
-        val suggestion = SwingShellSuggestion("a😂 b")
+        val request = request(commandText = commandText)
+        val suggestion =
+            suggestion(
+                replacementText = "$commandText b",
+                commandText = commandText,
+            )
         val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
 
         handler.onSuggestionAccepted(acceptance)
@@ -282,17 +282,21 @@ class SwingTerminalShellSuggestionTest {
         assertEquals(2, session.keys.size)
         assertTrue(session.keys.all { it.key == TerminalKey.BACKSPACE })
         assertEquals(1, session.pastes.size)
-        assertEquals("a😂 b", session.pastes[0].text)
+        assertEquals("$commandText b", session.pastes[0].text)
     }
 
     @Test
     fun `default handler deletes combining accents prefix using grapheme clusters count`() {
         val session = RecordingInputEncoder()
         val handler = SwingShellSuggestionHandler.createDefault(session)
+        val commandText = "e\u0301"
 
-        // "é" is 'e' + combining acute accent (2 code points, 2 code units) but 1 grapheme cluster.
-        val request = SwingShellSuggestionRequest("é", cursorOffset = 2, anchorColumn = 0, anchorRow = 0)
-        val suggestion = SwingShellSuggestion("é test")
+        val request = request(commandText = commandText)
+        val suggestion =
+            suggestion(
+                replacementText = "$commandText test",
+                commandText = commandText,
+            )
         val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
 
         handler.onSuggestionAccepted(acceptance)
@@ -300,16 +304,23 @@ class SwingTerminalShellSuggestionTest {
         assertEquals(1, session.keys.size)
         assertTrue(session.keys.all { it.key == TerminalKey.BACKSPACE })
         assertEquals(1, session.pastes.size)
-        assertEquals("é test", session.pastes[0].text)
+        assertEquals("$commandText test", session.pastes[0].text)
     }
 
     @Test
-    fun `default handler respects custom deleteCount override`() {
+    fun `default handler replaces token range`() {
         val session = RecordingInputEncoder()
         val handler = SwingShellSuggestionHandler.createDefault(session)
 
-        val request = SwingShellSuggestionRequest("git s", cursorOffset = 5, anchorColumn = 0, anchorRow = 0)
-        val suggestion = SwingShellSuggestion("status", deleteCount = 1) // only delete 's'
+        val request = request(commandText = "git s")
+        val suggestion =
+            suggestion(
+                replacementText = "status",
+                startOffset = 4,
+                endOffset = 5,
+                source = "spec",
+                kind = "SUBCOMMAND",
+            )
         val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
 
         handler.onSuggestionAccepted(acceptance)
@@ -325,12 +336,14 @@ class SwingTerminalShellSuggestionTest {
         val session = RecordingInputEncoder()
         val handler = SwingShellSuggestionHandler.createDefault(session)
 
-        val request = SwingShellSuggestionRequest("git che", cursorOffset = 6, anchorColumn = 0, anchorRow = 0)
+        val request = request(commandText = "git che", cursorOffset = 6)
         val suggestion =
-            SwingShellSuggestion(
+            suggestion(
                 replacementText = "checkout",
-                replacementStartOffset = 4,
-                replacementEndOffset = 7,
+                startOffset = 4,
+                endOffset = 7,
+                source = "spec",
+                kind = "SUBCOMMAND",
             )
         val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
 
@@ -349,12 +362,14 @@ class SwingTerminalShellSuggestionTest {
         val session = RecordingInputEncoder()
         val handler = SwingShellSuggestionHandler.createDefault(session)
 
-        val request = SwingShellSuggestionRequest("git che", cursorOffset = 6, anchorColumn = 0, anchorRow = 0)
+        val request = request(commandText = "git che", cursorOffset = 6)
         val suggestion =
-            SwingShellSuggestion(
+            suggestion(
                 replacementText = "checkout",
-                replacementStartOffset = 4,
-                replacementEndOffset = 20,
+                startOffset = 4,
+                endOffset = 20,
+                source = "spec",
+                kind = "SUBCOMMAND",
             )
         val acceptance = SwingShellSuggestionAcceptance(suggestion, 0, request)
 
@@ -413,10 +428,53 @@ class SwingTerminalShellSuggestionTest {
         return session
     }
 
-    private fun suggestions(): List<SwingShellSuggestion> =
+    private fun suggestions(commandText: String = "git s"): List<SwingShellSuggestion> =
         listOf(
-            SwingShellSuggestion("git status", detail = "show working tree status", source = "history"),
-            SwingShellSuggestion("git switch main", detail = "switch to main branch", source = "git"),
+            suggestion(
+                replacementText = "git status",
+                commandText = commandText,
+                detail = "show working tree status",
+                source = "history",
+                kind = "HISTORY",
+            ),
+            suggestion(
+                replacementText = "git switch main",
+                commandText = commandText,
+                detail = "switch to main branch",
+                source = "git",
+                kind = "SUBCOMMAND",
+            ),
+        )
+
+    private fun suggestion(
+        replacementText: String,
+        commandText: String = "git s",
+        startOffset: Int = 0,
+        endOffset: Int = commandText.length,
+        source: String = "test",
+        kind: String = "COMMAND",
+        detail: String = "",
+    ): SwingShellSuggestion =
+        SwingShellSuggestion(
+            replacementText = replacementText,
+            replacementStartOffset = startOffset,
+            replacementEndOffset = endOffset,
+            source = source,
+            kind = kind,
+            detail = detail,
+        )
+
+    private fun request(
+        commandText: String = "git s",
+        cursorOffset: Int = commandText.length,
+        anchorColumn: Int = cursorOffset,
+        anchorRow: Int = 0,
+    ): SwingShellSuggestionRequest =
+        SwingShellSuggestionRequest(
+            commandText = commandText,
+            cursorOffset = cursorOffset,
+            anchorColumn = anchorColumn,
+            anchorRow = anchorRow,
         )
 
     private fun keyPressed(

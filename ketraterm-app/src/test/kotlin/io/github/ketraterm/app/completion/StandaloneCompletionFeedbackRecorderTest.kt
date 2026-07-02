@@ -131,6 +131,34 @@ class StandaloneCompletionFeedbackRecorderTest {
     }
 
     @Test
+    fun `unknown suggestion kind records command feedback without source-specific row`() {
+        val source = TerminalCompletionSources.commandStats()
+        val recorder =
+            StandaloneCompletionFeedbackRecorder(
+                statsSource = source,
+                persistSnapshot = {},
+                clockEpochMillis = { 1_500L },
+            )
+
+        recorder.record(
+            feedback =
+                feedback(
+                    kind = SwingShellSuggestionFeedbackKind.ACCEPTED,
+                    commandText = "git s",
+                    replacementText = "git status",
+                    replacementStartOffset = 0,
+                    replacementEndOffset = 5,
+                    suggestionKindName = "custom",
+                ),
+            profileId = "bash",
+            workingDirectoryUri = "file:///repo",
+        )
+
+        assertEquals(1, source.snapshot().single().acceptedCount)
+        assertTrue(source.feedbackSnapshot().isEmpty())
+    }
+
+    @Test
     fun `invalid replacement range is ignored and not persisted`() {
         val source = TerminalCompletionSources.commandStats()
         var persistCount = 0
@@ -158,7 +186,7 @@ class StandaloneCompletionFeedbackRecorderTest {
     }
 
     @Test
-    fun `default delete feedback records same Unicode command accepted by Swing handler`() {
+    fun `explicit Unicode range records same command accepted by Swing handler`() {
         val source = TerminalCompletionSources.commandStats()
         val persisted = ArrayList<TerminalCommandCompletionStatsSnapshot>()
         val recorder =
@@ -174,9 +202,8 @@ class StandaloneCompletionFeedbackRecorderTest {
                     kind = SwingShellSuggestionFeedbackKind.ACCEPTED,
                     commandText = "echo \uD83D\uDE02",
                     replacementText = "ok",
-                    replacementStartOffset = -1,
-                    replacementEndOffset = -1,
-                    deleteCount = 1,
+                    replacementStartOffset = 5,
+                    replacementEndOffset = "echo \uD83D\uDE02".length,
                     suggestionKind = TerminalCompletionCandidateKind.ARGUMENT,
                 ),
             profileId = "bash",
@@ -195,7 +222,7 @@ class StandaloneCompletionFeedbackRecorderTest {
     }
 
     @Test
-    fun `default delete feedback with malformed cursor is ignored`() {
+    fun `explicit Unicode range with malformed cursor is ignored`() {
         val source = TerminalCompletionSources.commandStats()
         var persistCount = 0
         val recorder =
@@ -210,9 +237,8 @@ class StandaloneCompletionFeedbackRecorderTest {
                     kind = SwingShellSuggestionFeedbackKind.ACCEPTED,
                     commandText = "echo \uD83D\uDE02",
                     replacementText = "ok",
-                    replacementStartOffset = -1,
-                    replacementEndOffset = -1,
-                    deleteCount = 1,
+                    replacementStartOffset = 5,
+                    replacementEndOffset = "echo \uD83D\uDE02".length,
                     cursorOffset = 6,
                     suggestionKind = TerminalCompletionCandidateKind.ARGUMENT,
                 ),
@@ -285,21 +311,20 @@ class StandaloneCompletionFeedbackRecorderTest {
         replacementText: String,
         replacementStartOffset: Int,
         replacementEndOffset: Int,
-        deleteCount: Int = -1,
         cursorOffset: Int = commandText.length,
         source: String = "spec",
         suggestionKind: TerminalCompletionCandidateKind = TerminalCompletionCandidateKind.SUBCOMMAND,
+        suggestionKindName: String = suggestionKind.name,
     ): SwingShellSuggestionFeedback =
         SwingShellSuggestionFeedback(
             kind = kind,
             suggestion =
                 SwingShellSuggestion(
                     replacementText = replacementText,
-                    source = source,
-                    kind = suggestionKind.name,
-                    deleteCount = deleteCount,
                     replacementStartOffset = replacementStartOffset,
                     replacementEndOffset = replacementEndOffset,
+                    source = source,
+                    kind = suggestionKindName,
                 ),
             index = 0,
             request =

@@ -101,9 +101,7 @@ internal class StandaloneCompletionFeedbackRecorder(
             val candidateKind =
                 runCatching {
                     TerminalCompletionCandidateKind.valueOf(suggestion.kind)
-                }.getOrElse {
-                    TerminalCompletionCandidateKind.ARGUMENT
-                }
+                }.getOrElse { return null }
             return TerminalCompletionFeedbackContext(
                 source = source,
                 candidateKind = candidateKind,

@@ -15,10 +15,7 @@
  */
 package io.github.ketraterm.app.completion
 
-import io.github.ketraterm.completion.api.TerminalCompletionCandidate
-import io.github.ketraterm.completion.api.TerminalCompletionEngines
-import io.github.ketraterm.completion.api.TerminalCompletionRequest
-import io.github.ketraterm.completion.api.TerminalCompletionSources
+import io.github.ketraterm.completion.api.*
 import io.github.ketraterm.completion.model.TerminalCommandSpec
 import io.github.ketraterm.completion.model.TerminalOptionSpec
 import io.github.ketraterm.ui.swing.suggestion.SwingShellSuggestionRequest
@@ -36,8 +33,8 @@ class StandaloneCompletionSuggestionProviderTest {
         assertEquals(listOf("commit", "checkout"), suggestions.map { it.replacementText })
         assertEquals(listOf(4, 4), suggestions.map { it.replacementStartOffset })
         assertEquals(listOf(5, 5), suggestions.map { it.replacementEndOffset })
-        assertEquals(listOf(-1, -1), suggestions.map { it.deleteCount })
         assertEquals(listOf("spec", "spec"), suggestions.map { it.source })
+        assertEquals(listOf("SUBCOMMAND", "SUBCOMMAND"), suggestions.map { it.kind })
     }
 
     @Test
@@ -50,7 +47,8 @@ class StandaloneCompletionSuggestionProviderTest {
         assertEquals("checkout", suggestion.replacementText)
         assertEquals(4, suggestion.replacementStartOffset)
         assertEquals(7, suggestion.replacementEndOffset)
-        assertEquals(-1, suggestion.deleteCount)
+        assertEquals("spec", suggestion.source)
+        assertEquals("SUBCOMMAND", suggestion.kind)
     }
 
     @Test
@@ -77,6 +75,8 @@ class StandaloneCompletionSuggestionProviderTest {
                             replacementText = "git status",
                             replacementStartOffset = 0,
                             replacementEndOffset = request.commandLine.length,
+                            source = "test",
+                            kind = TerminalCompletionCandidateKind.COMMAND,
                         ),
                     )
                 },

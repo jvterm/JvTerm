@@ -87,8 +87,8 @@ class SwingShellSuggestionControllerTest {
     fun `enter accepts selected suggestion hides popup and notifies host`() {
         val host = RecordingSuggestionHost()
         val controller = SwingShellSuggestionController(host)
-        val items = suggestions(2)
         val request = request(commandText = "git sw", cursorOffset = 6)
+        val items = suggestions(2, endOffset = request.commandText.length)
         controller.show(request, items, selectedIndex = 1)
         val enter = keyPressed(KeyEvent.VK_ENTER)
 
@@ -134,13 +134,20 @@ class SwingShellSuggestionControllerTest {
         assertFalse(controller.state().visible)
     }
 
-    private fun suggestions(count: Int): List<SwingShellSuggestion> =
+    private fun suggestions(
+        count: Int,
+        startOffset: Int = 0,
+        endOffset: Int = 0,
+    ): List<SwingShellSuggestion> =
         List(count) { index ->
             SwingShellSuggestion(
                 replacementText = "command-$index",
+                replacementStartOffset = startOffset,
+                replacementEndOffset = endOffset,
+                source = "test",
+                kind = "COMMAND",
                 displayText = "command-$index",
                 detail = "detail-$index",
-                source = "test",
             )
         }
 

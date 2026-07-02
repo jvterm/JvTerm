@@ -15,132 +15,160 @@
  */
 package io.github.ketraterm.ui.swing.suggestion
 
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 
 class SwingShellSuggestionReplacementTest {
     @Test
-    fun `explicit replacement range returns validated exclusive range`() {
-        val suggestion =
-            SwingShellSuggestion(
-                replacementText = "status",
-                replacementStartOffset = 4,
-                replacementEndOffset = 5,
-            )
-
-        val range = suggestion.explicitReplacementRangeFor(request("git s"))!!
-
-        assertTrue(suggestion.hasExplicitReplacementRange())
-        assertEquals(4, range.startOffset)
-        assertEquals(5, range.endOffset)
+    fun `constructor rejects invalid suggestion contract fields`() {
+        assertFailsWith<IllegalArgumentException> {
+            suggestion(replacementText = "")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            suggestion(startOffset = -1)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            suggestion(startOffset = 5, endOffset = 4)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            suggestion(source = " ")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            suggestion(kind = "")
+        }
     }
 
     @Test
-    fun `explicit replacement plan includes command text projection and edit counts`() {
+    fun `replacement plan includes command text projection and edit counts`() {
         val suggestion =
-            SwingShellSuggestion(
+            suggestion(
                 replacementText = "checkout",
-                replacementStartOffset = 4,
-                replacementEndOffset = 7,
+                startOffset = 4,
+                endOffset = 7,
             )
 
-        val replacement = suggestion.replacementFor(request("git che", cursorOffset = 6))!!
+        val request = request("git che", cursorOffset = 6)
+        val replacement = suggestion.replacementFor(request)!!
 
         assertEquals(4, replacement.startOffset)
         assertEquals(7, replacement.endOffset)
         assertEquals(2, replacement.deleteBeforeCursorCount)
         assertEquals(1, replacement.deleteAfterCursorCount)
-        assertEquals("git checkout", suggestion.commandTextAfterReplacement(request("git che", cursorOffset = 6)))
+        assertEquals("git checkout", suggestion.commandTextAfterReplacement(request))
     }
 
     @Test
-    fun `missing explicit replacement range returns null`() {
-        val suggestion = SwingShellSuggestion("git status")
-
-        assertFalse(suggestion.hasExplicitReplacementRange())
-        assertNull(suggestion.explicitReplacementRangeFor(request("git s")))
-    }
-
-    @Test
-    fun `default replacement plan replaces whole prefix before cursor`() {
-        val suggestion = SwingShellSuggestion("git status")
-
-        val replacement = suggestion.replacementFor(request("git s"))!!
-
-        assertEquals(0, replacement.startOffset)
-        assertEquals(5, replacement.endOffset)
-        assertEquals(5, replacement.deleteBeforeCursorCount)
-        assertEquals(0, replacement.deleteAfterCursorCount)
-        assertEquals("git status", suggestion.commandTextAfterReplacement(request("git s")))
-    }
-
-    @Test
-    fun `default replacement plan applies delete count by grapheme clusters`() {
-        val suggestion = SwingShellSuggestion("ok", deleteCount = 1)
-
-        val replacement = suggestion.replacementFor(request("echo \uD83D\uDE02"))!!
-
-        assertEquals(5, replacement.startOffset)
-        assertEquals(7, replacement.endOffset)
-        assertEquals(1, replacement.deleteBeforeCursorCount)
-        assertEquals("echo ok", suggestion.commandTextAfterReplacement(request("echo \uD83D\uDE02")))
-    }
-
-    @Test
-    fun `default replacement caps delete count to available prefix clusters`() {
-        val suggestion = SwingShellSuggestion("status", deleteCount = 99)
-
-        val replacement = suggestion.replacementFor(request("git s"))!!
-
-        assertEquals(0, replacement.startOffset)
-        assertEquals(5, replacement.deleteBeforeCursorCount)
-        assertEquals("status", suggestion.commandTextAfterReplacement(request("git s")))
-    }
-
-    @Test
-    fun `explicit replacement range must contain cursor`() {
-        val suggestion =
-            SwingShellSuggestion(
-                replacementText = "checkout",
-                replacementStartOffset = 4,
-                replacementEndOffset = 7,
-            )
-
-        assertNull(suggestion.explicitReplacementRangeFor(request("git checkout", cursorOffset = 12)))
-        assertNull(suggestion.explicitReplacementRangeFor(request("git checkout", cursorOffset = 3)))
-    }
-
-    @Test
-    fun `explicit replacement range rejects offsets outside command text`() {
-        val suggestion =
-            SwingShellSuggestion(
-                replacementText = "status",
-                replacementStartOffset = 4,
-                replacementEndOffset = 99,
-            )
-
-        assertNull(suggestion.explicitReplacementRangeFor(request("git s")))
-    }
-
-    @Test
-    fun `explicit replacement range rejects surrogate pair splits`() {
+    fun `replacement plan deletes surrogate pairs by grapheme cluster`() {
         val commandText = "echo \uD83D\uDE02"
         val suggestion =
-            SwingShellSuggestion(
-                replacementText = "emoji",
-                replacementStartOffset = 5,
-                replacementEndOffset = 7,
+            suggestion(
+                replacementText = "ok",
+                startOffset = 5,
+                endOffset = commandText.length,
+                kind = "ARGUMENT",
             )
 
-        assertNull(suggestion.explicitReplacementRangeFor(request(commandText, cursorOffset = 6)))
+        val replacement = suggestion.replacementFor(request(commandText))!!
+
+        assertEquals(1, replacement.deleteBeforeCursorCount)
+        assertEquals(0, replacement.deleteAfterCursorCount)
+        assertEquals("echo ok", suggestion.commandTextAfterReplacement(request(commandText)))
     }
 
     @Test
-    fun `default replacement rejects cursor that splits surrogate pair`() {
-        val suggestion = SwingShellSuggestion("emoji")
+    fun `replacement plan deletes combining accents by grapheme cluster`() {
+        val commandText = "echo e\u0301"
+        val suggestion =
+            suggestion(
+                replacementText = "ok",
+                startOffset = 5,
+                endOffset = commandText.length,
+                kind = "ARGUMENT",
+            )
 
-        assertNull(suggestion.replacementFor(request("echo \uD83D\uDE02", cursorOffset = 6)))
-        assertNull(suggestion.commandTextAfterReplacement(request("echo \uD83D\uDE02", cursorOffset = 6)))
+        val replacement = suggestion.replacementFor(request(commandText))!!
+
+        assertEquals(1, replacement.deleteBeforeCursorCount)
+        assertEquals("echo ok", suggestion.commandTextAfterReplacement(request(commandText)))
     }
+
+    @Test
+    fun `replacement range must contain cursor`() {
+        val suggestion =
+            suggestion(
+                replacementText = "checkout",
+                startOffset = 4,
+                endOffset = 7,
+            )
+
+        assertNull(suggestion.replacementFor(request("git checkout", cursorOffset = 12)))
+        assertNull(suggestion.replacementFor(request("git checkout", cursorOffset = 3)))
+        assertNull(suggestion.commandTextAfterReplacement(request("git checkout", cursorOffset = 12)))
+    }
+
+    @Test
+    fun `replacement range rejects offsets outside command text`() {
+        val suggestion =
+            suggestion(
+                replacementText = "status",
+                startOffset = 4,
+                endOffset = 99,
+            )
+
+        assertNull(suggestion.replacementFor(request("git s")))
+        assertNull(suggestion.commandTextAfterReplacement(request("git s")))
+    }
+
+    @Test
+    fun `replacement range rejects surrogate pair splits`() {
+        val commandText = "echo \uD83D\uDE02"
+        val startSplit =
+            suggestion(
+                replacementText = "emoji",
+                startOffset = 6,
+                endOffset = commandText.length,
+            )
+        val endSplit =
+            suggestion(
+                replacementText = "emoji",
+                startOffset = 5,
+                endOffset = 6,
+            )
+
+        assertNull(startSplit.replacementFor(request(commandText)))
+        assertNull(endSplit.replacementFor(request(commandText, cursorOffset = 5)))
+    }
+
+    @Test
+    fun `replacement rejects request cursor that splits surrogate pair`() {
+        val commandText = "echo \uD83D\uDE02"
+        val suggestion =
+            suggestion(
+                replacementText = "emoji",
+                startOffset = 5,
+                endOffset = commandText.length,
+            )
+
+        assertNull(suggestion.replacementFor(request(commandText, cursorOffset = 6)))
+        assertNull(suggestion.commandTextAfterReplacement(request(commandText, cursorOffset = 6)))
+    }
+
+    private fun suggestion(
+        replacementText: String = "status",
+        startOffset: Int = 4,
+        endOffset: Int = 5,
+        source: String = "spec",
+        kind: String = "SUBCOMMAND",
+    ): SwingShellSuggestion =
+        SwingShellSuggestion(
+            replacementText = replacementText,
+            replacementStartOffset = startOffset,
+            replacementEndOffset = endOffset,
+            source = source,
+            kind = kind,
+        )
 
     private fun request(
         commandText: String,

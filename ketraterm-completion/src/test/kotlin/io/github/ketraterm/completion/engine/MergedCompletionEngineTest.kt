@@ -132,15 +132,17 @@ class MergedCompletionEngineTest {
         display: String = replacement,
         detail: String = "",
         source: String = "test",
+        kind: TerminalCompletionCandidateKind = TerminalCompletionCandidateKind.ARGUMENT,
         score: Int = 0,
     ): TerminalCompletionCandidate =
         TerminalCompletionCandidate(
             replacementText = replacement,
             replacementStartOffset = start,
             replacementEndOffset = end,
+            source = source,
+            kind = kind,
             displayText = display,
             detail = detail,
-            source = source,
             score = score,
         )
 

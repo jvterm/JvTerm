@@ -48,10 +48,10 @@ enum class TerminalCompletionCandidateKind {
  * the original request command line.
  * @property replacementEndOffset exclusive UTF-16 replacement end offset in the
  * original request command line.
- * @property displayText primary text shown in suggestion UI.
- * @property detail optional secondary text explaining the candidate.
  * @property source compact source label, such as `spec`, `mru`, or `history`.
  * @property kind semantic candidate category.
+ * @property displayText primary text shown in suggestion UI.
+ * @property detail optional secondary text explaining the candidate.
  * @property score deterministic ranking score; larger values are better.
  */
 data class TerminalCompletionCandidate
@@ -60,15 +60,16 @@ data class TerminalCompletionCandidate
         val replacementText: String,
         val replacementStartOffset: Int,
         val replacementEndOffset: Int,
+        val source: String,
+        val kind: TerminalCompletionCandidateKind,
         val displayText: String = replacementText,
         val detail: String = "",
-        val source: String = "",
-        val kind: TerminalCompletionCandidateKind = TerminalCompletionCandidateKind.ARGUMENT,
         val score: Int = 0,
     ) {
         init {
             require(replacementText.isNotEmpty()) { "replacementText must not be empty" }
             require(displayText.isNotEmpty()) { "displayText must not be empty" }
+            require(source.isNotBlank()) { "source must not be blank" }
             require(replacementStartOffset >= 0) {
                 "replacementStartOffset must be >= 0, was $replacementStartOffset"
             }

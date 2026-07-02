@@ -23,8 +23,8 @@ import io.github.ketraterm.completion.model.TerminalCommandCompletionStatsSnapsh
  * Exact command rows can contain raw command text, and shape rows can still
  * expose sensitive executable, subcommand, or option vocabulary. Those rows are
  * filtered through [CommandPersistencePrivacyPolicy]. Feedback rows are kept by
- * contract because they contain provider/source metadata and replacement range
- * counters, not raw command arguments.
+ * contract because they contain provider/source metadata and UX counters, not
+ * raw command arguments.
  */
 internal object CommandCompletionStatsSanitizer {
     /**
