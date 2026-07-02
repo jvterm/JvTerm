@@ -13,9 +13,20 @@ External modules should import only:
 - `io.github.ketraterm.completion.model`
 
 The `api` package exposes host-facing engines, source factories, request and
-candidate contracts, and mutable learning-source interfaces. The `model` package
-contains durable public data models that hosts may persist or construct, such as
-command specs and compact completion-learning snapshots.
+candidate contracts, and mutable learning-source interfaces.
+
+The `model` package contains durable public data models that hosts may persist
+or construct:
+
+- `TerminalCommandSpec` and `TerminalOptionSpec`
+- `TerminalCommandSpecs`
+- `TerminalCommandCompletionStats`
+- `TerminalCommandShapeStats` and `TerminalCommandLineShape`
+- `TerminalCompletionFeedbackStats` and feedback vocabulary
+- `TerminalCommandCompletionStatsSnapshot`
+
+Types used only to tokenize, classify, rank, merge, or index suggestions belong
+in implementation packages and must stay `internal`.
 
 ## Internal Implementation
 

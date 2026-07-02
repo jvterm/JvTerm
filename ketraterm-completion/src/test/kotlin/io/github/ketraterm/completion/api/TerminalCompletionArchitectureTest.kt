@@ -43,13 +43,18 @@ internal class TerminalCompletionArchitectureTest {
                 file
                     .readSourceLines()
                     .mapIndexedNotNull { index, line ->
-                        if (line.startsWith("internal ")) "${file.relativeToRepository()}:${index + 1}: $line" else null
+                        when {
+                            line.startsWith("internal ") -> "${file.relativeToRepository()}:${index + 1}: $line"
+                            PUBLIC_TOP_LEVEL_DECLARATION.matches(line) && line.declaredName() !in PUBLIC_MODEL_DECLARATIONS ->
+                                "${file.relativeToRepository()}:${index + 1}: $line"
+                            else -> null
+                        }
                     }
             }
 
         assertTrue(
             actual = violations.isEmpty(),
-            message = violations.joinToString(prefix = "Internal implementation types do not belong in model:\n", separator = "\n"),
+            message = violations.joinToString(prefix = "Only durable public contracts belong in model:\n", separator = "\n"),
         )
     }
 
@@ -102,6 +107,12 @@ internal class TerminalCompletionArchitectureTest {
             .relativize(this)
             .invariantSeparatorsPathString
 
+    private fun String.declaredName(): String? =
+        PUBLIC_TOP_LEVEL_DECLARATION
+            .find(this)
+            ?.groupValues
+            ?.get(2)
+
     private companion object {
         private val workingDirectory: Path = Paths.get("").toAbsolutePath()
         private val repositoryRoot: Path =
@@ -129,9 +140,23 @@ internal class TerminalCompletionArchitectureTest {
                 "ketraterm-ui-swing",
                 "ketraterm-workspace",
             )
+        private val PUBLIC_MODEL_DECLARATIONS =
+            setOf(
+                "TerminalCommandCompletionStats",
+                "TerminalCommandCompletionStatsSnapshot",
+                "TerminalCommandLineShape",
+                "TerminalCommandShapeStats",
+                "TerminalCommandSpec",
+                "TerminalCommandSpecs",
+                "TerminalCompletionFeedbackContext",
+                "TerminalCompletionFeedbackKind",
+                "TerminalCompletionFeedbackStats",
+                "TerminalCompletionTokenPosition",
+                "TerminalOptionSpec",
+            )
 
         private val PUBLIC_TOP_LEVEL_DECLARATION =
-            Regex("""^(class|data class|enum class|fun|fun interface|interface|object|sealed interface)\s+.*""")
+            Regex("""^(class|data class|enum class|fun|fun interface|interface|object|sealed interface)\s+([A-Za-z0-9_]+).*""")
         private val IMPLEMENTATION_IMPORT =
             Regex("""import io\.github\.ketraterm\.completion\.(commandline|engine|internal|ranking|source|spec|stats)(\.|$).*""")
     }

@@ -19,7 +19,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class TerminalCompletionModelsTest {
+class TerminalCompletionRequestTest {
     @Test
     fun `request accepts cursor at UTF-16 scalar boundaries`() {
         val request = TerminalCompletionRequest(commandLine = "a\uD83D\uDE02", cursorOffset = 3)
