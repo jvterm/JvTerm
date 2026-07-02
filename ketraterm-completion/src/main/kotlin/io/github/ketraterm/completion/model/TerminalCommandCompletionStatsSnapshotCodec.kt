@@ -13,27 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.ketraterm.app.history
+package io.github.ketraterm.completion.model
 
 import io.github.ketraterm.completion.api.TerminalCompletionCandidateKind
-import io.github.ketraterm.completion.model.*
 import java.nio.charset.StandardCharsets
 import java.util.*
 
 /**
- * Pure encoder/decoder for the compact command-completion stats file format.
+ * Pure line codec for compact command-completion stats snapshots.
  *
- * The codec performs no filesystem I/O, scheduling, or privacy filtering. It
- * accepts a complete line sequence and independently skips malformed rows so a
- * damaged persisted entry cannot discard otherwise usable ranking metadata.
+ * The codec performs no filesystem I/O, scheduling, locking, or privacy
+ * filtering. Hosts own where snapshots are stored and which rows are safe to
+ * persist; this object owns only the stable text representation of the public
+ * stats models. Malformed rows are skipped independently so one damaged entry
+ * cannot discard the rest of a persisted snapshot.
  */
-internal object CommandCompletionStatsCodec {
+object TerminalCommandCompletionStatsSnapshotCodec {
     /**
      * Encodes [snapshot] as versioned tab-separated lines.
      *
      * @param snapshot aggregate completion statistics to persist.
      * @return header plus row lines ready to write as UTF-8 text.
      */
+    @JvmStatic
     fun encode(snapshot: TerminalCommandCompletionStatsSnapshot): List<String> =
         buildList(1 + snapshot.commandStats.size + snapshot.shapeStats.size + snapshot.feedbackStats.size) {
             add(COMMAND_COMPLETION_STATS_HEADER)
@@ -51,6 +53,7 @@ internal object CommandCompletionStatsCodec {
      * @param lines complete file lines.
      * @return decoded stats snapshot, or an empty snapshot when the header is unknown.
      */
+    @JvmStatic
     fun decode(lines: List<String>): TerminalCommandCompletionStatsSnapshot {
         if (lines.firstOrNull() != COMMAND_COMPLETION_STATS_HEADER) {
             return TerminalCommandCompletionStatsSnapshot()

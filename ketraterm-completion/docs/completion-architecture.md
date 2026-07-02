@@ -24,6 +24,7 @@ or construct:
 - `TerminalCommandShapeStats` and `TerminalCommandLineShape`
 - `TerminalCompletionFeedbackStats` and feedback vocabulary
 - `TerminalCommandCompletionStatsSnapshot`
+- `TerminalCommandCompletionStatsSnapshotCodec`
 
 Types used only to tokenize, classify, rank, merge, or index suggestions belong
 in implementation packages and must stay `internal`.

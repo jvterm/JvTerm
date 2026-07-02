@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.ketraterm.app.history
+package io.github.ketraterm.completion.model
 
 import io.github.ketraterm.completion.api.TerminalCompletionCandidateKind
-import io.github.ketraterm.completion.model.*
 import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.test.Test
@@ -24,7 +23,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-class CommandCompletionStatsCodecTest {
+class TerminalCommandCompletionStatsSnapshotCodecTest {
     @Test
     fun `round trips command shape and feedback stats with unicode text`() {
         val commandRecord =
@@ -66,18 +65,18 @@ class CommandCompletionStatsCodecTest {
                 feedbackStats = listOf(feedbackRecord),
             )
 
-        val lines = CommandCompletionStatsCodec.encode(snapshot)
+        val lines = TerminalCommandCompletionStatsSnapshotCodec.encode(snapshot)
 
         assertEquals("KetraTerm_COMMAND_COMPLETION_STATS\t1", lines.first())
         assertFalse(lines.joinToString("\n").contains(commandRecord.commandLine))
-        assertEquals(snapshot, CommandCompletionStatsCodec.decode(lines))
+        assertEquals(snapshot, TerminalCommandCompletionStatsSnapshotCodec.decode(lines))
     }
 
     @Test
     fun `unknown header returns empty snapshot`() {
         val lines = listOf("KetraTerm_COMMAND_COMPLETION_STATS\t999", commandRow(commandStats("git status", "git status")))
 
-        assertEquals(TerminalCommandCompletionStatsSnapshot(), CommandCompletionStatsCodec.decode(lines))
+        assertEquals(TerminalCommandCompletionStatsSnapshot(), TerminalCommandCompletionStatsSnapshotCodec.decode(lines))
     }
 
     @Test
@@ -91,7 +90,10 @@ class CommandCompletionStatsCodecTest {
                 commandRow(valid),
             )
 
-        assertEquals(TerminalCommandCompletionStatsSnapshot(commandStats = listOf(valid)), CommandCompletionStatsCodec.decode(lines))
+        assertEquals(
+            TerminalCommandCompletionStatsSnapshot(commandStats = listOf(valid)),
+            TerminalCommandCompletionStatsSnapshotCodec.decode(lines),
+        )
     }
 
     @Test
@@ -113,7 +115,10 @@ class CommandCompletionStatsCodecTest {
             ).joinToString("\t")
         val lines = listOf("KetraTerm_COMMAND_COMPLETION_STATS\t1", invalidBase64, commandRow(valid))
 
-        assertEquals(TerminalCommandCompletionStatsSnapshot(commandStats = listOf(valid)), CommandCompletionStatsCodec.decode(lines))
+        assertEquals(
+            TerminalCommandCompletionStatsSnapshot(commandStats = listOf(valid)),
+            TerminalCommandCompletionStatsSnapshotCodec.decode(lines),
+        )
     }
 
     @Test
@@ -131,11 +136,14 @@ class CommandCompletionStatsCodecTest {
                 "KetraTerm_COMMAND_COMPLETION_STATS\t1",
                 invalidNegativeCounterCommandRow(),
                 malformedFeedbackRow(),
-            ) + CommandCompletionStatsCodec.encode(TerminalCommandCompletionStatsSnapshot(feedbackStats = listOf(feedbackRecord))).drop(1)
+            ) +
+                TerminalCommandCompletionStatsSnapshotCodec
+                    .encode(TerminalCommandCompletionStatsSnapshot(feedbackStats = listOf(feedbackRecord)))
+                    .drop(1)
 
         assertEquals(
             TerminalCommandCompletionStatsSnapshot(feedbackStats = listOf(feedbackRecord)),
-            CommandCompletionStatsCodec.decode(lines),
+            TerminalCommandCompletionStatsSnapshotCodec.decode(lines),
         )
     }
 
@@ -147,10 +155,16 @@ class CommandCompletionStatsCodecTest {
                 lastUsedEpochMillis = 200,
             )
 
-        val lines = CommandCompletionStatsCodec.encode(TerminalCommandCompletionStatsSnapshot(shapeStats = listOf(shapeRecord)))
+        val lines =
+            TerminalCommandCompletionStatsSnapshotCodec.encode(
+                TerminalCommandCompletionStatsSnapshot(shapeStats = listOf(shapeRecord)),
+            )
 
         assertTrue(lines.none { it.contains("secret-branch") })
-        assertEquals(TerminalCommandCompletionStatsSnapshot(shapeStats = listOf(shapeRecord)), CommandCompletionStatsCodec.decode(lines))
+        assertEquals(
+            TerminalCommandCompletionStatsSnapshot(shapeStats = listOf(shapeRecord)),
+            TerminalCommandCompletionStatsSnapshotCodec.decode(lines),
+        )
     }
 
     private fun commandStats(

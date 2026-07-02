@@ -18,34 +18,6 @@ package io.github.ketraterm.completion.api
 import io.github.ketraterm.completion.model.*
 
 /**
- * Mutable session-local completion source for commands observed in one live
- * terminal session.
- *
- * Hosts own the command lifecycle signal and feed this source only with trusted
- * successful commands. Implementations are in-memory, bounded, thread-safe, and
- * perform no persistence or shell I/O.
- */
-interface TerminalSessionMruCompletionSource : TerminalCompletionSource {
-    /**
-     * Records one successful command for future session MRU suggestions.
-     *
-     * @param commandLine command line as executed by the shell.
-     * @param profileId optional host profile id associated with the command.
-     * @param workingDirectoryUri optional current-working-directory URI at command start.
-     */
-    fun recordSuccessfulCommand(
-        commandLine: String,
-        profileId: String? = null,
-        workingDirectoryUri: String? = null,
-    )
-
-    /**
-     * Removes all retained session MRU commands.
-     */
-    fun clear()
-}
-
-/**
  * Mutable completion source backed by compact aggregated command statistics.
  *
  * This is the public host-facing learning contract. Hosts may load and persist

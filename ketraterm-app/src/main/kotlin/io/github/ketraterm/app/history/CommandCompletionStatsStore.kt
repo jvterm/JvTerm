@@ -17,6 +17,7 @@ package io.github.ketraterm.app.history
 
 import io.github.ketraterm.completion.model.TerminalCommandCompletionStats
 import io.github.ketraterm.completion.model.TerminalCommandCompletionStatsSnapshot
+import io.github.ketraterm.completion.model.TerminalCommandCompletionStatsSnapshotCodec
 import java.nio.charset.StandardCharsets
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
@@ -59,7 +60,7 @@ internal class CommandCompletionStatsStore(
         if (!Files.isRegularFile(path)) return TerminalCommandCompletionStatsSnapshot()
         return runCatching {
             val lines = Files.readAllLines(path, StandardCharsets.UTF_8)
-            CommandCompletionStatsSanitizer.sanitize(CommandCompletionStatsCodec.decode(lines))
+            CommandCompletionStatsSanitizer.sanitize(TerminalCommandCompletionStatsSnapshotCodec.decode(lines))
         }.onFailure { exception ->
             System.err.println("Failed to load command completion stats from $path: ${exception.message}")
         }.getOrElse { TerminalCommandCompletionStatsSnapshot() }
@@ -100,7 +101,7 @@ internal class CommandCompletionStatsStore(
             path.parent?.let(Files::createDirectories)
             val temporary = path.resolveSibling("${path.fileName}.tmp")
             Files.newBufferedWriter(temporary, StandardCharsets.UTF_8).use { writer ->
-                for (line in CommandCompletionStatsCodec.encode(snapshot)) {
+                for (line in TerminalCommandCompletionStatsSnapshotCodec.encode(snapshot)) {
                     writer.appendLine(line)
                 }
             }

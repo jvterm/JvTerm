@@ -144,6 +144,7 @@ internal class TerminalCompletionArchitectureTest {
             setOf(
                 "TerminalCommandCompletionStats",
                 "TerminalCommandCompletionStatsSnapshot",
+                "TerminalCommandCompletionStatsSnapshotCodec",
                 "TerminalCommandLineShape",
                 "TerminalCommandShapeStats",
                 "TerminalCommandSpec",
