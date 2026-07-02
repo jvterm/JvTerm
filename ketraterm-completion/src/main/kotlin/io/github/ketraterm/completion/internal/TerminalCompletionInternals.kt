@@ -51,6 +51,8 @@ internal val TERMINAL_COMPLETION_FEEDBACK_STATS_ORDER: Comparator<TerminalComple
 internal fun isRecordableTerminalCompletionCommand(commandLine: String): Boolean =
     commandLine.isNotBlank() && !commandLine.hasTerminalCompletionLineBreak()
 
+internal fun normalizeTerminalCommandLine(commandLine: String): String = commandLine.trim().lowercase()
+
 internal fun String.hasTerminalCompletionLineBreak(): Boolean = indexOf('\n') >= 0 || indexOf('\r') >= 0
 
 /**

@@ -16,6 +16,7 @@
 package io.github.ketraterm.completion.model
 
 import io.github.ketraterm.completion.api.TerminalCompletionSources
+import io.github.ketraterm.completion.commandline.GenericCommandLineShapeClassifier
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -24,7 +25,7 @@ import kotlin.test.assertNull
 class TerminalCommandShapeStatsTest {
     @Test
     fun `shape extracts executable subcommand options and private argument counts`() {
-        val shape = TerminalCommandLineShape.fromCommandLine("git log --stat --author Alice main")!!
+        val shape = GenericCommandLineShapeClassifier.classify("git log --stat --author Alice main")!!
 
         assertEquals("git", shape.executable)
         assertEquals(listOf("log"), shape.subcommands)
@@ -37,7 +38,7 @@ class TerminalCommandShapeStatsTest {
 
     @Test
     fun `shape skips environment assignments before executable`() {
-        val shape = TerminalCommandLineShape.fromCommandLine("NODE_ENV=test npm run build -- --watch")!!
+        val shape = GenericCommandLineShapeClassifier.classify("NODE_ENV=test npm run build -- --watch")!!
 
         assertEquals("npm", shape.executable)
         assertEquals(listOf("run"), shape.subcommands)
@@ -49,9 +50,9 @@ class TerminalCommandShapeStatsTest {
 
     @Test
     fun `shape rejects blank multiline and assignment only commands`() {
-        assertNull(TerminalCommandLineShape.fromCommandLine("   "))
-        assertNull(TerminalCommandLineShape.fromCommandLine("git status\ngit log"))
-        assertNull(TerminalCommandLineShape.fromCommandLine("FOO=bar"))
+        assertNull(GenericCommandLineShapeClassifier.classify("   "))
+        assertNull(GenericCommandLineShapeClassifier.classify("git status\ngit log"))
+        assertNull(GenericCommandLineShapeClassifier.classify("FOO=bar"))
     }
 
     @Test
@@ -130,7 +131,7 @@ class TerminalCommandShapeStatsTest {
     @Test
     fun `replace shape stats deduplicates by shape profile and directory`() {
         val source = TerminalCompletionSources.commandStats()
-        val shape = TerminalCommandLineShape.fromCommandLine("git status")!!
+        val shape = GenericCommandLineShapeClassifier.classify("git status")!!
 
         source.replaceShapeStats(
             listOf(

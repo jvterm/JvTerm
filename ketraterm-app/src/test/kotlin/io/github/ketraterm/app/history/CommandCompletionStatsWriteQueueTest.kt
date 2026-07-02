@@ -106,7 +106,6 @@ class CommandCompletionStatsWriteQueueTest {
                 listOf(
                     TerminalCommandCompletionStats(
                         commandLine = commandLine,
-                        normalizedCommandLine = TerminalCommandCompletionStats.normalizeCommandLine(commandLine),
                         useCount = 1,
                         successCount = 1,
                         lastUsedEpochMillis = 1,

@@ -15,7 +15,6 @@
  */
 package io.github.ketraterm.completion.model
 
-import io.github.ketraterm.completion.commandline.GenericCommandLineShapeClassifier
 import io.github.ketraterm.completion.commandline.normalizeTerminalCommandToken
 
 /**
@@ -25,6 +24,8 @@ import io.github.ketraterm.completion.commandline.normalizeTerminalCommandToken
  * positional argument values. This lets ranking learn patterns such as
  * `git switch <arg>` or `git log --stat` without storing branch names, paths,
  * URLs, tokens, or other sensitive argument text as aggregate metadata.
+ * The normalized shape key is derived from these public structural fields so
+ * callers cannot persist a contradictory key containing private argument text.
  *
  * TODO(completion-ranking): Add command-family aggregate stats independent of
  * trailing arguments, for example `git checkout <arg>` and `npm run <arg>`,
@@ -39,8 +40,6 @@ import io.github.ketraterm.completion.commandline.normalizeTerminalCommandToken
  * not stored in this model.
  * @property optionValueCount count of value tokens consumed by options that use
  * a separate argument.
- * @property normalizedShapeKey stable lowercase deduplication key for this
- * structural shape.
  */
 data class TerminalCommandLineShape
     @JvmOverloads
@@ -50,14 +49,6 @@ data class TerminalCommandLineShape
         val optionNames: List<String> = emptyList(),
         val positionalArgumentCount: Int = 0,
         val optionValueCount: Int = 0,
-        val normalizedShapeKey: String =
-            normalizedShapeKey(
-                executable = executable,
-                subcommands = subcommands,
-                optionNames = optionNames,
-                positionalArgumentCount = positionalArgumentCount,
-                optionValueCount = optionValueCount,
-            ),
     ) {
         init {
             require(executable.isNotBlank()) { "executable must not be blank" }
@@ -67,52 +58,40 @@ data class TerminalCommandLineShape
                 "positionalArgumentCount must be >= 0, was $positionalArgumentCount"
             }
             require(optionValueCount >= 0) { "optionValueCount must be >= 0, was $optionValueCount" }
-            require(normalizedShapeKey.isNotBlank()) { "normalizedShapeKey must not be blank" }
         }
 
-        companion object {
-            /**
-             * Parses a command line into a privacy-preserving shape.
-             *
-             * Blank, multi-line, assignment-only, and malformed executable
-             * inputs return `null`.
-             *
-             * @param commandLine command text to classify.
-             * @return structural shape, or `null` when no executable is present.
-             */
-            @JvmStatic
-            fun fromCommandLine(commandLine: String): TerminalCommandLineShape? = GenericCommandLineShapeClassifier.classify(commandLine)
+        /**
+         * Derived stable lowercase key for structural deduplication and
+         * persistence. Raw positional argument text is never included, and this
+         * value is not constructor-owned durable state.
+         */
+        val normalizedShapeKey: String =
+            normalizedTerminalCommandShapeKey(
+                executable = executable,
+                subcommands = subcommands,
+                optionNames = optionNames,
+                positionalArgumentCount = positionalArgumentCount,
+                optionValueCount = optionValueCount,
+            )
+    }
 
-            /**
-             * Builds the stable lowercase key for one command-line shape.
-             *
-             * @param executable executable token.
-             * @param subcommands structural subcommand path.
-             * @param optionNames option names present in the command.
-             * @param positionalArgumentCount count of positional values.
-             * @param optionValueCount count of separate option values.
-             * @return stable normalized shape key.
-             */
-            @JvmStatic
-            fun normalizedShapeKey(
-                executable: String,
-                subcommands: List<String>,
-                optionNames: List<String>,
-                positionalArgumentCount: Int,
-                optionValueCount: Int,
-            ): String =
-                buildString {
-                    append(normalizeTerminalCommandToken(executable))
-                    append('|')
-                    append(subcommands.joinToString("/") { normalizeTerminalCommandToken(it) })
-                    append('|')
-                    append(optionNames.map(::normalizeTerminalCommandToken).sorted().joinToString(","))
-                    append("|p=")
-                    append(positionalArgumentCount)
-                    append("|ov=")
-                    append(optionValueCount)
-                }
-        }
+private fun normalizedTerminalCommandShapeKey(
+    executable: String,
+    subcommands: List<String>,
+    optionNames: List<String>,
+    positionalArgumentCount: Int,
+    optionValueCount: Int,
+): String =
+    buildString {
+        append(normalizeTerminalCommandToken(executable))
+        append('|')
+        append(subcommands.joinToString("/") { normalizeTerminalCommandToken(it) })
+        append('|')
+        append(optionNames.map(::normalizeTerminalCommandToken).sorted().joinToString(","))
+        append("|p=")
+        append(positionalArgumentCount)
+        append("|ov=")
+        append(optionValueCount)
     }
 
 /**

@@ -21,8 +21,8 @@ import io.github.ketraterm.completion.api.TerminalCompletionRequest
 import io.github.ketraterm.completion.api.TerminalSessionMruCompletionSource
 import io.github.ketraterm.completion.internal.TERMINAL_COMPLETION_CANDIDATE_ORDER
 import io.github.ketraterm.completion.internal.isRecordableTerminalCompletionCommand
+import io.github.ketraterm.completion.internal.normalizeTerminalCommandLine
 import io.github.ketraterm.completion.internal.saturatedCompletionCounterIncrement
-import io.github.ketraterm.completion.model.TerminalCommandCompletionStats
 
 /**
  * Bounded in-memory MRU source for successful commands observed in one live
@@ -67,7 +67,7 @@ internal class SessionMruCompletionSourceImpl(
         val command = commandLine.trim()
         if (!isRecordableTerminalCompletionCommand(command)) return
 
-        val normalized = TerminalCommandCompletionStats.normalizeCommandLine(command)
+        val normalized = normalizeTerminalCommandLine(command)
         synchronized(lock) {
             val sequence = nextSequenceLocked()
             val index = indexOfNormalizedLocked(normalized)
@@ -107,7 +107,7 @@ internal class SessionMruCompletionSourceImpl(
 
     override fun complete(request: TerminalCompletionRequest): List<TerminalCompletionCandidate> {
         val prefix = request.commandLine.substring(0, request.cursorOffset).trimStart()
-        val normalizedPrefix = TerminalCommandCompletionStats.normalizeCommandLine(prefix)
+        val normalizedPrefix = normalizeTerminalCommandLine(prefix)
         val snapshot =
             synchronized(lock) {
                 entries.toList()

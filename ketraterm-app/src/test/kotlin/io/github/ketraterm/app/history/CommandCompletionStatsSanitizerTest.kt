@@ -113,7 +113,6 @@ class CommandCompletionStatsSanitizerTest {
     private fun commandStats(commandLine: String): TerminalCommandCompletionStats =
         TerminalCommandCompletionStats(
             commandLine = commandLine,
-            normalizedCommandLine = TerminalCommandCompletionStats.normalizeCommandLine(commandLine),
             useCount = 1,
             successCount = 1,
             lastUsedEpochMillis = 100,
@@ -121,7 +120,26 @@ class CommandCompletionStatsSanitizerTest {
 
     private fun shapeStats(commandLine: String): TerminalCommandShapeStats =
         TerminalCommandShapeStats(
-            shape = TerminalCommandLineShape.fromCommandLine(commandLine)!!,
+            shape =
+                when (commandLine) {
+                    "git status" ->
+                        TerminalCommandLineShape(
+                            executable = "git",
+                            subcommands = listOf("status"),
+                        )
+                    "secret-tool list" ->
+                        TerminalCommandLineShape(
+                            executable = "secret-tool",
+                            subcommands = listOf("list"),
+                        )
+                    "curl --authorization bearer" ->
+                        TerminalCommandLineShape(
+                            executable = "curl",
+                            optionNames = listOf("--authorization"),
+                            optionValueCount = 1,
+                        )
+                    else -> error("Unsupported test command: $commandLine")
+                },
             useCount = 1,
             successCount = 1,
             lastUsedEpochMillis = 100,

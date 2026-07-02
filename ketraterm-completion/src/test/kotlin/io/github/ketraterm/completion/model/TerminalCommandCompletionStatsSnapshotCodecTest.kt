@@ -16,6 +16,7 @@
 package io.github.ketraterm.completion.model
 
 import io.github.ketraterm.completion.api.TerminalCompletionCandidateKind
+import io.github.ketraterm.completion.commandline.GenericCommandLineShapeClassifier
 import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.test.Test
@@ -29,13 +30,12 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
         val commandRecord =
             commandStats(
                 commandLine = "echo cafe \uD83D\uDE80",
-                normalizedCommandLine = "echo cafe \uD83D\uDE80",
                 profileId = "pwsh",
                 workingDirectoryUri = "file:///C:/work space",
             )
         val shapeRecord =
             TerminalCommandShapeStats(
-                shape = TerminalCommandLineShape.fromCommandLine("git log --stat main")!!,
+                shape = GenericCommandLineShapeClassifier.classify("git log --stat main")!!,
                 profileId = "bash",
                 workingDirectoryUri = "file:///repo",
                 useCount = 3,
@@ -81,7 +81,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
 
     @Test
     fun `unknown and malformed rows are ignored independently`() {
-        val valid = commandStats("git status", "git status")
+        val valid = commandStats("git status")
         val lines =
             listOf(
                 "KetraTerm_COMMAND_COMPLETION_STATS\t1",
@@ -98,7 +98,7 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
 
     @Test
     fun `invalid base64 row is ignored independently`() {
-        val valid = commandStats("git status", "git status")
+        val valid = commandStats("git status")
         val invalidBase64 =
             listOf(
                 "C",
@@ -148,10 +148,59 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
     }
 
     @Test
+    fun `decode recomputes derived command and shape keys from public fields`() {
+        val commandRowWithStaleKey =
+            listOf(
+                "C",
+                encodeText("Git Status"),
+                encodeText("stale normalized key"),
+                "",
+                "",
+                "1",
+                "1",
+                "0",
+                "0",
+                "0",
+                "100",
+            ).joinToString("\t")
+        val shapeRowWithStaleKey =
+            listOf(
+                "S",
+                encodeText("git"),
+                encodeText("log"),
+                encodeText("--stat"),
+                "1",
+                "0",
+                encodeText("stale|shape|key"),
+                "",
+                "",
+                "1",
+                "1",
+                "0",
+                "0",
+                "0",
+                "100",
+            ).joinToString("\t")
+
+        val decoded =
+            TerminalCommandCompletionStatsSnapshotCodec.decode(
+                listOf("KetraTerm_COMMAND_COMPLETION_STATS\t1", commandRowWithStaleKey, shapeRowWithStaleKey),
+            )
+
+        assertEquals("git status", decoded.commandStats.single().normalizedCommandLine)
+        assertEquals(
+            "git|log|--stat|p=1|ov=0",
+            decoded.shapeStats
+                .single()
+                .shape.normalizedShapeKey,
+        )
+    }
+
+    @Test
     fun `sensitive argument text is not written by shape rows`() {
         val shapeRecord =
             TerminalCommandShapeStats(
-                shape = TerminalCommandLineShape.fromCommandLine("git log --stat secret-branch")!!,
+                shape = GenericCommandLineShapeClassifier.classify("git log --stat secret-branch")!!,
                 lastUsedEpochMillis = 200,
             )
 
@@ -169,13 +218,11 @@ class TerminalCommandCompletionStatsSnapshotCodecTest {
 
     private fun commandStats(
         commandLine: String,
-        normalizedCommandLine: String,
         profileId: String? = "bash",
         workingDirectoryUri: String? = "file:///repo",
     ): TerminalCommandCompletionStats =
         TerminalCommandCompletionStats(
             commandLine = commandLine,
-            normalizedCommandLine = normalizedCommandLine,
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
             useCount = 4,

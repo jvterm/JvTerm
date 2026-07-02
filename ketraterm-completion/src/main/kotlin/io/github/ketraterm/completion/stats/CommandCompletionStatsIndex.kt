@@ -17,6 +17,7 @@ package io.github.ketraterm.completion.stats
 
 import io.github.ketraterm.completion.internal.BoundedStatsRowIndex
 import io.github.ketraterm.completion.internal.TERMINAL_COMMAND_COMPLETION_STATS_ORDER
+import io.github.ketraterm.completion.internal.normalizeTerminalCommandLine
 import io.github.ketraterm.completion.internal.saturatedCompletionCounterIncrement
 import io.github.ketraterm.completion.model.TerminalCommandCompletionStats
 import io.github.ketraterm.completion.model.TerminalCompletionFeedbackKind
@@ -96,13 +97,12 @@ internal class CommandCompletionStatsIndex(
         update: (TerminalCommandCompletionStats, String) -> TerminalCommandCompletionStats,
     ) {
         val canonical = commandLine.trim()
-        val normalized = TerminalCommandCompletionStats.normalizeCommandLine(canonical)
+        val normalized = normalizeTerminalCommandLine(canonical)
         rows.mutate(
             key = CommandCompletionStatsKey(normalized, profileId, workingDirectoryUri),
             initialRow = {
                 TerminalCommandCompletionStats(
                     commandLine = canonical,
-                    normalizedCommandLine = normalized,
                     profileId = profileId,
                     workingDirectoryUri = workingDirectoryUri,
                 )

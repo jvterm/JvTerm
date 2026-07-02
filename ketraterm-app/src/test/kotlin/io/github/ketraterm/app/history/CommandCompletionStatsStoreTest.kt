@@ -34,7 +34,6 @@ class CommandCompletionStatsStoreTest {
         val record =
             stats(
                 commandLine = "echo hello world",
-                normalizedCommandLine = "echo hello world",
                 profileId = "pwsh",
                 workingDirectoryUri = "file:///C:/work space",
                 useCount = 4,
@@ -64,7 +63,13 @@ class CommandCompletionStatsStoreTest {
         val commandLine = "git log --stat secret-branch"
         val shapeRecord =
             TerminalCommandShapeStats(
-                shape = TerminalCommandLineShape.fromCommandLine(commandLine)!!,
+                shape =
+                    TerminalCommandLineShape(
+                        executable = "git",
+                        subcommands = listOf("log"),
+                        optionNames = listOf("--stat"),
+                        positionalArgumentCount = 1,
+                    ),
                 profileId = "bash",
                 workingDirectoryUri = "file:///repo",
                 useCount = 3,
@@ -121,10 +126,9 @@ class CommandCompletionStatsStoreTest {
         @TempDir directory: Path,
     ) {
         val path = directory.resolve("completion-stats.tsv")
-        val safe = stats(commandLine = "git status", normalizedCommandLine = "git status")
-        val privateByWhitespace = stats(commandLine = " export SECRET_TOKEN=123", normalizedCommandLine = "export secret_token=123")
-        val privateByKeyword =
-            stats(commandLine = "docker login --password hunter2", normalizedCommandLine = "docker login --password hunter2")
+        val safe = stats(commandLine = "git status")
+        val privateByWhitespace = stats(commandLine = " export SECRET_TOKEN=123")
+        val privateByKeyword = stats(commandLine = "docker login --password hunter2")
 
         CommandCompletionStatsStore(path).use { store ->
             store.persist(listOf(safe, privateByWhitespace, privateByKeyword))
@@ -144,8 +148,8 @@ class CommandCompletionStatsStoreTest {
         @TempDir directory: Path,
     ) {
         val path = directory.resolve("completion-stats.tsv")
-        val first = stats(commandLine = "git status", normalizedCommandLine = "git status")
-        val second = stats(commandLine = "npm test", normalizedCommandLine = "npm test")
+        val first = stats(commandLine = "git status")
+        val second = stats(commandLine = "npm test")
 
         CommandCompletionStatsStore(path).use { store ->
             store.persist(listOf(first))
@@ -164,7 +168,7 @@ class CommandCompletionStatsStoreTest {
         @TempDir directory: Path,
     ) {
         val path = directory.resolve("completion-stats.tsv")
-        val record = stats(commandLine = "git status", normalizedCommandLine = "git status")
+        val record = stats(commandLine = "git status")
 
         CommandCompletionStatsStore(path).use { store ->
             store.persist(listOf(record))
@@ -180,8 +184,8 @@ class CommandCompletionStatsStoreTest {
         @TempDir directory: Path,
     ) {
         val path = directory.resolve("completion-stats.tsv")
-        val first = stats(commandLine = "git status", normalizedCommandLine = "git status")
-        val afterClose = stats(commandLine = "npm test", normalizedCommandLine = "npm test")
+        val first = stats(commandLine = "git status")
+        val afterClose = stats(commandLine = "npm test")
         val store = CommandCompletionStatsStore(path)
         store.persist(listOf(first))
         store.close()
@@ -196,7 +200,6 @@ class CommandCompletionStatsStoreTest {
 
     private fun stats(
         commandLine: String,
-        normalizedCommandLine: String,
         profileId: String? = null,
         workingDirectoryUri: String? = null,
         useCount: Int = 1,
@@ -208,7 +211,6 @@ class CommandCompletionStatsStoreTest {
     ): TerminalCommandCompletionStats =
         TerminalCommandCompletionStats(
             commandLine = commandLine,
-            normalizedCommandLine = normalizedCommandLine,
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
             useCount = useCount,

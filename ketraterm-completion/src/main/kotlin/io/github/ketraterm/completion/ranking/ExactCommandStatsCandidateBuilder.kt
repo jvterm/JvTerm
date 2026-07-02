@@ -19,6 +19,7 @@ import io.github.ketraterm.completion.api.TerminalCompletionCandidate
 import io.github.ketraterm.completion.api.TerminalCompletionCandidateKind
 import io.github.ketraterm.completion.api.TerminalCompletionRequest
 import io.github.ketraterm.completion.internal.TERMINAL_COMPLETION_CANDIDATE_ORDER
+import io.github.ketraterm.completion.internal.normalizeTerminalCommandLine
 import io.github.ketraterm.completion.model.TerminalCommandCompletionStats
 
 /**
@@ -36,7 +37,7 @@ internal object ExactCommandStatsCandidateBuilder {
         if (snapshot.isEmpty()) return emptyList()
 
         val prefix = request.commandLine.substring(0, request.cursorOffset).trimStart()
-        val normalizedPrefix = TerminalCommandCompletionStats.normalizeCommandLine(prefix)
+        val normalizedPrefix = normalizeTerminalCommandLine(prefix)
         val candidates = ArrayList<TerminalCompletionCandidate>(minOf(snapshot.size, request.maxCandidates))
         for (entry in snapshot) {
             if (!entry.hasPositiveSuggestionSignal()) continue

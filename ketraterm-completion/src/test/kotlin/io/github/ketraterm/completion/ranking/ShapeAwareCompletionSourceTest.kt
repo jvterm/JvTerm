@@ -19,8 +19,8 @@ import io.github.ketraterm.completion.api.TerminalCompletionCandidate
 import io.github.ketraterm.completion.api.TerminalCompletionCandidateKind
 import io.github.ketraterm.completion.api.TerminalCompletionRequest
 import io.github.ketraterm.completion.api.TerminalCompletionSource
+import io.github.ketraterm.completion.commandline.GenericCommandLineShapeClassifier
 import io.github.ketraterm.completion.commandline.TerminalCommandLineClassifier
-import io.github.ketraterm.completion.model.TerminalCommandLineShape
 import io.github.ketraterm.completion.model.TerminalCommandShapeStats
 import io.github.ketraterm.completion.model.TerminalCommandSpec
 import kotlin.test.Test
@@ -325,7 +325,7 @@ class ShapeAwareCompletionSourceTest {
         dismissedCount: Int = 0,
     ): TerminalCommandShapeStats =
         TerminalCommandShapeStats(
-            shape = TerminalCommandLineShape.fromCommandLine(commandLine)!!,
+            shape = GenericCommandLineShapeClassifier.classify(commandLine)!!,
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
             useCount = useCount,

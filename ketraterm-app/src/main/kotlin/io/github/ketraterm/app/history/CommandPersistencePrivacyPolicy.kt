@@ -112,9 +112,6 @@ internal object CommandPersistencePrivacyPolicy {
                 return CommandPersistencePrivacyDecision.sensitiveKeyword(it, SHAPE_OPTION_NAME)
             }
         }
-        findSensitiveKeyword(record.shape.normalizedShapeKey)?.let {
-            return CommandPersistencePrivacyDecision.sensitiveKeyword(it, SHAPE_KEY)
-        }
         return CommandPersistencePrivacyDecision.ALLOWED
     }
 

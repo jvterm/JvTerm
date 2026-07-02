@@ -124,29 +124,9 @@ class CommandPersistencePrivacyPolicyTest {
         assertFalse(CommandPersistencePrivacyPolicy.allowsShapeStats(shapeStats("curl --authorization bearer")))
     }
 
-    @Test
-    fun `rejects sensitive normalized shape key`() {
-        val shape =
-            TerminalCommandLineShape(
-                executable = "git",
-                subcommands = emptyList(),
-                optionNames = emptyList(),
-                positionalArgumentCount = 0,
-                optionValueCount = 0,
-                normalizedShapeKey = "git|secret",
-            )
-
-        val decision = CommandPersistencePrivacyPolicy.evaluateShapeStats(TerminalCommandShapeStats(shape = shape))
-
-        assertEquals(CommandPersistencePrivacyDecisionKind.SENSITIVE_KEYWORD, decision.kind)
-        assertEquals("secret", decision.matchedText)
-        assertEquals(CommandPersistencePrivacyDecisionLocation.SHAPE_KEY, decision.location)
-    }
-
     private fun commandStats(commandLine: String): TerminalCommandCompletionStats =
         TerminalCommandCompletionStats(
             commandLine = commandLine,
-            normalizedCommandLine = TerminalCommandCompletionStats.normalizeCommandLine(commandLine),
             useCount = 1,
             successCount = 1,
             lastUsedEpochMillis = 100,
@@ -154,7 +134,31 @@ class CommandPersistencePrivacyPolicyTest {
 
     private fun shapeStats(commandLine: String): TerminalCommandShapeStats =
         TerminalCommandShapeStats(
-            shape = TerminalCommandLineShape.fromCommandLine(commandLine)!!,
+            shape =
+                when (commandLine) {
+                    "git status" ->
+                        TerminalCommandLineShape(
+                            executable = "git",
+                            subcommands = listOf("status"),
+                        )
+                    "secret-tool list" ->
+                        TerminalCommandLineShape(
+                            executable = "secret-tool",
+                            subcommands = listOf("list"),
+                        )
+                    "git secret list" ->
+                        TerminalCommandLineShape(
+                            executable = "git",
+                            subcommands = listOf("secret", "list"),
+                        )
+                    "curl --authorization bearer" ->
+                        TerminalCommandLineShape(
+                            executable = "curl",
+                            optionNames = listOf("--authorization"),
+                            optionValueCount = 1,
+                        )
+                    else -> error("Unsupported test command: $commandLine")
+                },
             useCount = 1,
             successCount = 1,
             lastUsedEpochMillis = 100,

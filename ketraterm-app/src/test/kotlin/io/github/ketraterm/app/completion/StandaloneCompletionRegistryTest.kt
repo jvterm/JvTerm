@@ -291,7 +291,21 @@ class StandaloneCompletionRegistryTest {
         dismissedCount: Int = 0,
     ): TerminalCommandShapeStats =
         TerminalCommandShapeStats(
-            shape = TerminalCommandLineShape.fromCommandLine(commandLine)!!,
+            shape =
+                when (commandLine) {
+                    "git switch main" ->
+                        TerminalCommandLineShape(
+                            executable = "git",
+                            subcommands = listOf("switch"),
+                            positionalArgumentCount = 1,
+                        )
+                    "git status" ->
+                        TerminalCommandLineShape(
+                            executable = "git",
+                            subcommands = listOf("status"),
+                        )
+                    else -> error("Unsupported test command: $commandLine")
+                },
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
             acceptedCount = acceptedCount,

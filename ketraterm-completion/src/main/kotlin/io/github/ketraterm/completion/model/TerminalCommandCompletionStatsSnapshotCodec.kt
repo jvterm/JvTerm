@@ -132,7 +132,6 @@ object TerminalCommandCompletionStatsSnapshotCodec {
         return runCatching {
             TerminalCommandCompletionStats(
                 commandLine = decodeText(fields[1]),
-                normalizedCommandLine = decodeText(fields[2]),
                 profileId = decodeText(fields[3]).takeIf(String::isNotEmpty),
                 workingDirectoryUri = decodeText(fields[4]).takeIf(String::isNotEmpty),
                 useCount = fields[5].toInt(),
@@ -156,7 +155,6 @@ object TerminalCommandCompletionStatsSnapshotCodec {
                         optionNames = decodeTextList(fields[3]),
                         positionalArgumentCount = fields[4].toInt(),
                         optionValueCount = fields[5].toInt(),
-                        normalizedShapeKey = decodeText(fields[6]),
                     ),
                 profileId = decodeText(fields[7]).takeIf(String::isNotEmpty),
                 workingDirectoryUri = decodeText(fields[8]).takeIf(String::isNotEmpty),

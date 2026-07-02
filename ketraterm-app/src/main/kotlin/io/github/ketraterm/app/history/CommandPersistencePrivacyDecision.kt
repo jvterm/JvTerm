@@ -65,11 +65,6 @@ internal enum class CommandPersistencePrivacyDecisionLocation {
      * Public option name in a structural command shape.
      */
     SHAPE_OPTION_NAME,
-
-    /**
-     * Normalized structural command-shape key.
-     */
-    SHAPE_KEY,
 }
 
 /**

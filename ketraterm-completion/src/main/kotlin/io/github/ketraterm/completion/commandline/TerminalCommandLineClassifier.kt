@@ -32,9 +32,8 @@ internal object TerminalCommandLineClassifier {
      * Classifies [commandLine] using [specs].
      *
      * Blank, multi-line, assignment-only, and missing-executable inputs return
-     * `null`. Unknown executables fall back to the generic
-     * [TerminalCommandLineShape.fromCommandLine] classifier with private
-     * positional argument categories.
+     * `null`. Unknown executables fall back to the generic shape classifier
+     * with private positional argument categories.
      *
      * @param commandLine full command line to classify.
      * @param specs command specs used to recognize executable and subcommand paths.
@@ -128,7 +127,7 @@ internal object TerminalCommandLineClassifier {
     }
 
     private fun classifyWithoutSpec(commandLine: String): TerminalCommandLineClassification? {
-        val shape = TerminalCommandLineShape.fromCommandLine(commandLine) ?: return null
+        val shape = GenericCommandLineShapeClassifier.classify(commandLine) ?: return null
         val arguments =
             buildList(shape.positionalArgumentCount + shape.optionValueCount) {
                 repeat(shape.optionValueCount) {

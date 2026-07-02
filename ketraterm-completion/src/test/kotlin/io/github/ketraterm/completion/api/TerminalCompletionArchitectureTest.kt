@@ -106,6 +106,29 @@ internal class TerminalCompletionArchitectureTest {
     }
 
     @Test
+    fun `public model helper functions expose only reviewed contracts`() {
+        val violations =
+            kotlinFiles(completionMainRoot.resolve("model")).flatMap { file ->
+                val allowedFunctions = PUBLIC_MODEL_MEMBER_FUNCTIONS[file.relativeToCompletionRoot()] ?: emptySet()
+                file
+                    .readSourceLines()
+                    .mapIndexedNotNull { index, line ->
+                        val functionName = PUBLIC_MEMBER_FUNCTION.find(line)?.groupValues?.get(1)
+                        if (functionName != null && functionName !in allowedFunctions) {
+                            "${file.relativeToRepository()}:${index + 1}: $line"
+                        } else {
+                            null
+                        }
+                    }
+            }
+
+        assertTrue(
+            actual = violations.isEmpty(),
+            message = violations.joinToString(prefix = "Unreviewed public model helper functions:\n", separator = "\n"),
+        )
+    }
+
+    @Test
     fun `external modules import only completion api or model packages`() {
         val violations =
             EXTERNAL_MODULES.flatMap { moduleName ->
@@ -151,6 +174,11 @@ internal class TerminalCompletionArchitectureTest {
 
     private fun Path.relativeToRepository(): String =
         repositoryRoot
+            .relativize(this)
+            .invariantSeparatorsPathString
+
+    private fun Path.relativeToCompletionRoot(): String =
+        completionMainRoot
             .relativize(this)
             .invariantSeparatorsPathString
 
@@ -227,10 +255,16 @@ internal class TerminalCompletionArchitectureTest {
             setOf(
                 "fromSources",
             )
+        private val PUBLIC_MODEL_MEMBER_FUNCTIONS =
+            mapOf(
+                "model/TerminalCommandCompletionStatsSnapshotCodec.kt" to setOf("decode", "encode"),
+                "model/TerminalCommandSpecs.kt" to setOf("defaults", "docker", "git", "gradle", "npm"),
+                "model/TerminalCompletionFeedbackStats.kt" to setOf("fromCandidateKind"),
+            )
 
         private val PUBLIC_TOP_LEVEL_DECLARATION =
             Regex("""^(data class|enum class|fun interface|sealed interface|class|fun|interface|object)\s+([A-Za-z0-9_]+).*""")
-        private val PUBLIC_MEMBER_FUNCTION = Regex("""^\s{4}fun\s+([A-Za-z0-9_]+)\(.*""")
+        private val PUBLIC_MEMBER_FUNCTION = Regex("""^\s+(?!private |internal )fun\s+([A-Za-z0-9_]+)\(.*""")
         private val IMPLEMENTATION_IMPORT =
             Regex("""import io\.github\.ketraterm\.completion\.(commandline|engine|internal|ranking|source|spec|stats)(\.|$).*""")
     }

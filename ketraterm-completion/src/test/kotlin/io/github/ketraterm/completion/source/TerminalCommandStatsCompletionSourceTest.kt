@@ -55,7 +55,6 @@ class TerminalCommandStatsCompletionSourceTest {
             listOf(
                 TerminalCommandCompletionStats(
                     commandLine = "git status",
-                    normalizedCommandLine = "git status",
                     profileId = "bash",
                     workingDirectoryUri = null,
                     useCount = 2,
@@ -114,7 +113,6 @@ class TerminalCommandStatsCompletionSourceTest {
             listOf(
                 TerminalCommandCompletionStats(
                     commandLine = "git alpha",
-                    normalizedCommandLine = "git alpha",
                     useCount = 50,
                     successCount = 50,
                     acceptedCount = 50,
@@ -122,7 +120,6 @@ class TerminalCommandStatsCompletionSourceTest {
                 ),
                 TerminalCommandCompletionStats(
                     commandLine = "git beta",
-                    normalizedCommandLine = "git beta",
                     useCount = 500,
                     successCount = 500,
                     acceptedCount = 500,
@@ -456,7 +453,6 @@ class TerminalCommandStatsCompletionSourceTest {
     ): TerminalCommandCompletionStats =
         TerminalCommandCompletionStats(
             commandLine = commandLine,
-            normalizedCommandLine = TerminalCommandCompletionStats.normalizeCommandLine(commandLine),
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
             useCount = 0,

@@ -59,7 +59,6 @@ class StandaloneCompletionFeedbackRecorderTest {
             listOf(
                 TerminalCommandCompletionStats(
                     commandLine = "git status",
-                    normalizedCommandLine = "git status",
                     profileId = "bash",
                     workingDirectoryUri = "file:///repo",
                     acceptedCount = 1,
@@ -122,7 +121,6 @@ class StandaloneCompletionFeedbackRecorderTest {
             listOf(
                 TerminalCommandCompletionStats(
                     commandLine = "git status",
-                    normalizedCommandLine = "git status",
                     profileId = "bash",
                     workingDirectoryUri = "file:///repo",
                     dismissedCount = 1,

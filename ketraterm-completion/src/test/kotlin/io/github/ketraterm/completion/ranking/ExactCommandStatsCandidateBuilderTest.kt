@@ -178,7 +178,6 @@ class ExactCommandStatsCandidateBuilderTest {
     ): TerminalCommandCompletionStats =
         TerminalCommandCompletionStats(
             commandLine = commandLine,
-            normalizedCommandLine = TerminalCommandCompletionStats.normalizeCommandLine(commandLine),
             profileId = profileId,
             workingDirectoryUri = workingDirectoryUri,
             useCount = useCount,

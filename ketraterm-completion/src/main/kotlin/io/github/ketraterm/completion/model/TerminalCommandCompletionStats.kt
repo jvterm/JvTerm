@@ -16,6 +16,7 @@
 package io.github.ketraterm.completion.model
 
 import io.github.ketraterm.completion.internal.hasTerminalCompletionLineBreak
+import io.github.ketraterm.completion.internal.normalizeTerminalCommandLine
 
 /**
  * Aggregated command statistics used by indexed history completion.
@@ -23,10 +24,10 @@ import io.github.ketraterm.completion.internal.hasTerminalCompletionLineBreak
  * The model stores compact counters instead of raw repeated history rows.
  * Hosts own persistence and import/export these values into
  * [TerminalCommandStatsCompletionSource]; this shared model performs no I/O.
+ * The normalized matching key is derived from [commandLine] so callers cannot
+ * persist contradictory command text and lookup state.
  *
  * @property commandLine canonical command text shown to the user.
- * @property normalizedCommandLine normalized command key used for prefix
- * matching and deduplication.
  * @property profileId optional host profile id associated with the stats row.
  * @property workingDirectoryUri optional working directory URI associated with
  * the stats row.
@@ -44,7 +45,6 @@ data class TerminalCommandCompletionStats
     @JvmOverloads
     constructor(
         val commandLine: String,
-        val normalizedCommandLine: String = normalizeCommandLine(commandLine),
         val profileId: String? = null,
         val workingDirectoryUri: String? = null,
         val useCount: Int = 0,
@@ -57,7 +57,6 @@ data class TerminalCommandCompletionStats
         init {
             require(commandLine.isNotBlank()) { "commandLine must not be blank" }
             require(!commandLine.hasTerminalCompletionLineBreak()) { "commandLine must not contain line breaks" }
-            require(normalizedCommandLine.isNotBlank()) { "normalizedCommandLine must not be blank" }
             require(useCount >= 0) { "useCount must be >= 0, was $useCount" }
             require(successCount >= 0) { "successCount must be >= 0, was $successCount" }
             require(failureCount >= 0) { "failureCount must be >= 0, was $failureCount" }
@@ -66,14 +65,9 @@ data class TerminalCommandCompletionStats
             require(lastUsedEpochMillis >= 0L) { "lastUsedEpochMillis must be >= 0, was $lastUsedEpochMillis" }
         }
 
-        companion object {
-            /**
-             * Normalizes command text for case-insensitive prefix matching.
-             *
-             * @param commandLine command text to normalize.
-             * @return trimmed lowercase key.
-             */
-            @JvmStatic
-            fun normalizeCommandLine(commandLine: String): String = commandLine.trim().lowercase()
-        }
+        /**
+         * Derived lowercase key used for prefix matching and exact-row
+         * deduplication. This value is not constructor-owned durable state.
+         */
+        val normalizedCommandLine: String = normalizeTerminalCommandLine(commandLine)
     }
